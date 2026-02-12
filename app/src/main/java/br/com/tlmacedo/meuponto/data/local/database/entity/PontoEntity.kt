@@ -2,6 +2,8 @@
 package br.com.tlmacedo.meuponto.data.local.database.entity
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
@@ -16,10 +18,18 @@ import java.time.LocalTime
  * mapeando os campos para colunas no SQLite através do Room.
  *
  * @property id Identificador único auto-gerado
+ * @property empregoId FK para o emprego associado (default = 1 para migração)
  * @property dataHora Data e hora completa do registro
  * @property tipo Tipo do ponto (ENTRADA/SAIDA)
  * @property observacao Observação opcional
  * @property isEditadoManualmente Indica se foi editado após criação
+ * @property nsr Número Sequencial de Registro (opcional)
+ * @property latitude Latitude da localização (opcional)
+ * @property longitude Longitude da localização (opcional)
+ * @property endereco Endereço geocodificado (opcional)
+ * @property marcadorId FK para marcador/tag (opcional)
+ * @property justificativaInconsistencia Justificativa para registro inconsistente
+ * @property horaConsiderada Hora efetiva considerada após tolerância de intervalo
  * @property criadoEm Timestamp de criação
  * @property atualizadoEm Timestamp da última atualização
  * @property data Data extraída (para queries otimizadas)
@@ -27,17 +37,61 @@ import java.time.LocalTime
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.0.0 - Adicionado suporte a múltiplos empregos, localização e marcadores
  */
-@Entity(tableName = "pontos")
+@Entity(
+    tableName = "pontos",
+    foreignKeys = [
+        ForeignKey(
+            entity = EmpregoEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["empregoId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = MarcadorEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["marcadorId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [
+        Index(value = ["empregoId"]),
+        Index(value = ["data"]),
+        Index(value = ["empregoId", "data"]),
+        Index(value = ["marcadorId"])
+    ]
+)
 data class PontoEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val empregoId: Long = 1, // Default para migração de dados existentes
     val dataHora: LocalDateTime,
     val tipo: TipoPonto,
     val observacao: String? = null,
     val isEditadoManualmente: Boolean = false,
+    
+    // NSR - Número Sequencial de Registro
+    val nsr: String? = null,
+    
+    // Localização
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val endereco: String? = null,
+    
+    // Marcador/Tag
+    val marcadorId: Long? = null,
+    
+    // Inconsistências
+    val justificativaInconsistencia: String? = null,
+    
+    // Tolerância de intervalo
+    val horaConsiderada: LocalDateTime? = null,
+    
+    // Auditoria
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now(),
+    
     // Campos desnormalizados para facilitar queries por data/hora
     val data: LocalDate = dataHora.toLocalDate(),
     val hora: LocalTime = dataHora.toLocalTime()
@@ -54,10 +108,18 @@ data class PontoEntity(
  */
 fun PontoEntity.toDomain(): Ponto = Ponto(
     id = id,
+    empregoId = empregoId,
     dataHora = dataHora,
     tipo = tipo,
     observacao = observacao,
     isEditadoManualmente = isEditadoManualmente,
+    nsr = nsr,
+    latitude = latitude,
+    longitude = longitude,
+    endereco = endereco,
+    marcadorId = marcadorId,
+    justificativaInconsistencia = justificativaInconsistencia,
+    horaConsiderada = horaConsiderada,
     criadoEm = criadoEm,
     atualizadoEm = atualizadoEm
 )
@@ -69,10 +131,18 @@ fun PontoEntity.toDomain(): Ponto = Ponto(
  */
 fun Ponto.toEntity(): PontoEntity = PontoEntity(
     id = id,
+    empregoId = empregoId,
     dataHora = dataHora,
     tipo = tipo,
     observacao = observacao,
     isEditadoManualmente = isEditadoManualmente,
+    nsr = nsr,
+    latitude = latitude,
+    longitude = longitude,
+    endereco = endereco,
+    marcadorId = marcadorId,
+    justificativaInconsistencia = justificativaInconsistencia,
+    horaConsiderada = horaConsiderada,
     criadoEm = criadoEm,
     atualizadoEm = atualizadoEm
     // data e hora são calculados automaticamente a partir de dataHora

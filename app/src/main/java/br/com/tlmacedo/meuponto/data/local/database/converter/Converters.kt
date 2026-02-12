@@ -2,6 +2,10 @@
 package br.com.tlmacedo.meuponto.data.local.database.converter
 
 import androidx.room.TypeConverter
+import br.com.tlmacedo.meuponto.domain.model.AcaoAuditoria
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
+import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
+import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -16,6 +20,7 @@ import java.time.format.DateTimeFormatter
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.0.0 - Adicionado conversores para novos enums
  */
 class Converters {
 
@@ -126,5 +131,109 @@ class Converters {
     @TypeConverter
     fun toTipoPonto(value: String?): TipoPonto? {
         return value?.let { TipoPonto.valueOf(it) }
+    }
+
+    // ========================================================================
+    // TipoNsr Enum Converters
+    // ========================================================================
+
+    /**
+     * Converte TipoNsr enum para String.
+     *
+     * @param tipo Enum TipoNsr
+     * @return Nome do enum como String
+     */
+    @TypeConverter
+    fun fromTipoNsr(tipo: TipoNsr?): String? {
+        return tipo?.name
+    }
+
+    /**
+     * Converte String para TipoNsr enum.
+     *
+     * @param value Nome do enum
+     * @return TipoNsr ou null
+     */
+    @TypeConverter
+    fun toTipoNsr(value: String?): TipoNsr? {
+        return value?.let { TipoNsr.valueOf(it) }
+    }
+
+    // ========================================================================
+    // TipoFechamento Enum Converters
+    // ========================================================================
+
+    /**
+     * Converte TipoFechamento enum para String.
+     *
+     * @param tipo Enum TipoFechamento
+     * @return Nome do enum como String
+     */
+    @TypeConverter
+    fun fromTipoFechamento(tipo: TipoFechamento?): String? {
+        return tipo?.name
+    }
+
+    /**
+     * Converte String para TipoFechamento enum.
+     *
+     * @param value Nome do enum
+     * @return TipoFechamento ou null
+     */
+    @TypeConverter
+    fun toTipoFechamento(value: String?): TipoFechamento? {
+        return value?.let { TipoFechamento.valueOf(it) }
+    }
+
+    // ========================================================================
+    // DiaSemana Enum Converters
+    // ========================================================================
+
+    /**
+     * Converte DiaSemana enum para String.
+     *
+     * @param dia Enum DiaSemana
+     * @return Nome do enum como String
+     */
+    @TypeConverter
+    fun fromDiaSemana(dia: DiaSemana?): String? {
+        return dia?.name
+    }
+
+    /**
+     * Converte String para DiaSemana enum.
+     *
+     * @param value Nome do enum
+     * @return DiaSemana ou null
+     */
+    @TypeConverter
+    fun toDiaSemana(value: String?): DiaSemana? {
+        return value?.let { DiaSemana.valueOf(it) }
+    }
+
+    // ========================================================================
+    // AcaoAuditoria Enum Converters
+    // ========================================================================
+
+    /**
+     * Converte AcaoAuditoria enum para String.
+     *
+     * @param acao Enum AcaoAuditoria
+     * @return Nome do enum como String
+     */
+    @TypeConverter
+    fun fromAcaoAuditoria(acao: AcaoAuditoria?): String? {
+        return acao?.name
+    }
+
+    /**
+     * Converte String para AcaoAuditoria enum.
+     *
+     * @param value Nome do enum
+     * @return AcaoAuditoria ou null
+     */
+    @TypeConverter
+    fun toAcaoAuditoria(value: String?): AcaoAuditoria? {
+        return value?.let { AcaoAuditoria.valueOf(it) }
     }
 }
