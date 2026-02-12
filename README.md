@@ -1,6 +1,3 @@
-cat > README.md << 'EOF'
-<div align="center">
-
 # 📱 MeuPonto
 
 ### Aplicativo Android para Controle de Banco de Horas
