@@ -8,6 +8,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.SettingsScreen
@@ -76,9 +77,11 @@ fun MeuPontoNavHost(
                 }
             )
         ) {
-            // TODO: Implementar EditPontoScreen
-            // val pontoId = it.arguments?.getLong(Route.ARG_PONTO_ID) ?: 0L
-            // EditPontoScreen(pontoId = pontoId, onNavigateBack = { navController.popBackStack() })
+            EditPontoScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }
