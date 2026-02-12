@@ -3,16 +3,15 @@ package br.com.tlmacedo.meuponto.presentation.screen.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoJornada
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.model.RegistroDiario
-import br.com.tlmacedo.meuponto.domain.model.SaldoHoras
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
-import br.com.tlmacedo.meuponto.domain.usecase.ponto.DeletarPontoUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterPontosDoDiaUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularResumoDiaUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.DeterminarProximoTipoPontoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.ExcluirPontoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.ListarPontosPorDataUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.RegistrarPontoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,20 +21,23 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import javax.inject.Inject
 
 /**
  * ViewModel da tela Home.
  *
- * Gerencia o estado da tela inicial, incluindo registro de pontos,
- * cálculo de horas trabalhadas e atualização do relógio em tempo real.
+ * Gerencia o estado da tela principal, coordenando as operações
+ * de registro, listagem, cálculo de resumo e banco de horas.
  *
- * @property registrarPontoUseCase Caso de uso para registrar pontos
- * @property obterPontosDoDiaUseCase Caso de uso para obter pontos do dia
- * @property deletarPontoUseCase Caso de uso para deletar pontos
+ * @property registrarPontoUseCase Caso de uso para registrar ponto
+ * @property listarPontosPorDataUseCase Caso de uso para listar pontos
+ * @property calcularResumoDiaUseCase Caso de uso para calcular resumo
+ * @property calcularBancoHorasUseCase Caso de uso para calcular banco de horas
+ * @property determinarProximoTipoPontoUseCase Caso de uso para determinar próximo tipo
+ * @property excluirPontoUseCase Caso de uso para excluir ponto
  *
  * @author Thiago
  * @since 1.0.0
@@ -43,184 +45,199 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val registrarPontoUseCase: RegistrarPontoUseCase,
-    private val obterPontosDoDiaUseCase: ObterPontosDoDiaUseCase,
-    private val deletarPontoUseCase: DeletarPontoUseCase
+    private val listarPontosPorDataUseCase: ListarPontosPorDataUseCase,
+    private val calcularResumoDiaUseCase: CalcularResumoDiaUseCase,
+    private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase,
+    private val determinarProximoTipoPontoUseCase: DeterminarProximoTipoPontoUseCase,
+    private val excluirPontoUseCase: ExcluirPontoUseCase
 ) : ViewModel() {
 
-    // Estado da UI
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    // Eventos únicos
     private val _uiEvent = MutableSharedFlow<HomeUiEvent>()
     val uiEvent: SharedFlow<HomeUiEvent> = _uiEvent.asSharedFlow()
 
-    // Job do relógio
-    private var clockJob: Job? = null
-
-    // Configuração de jornada
-    private val configuracao = ConfiguracaoJornada.default()
-
     init {
-        observarPontosHoje()
-        iniciarRelogio()
+        carregarDados()
+        iniciarRelogioAtualizado()
     }
 
     /**
-     * Processa as ações da tela.
-     *
-     * @param action Ação disparada pelo usuário
+     * Processa as ações do usuário.
      */
     fun onAction(action: HomeAction) {
         when (action) {
-            is HomeAction.RegistrarPonto -> registrarPonto()
-            is HomeAction.ExcluirPonto -> excluirPonto(action.ponto)
+            is HomeAction.RegistrarPontoAgora -> registrarPonto(LocalTime.now())
+            is HomeAction.AbrirTimePickerDialog -> abrirTimePicker()
+            is HomeAction.FecharTimePickerDialog -> fecharTimePicker()
+            is HomeAction.RegistrarPontoManual -> registrarPonto(action.hora)
+            is HomeAction.SolicitarExclusao -> solicitarExclusao(action.ponto)
+            is HomeAction.CancelarExclusao -> cancelarExclusao()
+            is HomeAction.ConfirmarExclusao -> confirmarExclusao()
             is HomeAction.EditarPonto -> navegarParaEdicao(action.pontoId)
-            is HomeAction.AtualizarRelogio -> atualizarRelogio()
-            is HomeAction.LimparErro -> limparErro()
-            is HomeAction.Recarregar -> recarregar()
+            is HomeAction.NavegarParaHistorico -> navegarParaHistorico()
+            is HomeAction.NavegarParaConfiguracoes -> navegarParaConfiguracoes()
+            is HomeAction.AtualizarHora -> atualizarHora()
         }
     }
 
     /**
-     * Observa os pontos do dia atual de forma reativa.
+     * Carrega os dados da tela.
      */
-    private fun observarPontosHoje() {
+    private fun carregarDados() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            obterPontosDoDiaUseCase(LocalDate.now()).collect { pontos ->
-                Timber.d("Pontos do dia atualizados: ${pontos.size}")
-                atualizarEstadoComPontos(pontos)
+            // Observa pontos do dia
+            listarPontosPorDataUseCase(LocalDate.now()).collect { pontos ->
+                val resumo = calcularResumoDiaUseCase(pontos, LocalDate.now())
+                val proximoTipo = determinarProximoTipoPontoUseCase(pontos)
+
+                _uiState.update {
+                    it.copy(
+                        pontosHoje = pontos,
+                        resumoDia = resumo,
+                        proximoTipo = proximoTipo,
+                        isLoading = false
+                    )
+                }
             }
         }
-    }
 
-    /**
-     * Atualiza o estado da UI com base nos pontos recebidos.
-     */
-    private fun atualizarEstadoComPontos(pontos: List<Ponto>) {
-        val registroDiario = RegistroDiario(
-            data = LocalDate.now(),
-            pontos = pontos,
-            cargaHorariaDiariaMinutos = configuracao.cargaHorariaDiariaMinutos,
-            intervaloMinimoMinutos = configuracao.intervaloMinimoMinutos,
-            toleranciaMinutos = configuracao.toleranciaMinutos,
-            jornadaMaximaMinutos = configuracao.jornadaMaximaDiariaMinutos
-        )
-
-        val horasTrabalhadas = registroDiario.calcularMinutosTrabalhados()
-        val saldoMinutos = registroDiario.calcularSaldoMinutos()
-        val saldo = saldoMinutos?.let { SaldoHoras(it) }
-        val status = registroDiario.determinarStatus()
-        val proximoTipo = registroDiario.proximoPontoEsperado
-
-        _uiState.update { state ->
-            state.copy(
-                pontosHoje = pontos.sortedBy { it.dataHora },
-                proximoTipo = proximoTipo,
-                horasTrabalhadas = horasTrabalhadas,
-                saldoDia = saldo,
-                statusDia = status,
-                isLoading = false
-            )
-        }
-    }
-
-    /**
-     * Inicia o relógio que atualiza a cada segundo.
-     */
-    private fun iniciarRelogio() {
-        clockJob?.cancel()
-        clockJob = viewModelScope.launch {
-            while (true) {
-                _uiState.update { it.copy(horaAtual = LocalDateTime.now()) }
-                delay(1000L)
-            }
-        }
-    }
-
-    /**
-     * Atualiza o horário atual manualmente.
-     */
-    private fun atualizarRelogio() {
-        _uiState.update { it.copy(horaAtual = LocalDateTime.now()) }
-    }
-
-    /**
-     * Registra um novo ponto.
-     */
-    private fun registrarPonto() {
+        // Carrega banco de horas separadamente
         viewModelScope.launch {
-            _uiState.update { it.copy(isRegistrando = true) }
+            calcularBancoHorasUseCase().collect { banco ->
+                _uiState.update { it.copy(bancoHoras = banco) }
+            }
+        }
+    }
 
-            val resultado = registrarPontoUseCase()
+    /**
+     * Inicia o timer para atualizar a hora atual.
+     */
+    private fun iniciarRelogioAtualizado() {
+        viewModelScope.launch {
+            while (true) {
+                _uiState.update { it.copy(horaAtual = LocalTime.now()) }
+                delay(1000L) // Atualiza a cada segundo
+            }
+        }
+    }
 
-            resultado.fold(
-                onSuccess = { ponto ->
-                    Timber.d("Ponto registrado: $ponto")
+    /**
+     * Atualiza a hora atual.
+     */
+    private fun atualizarHora() {
+        _uiState.update { it.copy(horaAtual = LocalTime.now()) }
+    }
+
+    /**
+     * Registra um ponto com o horário especificado.
+     */
+    private fun registrarPonto(hora: LocalTime) {
+        viewModelScope.launch {
+            val tipo = _uiState.value.proximoTipo
+            val dataHora = LocalDateTime.of(LocalDate.now(), hora)
+
+            registrarPontoUseCase(dataHora, tipo)
+                .onSuccess {
                     _uiEvent.emit(
-                        HomeUiEvent.PontoRegistrado(
-                            "Ponto de ${ponto.tipo.descricao} registrado às ${ponto.horaFormatada}"
+                        HomeUiEvent.MostrarMensagem(
+                            "${tipo.descricao} registrada às ${hora.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))}"
                         )
                     )
-                },
-                onFailure = { erro ->
-                    Timber.e(erro, "Erro ao registrar ponto")
-                    _uiState.update { it.copy(errorMessage = erro.message) }
+                    fecharTimePicker()
                 }
-            )
-
-            _uiState.update { it.copy(isRegistrando = false) }
+                .onFailure { error ->
+                    _uiEvent.emit(
+                        HomeUiEvent.MostrarErro(error.message ?: "Erro ao registrar ponto")
+                    )
+                }
         }
     }
 
     /**
-     * Exclui um ponto existente.
+     * Abre o dialog de seleção de horário.
      */
-    private fun excluirPonto(ponto: Ponto) {
-        viewModelScope.launch {
-            val resultado = deletarPontoUseCase(ponto)
+    private fun abrirTimePicker() {
+        _uiState.update { it.copy(showTimePickerDialog = true) }
+    }
 
-            resultado.fold(
-                onSuccess = {
-                    Timber.d("Ponto excluído: ${ponto.id}")
-                    _uiEvent.emit(HomeUiEvent.PontoExcluido)
-                    _uiEvent.emit(HomeUiEvent.ShowSnackbar("Ponto excluído com sucesso"))
-                },
-                onFailure = { erro ->
-                    Timber.e(erro, "Erro ao excluir ponto")
-                    _uiState.update { it.copy(errorMessage = erro.message) }
-                }
+    /**
+     * Fecha o dialog de seleção de horário.
+     */
+    private fun fecharTimePicker() {
+        _uiState.update { it.copy(showTimePickerDialog = false) }
+    }
+
+    /**
+     * Solicita confirmação para excluir um ponto.
+     */
+    private fun solicitarExclusao(ponto: Ponto) {
+        _uiState.update {
+            it.copy(
+                showDeleteConfirmDialog = true,
+                pontoParaExcluir = ponto
             )
         }
     }
 
     /**
-     * Navega para a tela de edição de ponto.
+     * Cancela a exclusão de um ponto.
+     */
+    private fun cancelarExclusao() {
+        _uiState.update {
+            it.copy(
+                showDeleteConfirmDialog = false,
+                pontoParaExcluir = null
+            )
+        }
+    }
+
+    /**
+     * Confirma a exclusão do ponto selecionado.
+     */
+    private fun confirmarExclusao() {
+        val ponto = _uiState.value.pontoParaExcluir ?: return
+
+        viewModelScope.launch {
+            excluirPontoUseCase(ponto)
+                .onSuccess {
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ponto excluído com sucesso"))
+                }
+                .onFailure { error ->
+                    _uiEvent.emit(HomeUiEvent.MostrarErro(error.message ?: "Erro ao excluir"))
+                }
+
+            cancelarExclusao()
+        }
+    }
+
+    /**
+     * Navega para edição de ponto.
      */
     private fun navegarParaEdicao(pontoId: Long) {
         viewModelScope.launch {
-            _uiEvent.emit(HomeUiEvent.NavigateToEditPonto(pontoId))
+            _uiEvent.emit(HomeUiEvent.NavegarParaEdicao(pontoId))
         }
     }
 
     /**
-     * Limpa a mensagem de erro.
+     * Navega para tela de histórico.
      */
-    private fun limparErro() {
-        _uiState.update { it.copy(errorMessage = null) }
+    private fun navegarParaHistorico() {
+        viewModelScope.launch {
+            _uiEvent.emit(HomeUiEvent.NavegarParaHistorico)
+        }
     }
 
     /**
-     * Recarrega os dados da tela.
+     * Navega para tela de configurações.
      */
-    private fun recarregar() {
-        observarPontosHoje()
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        clockJob?.cancel()
+    private fun navegarParaConfiguracoes() {
+        viewModelScope.launch {
+            _uiEvent.emit(HomeUiEvent.NavegarParaConfiguracoes)
+        }
     }
 }

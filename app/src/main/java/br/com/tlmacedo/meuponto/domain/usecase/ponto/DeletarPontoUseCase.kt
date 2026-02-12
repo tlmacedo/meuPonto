@@ -28,7 +28,7 @@ class DeletarPontoUseCase @Inject constructor(
      */
     suspend operator fun invoke(ponto: Ponto): Result<Unit> {
         return try {
-            repository.deletar(ponto)
+            repository.excluir(ponto)
             Timber.d("Ponto deletado com sucesso: id=${ponto.id}")
             Result.success(Unit)
         } catch (e: Exception) {

@@ -1,54 +1,65 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeUiState.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
+import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.model.SaldoHoras
-import br.com.tlmacedo.meuponto.domain.model.StatusDia
+import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import java.time.LocalDate
-import java.time.LocalDateTime
+import java.time.LocalTime
 
 /**
- * Estado da interface da tela Home.
+ * Estado da tela Home.
  *
- * Contém todos os dados necessários para renderizar a tela inicial,
- * incluindo pontos do dia, saldo, status e estado de carregamento.
+ * Contém todos os dados necessários para renderização da tela principal,
+ * incluindo pontos do dia, resumo, banco de horas e estados de UI.
  *
- * @property dataAtual Data atualmente selecionada
- * @property horaAtual Hora atual para exibição do relógio
- * @property pontosHoje Lista de pontos registrados no dia
+ * @property dataAtual Data selecionada
+ * @property horaAtual Hora atual (atualiza a cada segundo)
+ * @property pontosHoje Lista de pontos do dia
+ * @property resumoDia Resumo calculado do dia
+ * @property bancoHoras Banco de horas acumulado
  * @property proximoTipo Próximo tipo de ponto esperado
- * @property horasTrabalhadas Total de minutos trabalhados no dia
- * @property saldoDia Saldo de horas do dia
- * @property statusDia Status de consistência dos registros
  * @property isLoading Indica se está carregando dados
- * @property isRegistrando Indica se está registrando um ponto
- * @property errorMessage Mensagem de erro para exibição
+ * @property showTimePickerDialog Controla exibição do dialog de horário
+ * @property showDeleteConfirmDialog Controla exibição do dialog de exclusão
+ * @property pontoParaExcluir Ponto selecionado para exclusão
  *
  * @author Thiago
  * @since 1.0.0
  */
 data class HomeUiState(
     val dataAtual: LocalDate = LocalDate.now(),
-    val horaAtual: LocalDateTime = LocalDateTime.now(),
+    val horaAtual: LocalTime = LocalTime.now(),
     val pontosHoje: List<Ponto> = emptyList(),
+    val resumoDia: ResumoDia = ResumoDia(data = LocalDate.now()),
+    val bancoHoras: BancoHoras = BancoHoras(),
     val proximoTipo: TipoPonto = TipoPonto.ENTRADA,
-    val horasTrabalhadas: Int? = null,
-    val saldoDia: SaldoHoras? = null,
-    val statusDia: StatusDia = StatusDia.SEM_REGISTRO,
     val isLoading: Boolean = false,
-    val isRegistrando: Boolean = false,
-    val errorMessage: String? = null
+    val showTimePickerDialog: Boolean = false,
+    val showDeleteConfirmDialog: Boolean = false,
+    val pontoParaExcluir: Ponto? = null
 ) {
     /**
-     * Verifica se o botão de registro deve estar habilitado.
+     * Formata a data atual para exibição.
      */
-    val canRegisterPonto: Boolean
-        get() = !isRegistrando && !isLoading && pontosHoje.size < TipoPonto.MAX_PONTOS
+    val dataFormatada: String
+        get() {
+            val hoje = LocalDate.now()
+            return when (dataAtual) {
+                hoje -> "Hoje"
+                hoje.minusDays(1) -> "Ontem"
+                else -> {
+                    val formatter = java.time.format.DateTimeFormatter
+                        .ofPattern("EEEE, dd 'de' MMMM", java.util.Locale("pt", "BR"))
+                    dataAtual.format(formatter).replaceFirstChar { it.uppercase() }
+                }
+            }
+        }
 
     /**
-     * Quantidade de pontos registrados no dia.
+     * Verifica se há pontos registrados no dia.
      */
-    val quantidadePontos: Int
-        get() = pontosHoje.size
+    val temPontos: Boolean
+        get() = pontosHoje.isNotEmpty()
 }

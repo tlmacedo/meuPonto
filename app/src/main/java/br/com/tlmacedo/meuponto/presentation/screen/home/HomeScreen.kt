@@ -1,7 +1,13 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -11,82 +17,144 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.tlmacedo.meuponto.presentation.components.DateTimeDisplay
-import br.com.tlmacedo.meuponto.presentation.components.LoadingIndicator
+import br.com.tlmacedo.meuponto.presentation.components.IntervaloCard
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
-import br.com.tlmacedo.meuponto.presentation.components.PontoButton
-import br.com.tlmacedo.meuponto.presentation.components.PontoCard
-import br.com.tlmacedo.meuponto.presentation.components.SummaryCard
-import kotlinx.coroutines.flow.collectLatest
+import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoButton
+import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
+import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
 
 /**
- * Tela inicial do aplicativo.
+ * Tela principal do aplicativo Meu Ponto.
  *
- * Exibe o relógio, botão de registro de ponto, resumo do dia
- * e lista de pontos registrados.
+ * Exibe o resumo do dia, botão de registro de ponto,
+ * e lista de intervalos trabalhados de forma visual e intuitiva.
  *
+ * @param viewModel ViewModel da tela
  * @param onNavigateToHistory Callback para navegar ao histórico
+ * @param onNavigateToSettings Callback para navegar às configurações
  * @param onNavigateToEditPonto Callback para navegar à edição de ponto
- * @param modifier Modificador opcional para customização do layout
- * @param viewModel ViewModel da tela (injetado pelo Hilt)
  *
  * @author Thiago
  * @since 1.0.0
  */
 @Composable
 fun HomeScreen(
-    onNavigateToHistory: () -> Unit,
-    onNavigateToEditPonto: (Long) -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    onNavigateToHistory: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToEditPonto: (Long) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Observa eventos únicos
+    // Coleta eventos
     LaunchedEffect(Unit) {
-        viewModel.uiEvent.collectLatest { event ->
+        viewModel.uiEvent.collect { event ->
             when (event) {
-                is HomeUiEvent.ShowSnackbar -> {
-                    snackbarHostState.showSnackbar(event.message)
+                is HomeUiEvent.MostrarMensagem -> {
+                    snackbarHostState.showSnackbar(event.mensagem)
                 }
-                is HomeUiEvent.NavigateToEditPonto -> {
-                    onNavigateToEditPonto(event.pontoId)
+                is HomeUiEvent.MostrarErro -> {
+                    snackbarHostState.showSnackbar(event.mensagem)
                 }
-                is HomeUiEvent.NavigateToHistory -> {
+                is HomeUiEvent.NavegarParaHistorico -> {
                     onNavigateToHistory()
                 }
-                is HomeUiEvent.PontoRegistrado -> {
-                    snackbarHostState.showSnackbar(event.message)
+                is HomeUiEvent.NavegarParaConfiguracoes -> {
+                    onNavigateToSettings()
                 }
-                is HomeUiEvent.PontoExcluido -> {
-                    // Já tratado com ShowSnackbar
+                is HomeUiEvent.NavegarParaEdicao -> {
+                    onNavigateToEditPonto(event.pontoId)
                 }
             }
         }
     }
 
+    // Dialog de TimePicker
+    if (uiState.showTimePickerDialog) {
+        TimePickerDialog(
+            titulo = "Registrar ${uiState.proximoTipo.descricao}",
+            horaInicial = uiState.horaAtual,
+            onConfirm = { hora ->
+                viewModel.onAction(HomeAction.RegistrarPontoManual(hora))
+            },
+            onDismiss = {
+                viewModel.onAction(HomeAction.FecharTimePickerDialog)
+            }
+        )
+    }
+
+    // Dialog de confirmação de exclusão
+    if (uiState.showDeleteConfirmDialog && uiState.pontoParaExcluir != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onAction(HomeAction.CancelarExclusao) },
+            title = { Text("Excluir Ponto") },
+            text = {
+                Text(
+                    "Deseja realmente excluir o registro de ${uiState.pontoParaExcluir!!.tipo.descricao} às ${
+                        uiState.pontoParaExcluir!!.hora.format(
+                            java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                        )
+                    }?"
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.onAction(HomeAction.ConfirmarExclusao) }
+                ) {
+                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.onAction(HomeAction.CancelarExclusao) }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
-            MeuPontoTopBar(title = "Meu Ponto")
+            MeuPontoTopBar(
+                title = "Meu Ponto",
+                showHistoryButton = true,
+                showSettingsButton = true,
+                onHistoryClick = { viewModel.onAction(HomeAction.NavegarParaHistorico) },
+                onSettingsClick = { viewModel.onAction(HomeAction.NavegarParaConfiguracoes) }
+            )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        modifier = modifier
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         if (uiState.isLoading) {
-            LoadingIndicator()
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                CircularProgressIndicator()
+            }
         } else {
             HomeContent(
                 uiState = uiState,
@@ -99,10 +167,6 @@ fun HomeScreen(
 
 /**
  * Conteúdo principal da tela Home.
- *
- * @param uiState Estado atual da UI
- * @param onAction Callback para processar ações
- * @param modifier Modificador opcional
  */
 @Composable
 private fun HomeContent(
@@ -111,51 +175,89 @@ private fun HomeContent(
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        horizontalAlignment = Alignment.CenterHorizontally,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxSize()
     ) {
-        // Relógio
+        // Data atual
         item {
-            DateTimeDisplay(
-                dataHora = uiState.horaAtual
+            Text(
+                text = uiState.dataFormatada,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
 
-        // Botão de registro
+        // Card de Resumo
         item {
-            Spacer(modifier = Modifier.height(16.dp))
+            ResumoCard(
+                resumoDia = uiState.resumoDia,
+                bancoHoras = uiState.bancoHoras
+            )
+        }
 
-            PontoButton(
+        // Botão de Registrar Ponto
+        item {
+            RegistrarPontoButton(
                 proximoTipo = uiState.proximoTipo,
-                onClick = { onAction(HomeAction.RegistrarPonto) },
-                enabled = uiState.canRegisterPonto
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // Card de resumo
-        item {
-            SummaryCard(
-                horasTrabalhadas = uiState.horasTrabalhadas,
-                saldo = uiState.saldoDia,
-                statusDia = uiState.statusDia
+                horaAtual = uiState.horaAtual,
+                onRegistrarAgora = { onAction(HomeAction.RegistrarPontoAgora) },
+                onRegistrarManual = { onAction(HomeAction.AbrirTimePickerDialog) }
             )
         }
 
-        // Lista de pontos do dia
-        if (uiState.pontosHoje.isNotEmpty()) {
-            items(
-                items = uiState.pontosHoje,
-                key = { it.id }
-            ) { ponto ->
-                PontoCard(
-                    ponto = ponto,
-                    onEditClick = { onAction(HomeAction.EditarPonto(ponto.id)) },
-                    onDeleteClick = { onAction(HomeAction.ExcluirPonto(ponto)) }
+        // Título da seção de intervalos
+        if (uiState.temPontos) {
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Registros de Hoje",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
+            }
+
+            // Lista de intervalos
+            items(
+                items = uiState.resumoDia.intervalos,
+                key = { it.entrada.id }
+            ) { intervalo ->
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
+                ) {
+                    IntervaloCard(intervalo = intervalo)
+                }
+            }
+        } else {
+            // Estado vazio
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "😴",
+                        style = MaterialTheme.typography.displayMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Nenhum ponto registrado hoje",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Toque no botão acima para começar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }

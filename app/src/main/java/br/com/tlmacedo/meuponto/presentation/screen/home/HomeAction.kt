@@ -2,49 +2,70 @@
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
+import java.time.LocalTime
 
 /**
- * Sealed class que representa as ações possíveis na tela Home.
+ * Ações possíveis na tela Home.
  *
- * Define todas as intenções do usuário que podem modificar
- * o estado da tela ou disparar operações.
+ * Define todas as interações do usuário que podem modificar o estado
+ * da tela principal ou disparar navegação.
  *
  * @author Thiago
  * @since 1.0.0
  */
-sealed class HomeAction {
+sealed interface HomeAction {
+    /**
+     * Registra ponto com horário atual.
+     */
+    data object RegistrarPontoAgora : HomeAction
 
     /**
-     * Ação para registrar um novo ponto.
+     * Abre dialog para registrar ponto com horário manual.
      */
-    data object RegistrarPonto : HomeAction()
+    data object AbrirTimePickerDialog : HomeAction
 
     /**
-     * Ação para excluir um ponto existente.
-     *
-     * @property ponto Ponto a ser excluído
+     * Fecha dialog de seleção de horário.
      */
-    data class ExcluirPonto(val ponto: Ponto) : HomeAction()
+    data object FecharTimePickerDialog : HomeAction
 
     /**
-     * Ação para navegar para edição de ponto.
-     *
-     * @property pontoId ID do ponto a ser editado
+     * Registra ponto com horário específico.
      */
-    data class EditarPonto(val pontoId: Long) : HomeAction()
+    data class RegistrarPontoManual(val hora: LocalTime) : HomeAction
 
     /**
-     * Ação para atualizar o relógio.
+     * Solicita confirmação para excluir um ponto.
      */
-    data object AtualizarRelogio : HomeAction()
+    data class SolicitarExclusao(val ponto: Ponto) : HomeAction
 
     /**
-     * Ação para limpar mensagem de erro.
+     * Cancela exclusão de ponto.
      */
-    data object LimparErro : HomeAction()
+    data object CancelarExclusao : HomeAction
 
     /**
-     * Ação para recarregar dados da tela.
+     * Confirma exclusão do ponto.
      */
-    data object Recarregar : HomeAction()
+    data object ConfirmarExclusao : HomeAction
+
+    /**
+     * Navega para editar um ponto existente.
+     */
+    data class EditarPonto(val pontoId: Long) : HomeAction
+
+    /**
+     * Navega para tela de histórico.
+     */
+    data object NavegarParaHistorico : HomeAction
+
+    /**
+     * Navega para tela de configurações.
+     */
+    data object NavegarParaConfiguracoes : HomeAction
+
+    /**
+     * Atualiza a hora atual (chamado pelo timer).
+     */
+    data object AtualizarHora : HomeAction
 }

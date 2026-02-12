@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/navigation/MeuPontoNavHost.kt
 package br.com.tlmacedo.meuponto.presentation.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -14,13 +15,14 @@ import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.SettingsScreen
 
 /**
- * Componente de navegação principal do aplicativo.
+ * NavHost principal da aplicação MeuPonto.
  *
- * Define o grafo de navegação com todas as telas e suas rotas,
- * gerenciando a pilha de navegação através do [NavHostController].
+ * Define todas as rotas de navegação e suas respectivas telas,
+ * gerenciando a pilha de navegação do aplicativo.
  *
- * @param navController Controlador de navegação do Jetpack Compose
- * @param modifier Modificador opcional para customização do layout
+ * @param navController Controlador de navegação
+ * @param modifier Modificador para o container
+ * @param startDestination Destino inicial (padrão: HOME)
  *
  * @author Thiago
  * @since 1.0.0
@@ -28,60 +30,60 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.SettingsScreen
 @Composable
 fun MeuPontoNavHost(
     navController: NavHostController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    startDestination: String = MeuPontoDestinations.HOME
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = Route.Home.route,
-        modifier = modifier
-    ) {
-        // Tela inicial
-        composable(route = Route.Home.route) {
-            HomeScreen(
-                onNavigateToHistory = {
-                    navController.navigate(Route.History.route)
-                },
-                onNavigateToEditPonto = { pontoId ->
-                    navController.navigate(Route.EditPonto.createRoute(pontoId))
-                }
-            )
-        }
-
-        // Tela de histórico
-        composable(route = Route.History.route) {
-            HistoryScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToEditPonto = { pontoId ->
-                    navController.navigate(Route.EditPonto.createRoute(pontoId))
-                }
-            )
-        }
-
-        // Tela de configurações
-        composable(route = Route.Settings.route) {
-            SettingsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // Tela de edição de ponto
-        composable(
-            route = Route.EditPonto.route,
-            arguments = listOf(
-                navArgument(Route.ARG_PONTO_ID) {
-                    type = NavType.LongType
-                }
-            )
+    Box(modifier = modifier) {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination
         ) {
-            EditPontoScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            // Tela inicial (Home)
+            composable(MeuPontoDestinations.HOME) {
+                HomeScreen(
+                    onNavigateToHistory = {
+                        navController.navigate(MeuPontoDestinations.HISTORY)
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(MeuPontoDestinations.SETTINGS)
+                    },
+                    onNavigateToEditPonto = { pontoId ->
+                        navController.navigate(MeuPontoDestinations.editPonto(pontoId))
+                    }
+                )
+            }
+
+            // Tela de histórico
+            composable(MeuPontoDestinations.HISTORY) {
+                HistoryScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditPonto = { pontoId ->
+                        navController.navigate(MeuPontoDestinations.editPonto(pontoId))
+                    }
+                )
+            }
+
+            // Tela de configurações
+            composable(MeuPontoDestinations.SETTINGS) {
+                SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Tela de edição de ponto
+            composable(
+                route = MeuPontoDestinations.EDIT_PONTO,
+                arguments = listOf(
+                    navArgument("pontoId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) {
+                EditPontoScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
