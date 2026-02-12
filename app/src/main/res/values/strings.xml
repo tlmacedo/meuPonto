@@ -1,3 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Meu Ponto</string>
+    
+    <!-- Geral -->
+    <string name="btn_confirmar">Confirmar</string>
+    <string name="btn_cancelar">Cancelar</string>
+    <string name="btn_salvar">Salvar</string>
+    <string name="btn_excluir">Excluir</string>
+    <string name="btn_editar">Editar</string>
+    
+    <!-- Navegacao -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_historico">Historico</string>
+    <string name="nav_configuracoes">Configuracoes</string>
+    <string name="nav_relatorios">Relatorios</string>
+    
+    <!-- Tipos de Ponto -->
+    <string name="tipo_entrada">Entrada</string>
+    <string name="tipo_saida_almoco">Saida Almoco</string>
+    <string name="tipo_retorno_almoco">Retorno Almoco</string>
+    <string name="tipo_saida">Saida</string>
+    
+    <!-- Home -->
+    <string name="home_titulo">Registro de Ponto</string>
+    <string name="home_btn_bater_ponto">Bater Ponto</string>
+    <string name="home_saldo_dia">Saldo do Dia</string>
+    
+    <!-- Mensagens -->
+    <string name="msg_ponto_registrado">Ponto registrado com sucesso!</string>
+    <string name="msg_erro_registrar">Erro ao registrar ponto</string>
+    <string name="msg_ponto_excluido">Ponto excluido</string>
+    <string name="msg_ponto_atualizado">Ponto atualizado</string>
 </resources>
