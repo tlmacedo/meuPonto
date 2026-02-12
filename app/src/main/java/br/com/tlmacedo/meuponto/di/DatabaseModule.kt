@@ -1,9 +1,11 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/di/DatabaseModule.kt
 package br.com.tlmacedo.meuponto.di
 
 import android.content.Context
 import androidx.room.Room
 import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
 import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_1_2
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,6 +20,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.0.0 - Adicionado suporte a migrations
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -39,7 +42,7 @@ object DatabaseModule {
             MeuPontoDatabase::class.java,
             MeuPontoDatabase.DATABASE_NAME
         )
-            .fallbackToDestructiveMigration()
+            .addMigrations(MIGRATION_1_2)
             .build()
     }
 

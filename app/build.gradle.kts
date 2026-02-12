@@ -50,6 +50,11 @@ android {
     }
 }
 
+// Configuração do Room para exportar schemas
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
@@ -94,5 +99,3 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
-
-
