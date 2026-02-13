@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * DAO para operações de banco de dados relacionadas aos Horários por Dia da Semana.
+ * 
+ * Gerencia a configuração de horários ideais, carga horária e tolerâncias
+ * de intervalo para cada dia da semana de um emprego.
  *
  * @author Thiago
  * @since 2.0.0
@@ -36,32 +39,51 @@ interface HorarioDiaSemanaDao {
     suspend fun excluir(horario: HorarioDiaSemanaEntity)
 
     // ========================================================================
-    // Consultas por configuração
+    // Consultas por emprego
     // ========================================================================
 
-    @Query("SELECT * FROM horarios_dia_semana WHERE configuracaoId = :configuracaoId ORDER BY diaSemana")
-    fun listarPorConfiguracao(configuracaoId: Long): Flow<List<HorarioDiaSemanaEntity>>
+    @Query("SELECT * FROM horarios_dia_semana WHERE empregoId = :empregoId ORDER BY diaSemana")
+    fun listarPorEmprego(empregoId: Long): Flow<List<HorarioDiaSemanaEntity>>
 
-    @Query("SELECT * FROM horarios_dia_semana WHERE configuracaoId = :configuracaoId ORDER BY diaSemana")
-    suspend fun buscarPorConfiguracao(configuracaoId: Long): List<HorarioDiaSemanaEntity>
+    @Query("SELECT * FROM horarios_dia_semana WHERE empregoId = :empregoId ORDER BY diaSemana")
+    suspend fun buscarPorEmprego(empregoId: Long): List<HorarioDiaSemanaEntity>
 
-    @Query("SELECT * FROM horarios_dia_semana WHERE configuracaoId = :configuracaoId AND diaSemana = :diaSemana")
-    suspend fun buscarPorConfiguracaoEDia(configuracaoId: Long, diaSemana: String): HorarioDiaSemanaEntity?
+    @Query("SELECT * FROM horarios_dia_semana WHERE empregoId = :empregoId AND diaSemana = :diaSemana")
+    suspend fun buscarPorEmpregoEDia(empregoId: Long, diaSemana: String): HorarioDiaSemanaEntity?
 
     @Query("SELECT * FROM horarios_dia_semana WHERE id = :id")
     suspend fun buscarPorId(id: Long): HorarioDiaSemanaEntity?
 
     // ========================================================================
+    // Consultas de dias ativos
+    // ========================================================================
+
+    @Query("SELECT * FROM horarios_dia_semana WHERE empregoId = :empregoId AND ativo = 1 ORDER BY diaSemana")
+    fun listarDiasAtivos(empregoId: Long): Flow<List<HorarioDiaSemanaEntity>>
+
+    @Query("SELECT * FROM horarios_dia_semana WHERE empregoId = :empregoId AND ativo = 1 ORDER BY diaSemana")
+    suspend fun buscarDiasAtivos(empregoId: Long): List<HorarioDiaSemanaEntity>
+
+    // ========================================================================
     // Operações em lote
     // ========================================================================
 
-    @Query("DELETE FROM horarios_dia_semana WHERE configuracaoId = :configuracaoId")
-    suspend fun excluirPorConfiguracao(configuracaoId: Long)
+    @Query("DELETE FROM horarios_dia_semana WHERE empregoId = :empregoId")
+    suspend fun excluirPorEmprego(empregoId: Long)
 
     // ========================================================================
-    // Consultas auxiliares
+    // Consultas auxiliares e cálculos
     // ========================================================================
 
-    @Query("SELECT COUNT(*) FROM horarios_dia_semana WHERE configuracaoId = :configuracaoId AND isDiaUtil = 1")
-    suspend fun contarDiasUteis(configuracaoId: Long): Int
+    @Query("SELECT COUNT(*) FROM horarios_dia_semana WHERE empregoId = :empregoId AND ativo = 1")
+    suspend fun contarDiasAtivos(empregoId: Long): Int
+
+    @Query("SELECT COALESCE(SUM(cargaHorariaMinutos), 0) FROM horarios_dia_semana WHERE empregoId = :empregoId AND ativo = 1")
+    suspend fun somarCargaHorariaSemanal(empregoId: Long): Int
+
+    @Query("SELECT cargaHorariaMinutos FROM horarios_dia_semana WHERE empregoId = :empregoId AND diaSemana = :diaSemana AND ativo = 1")
+    suspend fun buscarCargaHorariaDia(empregoId: Long, diaSemana: String): Int?
+
+    @Query("SELECT ativo FROM horarios_dia_semana WHERE empregoId = :empregoId AND diaSemana = :diaSemana")
+    suspend fun isDiaAtivo(empregoId: Long, diaSemana: String): Boolean?
 }

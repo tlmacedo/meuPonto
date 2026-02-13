@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * DAO para operações de banco de dados relacionadas aos Fechamentos de Período.
+ * 
+ * Gerencia o registro de fechamentos de período (semanal, mensal ou banco de horas),
+ * onde o saldo é zerado e registrado para histórico.
  *
  * @author Thiago
  * @since 2.0.0
@@ -46,11 +49,24 @@ interface FechamentoPeriodoDao {
     // Listagens por emprego
     // ========================================================================
 
-    @Query("SELECT * FROM fechamentos_periodo WHERE empregoId = :empregoId ORDER BY dataFim DESC")
+    @Query("SELECT * FROM fechamentos_periodo WHERE empregoId = :empregoId ORDER BY dataFimPeriodo DESC")
     fun listarPorEmprego(empregoId: Long): Flow<List<FechamentoPeriodoEntity>>
 
-    @Query("SELECT * FROM fechamentos_periodo WHERE empregoId = :empregoId ORDER BY dataFim DESC")
+    @Query("SELECT * FROM fechamentos_periodo WHERE empregoId = :empregoId ORDER BY dataFimPeriodo DESC")
     suspend fun buscarPorEmprego(empregoId: Long): List<FechamentoPeriodoEntity>
+
+    @Query("SELECT * FROM fechamentos_periodo WHERE empregoId = :empregoId ORDER BY dataFimPeriodo DESC LIMIT :limite")
+    fun listarUltimosPorEmprego(empregoId: Long, limite: Int): Flow<List<FechamentoPeriodoEntity>>
+
+    // ========================================================================
+    // Listagens por tipo
+    // ========================================================================
+
+    @Query("SELECT * FROM fechamentos_periodo WHERE empregoId = :empregoId AND tipo = :tipo ORDER BY dataFimPeriodo DESC")
+    fun listarPorTipo(empregoId: Long, tipo: String): Flow<List<FechamentoPeriodoEntity>>
+
+    @Query("SELECT * FROM fechamentos_periodo WHERE empregoId = :empregoId AND tipo = :tipo ORDER BY dataFimPeriodo DESC")
+    suspend fun buscarPorTipo(empregoId: Long, tipo: String): List<FechamentoPeriodoEntity>
 
     // ========================================================================
     // Consultas específicas
@@ -59,15 +75,15 @@ interface FechamentoPeriodoDao {
     @Query("""
         SELECT * FROM fechamentos_periodo 
         WHERE empregoId = :empregoId 
-        AND dataInicio = :dataInicio 
-        AND dataFim = :dataFim
+        AND dataInicioPeriodo = :dataInicio 
+        AND dataFimPeriodo = :dataFim
     """)
     suspend fun buscarPorPeriodo(empregoId: Long, dataInicio: String, dataFim: String): FechamentoPeriodoEntity?
 
     @Query("""
         SELECT * FROM fechamentos_periodo 
         WHERE empregoId = :empregoId 
-        ORDER BY dataFim DESC 
+        ORDER BY dataFimPeriodo DESC 
         LIMIT 1
     """)
     suspend fun buscarUltimoFechamento(empregoId: Long): FechamentoPeriodoEntity?
@@ -75,10 +91,19 @@ interface FechamentoPeriodoDao {
     @Query("""
         SELECT * FROM fechamentos_periodo 
         WHERE empregoId = :empregoId 
-        ORDER BY dataFim DESC 
+        ORDER BY dataFimPeriodo DESC 
         LIMIT 1
     """)
     fun observarUltimoFechamento(empregoId: Long): Flow<FechamentoPeriodoEntity?>
+
+    @Query("""
+        SELECT * FROM fechamentos_periodo 
+        WHERE empregoId = :empregoId 
+        AND tipo = :tipo
+        ORDER BY dataFimPeriodo DESC 
+        LIMIT 1
+    """)
+    suspend fun buscarUltimoFechamentoPorTipo(empregoId: Long, tipo: String): FechamentoPeriodoEntity?
 
     // ========================================================================
     // Verificações
@@ -88,17 +113,24 @@ interface FechamentoPeriodoDao {
         SELECT EXISTS(
             SELECT 1 FROM fechamentos_periodo 
             WHERE empregoId = :empregoId 
-            AND (
-                (dataInicio <= :dataFim AND dataFim >= :dataInicio)
-            )
+            AND (dataInicioPeriodo <= :dataFim AND dataFimPeriodo >= :dataInicio)
         )
     """)
     suspend fun existeFechamentoNoPeriodo(empregoId: Long, dataInicio: String, dataFim: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM fechamentos_periodo WHERE empregoId = :empregoId)")
+    suspend fun existeFechamentoPorEmprego(empregoId: Long): Boolean
 
     // ========================================================================
     // Cálculos
     // ========================================================================
 
-    @Query("SELECT saldoAcumulado FROM fechamentos_periodo WHERE empregoId = :empregoId ORDER BY dataFim DESC LIMIT 1")
-    suspend fun buscarSaldoAcumuladoAtual(empregoId: Long): Int?
+    @Query("SELECT saldoAnteriorMinutos FROM fechamentos_periodo WHERE empregoId = :empregoId ORDER BY dataFimPeriodo DESC LIMIT 1")
+    suspend fun buscarUltimoSaldoAnterior(empregoId: Long): Int?
+
+    @Query("SELECT COALESCE(SUM(saldoAnteriorMinutos), 0) FROM fechamentos_periodo WHERE empregoId = :empregoId")
+    suspend fun somarSaldosAnteriores(empregoId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM fechamentos_periodo WHERE empregoId = :empregoId")
+    suspend fun contarPorEmprego(empregoId: Long): Int
 }

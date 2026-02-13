@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * DAO para operações de banco de dados relacionadas aos Ajustes de Saldo.
+ * 
+ * Gerencia ajustes manuais no banco de horas, permitindo adicionar ou
+ * subtrair minutos do saldo com justificativa obrigatória para auditoria.
  *
  * @author Thiago
  * @since 2.0.0
@@ -46,11 +49,14 @@ interface AjusteSaldoDao {
     // Listagens por emprego
     // ========================================================================
 
-    @Query("SELECT * FROM ajustes_saldo WHERE empregoId = :empregoId ORDER BY dataReferencia DESC")
+    @Query("SELECT * FROM ajustes_saldo WHERE empregoId = :empregoId ORDER BY data DESC")
     fun listarPorEmprego(empregoId: Long): Flow<List<AjusteSaldoEntity>>
 
-    @Query("SELECT * FROM ajustes_saldo WHERE empregoId = :empregoId ORDER BY dataReferencia DESC")
+    @Query("SELECT * FROM ajustes_saldo WHERE empregoId = :empregoId ORDER BY data DESC")
     suspend fun buscarPorEmprego(empregoId: Long): List<AjusteSaldoEntity>
+
+    @Query("SELECT * FROM ajustes_saldo WHERE empregoId = :empregoId ORDER BY data DESC LIMIT :limite")
+    fun listarUltimosPorEmprego(empregoId: Long, limite: Int): Flow<List<AjusteSaldoEntity>>
 
     // ========================================================================
     // Listagens por período
@@ -59,18 +65,25 @@ interface AjusteSaldoDao {
     @Query("""
         SELECT * FROM ajustes_saldo 
         WHERE empregoId = :empregoId 
-        AND dataReferencia BETWEEN :dataInicio AND :dataFim 
-        ORDER BY dataReferencia ASC
+        AND data BETWEEN :dataInicio AND :dataFim 
+        ORDER BY data ASC
     """)
     fun listarPorPeriodo(empregoId: Long, dataInicio: String, dataFim: String): Flow<List<AjusteSaldoEntity>>
 
     @Query("""
         SELECT * FROM ajustes_saldo 
         WHERE empregoId = :empregoId 
-        AND dataReferencia BETWEEN :dataInicio AND :dataFim 
-        ORDER BY dataReferencia ASC
+        AND data BETWEEN :dataInicio AND :dataFim 
+        ORDER BY data ASC
     """)
     suspend fun buscarPorPeriodo(empregoId: Long, dataInicio: String, dataFim: String): List<AjusteSaldoEntity>
+
+    // ========================================================================
+    // Consultas por data específica
+    // ========================================================================
+
+    @Query("SELECT * FROM ajustes_saldo WHERE empregoId = :empregoId AND data = :data")
+    suspend fun buscarPorData(empregoId: Long, data: String): List<AjusteSaldoEntity>
 
     // ========================================================================
     // Cálculos
@@ -82,7 +95,10 @@ interface AjusteSaldoDao {
     @Query("""
         SELECT COALESCE(SUM(minutos), 0) FROM ajustes_saldo 
         WHERE empregoId = :empregoId 
-        AND dataReferencia BETWEEN :dataInicio AND :dataFim
+        AND data BETWEEN :dataInicio AND :dataFim
     """)
     suspend fun somarPorPeriodo(empregoId: Long, dataInicio: String, dataFim: String): Int
+
+    @Query("SELECT COUNT(*) FROM ajustes_saldo WHERE empregoId = :empregoId")
+    suspend fun contarPorEmprego(empregoId: Long): Int
 }

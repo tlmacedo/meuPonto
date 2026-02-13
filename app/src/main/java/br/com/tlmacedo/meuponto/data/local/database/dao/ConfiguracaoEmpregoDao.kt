@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * DAO para operações de banco de dados relacionadas às Configurações de Emprego.
+ * 
+ * Gerencia as configurações específicas de cada emprego, incluindo jornada,
+ * banco de horas, NSR, localização e preferências de exibição.
  *
  * @author Thiago
  * @since 2.0.0
@@ -32,6 +35,9 @@ interface ConfiguracaoEmpregoDao {
     @Delete
     suspend fun excluir(configuracao: ConfiguracaoEmpregoEntity)
 
+    @Query("DELETE FROM configuracoes_emprego WHERE id = :id")
+    suspend fun excluirPorId(id: Long)
+
     // ========================================================================
     // Consultas por emprego
     // ========================================================================
@@ -46,19 +52,25 @@ interface ConfiguracaoEmpregoDao {
     suspend fun buscarPorId(id: Long): ConfiguracaoEmpregoEntity?
 
     // ========================================================================
-    // Operações de NSR
-    // ========================================================================
-
-    @Query("UPDATE configuracoes_emprego SET proximoNsr = proximoNsr + 1, atualizadoEm = :atualizadoEm WHERE empregoId = :empregoId")
-    suspend fun incrementarNsr(empregoId: Long, atualizadoEm: String)
-
-    @Query("SELECT proximoNsr FROM configuracoes_emprego WHERE empregoId = :empregoId")
-    suspend fun buscarProximoNsr(empregoId: Long): Int?
-
-    // ========================================================================
     // Consultas auxiliares
     // ========================================================================
 
     @Query("SELECT EXISTS(SELECT 1 FROM configuracoes_emprego WHERE empregoId = :empregoId)")
     suspend fun existeParaEmprego(empregoId: Long): Boolean
+
+    @Query("SELECT habilitarNsr FROM configuracoes_emprego WHERE empregoId = :empregoId")
+    suspend fun isNsrHabilitado(empregoId: Long): Boolean?
+
+    @Query("SELECT habilitarLocalizacao FROM configuracoes_emprego WHERE empregoId = :empregoId")
+    suspend fun isLocalizacaoHabilitada(empregoId: Long): Boolean?
+
+    @Query("SELECT periodoBancoHorasMeses FROM configuracoes_emprego WHERE empregoId = :empregoId")
+    suspend fun buscarPeriodoBancoHoras(empregoId: Long): Int?
+
+    // ========================================================================
+    // Atualizações parciais
+    // ========================================================================
+
+    @Query("UPDATE configuracoes_emprego SET ultimoFechamentoBanco = :data, atualizadoEm = :atualizadoEm WHERE empregoId = :empregoId")
+    suspend fun atualizarUltimoFechamentoBanco(empregoId: Long, data: String, atualizadoEm: String)
 }
