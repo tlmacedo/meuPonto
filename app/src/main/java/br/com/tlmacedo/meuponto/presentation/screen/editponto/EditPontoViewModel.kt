@@ -1,14 +1,13 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/editponto/EditPontoViewModel.kt
 package br.com.tlmacedo.meuponto.presentation.screen.editponto
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.Ponto
+import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.AtualizarPontoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterPontoPorIdUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.RegistrarPontoUseCase
-import br.com.tlmacedo.meuponto.presentation.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +18,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import javax.inject.Inject
 
 /**
@@ -27,14 +28,6 @@ import javax.inject.Inject
  *
  * Gerencia o estado do formulário de edição/criação de ponto,
  * incluindo carregamento de dados existentes e persistência.
- *
- * @property obterPontoPorIdUseCase Caso de uso para buscar ponto existente
- * @property atualizarPontoUseCase Caso de uso para atualizar ponto
- * @property registrarPontoUseCase Caso de uso para registrar novo ponto
- * @property savedStateHandle Handle para argumentos de navegação
- *
- * @author Thiago
- * @since 1.0.0
  */
 @HiltViewModel
 class EditPontoViewModel @Inject constructor(
@@ -44,16 +37,17 @@ class EditPontoViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    // Estado da UI
     private val _uiState = MutableStateFlow(EditPontoUiState())
     val uiState: StateFlow<EditPontoUiState> = _uiState.asStateFlow()
 
-    // Eventos únicos
     private val _uiEvent = MutableSharedFlow<EditPontoUiEvent>()
     val uiEvent: SharedFlow<EditPontoUiEvent> = _uiEvent.asSharedFlow()
 
-    // ID do ponto sendo editado (0 = novo ponto)
-    private val pontoId: Long = savedStateHandle[Route.ARG_PONTO_ID] ?: 0L
+    // ID do ponto da navegação (-1 significa novo ponto)
+    private val pontoId: Long = savedStateHandle["pontoId"] ?: -1L
+    
+    // ID do emprego padrão (usa 1 como default, pode ser alterado para buscar emprego ativo)
+    private val empregoId: Long = 1L
 
     init {
         if (pontoId > 0) {
@@ -61,11 +55,6 @@ class EditPontoViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Processa as ações da tela.
-     *
-     * @param action Ação disparada pelo usuário
-     */
     fun onAction(action: EditPontoAction) {
         when (action) {
             is EditPontoAction.AlterarData -> alterarData(action.data)
@@ -78,9 +67,6 @@ class EditPontoViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Carrega o ponto existente para edição.
-     */
     private fun carregarPonto() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -107,37 +93,22 @@ class EditPontoViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Altera a data do ponto.
-     */
-    private fun alterarData(data: java.time.LocalDate) {
+    private fun alterarData(data: LocalDate) {
         _uiState.update { it.copy(data = data) }
     }
 
-    /**
-     * Altera a hora do ponto.
-     */
-    private fun alterarHora(hora: java.time.LocalTime) {
+    private fun alterarHora(hora: LocalTime) {
         _uiState.update { it.copy(hora = hora) }
     }
 
-    /**
-     * Altera o tipo do ponto.
-     */
-    private fun alterarTipo(tipo: br.com.tlmacedo.meuponto.domain.model.TipoPonto) {
+    private fun alterarTipo(tipo: TipoPonto) {
         _uiState.update { it.copy(tipo = tipo) }
     }
 
-    /**
-     * Altera a observação do ponto.
-     */
     private fun alterarObservacao(observacao: String) {
         _uiState.update { it.copy(observacao = observacao) }
     }
 
-    /**
-     * Salva o ponto (atualiza ou cria novo).
-     */
     private fun salvar() {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
@@ -146,52 +117,71 @@ class EditPontoViewModel @Inject constructor(
             val dataHora = LocalDateTime.of(state.data, state.hora)
             val observacao = state.observacao.ifBlank { null }
 
-            val resultado = if (state.isEditMode && state.pontoOriginal != null) {
-                // Atualiza ponto existente
-                val pontoAtualizado = state.pontoOriginal.copy(
-                    dataHora = dataHora,
-                    tipo = state.tipo,
-                    observacao = observacao
-                )
-                atualizarPontoUseCase(pontoAtualizado)
-            } else {
-                // Cria novo ponto
-                registrarPontoUseCase(
-                    dataHora = dataHora,
-                    tipo = state.tipo,
-                    observacao = observacao
-                )
-            }
-
-            resultado.fold(
-                onSuccess = {
-                    Timber.d("Ponto salvo com sucesso")
-                    _uiEvent.emit(EditPontoUiEvent.ShowSnackbar("Ponto salvo com sucesso"))
-                    _uiEvent.emit(EditPontoUiEvent.PontoSalvo)
-                    _uiEvent.emit(EditPontoUiEvent.NavigateBack)
-                },
-                onFailure = { erro ->
-                    Timber.e(erro, "Erro ao salvar ponto")
-                    _uiState.update { it.copy(errorMessage = erro.message) }
+            try {
+                if (state.isEditMode && state.pontoOriginal != null) {
+                    // Atualiza ponto existente
+                    val pontoAtualizado = state.pontoOriginal.copy(
+                        dataHora = dataHora,
+                        tipo = state.tipo,
+                        observacao = observacao
+                    )
+                    
+                    val resultado = atualizarPontoUseCase(pontoAtualizado)
+                    
+                    resultado.fold(
+                        onSuccess = {
+                            Timber.d("Ponto atualizado com sucesso")
+                            _uiEvent.emit(EditPontoUiEvent.ShowSnackbar("Ponto atualizado com sucesso"))
+                            _uiEvent.emit(EditPontoUiEvent.PontoSalvo)
+                            _uiEvent.emit(EditPontoUiEvent.NavigateBack)
+                        },
+                        onFailure = { erro ->
+                            Timber.e(erro, "Erro ao atualizar ponto")
+                            _uiState.update { it.copy(errorMessage = erro.message) }
+                        }
+                    )
+                } else {
+                    // Cria novo ponto usando Parametros
+                    val parametros = RegistrarPontoUseCase.Parametros(
+                        empregoId = empregoId,
+                        dataHora = dataHora,
+                        tipo = state.tipo,
+                        observacao = observacao
+                    )
+                    
+                    when (val resultado = registrarPontoUseCase(parametros)) {
+                        is RegistrarPontoUseCase.Resultado.Sucesso -> {
+                            Timber.d("Ponto registrado com sucesso: ${resultado.pontoId}")
+                            _uiEvent.emit(EditPontoUiEvent.ShowSnackbar("Ponto registrado com sucesso"))
+                            _uiEvent.emit(EditPontoUiEvent.PontoSalvo)
+                            _uiEvent.emit(EditPontoUiEvent.NavigateBack)
+                        }
+                        is RegistrarPontoUseCase.Resultado.Erro -> {
+                            Timber.e("Erro ao registrar ponto: ${resultado.mensagem}")
+                            _uiState.update { it.copy(errorMessage = resultado.mensagem) }
+                        }
+                        is RegistrarPontoUseCase.Resultado.Validacao -> {
+                            val mensagem = resultado.erros.joinToString("\n")
+                            Timber.w("Validação falhou: $mensagem")
+                            _uiState.update { it.copy(errorMessage = mensagem) }
+                        }
+                    }
                 }
-            )
+            } catch (e: Exception) {
+                Timber.e(e, "Erro inesperado ao salvar ponto")
+                _uiState.update { it.copy(errorMessage = "Erro inesperado: ${e.message}") }
+            }
 
             _uiState.update { it.copy(isSaving = false) }
         }
     }
 
-    /**
-     * Cancela a edição e volta à tela anterior.
-     */
     private fun cancelar() {
         viewModelScope.launch {
             _uiEvent.emit(EditPontoUiEvent.NavigateBack)
         }
     }
 
-    /**
-     * Limpa a mensagem de erro.
-     */
     private fun limparErro() {
         _uiState.update { it.copy(errorMessage = null) }
     }
