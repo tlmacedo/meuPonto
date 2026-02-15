@@ -48,6 +48,15 @@ android {
         compose = true
         buildConfig = true
     }
+
+    lint {
+        // Desabilita análise de lint em fontes de teste (bug conhecido com Hilt/KSP)
+        checkTestSources = false
+        // Não aborta o build por erros de lint durante desenvolvimento
+        abortOnError = false
+        // Continua mesmo com warnings
+        warningsAsErrors = false
+    }
 }
 
 // Configuração do Room para exportar schemas

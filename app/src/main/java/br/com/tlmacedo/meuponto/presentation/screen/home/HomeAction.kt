@@ -1,7 +1,9 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeAction.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
+import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.Ponto
+import java.time.LocalDate
 import java.time.LocalTime
 
 /**
@@ -11,9 +13,14 @@ import java.time.LocalTime
  * da tela principal ou disparar navegação.
  *
  * @author Thiago
- * @since 1.0.0
+ * @since 2.0.0
  */
 sealed interface HomeAction {
+
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE REGISTRO DE PONTO
+    // ══════════════════════════════════════════════════════════════════════
+
     /**
      * Registra ponto com horário atual.
      */
@@ -34,6 +41,10 @@ sealed interface HomeAction {
      */
     data class RegistrarPontoManual(val hora: LocalTime) : HomeAction
 
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE EXCLUSÃO DE PONTO
+    // ══════════════════════════════════════════════════════════════════════
+
     /**
      * Solicita confirmação para excluir um ponto.
      */
@@ -48,6 +59,53 @@ sealed interface HomeAction {
      * Confirma exclusão do ponto.
      */
     data object ConfirmarExclusao : HomeAction
+
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE NAVEGAÇÃO POR DATA
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Navega para o dia anterior.
+     */
+    data object DiaAnterior : HomeAction
+
+    /**
+     * Navega para o próximo dia.
+     */
+    data object ProximoDia : HomeAction
+
+    /**
+     * Navega para hoje.
+     */
+    data object IrParaHoje : HomeAction
+
+    /**
+     * Seleciona uma data específica.
+     */
+    data class SelecionarData(val data: LocalDate) : HomeAction
+
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE EMPREGO
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Abre o seletor de emprego.
+     */
+    data object AbrirSeletorEmprego : HomeAction
+
+    /**
+     * Fecha o seletor de emprego.
+     */
+    data object FecharSeletorEmprego : HomeAction
+
+    /**
+     * Seleciona um emprego como ativo.
+     */
+    data class SelecionarEmprego(val emprego: Emprego) : HomeAction
+
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE NAVEGAÇÃO
+    // ══════════════════════════════════════════════════════════════════════
 
     /**
      * Navega para editar um ponto existente.
@@ -64,8 +122,22 @@ sealed interface HomeAction {
      */
     data object NavegarParaConfiguracoes : HomeAction
 
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES INTERNAS
+    // ══════════════════════════════════════════════════════════════════════
+
     /**
      * Atualiza a hora atual (chamado pelo timer).
      */
     data object AtualizarHora : HomeAction
+
+    /**
+     * Limpa mensagem de erro.
+     */
+    data object LimparErro : HomeAction
+
+    /**
+     * Recarrega os dados da tela.
+     */
+    data object RecarregarDados : HomeAction
 }

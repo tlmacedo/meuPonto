@@ -36,17 +36,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.tlmacedo.meuponto.presentation.components.DateNavigator
+import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorBottomSheet
+import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorChip
 import br.com.tlmacedo.meuponto.presentation.components.IntervaloCard
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoButton
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
+import java.time.format.DateTimeFormatter
 
 /**
  * Tela principal do aplicativo Meu Ponto.
  *
  * Exibe o resumo do dia, botão de registro de ponto,
- * e lista de intervalos trabalhados de forma visual e intuitiva.
+ * navegação por data, seleção de emprego e lista de intervalos
+ * trabalhados de forma visual e intuitiva.
  *
  * @param viewModel ViewModel da tela
  * @param onNavigateToHistory Callback para navegar ao histórico
@@ -54,7 +59,7 @@ import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
  * @param onNavigateToEditPonto Callback para navegar à edição de ponto
  *
  * @author Thiago
- * @since 1.0.0
+ * @since 2.0.0
  */
 @Composable
 fun HomeScreen(
@@ -85,6 +90,9 @@ fun HomeScreen(
                 is HomeUiEvent.NavegarParaEdicao -> {
                     onNavigateToEditPonto(event.pontoId)
                 }
+                is HomeUiEvent.EmpregoTrocado -> {
+                    snackbarHostState.showSnackbar("Emprego alterado: ${event.nomeEmprego}")
+                }
             }
         }
     }
@@ -105,31 +113,23 @@ fun HomeScreen(
 
     // Dialog de confirmação de exclusão
     if (uiState.showDeleteConfirmDialog && uiState.pontoParaExcluir != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onAction(HomeAction.CancelarExclusao) },
-            title = { Text("Excluir Ponto") },
-            text = {
-                Text(
-                    "Deseja realmente excluir o registro de ${uiState.pontoParaExcluir!!.tipo.descricao} às ${
-                        uiState.pontoParaExcluir!!.hora.format(
-                            java.time.format.DateTimeFormatter.ofPattern("HH:mm")
-                        )
-                    }?"
-                )
+        DeletePontoConfirmDialog(
+            ponto = uiState.pontoParaExcluir!!,
+            onConfirm = { viewModel.onAction(HomeAction.ConfirmarExclusao) },
+            onDismiss = { viewModel.onAction(HomeAction.CancelarExclusao) }
+        )
+    }
+
+    // Bottom Sheet de seleção de emprego
+    if (uiState.showEmpregoSelector) {
+        EmpregoSelectorBottomSheet(
+            empregos = uiState.empregosDisponiveis,
+            empregoAtivoId = uiState.empregoAtivo?.id,
+            onSelecionarEmprego = { emprego ->
+                viewModel.onAction(HomeAction.SelecionarEmprego(emprego))
             },
-            confirmButton = {
-                TextButton(
-                    onClick = { viewModel.onAction(HomeAction.ConfirmarExclusao) }
-                ) {
-                    Text("Excluir", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { viewModel.onAction(HomeAction.CancelarExclusao) }
-                ) {
-                    Text("Cancelar")
-                }
+            onDismiss = {
+                viewModel.onAction(HomeAction.FecharSeletorEmprego)
             }
         )
     }
@@ -146,7 +146,8 @@ fun HomeScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        if (uiState.isLoading) {
+        if (uiState.isLoading && uiState.pontosHoje.isEmpty()) {
+            // Loading inicial
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -169,7 +170,7 @@ fun HomeScreen(
  * Conteúdo principal da tela Home.
  */
 @Composable
-private fun HomeContent(
+internal fun HomeContent(
     uiState: HomeUiState,
     onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier
@@ -179,13 +180,26 @@ private fun HomeContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxSize()
     ) {
-        // Data atual
+        // Seletor de Emprego (se houver múltiplos)
         item {
-            Text(
-                text = uiState.dataFormatada,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+            EmpregoSelectorChip(
+                empregoAtivo = uiState.empregoAtivo,
+                temMultiplosEmpregos = uiState.temMultiplosEmpregos,
+                onClick = { onAction(HomeAction.AbrirSeletorEmprego) }
+            )
+        }
+
+        // Navegador de Data
+        item {
+            DateNavigator(
+                dataFormatada = uiState.dataFormatada,
+                dataFormatadaCurta = uiState.dataFormatadaCurta,
+                isHoje = uiState.isHoje,
+                podeNavegarAnterior = uiState.podeNavegaAnterior,
+                podeNavegarProximo = uiState.podeNavegarProximo,
+                onDiaAnterior = { onAction(HomeAction.DiaAnterior) },
+                onProximoDia = { onAction(HomeAction.ProximoDia) },
+                onIrParaHoje = { onAction(HomeAction.IrParaHoje) }
             )
         }
 
@@ -197,14 +211,30 @@ private fun HomeContent(
             )
         }
 
-        // Botão de Registrar Ponto
-        item {
-            RegistrarPontoButton(
-                proximoTipo = uiState.proximoTipo,
-                horaAtual = uiState.horaAtual,
-                onRegistrarAgora = { onAction(HomeAction.RegistrarPontoAgora) },
-                onRegistrarManual = { onAction(HomeAction.AbrirTimePickerDialog) }
-            )
+        // Botão de Registrar Ponto (apenas se puder registrar)
+        if (uiState.podeRegistrarPonto) {
+            item {
+                RegistrarPontoButton(
+                    proximoTipo = uiState.proximoTipo,
+                    horaAtual = uiState.horaAtual,
+                    onRegistrarAgora = { onAction(HomeAction.RegistrarPontoAgora) },
+                    onRegistrarManual = { onAction(HomeAction.AbrirTimePickerDialog) }
+                )
+            }
+        }
+
+        // Aviso de data futura
+        if (uiState.isFuturo) {
+            item {
+                FutureDateWarning()
+            }
+        }
+
+        // Aviso de sem emprego
+        if (!uiState.temEmpregoAtivo) {
+            item {
+                NoEmpregoWarning()
+            }
         }
 
         // Título da seção de intervalos
@@ -212,7 +242,7 @@ private fun HomeContent(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Registros de Hoje",
+                    text = "Registros ${if (uiState.isHoje) "de Hoje" else "do Dia"}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -232,33 +262,136 @@ private fun HomeContent(
                     IntervaloCard(intervalo = intervalo)
                 }
             }
-        } else {
+        } else if (uiState.temEmpregoAtivo && !uiState.isFuturo) {
             // Estado vazio
             item {
-                Spacer(modifier = Modifier.height(32.dp))
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "😴",
-                        style = MaterialTheme.typography.displayMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Nenhum ponto registrado hoje",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "Toque no botão acima para começar",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center
-                    )
-                }
+                EmptyPontosState()
             }
         }
+    }
+}
+
+/**
+ * Dialog de confirmação de exclusão de ponto.
+ */
+@Composable
+private fun DeletePontoConfirmDialog(
+    ponto: br.com.tlmacedo.meuponto.domain.model.Ponto,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Excluir Ponto") },
+        text = {
+            Text(
+                "Deseja realmente excluir o registro de ${ponto.tipo.descricao} às ${
+                    ponto.hora.format(DateTimeFormatter.ofPattern("HH:mm"))
+                }?"
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Excluir", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+/**
+ * Aviso de data futura.
+ */
+@Composable
+private fun FutureDateWarning() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp)
+    ) {
+        Text(
+            text = "📅",
+            style = MaterialTheme.typography.displayMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Data futura",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Não é possível registrar pontos em datas futuras",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * Aviso de sem emprego ativo.
+ */
+@Composable
+private fun NoEmpregoWarning() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp)
+    ) {
+        Text(
+            text = "🏢",
+            style = MaterialTheme.typography.displayMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Nenhum emprego configurado",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Configure um emprego nas Configurações para começar",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * Estado vazio - sem pontos registrados.
+ */
+@Composable
+private fun EmptyPontosState() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp)
+    ) {
+        Text(
+            text = "😴",
+            style = MaterialTheme.typography.displayMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Nenhum ponto registrado",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Toque no botão acima para começar",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
     }
 }
