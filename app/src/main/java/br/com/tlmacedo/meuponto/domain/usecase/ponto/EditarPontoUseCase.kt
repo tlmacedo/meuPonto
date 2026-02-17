@@ -1,19 +1,23 @@
+// Arquivo: EditarPontoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
-import br.com.tlmacedo.meuponto.domain.usecase.validacao.ValidarRegistroPontoUseCase
 import java.time.LocalDateTime
 import javax.inject.Inject
 
+/**
+ * Caso de uso para editar um ponto existente.
+ *
+ * @author Thiago
+ * @since 1.0.0
+ * @updated 2.1.0 - Removido tipo (calculado por posição)
+ */
 class EditarPontoUseCase @Inject constructor(
-    private val pontoRepository: PontoRepository,
-    private val validarRegistroPontoUseCase: ValidarRegistroPontoUseCase
+    private val pontoRepository: PontoRepository
 ) {
     data class Parametros(
         val pontoId: Long,
         val dataHora: LocalDateTime,
-        val tipo: TipoPonto,
         val observacao: String? = null
     )
 
@@ -28,22 +32,22 @@ class EditarPontoUseCase @Inject constructor(
         val pontoExistente = pontoRepository.buscarPorId(parametros.pontoId)
             ?: return Resultado.NaoEncontrado(parametros.pontoId)
 
-        // Valida o registro (ignorando o próprio ponto na validação)
-        val resultadoValidacao = validarRegistroPontoUseCase(
-            empregoId = pontoExistente.empregoId,
-            data = parametros.dataHora.toLocalDate(),
-            hora = parametros.dataHora.toLocalTime(),
-            tipo = parametros.tipo,
-            ignorarHorarioFuturo = true
-        )
+        // Busca outros pontos do mesmo dia para validar conflitos
+        val pontosDoDia = pontoRepository.buscarPorEmpregoEData(
+            pontoExistente.empregoId,
+            parametros.dataHora.toLocalDate()
+        ).filter { it.id != parametros.pontoId }
 
-        if (resultadoValidacao is ValidarRegistroPontoUseCase.ResultadoValidacao.Invalido) {
-            return Resultado.Validacao(resultadoValidacao.erros.map { it.mensagem })
+        // Valida que o novo horário não conflita com outros pontos
+        val ordenados = pontosDoDia.sortedBy { it.dataHora }
+        for (ponto in ordenados) {
+            if (parametros.dataHora == ponto.dataHora) {
+                return Resultado.Validacao(listOf("Já existe um ponto neste horário"))
+            }
         }
 
         val pontoAtualizado = pontoExistente.copy(
             dataHora = parametros.dataHora,
-            tipo = parametros.tipo,
             observacao = parametros.observacao,
             isEditadoManualmente = true,
             atualizadoEm = LocalDateTime.now()

@@ -1,214 +1,78 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/validacao/ValidarRegistroPontoUseCase.kt
+// Arquivo: ValidarRegistroPontoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.validacao
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
-import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.temporal.ChronoUnit
+import br.com.tlmacedo.meuponto.domain.model.PontoConstants
+import br.com.tlmacedo.meuponto.domain.model.proximoPontoIsEntrada
+import java.time.Duration
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
- * Caso de uso para validar um registro de ponto antes de persistir.
+ * Caso de uso para validar o registro de um novo ponto.
+ *
+ * @author Thiago
+ * @since 1.0.0
+ * @updated 2.1.0 - Simplificado (tipo calculado por posição)
  */
-class ValidarRegistroPontoUseCase @Inject constructor(
-    private val pontoRepository: PontoRepository,
-    private val configuracaoRepository: ConfiguracaoEmpregoRepository
-) {
-    sealed class ResultadoValidacao {
-        data object Valido : ResultadoValidacao()
-        
-        data class Invalido(
-            val erros: List<ErroValidacao>
-        ) : ResultadoValidacao() {
-            val primeiroErro: ErroValidacao get() = erros.first()
-            val mensagem: String get() = erros.joinToString("\n") { it.mensagem }
-        }
+class ValidarRegistroPontoUseCase @Inject constructor() {
 
-        val isValido: Boolean get() = this is Valido
-    }
-
-    sealed class ErroValidacao(val mensagem: String, val codigo: String) {
-        data object SequenciaIncorreta : ErroValidacao(
-            "Sequência incorreta: esperado outro tipo de registro",
-            "SEQUENCIA_INCORRETA"
-        )
-        
-        data class IntervaloMinimo(val minutos: Int) : ErroValidacao(
-            "Intervalo mínimo de $minutos minutos não respeitado",
-            "INTERVALO_MINIMO"
-        )
-        
-        data class JornadaMaximaExcedida(val maxMinutos: Int) : ErroValidacao(
-            "Jornada máxima de ${maxMinutos / 60}h seria excedida",
-            "JORNADA_MAXIMA"
-        )
-        
-        data object RegistroDuplicado : ErroValidacao(
-            "Já existe um registro neste horário",
-            "REGISTRO_DUPLICADO"
-        )
-        
-        data object HorarioFuturo : ErroValidacao(
-            "Não é permitido registrar ponto em horário futuro",
-            "HORARIO_FUTURO"
-        )
-        
-        data object DataFutura : ErroValidacao(
-            "Não é permitido registrar ponto em data futura",
-            "DATA_FUTURA"
-        )
-        
-        data object PeriodoFechado : ErroValidacao(
-            "Não é possível registrar ponto em período já fechado",
-            "PERIODO_FECHADO"
-        )
-        
-        data class LimiteRegistrosDia(val max: Int) : ErroValidacao(
-            "Limite máximo de $max registros por dia atingido",
-            "LIMITE_REGISTROS"
-        )
-    }
-
-    suspend operator fun invoke(
-        empregoId: Long,
-        data: LocalDate,
-        hora: LocalTime,
-        tipo: TipoPonto,
-        ignorarHorarioFuturo: Boolean = false
+    operator fun invoke(
+        novaDataHora: LocalDateTime,
+        registrosExistentes: List<Ponto>,
+        intervaloMinimoMinutos: Int = 1
     ): ResultadoValidacao {
-        val erros = mutableListOf<ErroValidacao>()
-        val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
+        val ordenados = registrosExistentes.sortedBy { it.dataHora }
 
-        val hoje = LocalDate.now()
-        if (data.isAfter(hoje)) {
-            erros.add(ErroValidacao.DataFutura)
-            return ResultadoValidacao.Invalido(erros)
+        // 1. Verifica limite máximo de registros
+        if (ordenados.size >= PontoConstants.MAX_PONTOS) {
+            return ResultadoValidacao.Invalido(
+                "Limite máximo de ${PontoConstants.MAX_PONTOS} registros por dia atingido"
+            )
         }
 
-        if (!ignorarHorarioFuturo && data == hoje && hora.isAfter(LocalTime.now())) {
-            erros.add(ErroValidacao.HorarioFuturo)
+        // 2. Verifica se não está no futuro
+        if (novaDataHora.isAfter(LocalDateTime.now().plusMinutes(5))) {
+            return ResultadoValidacao.Invalido(
+                "Não é permitido registrar ponto no futuro"
+            )
         }
 
-        val registrosDoDia = pontoRepository.buscarPorEmpregoEData(empregoId, data)
-
-        val maxRegistros = TipoPonto.MAX_PONTOS
-        if (registrosDoDia.size >= maxRegistros) {
-            erros.add(ErroValidacao.LimiteRegistrosDia(maxRegistros))
-        }
-
-        if (registrosDoDia.any { it.hora == hora }) {
-            erros.add(ErroValidacao.RegistroDuplicado)
-        }
-
-        val erroSequencia = validarSequencia(registrosDoDia, tipo)
-        if (erroSequencia != null) {
-            erros.add(erroSequencia)
-        }
-
-        val intervaloMinimo = INTERVALO_MINIMO_PADRAO
-        val erroIntervalo = validarIntervaloMinimo(registrosDoDia, hora, intervaloMinimo)
-        if (erroIntervalo != null) {
-            erros.add(erroIntervalo)
-        }
-
-        val jornadaMaxima = configuracao?.jornadaMaximaDiariaMinutos ?: JORNADA_MAXIMA_PADRAO
-        val erroJornada = validarJornadaMaxima(registrosDoDia, hora, tipo, jornadaMaxima)
-        if (erroJornada != null) {
-            erros.add(erroJornada)
-        }
-
-        return if (erros.isEmpty()) {
-            ResultadoValidacao.Valido
-        } else {
-            ResultadoValidacao.Invalido(erros)
-        }
-    }
-
-    private fun validarSequencia(
-        registrosExistentes: List<Ponto>,
-        novoTipo: TipoPonto
-    ): ErroValidacao? {
-        if (registrosExistentes.isEmpty()) {
-            return if (novoTipo != TipoPonto.ENTRADA) {
-                ErroValidacao.SequenciaIncorreta
-            } else null
-        }
-
-        val ultimoRegistro = registrosExistentes.maxByOrNull { it.hora }
-            ?: return null
-
-        val tipoEsperado = if (ultimoRegistro.tipo == TipoPonto.ENTRADA) {
-            TipoPonto.SAIDA
-        } else {
-            TipoPonto.ENTRADA
-        }
-
-        return if (novoTipo != tipoEsperado) {
-            ErroValidacao.SequenciaIncorreta
-        } else null
-    }
-
-    private fun validarIntervaloMinimo(
-        registrosExistentes: List<Ponto>,
-        novaHora: LocalTime,
-        intervaloMinimo: Int
-    ): ErroValidacao? {
-        if (registrosExistentes.isEmpty() || intervaloMinimo <= 0) {
-            return null
-        }
-
-        val registroMaisProximo = registrosExistentes.minByOrNull { registro ->
-            kotlin.math.abs(ChronoUnit.MINUTES.between(registro.hora, novaHora))
-        } ?: return null
-
-        val diferenca = kotlin.math.abs(
-            ChronoUnit.MINUTES.between(registroMaisProximo.hora, novaHora)
-        )
-
-        return if (diferenca < intervaloMinimo) {
-            ErroValidacao.IntervaloMinimo(intervaloMinimo)
-        } else null
-    }
-
-    private fun validarJornadaMaxima(
-        registrosExistentes: List<Ponto>,
-        novaHora: LocalTime,
-        novoTipo: TipoPonto,
-        jornadaMaxima: Int
-    ): ErroValidacao? {
-        if (registrosExistentes.isEmpty() || novoTipo == TipoPonto.ENTRADA) {
-            return null
-        }
-
-        var totalMinutos = 0L
-        val registrosOrdenados = registrosExistentes.sortedBy { it.hora }
-        
-        var i = 0
-        while (i < registrosOrdenados.size - 1) {
-            val entrada = registrosOrdenados[i]
-            val saida = registrosOrdenados[i + 1]
-            
-            if (entrada.tipo == TipoPonto.ENTRADA && saida.tipo == TipoPonto.SAIDA) {
-                totalMinutos += ChronoUnit.MINUTES.between(entrada.hora, saida.hora)
+        // 3. Verifica intervalo mínimo com registros existentes
+        for (ponto in ordenados) {
+            val diferenca = Duration.between(ponto.dataHora, novaDataHora).abs()
+            if (diferenca.toMinutes() < intervaloMinimoMinutos) {
+                return ResultadoValidacao.Invalido(
+                    "Intervalo mínimo de $intervaloMinimoMinutos minuto(s) entre registros"
+                )
             }
-            i += 2
         }
 
-        val ultimoRegistro = registrosOrdenados.lastOrNull()
-        if (ultimoRegistro?.tipo == TipoPonto.ENTRADA) {
-            totalMinutos += ChronoUnit.MINUTES.between(ultimoRegistro.hora, novaHora)
+        // 4. Verifica ordem cronológica se inserindo no meio
+        val ultimoRegistro = ordenados.lastOrNull()
+        if (ultimoRegistro != null && novaDataHora.isBefore(ultimoRegistro.dataHora)) {
+            // Permitir inserção retroativa, mas validar que não quebra a ordem
+            val posicaoInserir = ordenados.indexOfLast { it.dataHora.isBefore(novaDataHora) } + 1
+            if (posicaoInserir < ordenados.size) {
+                val proximo = ordenados[posicaoInserir]
+                if (novaDataHora.isAfter(proximo.dataHora)) {
+                    return ResultadoValidacao.Invalido(
+                        "Horário conflita com registros existentes"
+                    )
+                }
+            }
         }
 
-        return if (totalMinutos > jornadaMaxima) {
-            ErroValidacao.JornadaMaximaExcedida(jornadaMaxima)
-        } else null
-    }
+        // Determina qual será o tipo do novo ponto
+        val novoIndice = ordenados.count { it.dataHora.isBefore(novaDataHora) }
+        val isEntrada = proximoPontoIsEntrada(novoIndice)
+        val tipoDescricao = if (isEntrada) "Entrada" else "Saída"
 
-    companion object {
-        const val INTERVALO_MINIMO_PADRAO = 1
-        const val JORNADA_MAXIMA_PADRAO = 600
+        return ResultadoValidacao.Valido(tipoDescricao)
     }
+}
+
+sealed class ResultadoValidacao {
+    data class Valido(val tipoDescricao: String) : ResultadoValidacao()
+    data class Invalido(val mensagem: String) : ResultadoValidacao()
 }

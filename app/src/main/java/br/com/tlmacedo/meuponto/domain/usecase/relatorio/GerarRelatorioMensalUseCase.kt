@@ -1,7 +1,7 @@
+// Arquivo: GerarRelatorioMensalUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.relatorio
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioPadraoRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
@@ -13,6 +13,10 @@ import javax.inject.Inject
 
 /**
  * Caso de uso para gerar relatório mensal de pontos.
+ *
+ * @author Thiago
+ * @since 1.0.0
+ * @updated 2.1.0 - Removida dependência de TipoPonto (tipo calculado por posição)
  */
 class GerarRelatorioMensalUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
@@ -108,6 +112,10 @@ class GerarRelatorioMensalUseCase @Inject constructor(
         )
     }
 
+    /**
+     * Calcula tempo trabalhado baseado na posição dos pontos.
+     * Índice par = entrada, índice ímpar = saída.
+     */
     private fun calcularTempoTrabalhado(pontos: List<Ponto>): Long {
         if (pontos.isEmpty()) return 0L
 
@@ -115,13 +123,11 @@ class GerarRelatorioMensalUseCase @Inject constructor(
         var totalMinutos = 0L
         var i = 0
 
+        // Processa pares: índice 0 (entrada) + índice 1 (saída), etc.
         while (i < pontosOrdenados.size - 1) {
-            val entrada = pontosOrdenados[i]
-            val saida = pontosOrdenados[i + 1]
-
-            if (entrada.tipo == TipoPonto.ENTRADA && saida.tipo == TipoPonto.SAIDA) {
-                totalMinutos += ChronoUnit.MINUTES.between(entrada.hora, saida.hora)
-            }
+            val entrada = pontosOrdenados[i]      // índice par = entrada
+            val saida = pontosOrdenados[i + 1]    // índice ímpar = saída
+            totalMinutos += ChronoUnit.MINUTES.between(entrada.hora, saida.hora)
             i += 2
         }
 

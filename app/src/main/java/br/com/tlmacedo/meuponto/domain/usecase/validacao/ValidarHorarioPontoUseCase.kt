@@ -110,6 +110,7 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
 
     /**
      * Valida se o horário está dentro do esperado para o dia.
+     * Nota: Sem o índice, verifica apenas se está próximo de algum horário ideal.
      */
     private fun validarHorarioEsperado(
         ponto: Ponto,
@@ -117,22 +118,29 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
     ): InconsistenciaDetectada? {
         val horaPonto = ponto.dataHora.toLocalTime()
 
-        // Determinar horário esperado baseado no tipo de ponto e posição
-        val horarioIdeal = when {
-            ponto.isEntrada && horario.entradaIdeal != null -> horario.entradaIdeal
-            ponto.isSaida && horario.saidaIdeal != null -> horario.saidaIdeal
-            else -> return null
-        }
+        // Verificar proximidade com horários ideais configurados
+        val horariosIdeais = listOfNotNull(
+            horario.entradaIdeal,
+            horario.saidaIdeal,
+            horario.saidaIntervaloIdeal,
+            horario.voltaIntervaloIdeal
+        )
 
-        val diferencaMinutos = Duration.between(horarioIdeal, horaPonto).abs().toMinutes()
+        if (horariosIdeais.isEmpty()) return null
+
+        // Encontrar o horário ideal mais próximo
+        val horarioMaisProximo = horariosIdeais.minByOrNull { 
+            Duration.between(it, horaPonto).abs().toMinutes() 
+        } ?: return null
+
+        val diferencaMinutos = Duration.between(horarioMaisProximo, horaPonto).abs().toMinutes()
 
         return if (diferencaMinutos > TOLERANCIA_HORARIO_MINUTOS) {
             InconsistenciaDetectada(
                 inconsistencia = Inconsistencia.FORA_HORARIO_ESPERADO,
                 detalhes = buildString {
-                    append("Esperado: ${formatarHora(horarioIdeal)}, ")
                     append("Registrado: ${formatarHora(horaPonto)} ")
-                    append("(diferença de $diferencaMinutos min)")
+                    append("(diferença de $diferencaMinutos min do esperado)")
                 }
             )
         } else null

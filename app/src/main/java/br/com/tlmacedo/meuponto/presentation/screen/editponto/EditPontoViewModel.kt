@@ -1,12 +1,13 @@
+// Arquivo: EditPontoViewModel.kt
 package br.com.tlmacedo.meuponto.presentation.screen.editponto
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.EditarPontoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterPontoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.RegistrarPontoUseCase
+import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,16 +17,24 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import javax.inject.Inject
 
+/**
+ * ViewModel da tela de edição de ponto.
+ *
+ * O tipo do ponto não pode ser alterado pois é determinado pela posição.
+ *
+ * @author Thiago
+ * @since 1.0.0
+ * @updated 2.1.0 - Tipo calculado por posição (não editável)
+ */
 @HiltViewModel
 class EditPontoViewModel @Inject constructor(
     private val obterPontoUseCase: ObterPontoUseCase,
     private val editarPontoUseCase: EditarPontoUseCase,
     private val registrarPontoUseCase: RegistrarPontoUseCase,
+    private val pontoRepository: PontoRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -46,7 +55,6 @@ class EditPontoViewModel @Inject constructor(
         when (action) {
             is EditPontoAction.AlterarData -> _uiState.update { it.copy(data = action.data) }
             is EditPontoAction.AlterarHora -> _uiState.update { it.copy(hora = action.hora) }
-            is EditPontoAction.AlterarTipo -> _uiState.update { it.copy(tipo = action.tipo) }
             is EditPontoAction.AlterarObservacao -> _uiState.update { it.copy(observacao = action.observacao) }
             is EditPontoAction.Salvar -> salvar()
             is EditPontoAction.Cancelar -> viewModelScope.launch { _uiEvent.emit(EditPontoUiEvent.NavigateBack) }
@@ -60,12 +68,18 @@ class EditPontoViewModel @Inject constructor(
             when (val resultado = obterPontoUseCase(pontoId)) {
                 is ObterPontoUseCase.Resultado.Sucesso -> {
                     val ponto = resultado.ponto
+                    
+                    // Calcula o índice do ponto na lista ordenada
+                    val pontosDoDia = pontoRepository.buscarPorEmpregoEData(ponto.empregoId, ponto.data)
+                    val pontosOrdenados = pontosDoDia.sortedBy { it.dataHora }
+                    val indice = pontosOrdenados.indexOfFirst { it.id == ponto.id }
+                    
                     _uiState.update {
                         it.copy(
                             pontoOriginal = ponto,
+                            indice = if (indice >= 0) indice else 0,
                             data = ponto.data,
                             hora = ponto.hora,
-                            tipo = ponto.tipo,
                             observacao = ponto.observacao ?: "",
                             isLoading = false,
                             isEditMode = true
@@ -87,16 +101,16 @@ class EditPontoViewModel @Inject constructor(
             val observacao = state.observacao.ifBlank { null }
 
             if (state.isEditMode && state.pontoOriginal != null) {
-                atualizarPonto(state.pontoOriginal.id, dataHora, state.tipo, observacao)
+                atualizarPonto(state.pontoOriginal.id, dataHora, observacao)
             } else {
-                criarPonto(dataHora, state.tipo, observacao)
+                criarPonto(dataHora, observacao)
             }
             _uiState.update { it.copy(isSaving = false) }
         }
     }
 
-    private suspend fun atualizarPonto(id: Long, dataHora: LocalDateTime, tipo: TipoPonto, obs: String?) {
-        val params = EditarPontoUseCase.Parametros(id, dataHora, tipo, obs)
+    private suspend fun atualizarPonto(id: Long, dataHora: LocalDateTime, obs: String?) {
+        val params = EditarPontoUseCase.Parametros(id, dataHora, obs)
         when (val r = editarPontoUseCase(params)) {
             is EditarPontoUseCase.Resultado.Sucesso -> {
                 _uiEvent.emit(EditPontoUiEvent.ShowSnackbar("Ponto atualizado"))
@@ -109,8 +123,8 @@ class EditPontoViewModel @Inject constructor(
         }
     }
 
-    private suspend fun criarPonto(dataHora: LocalDateTime, tipo: TipoPonto, obs: String?) {
-        val params = RegistrarPontoUseCase.Parametros(empregoId, dataHora, tipo, obs)
+    private suspend fun criarPonto(dataHora: LocalDateTime, obs: String?) {
+        val params = RegistrarPontoUseCase.Parametros(empregoId, dataHora, obs)
         when (val r = registrarPontoUseCase(params)) {
             is RegistrarPontoUseCase.Resultado.Sucesso -> {
                 _uiEvent.emit(EditPontoUiEvent.ShowSnackbar("Ponto registrado"))

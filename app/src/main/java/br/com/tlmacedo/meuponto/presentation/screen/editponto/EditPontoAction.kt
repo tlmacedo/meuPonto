@@ -1,18 +1,18 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/editponto/EditPontoAction.kt
+// Arquivo: EditPontoAction.kt
 package br.com.tlmacedo.meuponto.presentation.screen.editponto
 
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import java.time.LocalDate
 import java.time.LocalTime
 
 /**
  * Sealed class que representa as ações possíveis na tela de edição de ponto.
  *
- * Define todas as intenções do usuário que podem modificar
- * o estado da tela ou disparar operações.
+ * O tipo do ponto não pode ser alterado pois é determinado pela posição.
+ * Apenas data, hora e observação são editáveis.
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.1.0 - Removido AlterarTipo (tipo calculado por posição)
  */
 sealed class EditPontoAction {
 
@@ -29,13 +29,6 @@ sealed class EditPontoAction {
      * @property hora Nova hora selecionada
      */
     data class AlterarHora(val hora: LocalTime) : EditPontoAction()
-
-    /**
-     * Ação para alterar o tipo do ponto.
-     *
-     * @property tipo Novo tipo selecionado
-     */
-    data class AlterarTipo(val tipo: TipoPonto) : EditPontoAction()
 
     /**
      * Ação para alterar a observação do ponto.

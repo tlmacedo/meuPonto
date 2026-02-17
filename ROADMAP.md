@@ -72,8 +72,8 @@
 - [x] Card de Ponto (`PontoCard`)
 - [x] Duração entre pontos e intervalos (`IntervaloCard`)
 
-### 5.3 Contador em Tempo Real ⬜
-- [ ] Contador HH:mm:ss quando há entrada sem saída
+### 5.3 Contador em Tempo Real ✅
+- [x] Contador HH:mm:ss quando há entrada sem saída (LiveCounter)
 
 ### 5.4 Indicadores Visuais de Inconsistência ⬜
 - [ ] Ícone de alerta, cores diferenciadas, tooltip

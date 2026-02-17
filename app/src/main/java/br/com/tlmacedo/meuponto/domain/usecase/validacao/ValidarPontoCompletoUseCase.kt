@@ -1,46 +1,32 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/validacao/ValidarPontoCompletoUseCase.kt
+// Arquivo: ValidarPontoCompletoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.validacao
 
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
+import br.com.tlmacedo.meuponto.domain.model.Inconsistencia
 import br.com.tlmacedo.meuponto.domain.model.InconsistenciaDetectada
 import br.com.tlmacedo.meuponto.domain.model.Ponto
+import br.com.tlmacedo.meuponto.domain.model.PontoConstants
 import br.com.tlmacedo.meuponto.domain.model.ResultadoValidacao
+import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
  * Use Case orquestrador que executa todas as validações de ponto.
  *
- * Consolida os resultados de múltiplos validadores em um único resultado,
- * facilitando o uso nas camadas superiores (ViewModel/UI).
- *
- * Validações executadas:
- * 1. Sequência de entrada/saída
- * 2. Horários (futuro, retroativo, esperado)
- * 3. Jornada diária (limites, intervalos)
- *
- * @property validarSequencia Validador de sequência
- * @property validarHorario Validador de horários
- * @property validarJornada Validador de jornada
- *
  * @author Thiago
  * @since 2.0.0
+ * @updated 2.1.0 - Adaptado para tipo calculado por posição
  */
 class ValidarPontoCompletoUseCase @Inject constructor(
-    private val validarSequencia: ValidarSequenciaPontoUseCase,
     private val validarHorario: ValidarHorarioPontoUseCase,
-    private val validarJornada: ValidarJornadaDiariaUseCase
+    private val validarJornada: ValidarJornadaDiariaUseCase,
+    private val pontoRepository: PontoRepository
 ) {
     /**
      * Executa todas as validações para um novo registro de ponto.
-     *
-     * @param empregoId ID do emprego
-     * @param ponto Ponto a ser validado
-     * @param configuracao Configuração do emprego
-     * @param horarioEsperado Configuração de horário do dia (opcional)
-     * @param dataHoraAtual Data/hora atual para validações temporais
-     * @return ResultadoValidacao consolidado de todas as validações
      */
     suspend operator fun invoke(
         empregoId: Long,
@@ -50,17 +36,22 @@ class ValidarPontoCompletoUseCase @Inject constructor(
         dataHoraAtual: LocalDateTime = LocalDateTime.now()
     ): ResultadoValidacao {
         val todasInconsistencias = mutableListOf<InconsistenciaDetectada>()
-        val mensagens = mutableListOf<String>()
 
-        // 1. Validar sequência
-        val resultadoSequencia = validarSequencia(empregoId, ponto)
-        todasInconsistencias.addAll(resultadoSequencia.inconsistencias)
+        // Buscar pontos existentes para validação
+        val data = ponto.dataHora.toLocalDate()
+        val pontosExistentes = pontoRepository.buscarPorEmpregoEData(empregoId, data)
+        val indiceNovoPonto = pontosExistentes.size
 
-        // Se sequência falhou criticamente, retornar imediatamente
-        if (resultadoSequencia.temInconsistenciasBloqueantes) {
+        // 1. Validar quantidade máxima
+        if (pontosExistentes.size >= PontoConstants.MAX_PONTOS) {
             return ResultadoValidacao.falha(
-                inconsistencias = todasInconsistencias,
-                mensagem = "Sequência de ponto inválida"
+                inconsistencias = listOf(
+                    InconsistenciaDetectada(
+                        inconsistencia = Inconsistencia.REGISTROS_IMPARES,
+                        detalhes = "Quantidade máxima de ${PontoConstants.MAX_PONTOS} pontos atingida"
+                    )
+                ),
+                mensagem = "Quantidade máxima de pontos atingida"
             )
         }
 
@@ -73,7 +64,6 @@ class ValidarPontoCompletoUseCase @Inject constructor(
         )
         todasInconsistencias.addAll(resultadoHorario.inconsistencias)
 
-        // Se horário falhou criticamente (ex: futuro), retornar
         if (resultadoHorario.temInconsistenciasBloqueantes) {
             return ResultadoValidacao.falha(
                 inconsistencias = todasInconsistencias,
@@ -81,32 +71,35 @@ class ValidarPontoCompletoUseCase @Inject constructor(
             )
         }
 
-        // 3. Validar jornada (apenas se ponto de saída para verificar totais)
-        if (ponto.isSaida) {
+        // 3. Validar jornada (se for saída)
+        val isSaida = indiceNovoPonto % 2 == 1
+        if (isSaida && pontosExistentes.isNotEmpty()) {
+            val todosPontos = pontosExistentes + ponto
             val resultadoJornada = validarJornada(
-                empregoId = empregoId,
-                novoPonto = ponto,
-                configuracao = configuracao,
-                horarioEsperado = horarioEsperado
+                pontos = todosPontos,
+                jornadaMaximaMinutos = configuracao.jornadaMaximaDiariaMinutos.toLong(),
+                intervaloMinimoMinutos = horarioEsperado?.intervaloMinimoMinutos?.toLong() ?: 60L
             )
-            todasInconsistencias.addAll(resultadoJornada.inconsistencias)
+            // Converter resultado de jornada em inconsistências
+            converterResultadoJornada(resultadoJornada)?.let {
+                todasInconsistencias.add(it)
+            }
         }
 
         // Consolidar resultado
         val temBloqueantes = todasInconsistencias.any { it.isBloqueante }
-        val temAlertas = todasInconsistencias.any { !it.isBloqueante }
 
         return if (temBloqueantes) {
             ResultadoValidacao.falha(
                 inconsistencias = todasInconsistencias,
-                mensagem = "Registro com inconsistências que impedem o salvamento"
+                mensagem = "Registro com inconsistências bloqueantes"
             )
         } else {
             ResultadoValidacao(
                 isValido = true,
                 inconsistencias = todasInconsistencias,
                 pontoValidado = ponto,
-                mensagens = if (temAlertas) {
+                mensagens = if (todasInconsistencias.isNotEmpty()) {
                     listOf("Registro válido com ${todasInconsistencias.size} alerta(s)")
                 } else {
                     listOf("Registro válido")
@@ -116,66 +109,65 @@ class ValidarPontoCompletoUseCase @Inject constructor(
     }
 
     /**
-     * Executa validação rápida apenas de sequência.
-     * Útil para validação em tempo real durante digitação.
-     *
-     * @param empregoId ID do emprego
-     * @param ponto Ponto a ser validado
-     * @return ResultadoValidacao apenas da sequência
-     */
-    suspend fun validacaoRapida(
-        empregoId: Long,
-        ponto: Ponto
-    ): ResultadoValidacao {
-        return validarSequencia(empregoId, ponto)
-    }
-
-    /**
-     * Valida um dia completo (para relatórios/fechamentos).
-     *
-     * @param empregoId ID do emprego
-     * @param data Data para validar
-     * @param configuracao Configuração do emprego
-     * @param horarioEsperado Configuração de horário do dia
-     * @return ResultadoValidacao do dia completo
+     * Valida um dia completo.
      */
     suspend fun validarDiaCompleto(
         empregoId: Long,
-        data: java.time.LocalDate,
+        data: LocalDate,
         configuracao: ConfiguracaoEmprego,
         horarioEsperado: HorarioDiaSemana? = null
     ): ResultadoValidacao {
+        val pontos = pontoRepository.buscarPorEmpregoEData(empregoId, data)
         val todasInconsistencias = mutableListOf<InconsistenciaDetectada>()
 
-        // Validar sequência do dia
-        val inconsistenciasSequencia = validarSequencia.validarSequenciaDia(empregoId, data)
-        todasInconsistencias.addAll(inconsistenciasSequencia)
-
-        // Validar jornada do dia
-        val resultadoJornada = validarJornada.validarDia(
-            empregoId = empregoId,
-            data = data,
-            configuracao = configuracao,
-            horarioEsperado = horarioEsperado
-        )
-        todasInconsistencias.addAll(resultadoJornada.inconsistencias)
+        // Validar jornada do dia (se houver pontos)
+        if (pontos.size >= 2) {
+            val resultadoJornada = validarJornada(
+                pontos = pontos,
+                jornadaMaximaMinutos = configuracao.jornadaMaximaDiariaMinutos.toLong(),
+                intervaloMinimoMinutos = horarioEsperado?.intervaloMinimoMinutos?.toLong() ?: 60L
+            )
+            converterResultadoJornada(resultadoJornada)?.let {
+                todasInconsistencias.add(it)
+            }
+        }
 
         val temBloqueantes = todasInconsistencias.any { it.isBloqueante }
 
         return ResultadoValidacao(
             isValido = !temBloqueantes,
-            inconsistencias = todasInconsistencias.distinctBy { 
-                it.inconsistencia to it.pontoRelacionadoId 
-            },
+            inconsistencias = todasInconsistencias,
             mensagens = listOf(
-                if (temBloqueantes) {
-                    "Dia com ${todasInconsistencias.count { it.isBloqueante }} inconsistência(s) crítica(s)"
-                } else if (todasInconsistencias.isNotEmpty()) {
-                    "Dia válido com ${todasInconsistencias.size} alerta(s)"
-                } else {
-                    "Dia sem inconsistências"
+                when {
+                    temBloqueantes -> "Dia com inconsistências críticas"
+                    todasInconsistencias.isNotEmpty() -> "Dia válido com alertas"
+                    else -> "Dia sem inconsistências"
                 }
             )
         )
+    }
+
+    /**
+     * Converte ResultadoValidacaoJornada em InconsistenciaDetectada.
+     */
+    private fun converterResultadoJornada(
+        resultado: ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada
+    ): InconsistenciaDetectada? {
+        return when (resultado) {
+            is ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada.JornadaExcedida -> {
+                InconsistenciaDetectada(
+                    inconsistencia = Inconsistencia.JORNADA_EXCEDIDA,
+                    detalhes = "Jornada excedeu em ${resultado.minutosExcedidos} minutos"
+                )
+            }
+            is ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada.IntervaloInsuficiente -> {
+                InconsistenciaDetectada(
+                    inconsistencia = Inconsistencia.INTERVALO_ALMOCO_INSUFICIENTE,
+                    detalhes = "Intervalo de ${resultado.minutosIntervalo} min, mínimo: ${resultado.minimoNecessario} min"
+                )
+            }
+            ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada.Valida,
+            ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada.DadosInsuficientes -> null
+        }
     }
 }

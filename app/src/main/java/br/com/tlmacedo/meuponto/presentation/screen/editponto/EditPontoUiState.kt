@@ -1,4 +1,4 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/editponto/EditPontoUiState.kt
+// Arquivo: EditPontoUiState.kt
 package br.com.tlmacedo.meuponto.presentation.screen.editponto
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
@@ -9,13 +9,13 @@ import java.time.LocalTime
 /**
  * Estado da interface da tela de edição de ponto.
  *
- * Contém os dados necessários para renderizar e controlar
- * o formulário de edição de um registro de ponto.
+ * O tipo do ponto (entrada/saída) é determinado pela posição na lista ordenada,
+ * não podendo ser alterado pelo usuário. Apenas data, hora e observação são editáveis.
  *
  * @property pontoOriginal Ponto original sendo editado (null se novo)
+ * @property indice Índice do ponto na lista ordenada (para determinar tipo visual)
  * @property data Data selecionada para o ponto
  * @property hora Hora selecionada para o ponto
- * @property tipo Tipo do ponto (ENTRADA ou SAIDA)
  * @property observacao Observação opcional do usuário
  * @property isLoading Indica se está carregando dados
  * @property isSaving Indica se está salvando alterações
@@ -24,12 +24,13 @@ import java.time.LocalTime
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.1.0 - Tipo calculado por índice (não editável)
  */
 data class EditPontoUiState(
     val pontoOriginal: Ponto? = null,
+    val indice: Int = 0,
     val data: LocalDate = LocalDate.now(),
     val hora: LocalTime = LocalTime.now(),
-    val tipo: TipoPonto = TipoPonto.ENTRADA,
     val observacao: String = "",
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
@@ -37,13 +38,18 @@ data class EditPontoUiState(
     val isEditMode: Boolean = false
 ) {
     /**
+     * Tipo calculado pelo índice (apenas para exibição visual).
+     */
+    val tipo: TipoPonto
+        get() = TipoPonto.getTipoPorIndice(indice)
+
+    /**
      * Verifica se há alterações pendentes em relação ao ponto original.
      */
     val hasChanges: Boolean
         get() = pontoOriginal?.let { original ->
             original.data != data ||
             original.hora != hora ||
-            original.tipo != tipo ||
             (original.observacao ?: "") != observacao
         } ?: true
 

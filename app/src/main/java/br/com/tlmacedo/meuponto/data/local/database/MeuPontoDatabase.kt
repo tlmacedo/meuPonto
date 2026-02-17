@@ -1,4 +1,4 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/MeuPontoDatabase.kt
+// Arquivo: MeuPontoDatabase.kt
 package br.com.tlmacedo.meuponto.data.local.database
 
 import androidx.room.Database
@@ -24,6 +24,9 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.PontoEntity
 
 /**
  * Classe principal do banco de dados Room.
+ *
+ * @since 1.0.0
+ * @updated 2.1.0 - Versão 8: Removida coluna tipo da tabela pontos
  */
 @Database(
     entities = [
@@ -36,7 +39,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.PontoEntity
         MarcadorEntity::class,
         AuditLogEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

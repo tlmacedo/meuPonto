@@ -18,12 +18,8 @@ class CalcularSaldoMensalUseCase @Inject constructor(
         val diasUteis: Int,
         val saldosDiarios: List<CalcularSaldoDiaUseCase.SaldoDia>
     ) {
-        val trabalhadoFormatado: String
-            get() = formatarMinutos(trabalhadoMinutos)
-
-        val esperadoFormatado: String
-            get() = formatarMinutos(esperadoMinutos)
-
+        val trabalhadoFormatado: String get() = formatarMinutos(trabalhadoMinutos)
+        val esperadoFormatado: String get() = formatarMinutos(esperadoMinutos)
         val saldoFormatado: String
             get() {
                 val sinal = if (saldoMinutos >= 0) "+" else "-"

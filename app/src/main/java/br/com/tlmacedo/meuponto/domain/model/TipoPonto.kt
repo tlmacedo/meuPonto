@@ -1,78 +1,64 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/TipoPonto.kt
+// Arquivo: TipoPonto.kt
 package br.com.tlmacedo.meuponto.domain.model
 
 /**
- * Enum que representa os tipos de batida de ponto.
+ * Enum que representa o tipo de ponto (ENTRADA ou SAÍDA).
  *
- * O sistema trabalha com alternância simples entre ENTRADA e SAÍDA,
- * permitindo flexibilidade para diferentes cenários de jornada:
- * - Mínimo: 2 pontos (1 entrada + 1 saída)
- * - Ideal: 4 pontos (entrada, saída almoço, retorno almoço, saída)
- * - Máximo: 10 pontos (múltiplos intervalos)
+ * **IMPORTANTE:** Este enum é usado APENAS para apresentação na UI.
+ * O tipo real do ponto é determinado pela sua posição na lista ordenada:
+ * - Índice par (0, 2, 4...) = ENTRADA
+ * - Índice ímpar (1, 3, 5...) = SAÍDA
  *
- * @property descricao Descrição em português para exibição na interface
- * @property isEntrada Indica se é um ponto de entrada (início de período)
+ * @property descricao Descrição para exibição na UI
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.1.0 - Agora é apenas enum de apresentação (não armazenado no banco)
  */
-enum class TipoPonto(
-    val descricao: String,
-    val isEntrada: Boolean
-) {
-    /** Início de período de trabalho */
-    ENTRADA("Entrada", true),
-
-    /** Fim de período de trabalho */
-    SAIDA("Saída", false);
+enum class TipoPonto(val descricao: String) {
+    ENTRADA("Entrada"),
+    SAIDA("Saída");
 
     companion object {
-        /**
-         * Retorna o próximo tipo de ponto esperado baseado no último registrado.
-         *
-         * A lógica é simples: alterna entre ENTRADA e SAÍDA.
-         * - Se não há ponto anterior: ENTRADA
-         * - Se último foi ENTRADA: SAÍDA
-         * - Se último foi SAÍDA: ENTRADA
-         *
-         * @param ultimoTipo Último tipo de ponto registrado (null se nenhum)
-         * @return Próximo tipo esperado na sequência
-         */
-        fun getProximoTipo(ultimoTipo: TipoPonto?): TipoPonto {
-            return when (ultimoTipo) {
-                null -> ENTRADA
-                ENTRADA -> SAIDA
-                SAIDA -> ENTRADA
-            }
-        }
-
-        /**
-         * Valida se a quantidade de pontos está dentro do permitido.
-         *
-         * @param quantidade Quantidade de pontos registrados
-         * @return true se está dentro do limite (2 a 10)
-         */
-        fun isQuantidadeValida(quantidade: Int): Boolean {
-            return quantidade in MIN_PONTOS..MAX_PONTOS
-        }
-
-        /**
-         * Verifica se a quantidade de pontos representa o cenário ideal.
-         *
-         * @param quantidade Quantidade de pontos registrados
-         * @return true se é o cenário ideal (4 pontos)
-         */
-        fun isQuantidadeIdeal(quantidade: Int): Boolean {
-            return quantidade == PONTOS_IDEAL
-        }
-
-        /** Quantidade mínima de pontos por dia */
+        /** Quantidade mínima de pontos para calcular jornada */
         const val MIN_PONTOS = 2
 
-        /** Quantidade ideal de pontos por dia (com intervalo de almoço) */
+        /** Quantidade ideal de pontos (entrada, intervalo, retorno, saída) */
         const val PONTOS_IDEAL = 4
 
-        /** Quantidade máxima de pontos por dia */
+        /** Quantidade máxima de pontos permitidos por dia */
         const val MAX_PONTOS = 10
+
+        /**
+         * Determina o tipo baseado na quantidade atual de pontos.
+         * Se a quantidade é par, o próximo é ENTRADA. Se ímpar, é SAÍDA.
+         */
+        fun getProximoTipo(quantidadePontos: Int): TipoPonto {
+            return if (quantidadePontos % 2 == 0) ENTRADA else SAIDA
+        }
+
+        /**
+         * Determina o tipo de um ponto baseado no seu índice na lista ordenada.
+         * Índice par = ENTRADA, índice ímpar = SAÍDA.
+         */
+        fun getTipoPorIndice(indice: Int): TipoPonto {
+            return if (indice % 2 == 0) ENTRADA else SAIDA
+        }
     }
 }
+
+/**
+ * Objeto com constantes de ponto (para uso onde não se quer importar o enum).
+ */
+object PontoConstants {
+    const val MIN_PONTOS = 2
+    const val PONTOS_IDEAL = 4
+    const val MAX_PONTOS = 10
+}
+
+/** Verifica se o próximo ponto será uma entrada */
+fun proximoPontoIsEntrada(quantidadePontos: Int): Boolean = quantidadePontos % 2 == 0
+
+/** Retorna descrição do próximo tipo esperado */
+fun proximoPontoDescricao(quantidadePontos: Int): String =
+    if (proximoPontoIsEntrada(quantidadePontos)) "Entrada" else "Saída"

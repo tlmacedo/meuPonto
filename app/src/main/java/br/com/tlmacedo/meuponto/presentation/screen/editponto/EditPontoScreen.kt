@@ -1,7 +1,9 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/editponto/EditPontoScreen.kt
+// Arquivo: EditPontoScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.editponto
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,17 +11,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -30,7 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,6 +43,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.presentation.components.LoadingIndicator
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.theme.EntradaBg
+import br.com.tlmacedo.meuponto.presentation.theme.EntradaColor
+import br.com.tlmacedo.meuponto.presentation.theme.SaidaBg
+import br.com.tlmacedo.meuponto.presentation.theme.SaidaColor
 import kotlinx.coroutines.flow.collectLatest
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -45,15 +54,17 @@ import java.util.Locale
 /**
  * Tela de edição/criação de ponto.
  *
- * Permite ao usuário editar um ponto existente ou criar um novo,
- * com campos para data, hora, tipo e observação.
+ * Permite ao usuário editar data, hora e observação de um ponto.
+ * O tipo (entrada/saída) é determinado automaticamente pela posição
+ * na lista ordenada e não pode ser alterado manualmente.
  *
  * @param onNavigateBack Callback para voltar à tela anterior
- * @param modifier Modificador opcional para customização do layout
+ * @param modifier Modificador opcional
  * @param viewModel ViewModel da tela (injetado pelo Hilt)
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.1.0 - Tipo calculado por posição (não editável)
  */
 @Composable
 fun EditPontoScreen(
@@ -64,16 +75,13 @@ fun EditPontoScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Observa eventos únicos
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
             when (event) {
                 is EditPontoUiEvent.ShowSnackbar -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
-                is EditPontoUiEvent.PontoSalvo -> {
-                    // Tratado junto com NavigateBack
-                }
+                is EditPontoUiEvent.PontoSalvo -> { }
                 is EditPontoUiEvent.NavigateBack -> {
                     onNavigateBack()
                 }
@@ -115,6 +123,13 @@ private fun EditPontoContent(
 ) {
     val formatadorData = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("pt", "BR"))
     val formatadorHora = DateTimeFormatter.ofPattern("HH:mm", Locale("pt", "BR"))
+    
+    // Tipo calculado (apenas para exibição)
+    val tipo = uiState.tipo
+    val isEntrada = tipo == TipoPonto.ENTRADA
+    val corPrincipal = if (isEntrada) EntradaColor else SaidaColor
+    val corFundo = if (isEntrada) EntradaBg else SaidaBg
+    val icone = if (isEntrada) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
 
     Column(
         modifier = modifier
@@ -122,6 +137,55 @@ private fun EditPontoContent(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        // Card de Tipo (apenas visualização)
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = corFundo
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(corPrincipal.copy(alpha = 0.2f))
+                ) {
+                    Icon(
+                        imageVector = icone,
+                        contentDescription = tipo.descricao,
+                        tint = corPrincipal,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Column(modifier = Modifier.padding(start = 16.dp)) {
+                    Text(
+                        text = "Tipo de Ponto",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = tipo.descricao,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = corPrincipal
+                    )
+                    Text(
+                        text = "Determinado automaticamente pela posição",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Card de Data e Hora
         Card(
             colors = CardDefaults.cardColors(
@@ -166,54 +230,6 @@ private fun EditPontoContent(
                         text = uiState.hora.format(formatadorHora),
                         fontWeight = FontWeight.Medium
                     )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Card de Tipo
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .selectableGroup()
-            ) {
-                Text(
-                    text = "Tipo de Ponto",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                TipoPonto.entries.forEach { tipo ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = uiState.tipo == tipo,
-                                onClick = { onAction(EditPontoAction.AlterarTipo(tipo)) },
-                                role = Role.RadioButton
-                            )
-                            .padding(vertical = 8.dp)
-                    ) {
-                        RadioButton(
-                            selected = uiState.tipo == tipo,
-                            onClick = null
-                        )
-                        Text(
-                            text = tipo.descricao,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
                 }
             }
         }

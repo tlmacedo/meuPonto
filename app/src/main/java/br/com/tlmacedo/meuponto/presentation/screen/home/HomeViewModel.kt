@@ -335,21 +335,20 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val tipo = _uiState.value.proximoTipo
             val data = _uiState.value.dataSelecionada
             val dataHora = LocalDateTime.of(data, hora)
 
             val parametros = RegistrarPontoUseCase.Parametros(
                 empregoId = empregoId,
-                dataHora = dataHora,
-                tipo = tipo
+                dataHora = dataHora
             )
 
             when (val resultado = registrarPontoUseCase(parametros)) {
                 is RegistrarPontoUseCase.Resultado.Sucesso -> {
                     val horaFormatada = hora.format(DateTimeFormatter.ofPattern("HH:mm"))
+                    val tipoDescricao = _uiState.value.proximoTipo.descricao
                     _uiEvent.emit(
-                        HomeUiEvent.MostrarMensagem("${tipo.descricao} registrada às $horaFormatada")
+                        HomeUiEvent.MostrarMensagem("$tipoDescricao registrada às $horaFormatada")
                     )
                     fecharTimePicker()
                 }

@@ -6,6 +6,7 @@ import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -43,7 +44,7 @@ data class HomeUiState(
     val pontosHoje: List<Ponto> = emptyList(),
     val resumoDia: ResumoDia = ResumoDia(data = LocalDate.now()),
     val bancoHoras: BancoHoras = BancoHoras(),
-    val proximoTipo: TipoPonto = TipoPonto.ENTRADA,
+    val proximoTipo: ProximoPonto = ProximoPonto(isEntrada = true, descricao = "Entrada", indice = 0),
     val empregoAtivo: Emprego? = null,
     val empregosDisponiveis: List<Emprego> = emptyList(),
     val isLoading: Boolean = false,

@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import br.com.tlmacedo.meuponto.presentation.theme.EntradaColor
 import br.com.tlmacedo.meuponto.presentation.theme.SaidaColor
 import br.com.tlmacedo.meuponto.presentation.theme.Success
@@ -68,16 +69,16 @@ import java.time.format.DateTimeFormatter
  */
 @Composable
 fun RegistrarPontoButton(
-    proximoTipo: TipoPonto,
+    proximoTipo: ProximoPonto,
     horaAtual: LocalTime,
     onRegistrarAgora: () -> Unit,
     onRegistrarManual: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isEntrada = proximoTipo == TipoPonto.ENTRADA
+    val isEntrada = proximoTipo.isEntrada
     val corPrincipal = if (isEntrada) EntradaColor else SaidaColor
     val icone = if (isEntrada) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
-    val texto = if (isEntrada) "Registrar Entrada" else "Registrar Saída"
+    val texto = "Registrar ${proximoTipo.descricao}"
     val formatadorHora = DateTimeFormatter.ofPattern("HH:mm:ss")
 
     val interactionSource = remember { MutableInteractionSource() }

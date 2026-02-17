@@ -1,4 +1,4 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/Ponto.kt
+// Arquivo: Ponto.kt
 package br.com.tlmacedo.meuponto.domain.model
 
 import java.time.LocalDate
@@ -8,34 +8,24 @@ import java.time.LocalTime
 /**
  * Modelo de domínio que representa um registro de ponto.
  *
- * Contém todas as informações relacionadas a uma batida de ponto,
- * incluindo data, hora, tipo e metadados de auditoria.
+ * O tipo do ponto (ENTRADA/SAÍDA) NÃO é armazenado.
+ * É calculado em runtime baseado na posição na lista ordenada por dataHora:
+ * - Índice par (0, 2, 4...) = ENTRADA
+ * - Índice ímpar (1, 3, 5...) = SAÍDA
  *
- * @property id Identificador único do registro (0 para novos registros)
- * @property empregoId ID do emprego associado
- * @property dataHora Data e hora exata da batida de ponto
- * @property tipo Tipo da batida (ENTRADA ou SAIDA)
- * @property isEditadoManualmente Indica se o registro foi editado após criação
- * @property observacao Observação opcional do usuário sobre o registro
- * @property nsr Número Sequencial de Registro (opcional)
- * @property latitude Latitude da localização (opcional)
- * @property longitude Longitude da localização (opcional)
- * @property endereco Endereço geocodificado (opcional)
- * @property marcadorId ID do marcador/tag associado (opcional)
- * @property justificativaInconsistencia Justificativa para registro inconsistente
- * @property horaConsiderada Hora efetiva considerada após tolerância de intervalo
- * @property criadoEm Data e hora de criação do registro no sistema
- * @property atualizadoEm Data e hora da última atualização do registro
+ * Use as funções de extensão para determinar o tipo:
+ * - ponto.isEntrada(indice)
+ * - ponto.isSaida(indice)
+ * - ponto.getTipoDescricao(indice)
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.0.0 - Adicionado suporte a múltiplos empregos, localização e marcadores
+ * @updated 2.1.0 - Removido campo tipo (calculado em runtime por posição)
  */
 data class Ponto(
     val id: Long = 0,
     val empregoId: Long = 1,
     val dataHora: LocalDateTime,
-    val tipo: TipoPonto,
     val isEditadoManualmente: Boolean = false,
     val observacao: String? = null,
     val nsr: String? = null,
@@ -48,63 +38,26 @@ data class Ponto(
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 ) {
-    /**
-     * Retorna apenas a data do registro.
-     */
-    val data: LocalDate
-        get() = dataHora.toLocalDate()
-
-    /**
-     * Retorna apenas a hora do registro.
-     */
-    val hora: LocalTime
-        get() = dataHora.toLocalTime()
-
-    /**
-     * Retorna a hora formatada no padrão HH:mm.
-     */
-    val horaFormatada: String
-        get() = String.format("%02d:%02d", hora.hour, hora.minute)
-
-    /**
-     * Retorna a hora considerada (após tolerância) ou a hora real.
-     */
-    val horaEfetiva: LocalTime
-        get() = horaConsiderada?.toLocalTime() ?: hora
-
-    /**
-     * Retorna a hora efetiva formatada no padrão HH:mm.
-     */
-    val horaEfetivaFormatada: String
-        get() = String.format("%02d:%02d", horaEfetiva.hour, horaEfetiva.minute)
-
-    /**
-     * Indica se houve ajuste por tolerância de intervalo.
-     */
-    val temAjusteToleranncia: Boolean
-        get() = horaConsiderada != null && horaConsiderada != dataHora
-
-    /**
-     * Verifica se este ponto é do tipo entrada.
-     */
-    val isEntrada: Boolean
-        get() = tipo.isEntrada
-
-    /**
-     * Verifica se este ponto é do tipo saída.
-     */
-    val isSaida: Boolean
-        get() = !tipo.isEntrada
-
-    /**
-     * Verifica se possui localização registrada.
-     */
-    val temLocalizacao: Boolean
-        get() = latitude != null && longitude != null
-
-    /**
-     * Verifica se possui inconsistência registrada.
-     */
-    val temInconsistencia: Boolean
-        get() = !justificativaInconsistencia.isNullOrBlank()
+    val data: LocalDate get() = dataHora.toLocalDate()
+    val hora: LocalTime get() = dataHora.toLocalTime()
+    val horaFormatada: String get() = String.format("%02d:%02d", hora.hour, hora.minute)
+    val horaEfetiva: LocalTime get() = horaConsiderada?.toLocalTime() ?: hora
+    val horaEfetivaFormatada: String get() = String.format("%02d:%02d", horaEfetiva.hour, horaEfetiva.minute)
+    val temAjusteTolerancia: Boolean get() = horaConsiderada != null && horaConsiderada != dataHora
+    val temLocalizacao: Boolean get() = latitude != null && longitude != null
+    val temInconsistencia: Boolean get() = !justificativaInconsistencia.isNullOrBlank()
 }
+
+// ============================================================================
+// Funções de Extensão para Tipo de Ponto (calculado em runtime)
+// ============================================================================
+
+/** Verifica se é ENTRADA baseado no índice (par = entrada) */
+fun Ponto.isEntrada(indice: Int): Boolean = indice % 2 == 0
+
+/** Verifica se é SAÍDA baseado no índice (ímpar = saída) */
+fun Ponto.isSaida(indice: Int): Boolean = indice % 2 == 1
+
+/** Retorna descrição do tipo baseado no índice */
+fun Ponto.getTipoDescricao(indice: Int): String = if (isEntrada(indice)) "Entrada" else "Saída"
+

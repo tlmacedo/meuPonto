@@ -1,7 +1,7 @@
+// Arquivo: ListarPontosUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -11,12 +11,17 @@ import javax.inject.Inject
 
 /**
  * Caso de uso para listar pontos com informações adicionais.
+ *
+ * @author Thiago
+ * @since 1.0.0
+ * @updated 2.1.0 - Tipo calculado por posição (índice par = entrada)
  */
 class ListarPontosUseCase @Inject constructor(
     private val pontoRepository: PontoRepository
 ) {
     data class PontoComDetalhes(
         val ponto: Ponto,
+        val indice: Int,
         val duracaoDesdeAnteriorMinutos: Long?,
         val isEntrada: Boolean,
         val isUltimoDoDia: Boolean
@@ -66,10 +71,14 @@ class ListarPontosUseCase @Inject constructor(
                 ChronoUnit.MINUTES.between(pontosOrdenados[index - 1].hora, ponto.hora)
             } else null
 
+            // Tipo calculado pela posição: índice par = entrada, ímpar = saída
+            val isEntrada = index % 2 == 0
+
             PontoComDetalhes(
                 ponto = ponto,
+                indice = index,
                 duracaoDesdeAnteriorMinutos = duracaoDesdeAnterior,
-                isEntrada = ponto.tipo == TipoPonto.ENTRADA,
+                isEntrada = isEntrada,
                 isUltimoDoDia = index == pontosOrdenados.lastIndex
             )
         }
@@ -86,18 +95,16 @@ class ListarPontosUseCase @Inject constructor(
     }
 
     private fun calcularTempoTrabalhado(pontos: List<Ponto>): Long {
-        if (pontos.isEmpty()) return 0L
+        if (pontos.size < 2) return 0L
 
         var totalMinutos = 0L
         var i = 0
 
+        // Pares: índice par (entrada) + índice ímpar (saída)
         while (i < pontos.size - 1) {
             val entrada = pontos[i]
             val saida = pontos[i + 1]
-
-            if (entrada.tipo == TipoPonto.ENTRADA && saida.tipo == TipoPonto.SAIDA) {
-                totalMinutos += ChronoUnit.MINUTES.between(entrada.hora, saida.hora)
-            }
+            totalMinutos += ChronoUnit.MINUTES.between(entrada.hora, saida.hora)
             i += 2
         }
 

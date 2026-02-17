@@ -44,6 +44,7 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoButton
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
+import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import java.time.format.DateTimeFormatter
 
 /**
@@ -117,6 +118,7 @@ fun HomeScreen(
     if (uiState.showDeleteConfirmDialog && uiState.pontoParaExcluir != null) {
         DeletePontoConfirmDialog(
             ponto = uiState.pontoParaExcluir!!,
+            pontosHoje = uiState.pontosHoje,
             onConfirm = { viewModel.onAction(HomeAction.ConfirmarExclusao) },
             onDismiss = { viewModel.onAction(HomeAction.CancelarExclusao) }
         )
@@ -284,15 +286,25 @@ internal fun HomeContent(
 @Composable
 private fun DeletePontoConfirmDialog(
     ponto: br.com.tlmacedo.meuponto.domain.model.Ponto,
+    pontosHoje: List<br.com.tlmacedo.meuponto.domain.model.Ponto>,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    // Calcular o índice do ponto na lista ordenada para determinar o tipo
+    val pontosOrdenados = pontosHoje.sortedBy { it.dataHora }
+    val indice = pontosOrdenados.indexOfFirst { it.id == ponto.id }
+    val tipoDescricao = if (indice >= 0) {
+        TipoPonto.getTipoPorIndice(indice).descricao
+    } else {
+        "ponto"
+    }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Excluir Ponto") },
         text = {
             Text(
-                "Deseja realmente excluir o registro de ${ponto.tipo.descricao} às ${
+                "Deseja realmente excluir o registro de $tipoDescricao às ${
                     ponto.hora.format(DateTimeFormatter.ofPattern("HH:mm"))
                 }?"
             )
