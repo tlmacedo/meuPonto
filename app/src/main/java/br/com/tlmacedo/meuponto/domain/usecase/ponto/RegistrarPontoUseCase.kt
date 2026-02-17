@@ -8,6 +8,7 @@ import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /**
@@ -16,6 +17,9 @@ import javax.inject.Inject
  * Gerencia a lógica de registro de entrada/saída, detectando automaticamente
  * o tipo do ponto com base nos registros existentes no dia. Suporta registro
  * manual (com horário específico) e automático (horário atual).
+ *
+ * Todos os horários são truncados para minutos (segundos e nanossegundos zerados)
+ * para garantir consistência nos cálculos e exibição.
  *
  * @property pontoRepository Repositório de pontos para persistência
  * @property preferenciasRepository Repositório de preferências para obter emprego ativo
@@ -102,6 +106,9 @@ class RegistrarPontoUseCase @Inject constructor(
     /**
      * Registra um ponto com os parâmetros especificados.
      *
+     * O horário é automaticamente truncado para minutos (segundos = 0, nanos = 0)
+     * para garantir consistência nos cálculos de jornada e exibição.
+     *
      * @param parametros Parâmetros do registro
      * @return Resultado da operação
      */
@@ -112,7 +119,9 @@ class RegistrarPontoUseCase @Inject constructor(
                 ?: preferenciasRepository.obterEmpregoAtivoId()
                 ?: return Resultado.SemEmpregoAtivo
 
-            val dataHora = parametros.dataHora ?: LocalDateTime.now()
+            // Trunca o horário para minutos (remove segundos e nanossegundos)
+            val dataHoraOriginal = parametros.dataHora ?: LocalDateTime.now()
+            val dataHora = dataHoraOriginal.truncatedTo(ChronoUnit.MINUTES)
             val data = dataHora.toLocalDate()
 
             // Busca pontos existentes no dia
@@ -134,7 +143,8 @@ class RegistrarPontoUseCase @Inject constructor(
             // Determina o tipo do ponto
             val tipo = parametros.tipo ?: TipoPonto.getProximoTipo(ultimoPonto?.tipo)
 
-            // Cria o ponto
+            // Cria o ponto (timestamps de auditoria também truncados)
+            val agora = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
             val ponto = Ponto(
                 empregoId = empregoId,
                 dataHora = dataHora,
@@ -142,8 +152,8 @@ class RegistrarPontoUseCase @Inject constructor(
                 observacao = parametros.observacao,
                 latitude = parametros.latitude,
                 longitude = parametros.longitude,
-                criadoEm = LocalDateTime.now(),
-                atualizadoEm = LocalDateTime.now()
+                criadoEm = agora,
+                atualizadoEm = agora
             )
 
             // Persiste o ponto
@@ -163,6 +173,7 @@ class RegistrarPontoUseCase @Inject constructor(
      * Registra ponto rapidamente usando horário atual e detecção automática de tipo.
      *
      * Atalho conveniente para o registro rápido do dia a dia.
+     * O horário é automaticamente truncado para minutos.
      *
      * @param empregoId ID do emprego (opcional)
      * @return Resultado da operação
@@ -175,6 +186,7 @@ class RegistrarPontoUseCase @Inject constructor(
      * Registra ponto com data e hora específicos.
      *
      * Útil para registro manual ou correção de horários.
+     * O horário é automaticamente truncado para minutos.
      *
      * @param data Data do registro
      * @param hora Hora do registro
