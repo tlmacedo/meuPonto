@@ -3,11 +3,12 @@ package br.com.tlmacedo.meuponto.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
@@ -29,41 +31,61 @@ import java.time.LocalDate
 /**
  * TopAppBar customizada do aplicativo Meu Ponto.
  *
- * Barra superior com título centralizado e ações opcionais
- * de navegação e configurações, com design moderno.
+ * Barra superior com título centralizado, subtítulo opcional (nome do emprego)
+ * e ações de navegação, histórico e configurações.
  *
  * @param title Título a ser exibido
+ * @param subtitle Subtítulo opcional (ex: nome do emprego)
  * @param showBackButton Se deve exibir botão de voltar
- * @param showTodayButton Se deve exibir botão do dia atual (atalho para hoje)
+ * @param showTodayButton Se deve exibir botão do dia atual
+ * @param showHistoryButton Se deve exibir botão de histórico
  * @param showSettingsButton Se deve exibir botão de configurações
  * @param onBackClick Callback para ação de voltar
  * @param onTodayClick Callback para ir para o dia atual
+ * @param onHistoryClick Callback para abrir histórico
  * @param onSettingsClick Callback para ação de configurações
  * @param modifier Modificador opcional
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.5.0 - Botão de calendário substituído por ícone do dia atual
+ * @updated 2.6.0 - Adicionado subtítulo e botão de histórico
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeuPontoTopBar(
     title: String,
+    subtitle: String? = null,
     showBackButton: Boolean = false,
     showTodayButton: Boolean = false,
+    showHistoryButton: Boolean = false,
     showSettingsButton: Boolean = false,
     onBackClick: () -> Unit = {},
     onTodayClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     CenterAlignedTopAppBar(
         title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
         },
         navigationIcon = {
             if (showBackButton) {
@@ -79,6 +101,14 @@ fun MeuPontoTopBar(
             if (showTodayButton) {
                 IconButton(onClick = onTodayClick) {
                     TodayDateIcon()
+                }
+            }
+            if (showHistoryButton) {
+                IconButton(onClick = onHistoryClick) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "Histórico"
+                    )
                 }
             }
             if (showSettingsButton) {
@@ -99,7 +129,6 @@ fun MeuPontoTopBar(
 
 /**
  * Ícone personalizado que exibe o dia atual do mês.
- * Funciona como atalho visual para "ir para hoje".
  */
 @Composable
 private fun TodayDateIcon() {

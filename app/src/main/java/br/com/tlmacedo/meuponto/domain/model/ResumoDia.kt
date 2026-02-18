@@ -5,11 +5,24 @@ import br.com.tlmacedo.meuponto.util.formatarDuracao
 import br.com.tlmacedo.meuponto.util.formatarSaldo
 import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
 import br.com.tlmacedo.meuponto.util.minutosParaIntervalo
-import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import br.com.tlmacedo.meuponto.util.minutosParaTurno
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
+
+/**
+ * Status simplificado do dia para exibição no histórico.
+ *
+ * @author Thiago
+ * @since 3.0.0
+ */
+enum class StatusDiaResumo(val descricao: String, val isConsistente: Boolean) {
+    COMPLETO("Completo", true),
+    EM_ANDAMENTO("Em andamento", true),
+    INCOMPLETO("Incompleto", false),
+    COM_PROBLEMAS("Com problemas", false),
+    SEM_REGISTRO("Sem registro", true)
+}
 
 /**
  * Modelo que representa o resumo de um dia de trabalho.
@@ -27,6 +40,7 @@ import java.time.LocalDateTime
  * @updated 2.9.0 - Adicionado cálculo de hora de entrada considerada com tolerância
  * @updated 2.10.0 - Corrigido cálculo de duração do turno usando hora considerada
  * @updated 2.11.0 - Refatorado: horasTrabalhadas calculado a partir dos intervalos (single source of truth)
+ * @updated 3.0.0 - Adicionadas propriedades para suporte ao histórico (single source of truth)
  */
 data class ResumoDia(
     val data: LocalDate,
@@ -86,6 +100,74 @@ data class ResumoDia(
     /** Descrição do próximo tipo esperado */
     val proximoTipoDescricao: String
         get() = proximoPontoDescricao(pontos.size)
+
+    // ========================================================================
+    // PROPRIEDADES PARA HISTÓRICO (Single Source of Truth)
+    // ========================================================================
+
+    /** Quantidade de pontos registrados */
+    val quantidadePontos: Int
+        get() = pontos.size
+
+    /** Primeiro ponto do dia */
+    val primeiroPonto: Ponto?
+        get() = pontos.minByOrNull { it.dataHora }
+
+    /** Último ponto do dia */
+    val ultimoPonto: Ponto?
+        get() = pontos.maxByOrNull { it.dataHora }
+
+    /** Calcula minutos de intervalo total (soma de todas as pausas consideradas entre turnos) */
+    val minutosIntervaloTotal: Int
+        get() = intervalos
+            .mapNotNull { it.pausaConsideradaMinutos }
+            .sum()
+
+    /** Calcula minutos de intervalo real (soma de todas as pausas reais entre turnos) */
+    val minutosIntervaloReal: Int
+        get() = intervalos
+            .mapNotNull { it.pausaAntesMinutos }
+            .sum()
+
+    /**
+     * Verifica se o dia tem problemas (jornada incompleta ou intervalo insuficiente).
+     * Usado para filtros e indicadores visuais no histórico.
+     */
+    val temProblemas: Boolean
+        get() {
+            // Jornada incompleta (ímpar de pontos, exceto 1 que é "em andamento")
+            if (!jornadaCompleta && pontos.size > 1) return true
+
+            // Intervalo insuficiente (se tem 4+ pontos)
+            if (pontos.size >= 4) {
+                val intervaloReal = intervalos.getOrNull(1)?.pausaAntesMinutos ?: 0
+                val toleranciaProblema = 10 // 10min de tolerância antes de considerar problema
+                if (intervaloReal < intervaloMinimoMinutos - toleranciaProblema) return true
+            }
+
+            return false
+        }
+
+    /**
+     * Status do dia para exibição no histórico.
+     * Simplifica a lógica de StatusDia para uso em listas.
+     */
+    val statusDia: StatusDiaResumo
+        get() = when {
+            pontos.isEmpty() -> StatusDiaResumo.SEM_REGISTRO
+            !jornadaCompleta && pontos.size == 1 -> StatusDiaResumo.EM_ANDAMENTO
+            !jornadaCompleta -> StatusDiaResumo.INCOMPLETO
+            temProblemas -> StatusDiaResumo.COM_PROBLEMAS
+            else -> StatusDiaResumo.COMPLETO
+        }
+
+    /** Verifica se o dia tem intervalo registrado (4+ pontos = pelo menos um intervalo) */
+    val temIntervalo: Boolean
+        get() = minutosIntervaloReal > 0
+
+    /** Verifica se a tolerância de intervalo foi aplicada (intervalo real ≠ considerado) */
+    val temToleranciaIntervaloAplicada: Boolean
+        get() = minutosIntervaloReal != minutosIntervaloTotal && minutosIntervaloTotal > 0
 
     // ========================================================================
     // FORMATADORES

@@ -52,10 +52,11 @@ android {
     lint {
         disable += listOf(
             "MultipleAwaitPointerEventScopes",
-            "ReturnFromAwaitPointerEventScope"
+            "ReturnFromAwaitPointerEventScope",
+            "FlowOperatorInvokedInComposition"
         )
-        checkTestSources = false
         abortOnError = false
+        checkTestSources = false
         warningsAsErrors = false
     }
 

@@ -50,6 +50,7 @@ import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoButton
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoManualButton
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
+import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
@@ -61,8 +62,6 @@ import java.time.format.DateTimeFormatter
  * navegação por data, seleção de emprego e lista de intervalos
  * trabalhados de forma visual e intuitiva.
  *
- * Inclui contador em tempo real quando há jornada em andamento.
- *
  * @param viewModel ViewModel da tela
  * @param onNavigateToHistory Callback para navegar ao histórico
  * @param onNavigateToSettings Callback para navegar às configurações
@@ -70,12 +69,13 @@ import java.time.format.DateTimeFormatter
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 2.6.0 - Nome do emprego movido para TopBar
  */
-// E o DatePickerDialog corrigido:
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
+    dataSelecionadaInicial: String? = null,
     onNavigateToHistory: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToEditPonto: (Long) -> Unit = {},
@@ -117,6 +117,18 @@ fun HomeScreen(
         }
     }
 
+    // Navegar para data específica quando vindo do histórico
+    LaunchedEffect(dataSelecionadaInicial) {
+        dataSelecionadaInicial?.let { dataString ->
+            try {
+                val data = LocalDate.parse(dataString)
+                viewModel.onAction(HomeAction.SelecionarData(data))
+            } catch (e: Exception) {
+                // Ignora se a data for inválida
+            }
+        }
+    }
+
     // Dialog de TimePicker
     if (uiState.showTimePickerDialog) {
         TimePickerDialog(
@@ -131,7 +143,7 @@ fun HomeScreen(
         )
     }
 
-    // Dialog de DatePicker - CORRIGIDO com UTC
+    // Dialog de DatePicker
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = uiState.dataSelecionada
@@ -191,20 +203,23 @@ fun HomeScreen(
             }
         )
     }
+
     Scaffold(
         topBar = {
             MeuPontoTopBar(
                 title = "Meu Ponto",
-                showTodayButton = true,  // ALTERADO de showHistoryButton
+                subtitle = uiState.empregoAtivo?.nome,
+                showTodayButton = !uiState.isHoje,
+                showHistoryButton = true,
                 showSettingsButton = true,
-                onTodayClick = { viewModel.onAction(HomeAction.IrParaHoje) },  // ALTERADO
+                onTodayClick = { viewModel.onAction(HomeAction.IrParaHoje) },
+                onHistoryClick = { viewModel.onAction(HomeAction.NavegarParaHistorico) },
                 onSettingsClick = { viewModel.onAction(HomeAction.NavegarParaConfiguracoes) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         if (uiState.isLoading && uiState.pontosHoje.isEmpty()) {
-            // Loading inicial
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -237,35 +252,35 @@ internal fun HomeContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxSize()
     ) {
-        // Seletor de Emprego com suporte a long press
-        item {
-            EmpregoSelectorChip(
-                empregoAtivo = uiState.empregoAtivo,
-                temMultiplosEmpregos = uiState.temMultiplosEmpregos,
-                showMenu = uiState.showEmpregoMenu,
-                onClick = {
-                    // Sem emprego: navegar para criar
-                    // Com emprego e múltiplos: abrir seletor
-                    // Com emprego único: nada (usar long press)
-                    if (uiState.empregoAtivo == null) {
+        // Chip de emprego (compacto) - apenas para ações de seleção/edição
+        // Só mostra se não tiver emprego ou tiver múltiplos
+        if (!uiState.temEmpregoAtivo || uiState.temMultiplosEmpregos) {
+            item {
+                EmpregoSelectorChip(
+                    empregoAtivo = uiState.empregoAtivo,
+                    temMultiplosEmpregos = uiState.temMultiplosEmpregos,
+                    showMenu = uiState.showEmpregoMenu,
+                    onClick = {
+                        if (uiState.empregoAtivo == null) {
+                            onAction(HomeAction.NavegarParaNovoEmprego)
+                        } else if (uiState.temMultiplosEmpregos) {
+                            onAction(HomeAction.AbrirSeletorEmprego)
+                        }
+                    },
+                    onLongClick = {
+                        onAction(HomeAction.AbrirMenuEmprego)
+                    },
+                    onNovoEmprego = {
                         onAction(HomeAction.NavegarParaNovoEmprego)
-                    } else if (uiState.temMultiplosEmpregos) {
-                        onAction(HomeAction.AbrirSeletorEmprego)
+                    },
+                    onEditarEmprego = {
+                        onAction(HomeAction.NavegarParaEditarEmprego)
+                    },
+                    onDismissMenu = {
+                        onAction(HomeAction.FecharMenuEmprego)
                     }
-                },
-                onLongClick = {
-                    onAction(HomeAction.AbrirMenuEmprego)
-                },
-                onNovoEmprego = {
-                    onAction(HomeAction.NavegarParaNovoEmprego)
-                },
-                onEditarEmprego = {
-                    onAction(HomeAction.NavegarParaEditarEmprego)
-                },
-                onDismissMenu = {
-                    onAction(HomeAction.FecharMenuEmprego)
-                }
-            )
+                )
+            }
         }
 
         // Navegador de Data
@@ -278,7 +293,7 @@ internal fun HomeContent(
                 podeNavegarProximo = uiState.podeNavegarProximo,
                 onDiaAnterior = { onAction(HomeAction.DiaAnterior) },
                 onProximoDia = { onAction(HomeAction.ProximoDia) },
-                onSelecionarData = { onAction(HomeAction.AbrirDatePicker) }  // ALTERADO
+                onSelecionarData = { onAction(HomeAction.AbrirDatePicker) }
             )
         }
 
@@ -287,14 +302,14 @@ internal fun HomeContent(
             ResumoCard(
                 resumoDia = uiState.resumoDia,
                 bancoHoras = uiState.bancoHoras,
+                versaoJornada = uiState.versaoJornadaAtual,
                 dataHoraInicioContador = uiState.dataHoraInicioContador,
                 mostrarContador = uiState.deveExibirContador
             )
         }
 
-        // Botão de Registrar Ponto - lógica por tipo de dia
+        // Botão de Registrar Ponto
         if (uiState.podeRegistrarPontoAutomatico) {
-            // Dia atual: botão completo (automático + manual)
             item {
                 RegistrarPontoButton(
                     proximoTipo = uiState.proximoTipo,
@@ -304,7 +319,6 @@ internal fun HomeContent(
                 )
             }
         } else if (uiState.podeRegistrarPontoManual) {
-            // Dias anteriores: apenas registro manual
             item {
                 RegistrarPontoManualButton(
                     proximoTipo = uiState.proximoTipo,
@@ -314,12 +328,13 @@ internal fun HomeContent(
             }
         }
 
-        // Aviso de data futura (sem registro de ponto)
+        // Aviso de data futura
         if (uiState.isFuturo) {
             item {
                 FutureDateWarning()
             }
         }
+
         // Aviso de sem emprego
         if (!uiState.temEmpregoAtivo) {
             item {
@@ -339,7 +354,7 @@ internal fun HomeContent(
                 )
             }
 
-            // Lista de intervalos com contador em tempo real para intervalos abertos
+            // Lista de intervalos
             items(
                 items = uiState.resumoDia.intervalos,
                 key = { it.entrada.id }
@@ -356,7 +371,6 @@ internal fun HomeContent(
                 }
             }
         } else if (uiState.temEmpregoAtivo && !uiState.isFuturo) {
-            // Estado vazio
             item {
                 EmptyPontosState()
             }
@@ -374,7 +388,6 @@ private fun DeletePontoConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Calcular o índice do ponto na lista ordenada para determinar o tipo
     val pontosOrdenados = pontosHoje.sortedBy { it.dataHora }
     val indice = pontosOrdenados.indexOfFirst { it.id == ponto.id }
     val tipoDescricao = if (indice >= 0) {

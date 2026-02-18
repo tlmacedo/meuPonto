@@ -101,4 +101,17 @@ class HorarioDiaSemanaRepositoryImpl @Inject constructor(
             entities.map { it.toDomain() }
         }
     }
+
+    // ========================================================================
+    // Operações por Versão de Jornada
+    // ========================================================================
+
+    override suspend fun buscarPorVersaoJornada(versaoJornadaId: Long): List<HorarioDiaSemana> {
+        return horarioDiaSemanaDao.buscarPorVersaoJornada(versaoJornadaId).map { it.toDomain() }
+    }
+
+    override suspend fun buscarPorVersaoEDia(versaoJornadaId: Long, diaSemana: DiaSemana): HorarioDiaSemana? {
+        return horarioDiaSemanaDao.buscarPorVersaoEDia(versaoJornadaId, diaSemana)?.toDomain()
+    }
+
 }

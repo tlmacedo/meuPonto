@@ -7,14 +7,15 @@ import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.AjusteSaldoRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import java.time.Duration
 import java.time.LocalDate
 import javax.inject.Inject
@@ -28,10 +29,12 @@ import javax.inject.Inject
  * 3. Tolerâncias: aplica tolerância de intervalo automaticamente
  * 4. Ajustes manuais: soma ajustes do período
  * 5. Carga horária por dia: usa configuração específica de cada dia da semana
+ * 6. Versão de jornada: busca a versão correta para cada data
  *
  * @author Thiago
  * @since 1.0.0
  * @updated 2.6.0 - Considera fechamentos, ajustes e tolerâncias
+ * @updated 2.9.0 - Corrigido para usar versão de jornada correta para cada data
  */
 class CalcularBancoHorasUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
@@ -39,6 +42,7 @@ class CalcularBancoHorasUseCase @Inject constructor(
     private val ajusteSaldoRepository: AjusteSaldoRepository,
     private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val aplicarToleranciaIntervaloUseCase: AplicarToleranciaIntervaloUseCase
 ) {
 
@@ -65,6 +69,15 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val negativo: Boolean
             get() = saldoTotal.isNegative
     }
+
+    /**
+     * Cache de versões de jornada para evitar múltiplas consultas ao banco.
+     * Chave: "empregoId_dataInicio_dataFim" da versão
+     */
+    private data class VersaoCache(
+        val versao: VersaoJornada,
+        val horariosPorDia: Map<DiaSemana, br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana>
+    )
 
     /**
      * Calcula o banco de horas até uma data específica de forma reativa.
@@ -139,22 +152,39 @@ class CalcularBancoHorasUseCase @Inject constructor(
         // Agrupar pontos por dia
         val pontosPorDia = pontosNoPeriodo.groupBy { it.data }
 
-        // Buscar configurações
+        // Buscar configuração global como fallback
         val configGlobal = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
-        val horariosPorDia = horarioDiaSemanaRepository.buscarPorEmprego(empregoId)
-            .associateBy { it.diaSemana }
+
+        // Cache de versões e horários para evitar múltiplas consultas
+        val versaoCache = mutableMapOf<Long, VersaoCache>()
 
         var saldoTotal = Duration.ZERO
         var diasTrabalhados = 0
 
         // Calcular saldo de cada dia
-        pontosPorDia.forEach { (data, pontosNoDia) ->
+        for ((data, pontosNoDia) in pontosPorDia) {
             if (pontosNoDia.size >= 2 && pontosNoDia.size % 2 == 0) {
                 // Jornada completa
                 diasTrabalhados++
 
                 val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
-                val configDia = horariosPorDia[diaSemana]
+
+                // Buscar versão de jornada para esta data específica
+                val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+
+                // Buscar configuração do dia (da versão correta ou fallback)
+                val configDia = versaoJornada?.let { versao ->
+                    // Usar cache se disponível
+                    val cached = versaoCache[versao.id] ?: run {
+                        val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(versao.id)
+                            .associateBy { it.diaSemana }
+                        VersaoCache(versao, horarios).also { versaoCache[versao.id] = it }
+                    }
+                    cached.horariosPorDia[diaSemana]
+                } ?: run {
+                    // Fallback: buscar pelo emprego (compatibilidade)
+                    horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+                }
 
                 // Obter configurações do dia
                 val intervaloMinimo = configDia?.intervaloMinimoMinutos

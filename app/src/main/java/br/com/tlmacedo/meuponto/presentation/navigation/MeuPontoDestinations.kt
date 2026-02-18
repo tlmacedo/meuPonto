@@ -4,58 +4,62 @@ package br.com.tlmacedo.meuponto.presentation.navigation
 /**
  * Constantes de destinos de navegação do aplicativo MeuPonto.
  *
- * Centraliza todas as rotas de navegação em um único local,
- * facilitando a manutenção e evitando strings duplicadas.
- *
  * @author Thiago
  * @since 1.0.0
+ * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
  */
 object MeuPontoDestinations {
-    
+
     // === TELAS PRINCIPAIS ===
-    
+
     /** Tela inicial com registro de ponto */
-    const val HOME = "home"
-    
+    const val HOME = "home?data={data}"
+
+    /** Rota base da Home (sem parâmetros) */
+    const val HOME_BASE = "home"
+
     /** Tela de histórico de pontos */
     const val HISTORY = "history"
-    
+
     /** Tela principal de configurações */
     const val SETTINGS = "settings"
-    
+
     /** Tela de edição de ponto */
     const val EDIT_PONTO = "edit_ponto/{pontoId}"
-    
+
     // === CONFIGURAÇÕES - SUB-TELAS ===
-    
+
     /** Tela de gerenciamento de empregos */
     const val GERENCIAR_EMPREGOS = "settings/empregos"
-    
+
     /** Tela de edição/criação de emprego */
     const val EDITAR_EMPREGO = "settings/empregos/{empregoId}"
-    
+
     /** Tela de configuração de jornada */
     const val CONFIGURACAO_JORNADA = "settings/jornada"
-    
+
     /** Tela de horários por dia da semana */
     const val HORARIOS_TRABALHO = "settings/horarios"
-    
+
     /** Tela de ajustes de banco de horas */
     const val AJUSTES_BANCO_HORAS = "settings/banco-horas"
-    
+
     /** Tela de gerenciamento de marcadores */
     const val MARCADORES = "settings/marcadores"
-    
+
     /** Tela sobre o aplicativo */
     const val SOBRE = "settings/sobre"
 
     // === ARGUMENTOS DE NAVEGAÇÃO ===
-    
+
     /** Argumento para ID do ponto */
     const val ARG_PONTO_ID = "pontoId"
-    
+
     /** Argumento para ID do emprego */
     const val ARG_EMPREGO_ID = "empregoId"
+
+    /** Argumento para data selecionada (formato: yyyy-MM-dd) */
+    const val ARG_DATA = "data"
 
     // === FUNÇÕES DE CRIAÇÃO DE ROTAS ===
 
@@ -74,4 +78,12 @@ object MeuPontoDestinations {
      * @return Rota formatada com o ID
      */
     fun editarEmprego(empregoId: Long = -1L): String = "settings/empregos/$empregoId"
+
+    /**
+     * Cria a rota para Home com uma data específica.
+     *
+     * @param data Data a ser selecionada na Home (formato ISO: yyyy-MM-dd)
+     * @return Rota formatada com a data
+     */
+    fun homeComData(data: String): String = "home?data=$data"
 }

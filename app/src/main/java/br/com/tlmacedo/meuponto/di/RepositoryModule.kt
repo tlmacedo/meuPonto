@@ -10,6 +10,7 @@ import br.com.tlmacedo.meuponto.data.repository.HorarioDiaSemanaRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.HorarioPadraoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.MarcadorRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.PontoRepositoryImpl
+import br.com.tlmacedo.meuponto.data.repository.VersaoJornadaRepositoryImpl
 import br.com.tlmacedo.meuponto.domain.repository.AjusteSaldoRepository
 import br.com.tlmacedo.meuponto.domain.repository.AuditLogRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
@@ -19,6 +20,7 @@ import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioPadraoRepository
 import br.com.tlmacedo.meuponto.domain.repository.MarcadorRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -30,6 +32,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.7.0 - Adicionado VersaoJornadaRepository
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -70,4 +73,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuditLogRepository(impl: AuditLogRepositoryImpl): AuditLogRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindVersaoJornadaRepository(impl: VersaoJornadaRepositoryImpl): VersaoJornadaRepository
 }

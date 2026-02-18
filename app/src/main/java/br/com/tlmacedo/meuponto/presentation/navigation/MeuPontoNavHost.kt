@@ -37,16 +37,17 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
  *
  * @param navController Controlador de navegação
  * @param modifier Modificador para o container
- * @param startDestination Destino inicial (padrão: HOME)
+ * @param startDestination Destino inicial (padrão: HOME_BASE)
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
  */
 @Composable
 fun MeuPontoNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    startDestination: String = MeuPontoDestinations.HOME
+    startDestination: String = MeuPontoDestinations.HOME_BASE
 ) {
     Box(modifier = modifier) {
         NavHost(
@@ -55,8 +56,20 @@ fun MeuPontoNavHost(
         ) {
             // ===== TELAS PRINCIPAIS =====
 
-            composable(MeuPontoDestinations.HOME) {
+            composable(
+                route = MeuPontoDestinations.HOME,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_DATA) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val dataString = backStackEntry.arguments?.getString(MeuPontoDestinations.ARG_DATA)
+
                 HomeScreen(
+                    dataSelecionadaInicial = dataString,
                     onNavigateToHistory = {
                         navController.navigate(MeuPontoDestinations.HISTORY)
                     },
@@ -78,8 +91,14 @@ fun MeuPontoNavHost(
             composable(MeuPontoDestinations.HISTORY) {
                 HistoryScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditPonto = { pontoId ->
-                        navController.navigate(MeuPontoDestinations.editPonto(pontoId))
+                    onNavigateToDay = { data ->
+                        // Navega para Home com a data selecionada
+                        navController.navigate(MeuPontoDestinations.homeComData(data.toString())) {
+                            // Limpa a pilha até a Home para evitar múltiplas instâncias
+                            popUpTo(MeuPontoDestinations.HOME_BASE) {
+                                inclusive = true
+                            }
+                        }
                     }
                 )
             }

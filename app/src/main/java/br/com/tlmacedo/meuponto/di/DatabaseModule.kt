@@ -276,4 +276,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideAuditLogDao(database: MeuPontoDatabase): AuditLogDao = database.auditLogDao()
+
+    @Provides
+    @Singleton
+    fun provideVersaoJornadaDao(database: MeuPontoDatabase): VersaoJornadaDao = database.versaoJornadaDao()
+
 }

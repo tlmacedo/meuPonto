@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,7 +24,9 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -37,10 +40,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.ErrorLight
 import br.com.tlmacedo.meuponto.presentation.theme.Info
@@ -50,20 +55,22 @@ import br.com.tlmacedo.meuponto.presentation.theme.SuccessLight
 import java.time.LocalDateTime
 
 /**
- * Card de resumo do dia com horas trabalhadas, saldo, banco de horas
- * e contador em tempo real quando há jornada em andamento.
+ * Card de resumo do dia com horas trabalhadas, saldo, banco de horas,
+ * contador em tempo real, jornada do dia e período da versão de jornada.
  *
- * NOTA: Usa os formatadores padronizados dos modelos (ResumoDia, BancoHoras)
+ * NOTA: Usa os formatadores padronizados dos modelos (ResumoDia, BancoHoras, VersaoJornada)
  * que seguem o padrão "00h 00min".
  *
  * @author Thiago
  * @since 1.0.0
  * @updated 2.11.0 - Usa formatadores padronizados (remove funções locais duplicadas)
+ * @updated 2.12.0 - Adicionada exibição da jornada do dia e período da versão de jornada
  */
 @Composable
 fun ResumoCard(
     resumoDia: ResumoDia,
     bancoHoras: BancoHoras,
+    versaoJornada: VersaoJornada? = null,
     dataHoraInicioContador: LocalDateTime? = null,
     mostrarContador: Boolean = false,
     modifier: Modifier = Modifier
@@ -80,7 +87,7 @@ fun ResumoCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Cabeçalho
+            // Cabeçalho com título e badge de status
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
@@ -97,6 +104,12 @@ fun ResumoCard(
                     StatusBadge(texto = "Em andamento")
                 }
             }
+
+            // Informações da jornada e versão
+            JornadaVersaoInfo(
+                cargaHorariaFormatada = resumoDia.cargaHorariaDiariaFormatada,
+                versaoJornada = versaoJornada
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -170,6 +183,61 @@ fun ResumoCard(
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+    }
+}
+
+/**
+ * Exibe informações da jornada do dia e período da versão de jornada.
+ *
+ * Layout:
+ * ⏰ Jornada: 08h 12min  •  📅 01/01/2025 em diante
+ */
+@Composable
+private fun JornadaVersaoInfo(
+    cargaHorariaFormatada: String,
+    versaoJornada: VersaoJornada?,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.padding(top = 4.dp)
+    ) {
+        // Jornada do dia
+        Icon(
+            imageVector = Icons.Default.Schedule,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = "Jornada: $cargaHorariaFormatada",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+        )
+
+        // Separador e período da versão (se disponível)
+        versaoJornada?.let { versao ->
+            Text(
+                text = "  •  ",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f)
+            )
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = versao.periodoFormatado,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

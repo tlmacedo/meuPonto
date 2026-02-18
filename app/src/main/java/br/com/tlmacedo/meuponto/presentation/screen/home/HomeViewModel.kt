@@ -7,6 +7,7 @@ import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
@@ -41,9 +42,11 @@ import javax.inject.Inject
  * - Navegação entre datas
  * - Seleção de emprego ativo
  * - Cálculo de resumos e saldos
+ * - Versão de jornada vigente
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 2.8.0 - Adicionado carregamento de versão de jornada
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -56,7 +59,8 @@ class HomeViewModel @Inject constructor(
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
     private val listarEmpregosUseCase: ListarEmpregosUseCase,
     private val trocarEmpregoAtivoUseCase: TrocarEmpregoAtivoUseCase,
-    private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository  // ADICIONAR
+    private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -68,6 +72,7 @@ class HomeViewModel @Inject constructor(
     // Job para coleta de pontos (cancelável ao trocar de data/emprego)
     private var pontosCollectionJob: Job? = null
     private var bancoHorasCollectionJob: Job? = null
+    private var versaoJornadaCollectionJob: Job? = null
 
     init {
         carregarEmpregoAtivo()
@@ -178,8 +183,9 @@ class HomeViewModel @Inject constructor(
                 val empregoAnterior = _uiState.value.empregoAtivo
                 _uiState.update { it.copy(empregoAtivo = emprego) }
 
-                // Recarrega banco de horas se o emprego mudou
+                // Recarrega dados se o emprego mudou
                 if (emprego != null && empregoAnterior?.id != emprego.id) {
+                    carregarPontosDoDia()  // Isso já carrega versão e banco
                     carregarBancoHoras()
                 }
             }
@@ -205,6 +211,11 @@ class HomeViewModel @Inject constructor(
 
     /**
      * Carrega os pontos do dia selecionado.
+     *
+     * IMPORTANTE: Busca o horário da versão de jornada correta para a data,
+     * garantindo que a carga horária exibida corresponda à configuração vigente.
+     *
+     * @updated 2.8.0 - Corrigido para buscar horário da versão de jornada correta
      */
     private fun carregarPontosDoDia() {
         pontosCollectionJob?.cancel()
@@ -215,11 +226,22 @@ class HomeViewModel @Inject constructor(
         pontosCollectionJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Buscar configuração do dia da semana
+            // 1. Buscar a versão de jornada vigente para a data selecionada
+            val versaoJornada = empregoId?.let {
+                versaoJornadaRepository.buscarPorEmpregoEData(it, data)
+            }
+
+            // 2. Buscar configuração do dia da semana DA VERSÃO CORRETA
             val diaSemana = DiaSemana.fromDayOfWeek(data.dayOfWeek)
-            val horarioDia = empregoId?.let {
+            val horarioDia = versaoJornada?.id?.let { versaoId ->
+                horarioDiaSemanaRepository.buscarPorVersaoEDia(versaoId, diaSemana)
+            } ?: empregoId?.let {
+                // Fallback: se não tiver versão, busca pelo emprego (compatibilidade)
                 horarioDiaSemanaRepository.buscarPorEmpregoEDia(it, diaSemana)
             }
+
+            // 3. Atualizar versão de jornada no estado
+            _uiState.update { it.copy(versaoJornadaAtual = versaoJornada) }
 
             obterPontosDoDiaUseCase(data).collect { pontos ->
                 val resumo = calcularResumoDiaUseCase(pontos, data, horarioDia)
@@ -322,11 +344,12 @@ class HomeViewModel @Inject constructor(
     /**
      * Seleciona uma data específica e recarrega os dados.
      * O banco de horas é recalculado até a nova data selecionada.
+     * A versão de jornada é atualizada automaticamente em carregarPontosDoDia().
      */
     private fun selecionarData(data: LocalDate) {
         _uiState.update { it.copy(dataSelecionada = data) }
-        carregarPontosDoDia()
-        carregarBancoHoras() // Saldo dinâmico até a data selecionada
+        carregarPontosDoDia()  // Já carrega versão de jornada
+        carregarBancoHoras()
     }
 
     // ══════════════════════════════════════════════════════════════════════

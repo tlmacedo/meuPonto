@@ -147,4 +147,29 @@ interface HorarioDiaSemanaRepository {
      * @return Flow que emite a lista de dias ativos
      */
     fun observarDiasAtivos(empregoId: Long): Flow<List<HorarioDiaSemana>>
+
+    // Adicionar ao final da interface, antes do fechamento }
+
+    // ========================================================================
+    // Operações por Versão de Jornada
+    // ========================================================================
+
+    /**
+     * Busca todos os horários de uma versão de jornada específica.
+     *
+     * @param versaoJornadaId Identificador da versão de jornada
+     * @return Lista de horários ordenada por dia da semana
+     */
+    suspend fun buscarPorVersaoJornada(versaoJornadaId: Long): List<HorarioDiaSemana>
+
+    /**
+     * Busca o horário de um dia específico de uma versão de jornada.
+     *
+     * @param versaoJornadaId Identificador da versão de jornada
+     * @param diaSemana Dia da semana
+     * @return Horário encontrado ou null
+     */
+    suspend fun buscarPorVersaoEDia(versaoJornadaId: Long, diaSemana: DiaSemana): HorarioDiaSemana?
+
+
 }

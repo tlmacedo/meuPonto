@@ -5,6 +5,7 @@ import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -20,6 +21,7 @@ import java.util.Locale
  * @updated 2.5.0 - Adicionado showDatePicker, corrigido formato de data
  * @updated 2.6.0 - Flags para controle de registro por tipo de dia
  * @updated 2.7.0 - Adicionado showEmpregoMenu para menu de opções do emprego
+ * @updated 2.8.0 - Adicionada versaoJornadaAtual para exibição do período no ResumoCard
  */
 data class HomeUiState(
     val dataSelecionada: LocalDate = LocalDate.now(),
@@ -30,6 +32,7 @@ data class HomeUiState(
     val proximoTipo: ProximoPonto = ProximoPonto(isEntrada = true, descricao = "Entrada", indice = 0),
     val empregoAtivo: Emprego? = null,
     val empregosDisponiveis: List<Emprego> = emptyList(),
+    val versaoJornadaAtual: VersaoJornada? = null,
     val isLoading: Boolean = false,
     val isLoadingEmpregos: Boolean = false,
     val showTimePickerDialog: Boolean = false,
@@ -160,4 +163,28 @@ data class HomeUiState(
             resumoDia.jornadaCompleta -> "Jornada finalizada"
             else -> "Status indefinido"
         }
+
+    // ========================================================================
+    // VERSÃO DE JORNADA
+    // ========================================================================
+
+    /**
+     * Verifica se há uma versão de jornada disponível para a data selecionada.
+     */
+    val temVersaoJornada: Boolean
+        get() = versaoJornadaAtual != null
+
+    /**
+     * Período formatado da versão de jornada atual.
+     * Ex: "01/01/2025 em diante" ou "01/01/2025 até 31/12/2025"
+     */
+    val periodoVersaoJornadaFormatado: String?
+        get() = versaoJornadaAtual?.periodoFormatado
+
+    /**
+     * Título da versão de jornada atual.
+     * Ex: "Versão 1" ou "Versão 2 - Horário Flexível"
+     */
+    val tituloVersaoJornada: String?
+        get() = versaoJornadaAtual?.titulo
 }
