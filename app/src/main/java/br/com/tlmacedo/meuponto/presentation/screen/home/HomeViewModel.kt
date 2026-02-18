@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.Ponto
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
+import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
@@ -53,7 +55,8 @@ class HomeViewModel @Inject constructor(
     private val excluirPontoUseCase: ExcluirPontoUseCase,
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
     private val listarEmpregosUseCase: ListarEmpregosUseCase,
-    private val trocarEmpregoAtivoUseCase: TrocarEmpregoAtivoUseCase
+    private val trocarEmpregoAtivoUseCase: TrocarEmpregoAtivoUseCase,
+    private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository  // ADICIONAR
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -207,12 +210,19 @@ class HomeViewModel @Inject constructor(
         pontosCollectionJob?.cancel()
 
         val data = _uiState.value.dataSelecionada
+        val empregoId = _uiState.value.empregoAtivo?.id
 
         pontosCollectionJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
+            // Buscar configuração do dia da semana
+            val diaSemana = DiaSemana.fromDayOfWeek(data.dayOfWeek)
+            val horarioDia = empregoId?.let {
+                horarioDiaSemanaRepository.buscarPorEmpregoEDia(it, diaSemana)
+            }
+
             obterPontosDoDiaUseCase(data).collect { pontos ->
-                val resumo = calcularResumoDiaUseCase(pontos, data)
+                val resumo = calcularResumoDiaUseCase(pontos, data, horarioDia)
                 val proximoTipo = determinarProximoTipoPontoUseCase(pontos)
 
                 _uiState.update {

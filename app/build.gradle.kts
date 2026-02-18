@@ -50,6 +50,10 @@ android {
     }
 
     lint {
+        disable += listOf(
+            "MultipleAwaitPointerEventScopes",
+            "ReturnFromAwaitPointerEventScope"
+        )
         checkTestSources = false
         abortOnError = false
         warningsAsErrors = false

@@ -7,6 +7,7 @@ import br.com.tlmacedo.meuponto.domain.model.Inconsistencia
 import br.com.tlmacedo.meuponto.domain.model.InconsistenciaDetectada
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResultadoValidacao
+import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -23,6 +24,7 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 2.11.0 - Usa formatadores padronizados de MinutosExtensions
  */
 class ValidarHorarioPontoUseCase @Inject constructor() {
 
@@ -129,8 +131,8 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
         if (horariosIdeais.isEmpty()) return null
 
         // Encontrar o horário ideal mais próximo
-        val horarioMaisProximo = horariosIdeais.minByOrNull { 
-            Duration.between(it, horaPonto).abs().toMinutes() 
+        val horarioMaisProximo = horariosIdeais.minByOrNull {
+            Duration.between(it, horaPonto).abs().toMinutes()
         } ?: return null
 
         val diferencaMinutos = Duration.between(horarioMaisProximo, horaPonto).abs().toMinutes()
@@ -214,14 +216,14 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
             primeiraEntradaHoje.dataHora
         ).toMinutes()
 
-        val minimoMinutos = configuracao.intervaloMinimoInterjornadaMinutos
+        val minimoMinutos = configuracao.intervaloMinimoInterjornadaMinutos.toLong()
 
         return if (intervaloMinutos < minimoMinutos) {
             InconsistenciaDetectada(
                 inconsistencia = Inconsistencia.INTERVALO_INTERJORNADA_INSUFICIENTE,
                 detalhes = buildString {
-                    append("Intervalo de ${formatarDuracao(intervaloMinutos)}, ")
-                    append("mínimo: ${formatarDuracao(minimoMinutos.toLong())}")
+                    append("Intervalo de ${intervaloMinutos.minutosParaHoraMinuto()}, ")
+                    append("mínimo: ${minimoMinutos.minutosParaHoraMinuto()}")
                 }
             )
         } else null
@@ -241,11 +243,5 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
 
     private fun formatarHora(hora: LocalTime): String {
         return String.format("%02d:%02d", hora.hour, hora.minute)
-    }
-
-    private fun formatarDuracao(minutos: Long): String {
-        val horas = minutos / 60
-        val mins = minutos % 60
-        return "${horas}h${mins}min"
     }
 }

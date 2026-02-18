@@ -1,42 +1,46 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/util/MinutosExtensions.kt
 package br.com.tlmacedo.meuponto.util
 
+import java.time.Duration
 import kotlin.math.abs
 
 /**
- * Extensões úteis para manipulação de minutos e formatação de tempo.
+ * Extensões centralizadas para manipulação de minutos e formatação de tempo.
+ *
+ * PADRÃO DE FORMATAÇÃO:
+ * - Duração: "00h 00min" (sempre dois dígitos, com espaço)
+ * - Saldo: "+00h 00min" ou "-00h 00min" (com sinal)
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.4.0 - Adicionados formatadores para turno e intervalo
+ * @updated 2.11.0 - Centralização de todos os formatadores com padrão único
  */
 
+// ============================================================================
+// EXTENSÕES PARA INT (minutos)
+// ============================================================================
+
 /**
- * Converte minutos para o formato "HH:mm".
- *
- * @return String formatada (ex: "08:30")
+ * Converte minutos para o formato "00h 00min".
  */
 fun Int.minutosParaHoraMinuto(): String {
     val horas = abs(this) / 60
     val minutos = abs(this) % 60
-    return String.format("%02d:%02d", horas, minutos)
+    return String.format("%02dh %02dmin", horas, minutos)
 }
 
 /**
- * Converte minutos para o formato "+HH:mm" ou "-HH:mm".
- *
- * @return String formatada com sinal (ex: "+02:30" ou "-01:15")
+ * Converte minutos para o formato "+00h 00min" ou "-00h 00min".
  */
 fun Int.minutosParaSaldoFormatado(): String {
     val sinal = if (this >= 0) "+" else "-"
     val horas = abs(this) / 60
     val minutos = abs(this) % 60
-    return String.format("%s%02d:%02d", sinal, horas, minutos)
+    return String.format("%s%02dh %02dmin", sinal, horas, minutos)
 }
 
 /**
  * Converte minutos para descrição por extenso.
- *
- * @return String descritiva (ex: "2 horas e 30 minutos")
  */
 fun Int.minutosParaDescricao(): String {
     val totalMinutos = abs(this)
@@ -52,42 +56,78 @@ fun Int.minutosParaDescricao(): String {
 }
 
 /**
- * Converte minutos para formato de duração compacta.
- *
- * @return String formatada (ex: "05h 04m")
+ * Converte minutos para formato de duração compacta (alias).
  */
-fun Int.minutosParaDuracaoCompacta(): String {
-    val totalMinutos = abs(this)
-    val horas = totalMinutos / 60
-    val minutos = totalMinutos % 60
-    return String.format("%02dh %02dm", horas, minutos)
-}
+fun Int.minutosParaDuracaoCompacta(): String = this.minutosParaHoraMinuto()
 
 /**
  * Converte minutos para descrição de turno.
- *
- * @return String formatada (ex: "Turno de 05h 04m")
  */
-fun Int.minutosParaTurno(): String {
-    return "Turno de ${this.minutosParaDuracaoCompacta()}"
-}
+fun Int.minutosParaTurno(): String = "Turno de ${this.minutosParaHoraMinuto()}"
 
 /**
  * Converte minutos para descrição de intervalo.
- *
- * @return String formatada (ex: "Intervalo de 01h 14m")
  */
-fun Int.minutosParaIntervalo(): String {
-    return "Intervalo de ${this.minutosParaDuracaoCompacta()}"
+fun Int.minutosParaIntervalo(): String = "Intervalo de ${this.minutosParaHoraMinuto()}"
+
+// ============================================================================
+// EXTENSÕES PARA LONG (minutos)
+// ============================================================================
+
+/**
+ * Converte minutos (Long) para o formato "00h 00min".
+ */
+fun Long.minutosParaHoraMinuto(): String {
+    val horas = abs(this) / 60
+    val minutos = abs(this) % 60
+    return String.format("%02dh %02dmin", horas, minutos)
 }
 
 /**
- * Converte horas e minutos para total de minutos.
- *
- * @param horas Quantidade de horas
- * @param minutos Quantidade de minutos
- * @return Total em minutos
+ * Converte minutos (Long) para o formato "+00h 00min" ou "-00h 00min".
  */
-fun horasParaMinutos(horas: Int, minutos: Int = 0): Int {
-    return (horas * 60) + minutos
+fun Long.minutosParaSaldoFormatado(): String {
+    val sinal = if (this >= 0) "+" else "-"
+    val horas = abs(this) / 60
+    val minutos = abs(this) % 60
+    return String.format("%s%02dh %02dmin", sinal, horas, minutos)
 }
+
+// ============================================================================
+// EXTENSÕES PARA DURATION
+// ============================================================================
+
+/**
+ * Converte Duration para o formato "00h 00min".
+ */
+fun Duration.formatarDuracao(): String {
+    val totalMinutos = abs(this.toMinutes())
+    val horas = totalMinutos / 60
+    val minutos = totalMinutos % 60
+    return String.format("%02dh %02dmin", horas, minutos)
+}
+
+/**
+ * Converte Duration para o formato "+00h 00min" ou "-00h 00min".
+ */
+fun Duration.formatarSaldo(): String {
+    val sinal = if (!this.isNegative) "+" else "-"
+    val totalMinutos = abs(this.toMinutes())
+    val horas = totalMinutos / 60
+    val minutos = totalMinutos % 60
+    return String.format("%s%02dh %02dmin", sinal, horas, minutos)
+}
+
+/**
+ * Converte Duration para total de minutos (Int).
+ */
+fun Duration.toMinutosInt(): Int = this.toMinutes().toInt()
+
+// ============================================================================
+// FUNÇÕES UTILITÁRIAS
+// ============================================================================
+
+/**
+ * Converte horas e minutos para total de minutos.
+ */
+fun horasParaMinutos(horas: Int, minutos: Int = 0): Int = (horas * 60) + minutos

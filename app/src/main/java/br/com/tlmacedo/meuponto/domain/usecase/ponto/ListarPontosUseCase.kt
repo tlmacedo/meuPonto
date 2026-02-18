@@ -1,8 +1,9 @@
-// Arquivo: ListarPontosUseCase.kt
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/ListarPontosUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -15,6 +16,7 @@ import javax.inject.Inject
  * @author Thiago
  * @since 1.0.0
  * @updated 2.1.0 - Tipo calculado por posição (índice par = entrada)
+ * @updated 2.11.0 - Usa formatadores padronizados de MinutosExtensions
  */
 class ListarPontosUseCase @Inject constructor(
     private val pontoRepository: PontoRepository
@@ -33,12 +35,9 @@ class ListarPontosUseCase @Inject constructor(
         val totalTrabalhadoMinutos: Long,
         val isCompleto: Boolean
     ) {
+        /** Total trabalhado: "00h 00min" */
         val totalTrabalhadoFormatado: String
-            get() {
-                val h = totalTrabalhadoMinutos / 60
-                val m = totalTrabalhadoMinutos % 60
-                return "${h}h${m}min"
-            }
+            get() = totalTrabalhadoMinutos.minutosParaHoraMinuto()
     }
 
     fun observarPorData(empregoId: Long, data: LocalDate): Flow<DiaComPontos> {

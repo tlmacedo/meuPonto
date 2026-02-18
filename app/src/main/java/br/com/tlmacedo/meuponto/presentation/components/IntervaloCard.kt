@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.presentation.theme.EntradaBg
@@ -48,7 +50,8 @@ import java.time.format.DateTimeFormatter
  * Mostra visualmente o período trabalhado com entrada, saída
  * e duração do turno de forma clara e intuitiva.
  * Quando o intervalo está aberto, exibe um contador em tempo real.
- * Exibe também o tempo de intervalo/pausa antes do turno (quando houver).
+ * Exibe também o tempo de intervalo/pausa antes do turno (quando houver),
+ * incluindo o tempo real e o tempo considerado (com tolerância).
  *
  * @param intervalo Intervalo a ser exibido
  * @param mostrarContadorTempoReal Se deve exibir contador em tempo real para intervalos abertos
@@ -57,6 +60,8 @@ import java.time.format.DateTimeFormatter
  * @author Thiago
  * @since 1.0.0
  * @updated 2.4.0 - Adicionada exibição do intervalo/pausa antes do turno
+ * @updated 2.8.0 - Exibição de tolerância de intervalo (real vs considerado)
+ * @updated 2.9.0 - Exibição de hora de entrada considerada e ícones diferenciados
  */
 @Composable
 fun IntervaloCard(
@@ -70,7 +75,11 @@ fun IntervaloCard(
         // Exibe o intervalo/pausa ANTES do card (se houver)
         if (intervalo.temPausaAntes) {
             PausaEntreIntervalos(
-                texto = intervalo.formatarPausaAntes() ?: ""
+                textoReal = intervalo.formatarPausaAntesCompacta() ?: "",
+                textoConsiderado = if (intervalo.toleranciaAplicada) {
+                    intervalo.formatarPausaConsideradaCompacta()
+                } else null,
+                isAlmoco = intervalo.isIntervaloAlmoco
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -115,11 +124,32 @@ fun IntervaloCard(
                             style = MaterialTheme.typography.labelMedium,
                             color = EntradaColor
                         )
-                        Text(
-                            text = intervalo.entrada.hora.format(formatadorHora),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
+
+                        // Exibir hora real e hora considerada quando há tolerância
+                        if (intervalo.temHoraEntradaConsiderada) {
+                            // Hora real (cortada/riscada)
+                            Text(
+                                text = intervalo.entrada.hora.format(formatadorHora),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Normal,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                textDecoration = TextDecoration.LineThrough
+                            )
+                            // Hora considerada (destaque)
+                            Text(
+                                text = intervalo.horaEntradaConsiderada!!.toLocalTime().format(formatadorHora),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = EntradaColor
+                            )
+                        } else {
+                            // Hora normal (sem tolerância)
+                            Text(
+                                text = intervalo.entrada.hora.format(formatadorHora),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     // Contador em tempo real para intervalos abertos
@@ -147,7 +177,6 @@ fun IntervaloCard(
                     Spacer(modifier = Modifier.width(16.dp))
 
                     if (intervalo.aberto && mostrarContadorTempoReal) {
-                        // Para intervalo aberto, mostra "Em andamento" com indicador
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -166,7 +195,6 @@ fun IntervaloCard(
                             )
                         }
                     } else {
-                        // Para intervalo fechado, mostra duração do TURNO
                         Icon(
                             imageVector = Icons.Default.Timer,
                             contentDescription = null,
@@ -218,7 +246,6 @@ fun IntervaloCard(
                         }
                     }
                 } else {
-                    // Saída pendente
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
@@ -260,10 +287,24 @@ fun IntervaloCard(
 
 /**
  * Componente que exibe o tempo de pausa/intervalo entre turnos.
+ *
+ * Layout:
+ * - Linha 1: Tempo real (se diferente do considerado, exibe menor/cortado)
+ * - Linha 2: Ícone + Tempo considerado (principal)
+ *
+ * Ícones:
+ * - 🍽️ Restaurant: Intervalo >= intervalo mínimo (almoço)
+ * - ☕ Coffee: Intervalo < intervalo mínimo (café/pausa rápida)
+ *
+ * @param textoReal Texto do intervalo real (compacto, ex: "01h 18m")
+ * @param textoConsiderado Texto do intervalo considerado (null se não houver tolerância)
+ * @param isAlmoco Se é intervalo de almoço (para escolher ícone)
  */
 @Composable
 private fun PausaEntreIntervalos(
-    texto: String,
+    textoReal: String,
+    textoConsiderado: String? = null,
+    isAlmoco: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -278,29 +319,45 @@ private fun PausaEntreIntervalos(
             color = MaterialTheme.colorScheme.outlineVariant
         )
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = 8.dp)
                 .background(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(16.dp)
                 )
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Coffee,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(14.dp)
-            )
-            Text(
-                text = texto,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Linha do intervalo real (se houver tolerância, mostra cortado)
+            if (textoConsiderado != null) {
+                Text(
+                    text = "Intervalo de $textoReal",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Normal,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    textDecoration = TextDecoration.LineThrough
+                )
+            }
+
+            // Linha principal com ícone e tempo considerado (ou real se não houver tolerância)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = if (isAlmoco) Icons.Default.Restaurant else Icons.Default.Coffee,
+                    contentDescription = if (isAlmoco) "Intervalo de almoço" else "Intervalo de café",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "Intervalo de ${textoConsiderado ?: textoReal}",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         HorizontalDivider(

@@ -47,25 +47,18 @@ import br.com.tlmacedo.meuponto.presentation.theme.Info
 import br.com.tlmacedo.meuponto.presentation.theme.InfoLight
 import br.com.tlmacedo.meuponto.presentation.theme.Success
 import br.com.tlmacedo.meuponto.presentation.theme.SuccessLight
-import java.time.Duration
 import java.time.LocalDateTime
-import kotlin.math.abs
 
 /**
  * Card de resumo do dia com horas trabalhadas, saldo, banco de horas
  * e contador em tempo real quando há jornada em andamento.
  *
- * Apresenta as informações principais de forma visual e intuitiva,
- * com indicadores coloridos para facilitar a compreensão.
- *
- * @param resumoDia Resumo do dia atual
- * @param bancoHoras Banco de horas acumulado
- * @param dataHoraInicioContador Data/hora de início para o contador (se jornada em andamento)
- * @param mostrarContador Se deve exibir o contador em tempo real
- * @param modifier Modificador opcional
+ * NOTA: Usa os formatadores padronizados dos modelos (ResumoDia, BancoHoras)
+ * que seguem o padrão "00h 00min".
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 2.11.0 - Usa formatadores padronizados (remove funções locais duplicadas)
  */
 @Composable
 fun ResumoCard(
@@ -100,7 +93,6 @@ fun ResumoCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
 
-                // Badge de status quando jornada em andamento
                 if (mostrarContador) {
                     StatusBadge(texto = "Em andamento")
                 }
@@ -108,7 +100,7 @@ fun ResumoCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Contador em tempo real (quando há jornada em andamento)
+            // Contador em tempo real
             AnimatedVisibility(
                 visible = mostrarContador && dataHoraInicioContador != null,
                 enter = fadeIn() + expandVertically(),
@@ -142,22 +134,20 @@ fun ResumoCard(
                 }
             }
 
-            // Resumo em três colunas
+            // Resumo em três colunas (usa formatadores padronizados dos modelos)
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Horas Trabalhadas
                 ResumoItem(
                     icone = Icons.Default.AccessTime,
                     titulo = "Trabalhado",
-                    valor = formatarDuracao(resumoDia.horasTrabalhadas),
+                    valor = resumoDia.horasTrabalhadasFormatadas,
                     corIcone = Info,
                     corFundo = InfoLight,
                     modifier = Modifier.weight(1f)
                 )
 
-                // Saldo do Dia
                 ResumoItem(
                     icone = if (resumoDia.temSaldoPositivo) {
                         Icons.AutoMirrored.Filled.TrendingUp
@@ -165,13 +155,12 @@ fun ResumoCard(
                         Icons.AutoMirrored.Filled.TrendingDown
                     },
                     titulo = "Saldo Dia",
-                    valor = formatarSaldo(resumoDia.saldoDia),
+                    valor = resumoDia.saldoDiaFormatado,
                     corIcone = if (resumoDia.temSaldoNegativo) Error else Success,
                     corFundo = if (resumoDia.temSaldoNegativo) ErrorLight else SuccessLight,
                     modifier = Modifier.weight(1f)
                 )
 
-                // Banco de Horas
                 ResumoItem(
                     icone = Icons.Default.AccountBalance,
                     titulo = "Banco",
@@ -185,9 +174,6 @@ fun ResumoCard(
     }
 }
 
-/**
- * Badge de status para indicar jornada em andamento.
- */
 @Composable
 private fun StatusBadge(
     texto: String,
@@ -216,9 +202,6 @@ private fun StatusBadge(
     }
 }
 
-/**
- * Item individual do resumo.
- */
 @Composable
 private fun ResumoItem(
     icone: ImageVector,
@@ -259,29 +242,4 @@ private fun ResumoItem(
             color = MaterialTheme.colorScheme.onPrimaryContainer
         )
     }
-}
-
-/**
- * Formata uma duração para exibição (compatível com API 26+).
- */
-private fun formatarDuracao(duracao: Duration): String {
-    val totalMinutos = duracao.toMinutes()
-    val horas = totalMinutos / 60
-    val minutos = abs(totalMinutos % 60)
-    return "${horas}h${minutos.toString().padStart(2, '0')}"
-}
-
-/**
- * Formata o saldo com sinal (compatível com API 26+).
- */
-private fun formatarSaldo(duracao: Duration): String {
-    val totalMinutos = duracao.toMinutes()
-    val horas = abs(totalMinutos / 60)
-    val minutos = abs(totalMinutos % 60)
-    val sinal = when {
-        totalMinutos > 0 -> "+"
-        totalMinutos < 0 -> "-"
-        else -> ""
-    }
-    return "$sinal${horas}h${minutos.toString().padStart(2, '0')}"
 }

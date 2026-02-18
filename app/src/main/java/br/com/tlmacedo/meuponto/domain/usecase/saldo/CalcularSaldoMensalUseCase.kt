@@ -1,10 +1,20 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/saldo/CalcularSaldoMensalUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.saldo
 
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
+import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
+import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
+/**
+ * Caso de uso para calcular saldo mensal.
+ *
+ * @author Thiago
+ * @since 1.0.0
+ * @updated 2.11.0 - Usa formatadores padronizados de MinutosExtensions
+ */
 class CalcularSaldoMensalUseCase @Inject constructor(
     private val calcularSaldoDiaUseCase: CalcularSaldoDiaUseCase,
     private val configuracaoRepository: ConfiguracaoEmpregoRepository
@@ -18,19 +28,17 @@ class CalcularSaldoMensalUseCase @Inject constructor(
         val diasUteis: Int,
         val saldosDiarios: List<CalcularSaldoDiaUseCase.SaldoDia>
     ) {
-        val trabalhadoFormatado: String get() = formatarMinutos(trabalhadoMinutos)
-        val esperadoFormatado: String get() = formatarMinutos(esperadoMinutos)
-        val saldoFormatado: String
-            get() {
-                val sinal = if (saldoMinutos >= 0) "+" else "-"
-                return "$sinal${formatarMinutos(kotlin.math.abs(saldoMinutos))}"
-            }
+        /** Trabalhado: "00h 00min" */
+        val trabalhadoFormatado: String
+            get() = trabalhadoMinutos.minutosParaHoraMinuto()
 
-        private fun formatarMinutos(minutos: Long): String {
-            val h = minutos / 60
-            val m = minutos % 60
-            return "${h}h${m}min"
-        }
+        /** Esperado: "00h 00min" */
+        val esperadoFormatado: String
+            get() = esperadoMinutos.minutosParaHoraMinuto()
+
+        /** Saldo: "+00h 00min" ou "-00h 00min" */
+        val saldoFormatado: String
+            get() = saldoMinutos.minutosParaSaldoFormatado()
     }
 
     suspend operator fun invoke(empregoId: Long, mes: YearMonth): SaldoMensal {
