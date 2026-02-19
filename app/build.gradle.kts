@@ -1,9 +1,12 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.secrets.gradle)
 }
 
 android {
@@ -17,6 +20,9 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        val localProperties = gradleLocalProperties(rootDir, providers)
+        val mapsApiKey = localProperties.getProperty("MAPS_API_KEY") ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {
@@ -100,6 +106,17 @@ dependencies {
     // Networking (Retrofit + OkHttp)
     implementation(libs.bundles.networking)
 
+    // Google Maps Compose
+    implementation("com.google.maps.android:maps-compose:4.3.0")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+
+    // Google Play Services Location
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+
+    // Permissões (Accompanist)
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
     // Coroutines
     implementation(libs.bundles.coroutines)
 
@@ -135,4 +152,16 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+secrets {
+    // Arquivo padrão para secrets (não commitado no git)
+    propertiesFileName = "secrets.properties"
+
+    // Arquivo de fallback com valores padrão (pode ser commitado)
+    defaultPropertiesFileName = "local.defaults.properties"
+
+    // Ignorar chaves que não existem
+    ignoreList.add("keyToIgnore")
+    ignoreList.add("sdk.*")
 }

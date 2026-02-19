@@ -1,54 +1,90 @@
-// Arquivo: EditPontoAction.kt
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/editponto/EditPontoAction.kt
 package br.com.tlmacedo.meuponto.presentation.screen.editponto
 
 import java.time.LocalDate
 import java.time.LocalTime
 
 /**
- * Sealed class que representa as ações possíveis na tela de edição de ponto.
- *
- * O tipo do ponto não pode ser alterado pois é determinado pela posição.
- * Apenas data, hora e observação são editáveis.
+ * Ações possíveis na tela de edição de ponto.
  *
  * @author Thiago
- * @since 1.0.0
- * @updated 2.1.0 - Removido AlterarTipo (tipo calculado por posição)
+ * @since 3.5.0
  */
-sealed class EditPontoAction {
+sealed interface EditPontoAction {
 
-    /**
-     * Ação para alterar a data do ponto.
-     *
-     * @property data Nova data selecionada
-     */
-    data class AlterarData(val data: LocalDate) : EditPontoAction()
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE CAMPOS
+    // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Ação para alterar a hora do ponto.
-     *
-     * @property hora Nova hora selecionada
-     */
-    data class AlterarHora(val hora: LocalTime) : EditPontoAction()
+    /** Atualiza a data do ponto */
+    data class AtualizarData(val data: LocalDate) : EditPontoAction
 
-    /**
-     * Ação para alterar a observação do ponto.
-     *
-     * @property observacao Nova observação
-     */
-    data class AlterarObservacao(val observacao: String) : EditPontoAction()
+    /** Atualiza a hora do ponto */
+    data class AtualizarHora(val hora: LocalTime) : EditPontoAction
 
-    /**
-     * Ação para salvar o ponto.
-     */
-    data object Salvar : EditPontoAction()
+    /** Atualiza o NSR do ponto */
+    data class AtualizarNsr(val nsr: String) : EditPontoAction
 
-    /**
-     * Ação para cancelar a edição.
-     */
-    data object Cancelar : EditPontoAction()
+    /** Atualiza a localização do ponto */
+    data class AtualizarLocalizacao(
+        val latitude: Double,
+        val longitude: Double,
+        val endereco: String? = null
+    ) : EditPontoAction
 
-    /**
-     * Ação para limpar mensagem de erro.
-     */
-    data object LimparErro : EditPontoAction()
+    /** Atualiza a observação do ponto */
+    data class AtualizarObservacao(val observacao: String) : EditPontoAction
+
+    /** Atualiza o motivo da edição */
+    data class AtualizarMotivo(val motivo: String) : EditPontoAction
+
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE DIALOGS
+    // ══════════════════════════════════════════════════════════════════════
+
+    /** Abre o TimePicker */
+    data object AbrirTimePicker : EditPontoAction
+
+    /** Fecha o TimePicker */
+    data object FecharTimePicker : EditPontoAction
+
+    /** Abre o DatePicker */
+    data object AbrirDatePicker : EditPontoAction
+
+    /** Fecha o DatePicker */
+    data object FecharDatePicker : EditPontoAction
+
+    /** Abre o seletor de localização */
+    data object AbrirLocationPicker : EditPontoAction
+
+    /** Fecha o seletor de localização */
+    data object FecharLocationPicker : EditPontoAction
+
+    /** Solicita captura automática de localização */
+    data object CapturarLocalizacao : EditPontoAction
+
+    /** Limpa a localização */
+    data object LimparLocalizacao : EditPontoAction
+
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES PRINCIPAIS
+    // ══════════════════════════════════════════════════════════════════════
+
+    /** Salva as alterações do ponto */
+    data object Salvar : EditPontoAction
+
+    /** Solicita exclusão do ponto */
+    data object SolicitarExclusao : EditPontoAction
+
+    /** Confirma exclusão do ponto */
+    data object ConfirmarExclusao : EditPontoAction
+
+    /** Cancela exclusão do ponto */
+    data object CancelarExclusao : EditPontoAction
+
+    /** Cancela a edição e volta */
+    data object Cancelar : EditPontoAction
+
+    /** Limpa erro */
+    data object LimparErro : EditPontoAction
 }

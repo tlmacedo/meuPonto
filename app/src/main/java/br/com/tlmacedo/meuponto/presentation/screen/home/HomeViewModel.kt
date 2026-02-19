@@ -467,6 +467,12 @@ class HomeViewModel @Inject constructor(
                 is RegistrarPontoUseCase.Resultado.LimiteAtingido -> {
                     _uiEvent.emit(HomeUiEvent.MostrarErro("Limite de ${resultado.limite} pontos atingido"))
                 }
+                is RegistrarPontoUseCase.Resultado.LocalizacaoObrigatoria -> {
+                    _uiEvent.emit(HomeUiEvent.MostrarErro("Localização é obrigatória para este emprego"))
+                }
+                is RegistrarPontoUseCase.Resultado.NsrObrigatorio -> {
+                    _uiEvent.emit(HomeUiEvent.MostrarErro("NSR é obrigatório para este emprego"))
+                }
             }
         }
     }
@@ -515,6 +521,9 @@ class HomeViewModel @Inject constructor(
                 }
                 is ExcluirPontoUseCase.Resultado.NaoEncontrado -> {
                     _uiEvent.emit(HomeUiEvent.MostrarErro("Ponto não encontrado"))
+                }
+                is ExcluirPontoUseCase.Resultado.Validacao -> {
+                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.erros.joinToString("\n")))
                 }
             }
             cancelarExclusao()

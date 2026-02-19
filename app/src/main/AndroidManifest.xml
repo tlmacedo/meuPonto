@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".MeuPontoApplication"
@@ -16,6 +18,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MeuPonto"
         tools:targetApi="35">
+
+        <!-- Google Maps API Key (gerenciada pelo secrets-gradle-plugin) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
 
         <activity
             android:name=".presentation.MainActivity"

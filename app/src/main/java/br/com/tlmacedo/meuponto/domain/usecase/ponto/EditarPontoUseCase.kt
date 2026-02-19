@@ -1,63 +1,135 @@
-// Arquivo: EditarPontoUseCase.kt
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/EditarPontoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
+import br.com.tlmacedo.meuponto.domain.model.AcaoAuditoria
+import br.com.tlmacedo.meuponto.domain.model.AuditLog
+import br.com.tlmacedo.meuponto.domain.model.Ponto
+import br.com.tlmacedo.meuponto.domain.repository.AuditLogRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import com.google.gson.Gson
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
  * Caso de uso para editar um ponto existente.
  *
+ * Suporta edição de:
+ * - Horário do ponto
+ * - NSR (Número Sequencial de Registro)
+ * - Localização (latitude, longitude, endereço)
+ * - Observação
+ *
+ * Todas as edições são registradas no log de auditoria com motivo obrigatório.
+ *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.1.0 - Removido tipo (calculado por posição)
+ * @updated 3.5.0 - Adicionado suporte a NSR, localização e auditoria completa
  */
 class EditarPontoUseCase @Inject constructor(
-    private val pontoRepository: PontoRepository
+    private val pontoRepository: PontoRepository,
+    private val auditLogRepository: AuditLogRepository,
+    private val gson: Gson
 ) {
     data class Parametros(
         val pontoId: Long,
-        val dataHora: LocalDateTime,
-        val observacao: String? = null
+        val dataHora: LocalDateTime? = null,
+        val nsr: String? = null,
+        val latitude: Double? = null,
+        val longitude: Double? = null,
+        val endereco: String? = null,
+        val observacao: String? = null,
+        val motivo: String
     )
 
     sealed class Resultado {
-        object Sucesso : Resultado()
+        data class Sucesso(val ponto: Ponto) : Resultado()
         data class Erro(val mensagem: String) : Resultado()
         data class NaoEncontrado(val pontoId: Long) : Resultado()
         data class Validacao(val erros: List<String>) : Resultado()
     }
 
     suspend operator fun invoke(parametros: Parametros): Resultado {
+        // Validações
+        val erros = mutableListOf<String>()
+
+        if (parametros.motivo.isBlank()) {
+            erros.add("O motivo da edição é obrigatório")
+        }
+
+        if (parametros.motivo.length < 5) {
+            erros.add("O motivo deve ter pelo menos 5 caracteres")
+        }
+
+        if (erros.isNotEmpty()) {
+            return Resultado.Validacao(erros)
+        }
+
         val pontoExistente = pontoRepository.buscarPorId(parametros.pontoId)
             ?: return Resultado.NaoEncontrado(parametros.pontoId)
 
-        // Busca outros pontos do mesmo dia para validar conflitos
-        val pontosDoDia = pontoRepository.buscarPorEmpregoEData(
-            pontoExistente.empregoId,
-            parametros.dataHora.toLocalDate()
-        ).filter { it.id != parametros.pontoId }
+        // Validar horário se foi alterado
+        val novaDataHora = parametros.dataHora ?: pontoExistente.dataHora
 
-        // Valida que o novo horário não conflita com outros pontos
-        val ordenados = pontosDoDia.sortedBy { it.dataHora }
-        for (ponto in ordenados) {
-            if (parametros.dataHora == ponto.dataHora) {
-                return Resultado.Validacao(listOf("Já existe um ponto neste horário"))
+        if (parametros.dataHora != null && parametros.dataHora != pontoExistente.dataHora) {
+            val pontosDoDia = pontoRepository.buscarPorEmpregoEData(
+                pontoExistente.empregoId,
+                novaDataHora.toLocalDate()
+            ).filter { it.id != parametros.pontoId }
+
+            // Verifica conflito de horário
+            for (ponto in pontosDoDia) {
+                if (novaDataHora == ponto.dataHora) {
+                    return Resultado.Validacao(listOf("Já existe um ponto neste horário"))
+                }
             }
         }
 
+        // Criar ponto atualizado
         val pontoAtualizado = pontoExistente.copy(
-            dataHora = parametros.dataHora,
-            observacao = parametros.observacao,
+            dataHora = novaDataHora,
+            nsr = parametros.nsr ?: pontoExistente.nsr,
+            latitude = parametros.latitude ?: pontoExistente.latitude,
+            longitude = parametros.longitude ?: pontoExistente.longitude,
+            endereco = parametros.endereco ?: pontoExistente.endereco,
+            observacao = parametros.observacao ?: pontoExistente.observacao,
             isEditadoManualmente = true,
             atualizadoEm = LocalDateTime.now()
         )
 
         return try {
+            // Registrar auditoria ANTES de atualizar
+            val auditLog = AuditLog(
+                entidade = "pontos",
+                entidadeId = parametros.pontoId,
+                acao = AcaoAuditoria.UPDATE,
+                motivo = parametros.motivo,
+                dadosAnteriores = gson.toJson(pontoExistente.toAuditMap()),
+                dadosNovos = gson.toJson(pontoAtualizado.toAuditMap()),
+                criadoEm = LocalDateTime.now()
+            )
+            auditLogRepository.inserir(auditLog)
+
+            // Atualizar ponto
             pontoRepository.atualizar(pontoAtualizado)
-            Resultado.Sucesso
+
+            Resultado.Sucesso(pontoAtualizado)
         } catch (e: Exception) {
             Resultado.Erro("Erro ao atualizar ponto: ${e.message}")
         }
     }
+
+    /**
+     * Converte Ponto para Map para serialização no audit log.
+     */
+    private fun Ponto.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "dataHora" to dataHora.toString(),
+        "nsr" to nsr,
+        "latitude" to latitude,
+        "longitude" to longitude,
+        "endereco" to endereco,
+        "observacao" to observacao,
+        "isEditadoManualmente" to isEditadoManualmente
+    )
 }

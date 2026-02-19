@@ -4,26 +4,26 @@ package br.com.tlmacedo.meuponto.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
@@ -63,6 +63,7 @@ fun MeuPontoTopBar(
     onTodayClick: () -> Unit = {},
     onHistoryClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    actions: @Composable (RowScope.() -> Unit)? = null,  // NOVO PARÂMETRO
     modifier: Modifier = Modifier
 ) {
     CenterAlignedTopAppBar(
@@ -72,17 +73,13 @@ fun MeuPontoTopBar(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleLarge
                 )
-                if (!subtitle.isNullOrBlank()) {
+                subtitle?.let {
                     Text(
-                        text = subtitle,
+                        text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -98,9 +95,16 @@ fun MeuPontoTopBar(
             }
         },
         actions = {
+            // Ações customizadas (se fornecidas)
+            actions?.invoke(this)
+
+            // Botões padrão
             if (showTodayButton) {
                 IconButton(onClick = onTodayClick) {
-                    TodayDateIcon()
+                    Icon(
+                        imageVector = Icons.Default.Today,
+                        contentDescription = "Hoje"
+                    )
                 }
             }
             if (showHistoryButton) {
@@ -120,9 +124,6 @@ fun MeuPontoTopBar(
                 }
             }
         },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
         modifier = modifier
     )
 }
