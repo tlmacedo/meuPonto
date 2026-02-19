@@ -7,6 +7,7 @@ package br.com.tlmacedo.meuponto.presentation.navigation
  * @author Thiago
  * @since 1.0.0
  * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
+ * @updated 3.4.0 - Adicionado módulo de Feriados
  */
 object MeuPontoDestinations {
 
@@ -50,6 +51,17 @@ object MeuPontoDestinations {
     /** Tela sobre o aplicativo */
     const val SOBRE = "settings/sobre"
 
+    // === FERIADOS ===
+
+    /** Tela de listagem de feriados */
+    const val FERIADOS = "settings/feriados"
+
+    /** Tela de edição/criação de feriado */
+    const val EDITAR_FERIADO = "settings/feriados/editar/{feriadoId}"
+
+    /** Tela de criação de novo feriado (sem ID) */
+    const val NOVO_FERIADO = "settings/feriados/editar"
+
     // === ARGUMENTOS DE NAVEGAÇÃO ===
 
     /** Argumento para ID do ponto */
@@ -60,6 +72,9 @@ object MeuPontoDestinations {
 
     /** Argumento para data selecionada (formato: yyyy-MM-dd) */
     const val ARG_DATA = "data"
+
+    /** Argumento para ID do feriado */
+    const val ARG_FERIADO_ID = "feriadoId"
 
     // === FUNÇÕES DE CRIAÇÃO DE ROTAS ===
 
@@ -86,4 +101,12 @@ object MeuPontoDestinations {
      * @return Rota formatada com a data
      */
     fun homeComData(data: String): String = "home?data=$data"
+
+    /**
+     * Cria a rota para edição de feriado.
+     *
+     * @param feriadoId ID do feriado a ser editado
+     * @return Rota formatada com o ID
+     */
+    fun editarFeriado(feriadoId: Long): String = "settings/feriados/editar/$feriadoId"
 }

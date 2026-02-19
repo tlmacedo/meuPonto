@@ -11,6 +11,7 @@ import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.feriado.ObterFeriadosDaDataUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularResumoDiaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.DeterminarProximoTipoPontoUseCase
@@ -43,10 +44,12 @@ import javax.inject.Inject
  * - Seleção de emprego ativo
  * - Cálculo de resumos e saldos
  * - Versão de jornada vigente
+ * - Feriados do dia
  *
  * @author Thiago
  * @since 2.0.0
  * @updated 2.8.0 - Adicionado carregamento de versão de jornada
+ * @updated 3.4.0 - Adicionado suporte a feriados
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -59,6 +62,7 @@ class HomeViewModel @Inject constructor(
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
     private val listarEmpregosUseCase: ListarEmpregosUseCase,
     private val trocarEmpregoAtivoUseCase: TrocarEmpregoAtivoUseCase,
+    private val obterFeriadosDaDataUseCase: ObterFeriadosDaDataUseCase,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository
 ) : ViewModel() {
@@ -185,7 +189,7 @@ class HomeViewModel @Inject constructor(
 
                 // Recarrega dados se o emprego mudou
                 if (emprego != null && empregoAnterior?.id != emprego.id) {
-                    carregarPontosDoDia()  // Isso já carrega versão e banco
+                    carregarPontosDoDia()  // Isso já carrega versão, banco e feriados
                     carregarBancoHoras()
                 }
             }
@@ -216,6 +220,7 @@ class HomeViewModel @Inject constructor(
      * garantindo que a carga horária exibida corresponda à configuração vigente.
      *
      * @updated 2.8.0 - Corrigido para buscar horário da versão de jornada correta
+     * @updated 3.4.0 - Adicionado carregamento de feriados
      */
     private fun carregarPontosDoDia() {
         pontosCollectionJob?.cancel()
@@ -226,12 +231,16 @@ class HomeViewModel @Inject constructor(
         pontosCollectionJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // 1. Buscar a versão de jornada vigente para a data selecionada
+            // 1. Buscar feriados do dia
+            val feriados = obterFeriadosDaDataUseCase(data, empregoId)
+            _uiState.update { it.copy(feriadosDoDia = feriados) }
+
+            // 2. Buscar a versão de jornada vigente para a data selecionada
             val versaoJornada = empregoId?.let {
                 versaoJornadaRepository.buscarPorEmpregoEData(it, data)
             }
 
-            // 2. Buscar configuração do dia da semana DA VERSÃO CORRETA
+            // 3. Buscar configuração do dia da semana DA VERSÃO CORRETA
             val diaSemana = DiaSemana.fromDayOfWeek(data.dayOfWeek)
             val horarioDia = versaoJornada?.id?.let { versaoId ->
                 horarioDiaSemanaRepository.buscarPorVersaoEDia(versaoId, diaSemana)
@@ -240,7 +249,7 @@ class HomeViewModel @Inject constructor(
                 horarioDiaSemanaRepository.buscarPorEmpregoEDia(it, diaSemana)
             }
 
-            // 3. Atualizar versão de jornada no estado
+            // 4. Atualizar versão de jornada no estado
             _uiState.update { it.copy(versaoJornadaAtual = versaoJornada) }
 
             obterPontosDoDiaUseCase(data).collect { pontos ->
@@ -348,7 +357,7 @@ class HomeViewModel @Inject constructor(
      */
     private fun selecionarData(data: LocalDate) {
         _uiState.update { it.copy(dataSelecionada = data) }
-        carregarPontosDoDia()  // Já carrega versão de jornada
+        carregarPontosDoDia()  // Já carrega versão de jornada e feriados
         carregarBancoHoras()
     }
 

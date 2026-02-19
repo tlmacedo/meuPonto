@@ -30,6 +30,8 @@ import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.SettingsScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista.FeriadosListScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
 
 /**
@@ -42,6 +44,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
  * @author Thiago
  * @since 1.0.0
  * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
+ * @updated 3.4.0 - Adicionado módulo de Feriados
  */
 @Composable
 fun MeuPontoNavHost(
@@ -137,6 +140,9 @@ fun MeuPontoNavHost(
                     onNavigateToMarcadores = {
                         navController.navigate(MeuPontoDestinations.MARCADORES)
                     },
+                    onNavigateToFeriados = {
+                        navController.navigate(MeuPontoDestinations.FERIADOS)
+                    },
                     onNavigateToSobre = {
                         navController.navigate(MeuPontoDestinations.SOBRE)
                     }
@@ -168,6 +174,46 @@ fun MeuPontoNavHost(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+
+            // ===== FERIADOS =====
+
+            composable(MeuPontoDestinations.FERIADOS) {
+                FeriadosListScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditar = { feriadoId ->
+                        navController.navigate(MeuPontoDestinations.editarFeriado(feriadoId))
+                    },
+                    onNavigateToNovo = {
+                        navController.navigate(MeuPontoDestinations.NOVO_FERIADO)
+                    }
+                )
+            }
+
+            composable(MeuPontoDestinations.NOVO_FERIADO) {
+                EditarFeriadoScreen(
+                    feriadoId = null,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSalvoComSucesso = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = MeuPontoDestinations.EDITAR_FERIADO,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_FERIADO_ID) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val feriadoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_FERIADO_ID)
+                EditarFeriadoScreen(
+                    feriadoId = feriadoId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSalvoComSucesso = { navController.popBackStack() }
+                )
+            }
+
+            // ===== OUTRAS CONFIGURAÇÕES =====
 
             composable(MeuPontoDestinations.CONFIGURACAO_JORNADA) {
                 PlaceholderScreen(

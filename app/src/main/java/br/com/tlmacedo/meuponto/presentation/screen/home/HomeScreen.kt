@@ -50,6 +50,7 @@ import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoButton
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoManualButton
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
+import br.com.tlmacedo.meuponto.presentation.components.FeriadoBanner
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -241,6 +242,9 @@ fun HomeScreen(
 /**
  * Conteúdo principal da tela Home.
  */
+/**
+ * Conteúdo principal da tela Home.
+ */
 @Composable
 internal fun HomeContent(
     uiState: HomeUiState,
@@ -297,6 +301,15 @@ internal fun HomeContent(
             )
         }
 
+        // Banner de Feriado (se houver)
+        if (uiState.isFeriado) {
+            item {
+                FeriadoBanner(
+                    feriados = uiState.feriadosDoDia
+                )
+            }
+        }
+
         // Card de Resumo com contador em tempo real
         item {
             ResumoCard(
@@ -307,7 +320,6 @@ internal fun HomeContent(
                 mostrarContador = uiState.deveExibirContador
             )
         }
-
         // Botão de Registrar Ponto
         if (uiState.podeRegistrarPontoAutomatico) {
             item {

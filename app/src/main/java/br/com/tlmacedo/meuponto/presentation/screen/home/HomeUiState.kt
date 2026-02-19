@@ -6,6 +6,7 @@ import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
+import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -22,6 +23,7 @@ import java.util.Locale
  * @updated 2.6.0 - Flags para controle de registro por tipo de dia
  * @updated 2.7.0 - Adicionado showEmpregoMenu para menu de opções do emprego
  * @updated 2.8.0 - Adicionada versaoJornadaAtual para exibição do período no ResumoCard
+ * @updated 3.4.0 - Adicionado suporte a feriados
  */
 data class HomeUiState(
     val dataSelecionada: LocalDate = LocalDate.now(),
@@ -33,6 +35,9 @@ data class HomeUiState(
     val empregoAtivo: Emprego? = null,
     val empregosDisponiveis: List<Emprego> = emptyList(),
     val versaoJornadaAtual: VersaoJornada? = null,
+    // Feriados
+    val feriadosDoDia: List<Feriado> = emptyList(),
+    // Loading e dialogs
     val isLoading: Boolean = false,
     val isLoadingEmpregos: Boolean = false,
     val showTimePickerDialog: Boolean = false,
@@ -68,6 +73,28 @@ data class HomeUiState(
      */
     val isPassado: Boolean
         get() = dataSelecionada.isBefore(LocalDate.now())
+
+    // ========================================================================
+    // FERIADOS
+    // ========================================================================
+
+    /**
+     * Verifica se a data selecionada é feriado.
+     */
+    val isFeriado: Boolean
+        get() = feriadosDoDia.isNotEmpty()
+
+    /**
+     * Feriado principal da data (para exibição resumida).
+     */
+    val feriadoPrincipal: Feriado?
+        get() = feriadosDoDia.firstOrNull()
+
+    /**
+     * Verifica se há múltiplos feriados na data.
+     */
+    val temMultiplosFeriados: Boolean
+        get() = feriadosDoDia.size > 1
 
     /**
      * Formata a data selecionada para exibição no navegador.

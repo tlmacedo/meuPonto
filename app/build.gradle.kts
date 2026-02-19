@@ -97,6 +97,9 @@ dependencies {
     implementation(libs.bundles.room)
     ksp(libs.room.compiler)
 
+    // Networking (Retrofit + OkHttp)
+    implementation(libs.bundles.networking)
+
     // Coroutines
     implementation(libs.bundles.coroutines)
 

@@ -14,11 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Card
@@ -52,12 +53,14 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
  * @param onNavigateToHorarios Callback para navegar à tela de horários por dia
  * @param onNavigateToAjustesBancoHoras Callback para navegar à tela de ajustes de banco de horas
  * @param onNavigateToMarcadores Callback para navegar à tela de marcadores
+ * @param onNavigateToFeriados Callback para navegar à tela de feriados
  * @param onNavigateToSobre Callback para navegar à tela sobre o app
  * @param modifier Modificador opcional para customização do layout
  * @param viewModel ViewModel da tela de configurações
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 3.4.0 - Adicionado item de menu para Feriados
  */
 @Composable
 fun SettingsScreen(
@@ -67,6 +70,7 @@ fun SettingsScreen(
     onNavigateToHorarios: () -> Unit,
     onNavigateToAjustesBancoHoras: () -> Unit,
     onNavigateToMarcadores: () -> Unit,
+    onNavigateToFeriados: () -> Unit,
     onNavigateToSobre: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -126,6 +130,13 @@ fun SettingsScreen(
                 onClick = onNavigateToHorarios
             )
 
+            SettingsMenuItem(
+                icon = Icons.Default.Event,
+                title = "Feriados",
+                subtitle = "Gerenciar feriados e pontes facultativas",
+                onClick = onNavigateToFeriados
+            )
+
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             // Seção: Banco de Horas
@@ -144,7 +155,7 @@ fun SettingsScreen(
             SettingsSectionHeader(title = "Personalização")
 
             SettingsMenuItem(
-                icon = Icons.Default.Label,
+                icon = Icons.AutoMirrored.Filled.Label,
                 title = "Marcadores",
                 subtitle = "Criar e gerenciar tags para pontos",
                 onClick = onNavigateToMarcadores

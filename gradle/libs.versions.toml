@@ -1,3 +1,4 @@
+# Arquivo: gradle/libs.versions.toml
 [versions]
 agp = "8.13.2"
 kotlin = "2.0.21"
@@ -16,6 +17,9 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 ksp = "2.0.21-1.0.28"
+# Networking
+retrofit = "2.11.0"
+okhttp = "4.12.0"
 # Test dependencies
 mockk = "1.13.13"
 turbine = "1.2.0"
@@ -50,6 +54,12 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+# Networking
+retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+okhttp-core = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+# Test
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -76,4 +86,5 @@ compose = ["androidx-ui", "androidx-ui-graphics", "androidx-ui-tooling-preview",
 lifecycle = ["androidx-lifecycle-runtime-ktx", "androidx-lifecycle-runtime-compose", "androidx-lifecycle-viewmodel-compose"]
 room = ["room-runtime", "room-ktx"]
 coroutines = ["kotlinx-coroutines-core", "kotlinx-coroutines-android"]
+networking = ["retrofit-core", "retrofit-converter-gson", "okhttp-core", "okhttp-logging"]
 testing = ["mockk", "turbine", "kotlinx-coroutines-test", "arch-core-testing", "truth"]

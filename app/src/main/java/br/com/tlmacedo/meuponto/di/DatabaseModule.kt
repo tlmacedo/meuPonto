@@ -1,4 +1,4 @@
-// Arquivo: DatabaseModule.kt
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/di/DatabaseModule.kt
 package br.com.tlmacedo.meuponto.di
 
 import android.content.Context
@@ -21,7 +21,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.4.0 - Dados de teste SIDIA para desenvolvimento
+ * @updated 3.0.0 - Adicionados DAOs de Feriados e ConfiguracaoPontesAno
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -46,7 +46,8 @@ object DatabaseModule {
                 MIGRATION_6_7,
                 MIGRATION_7_8,
                 MIGRATION_8_9,
-                MIGRATION_9_10
+                MIGRATION_9_10,
+                MIGRATION_10_11  // NOVA
             )
             .addCallback(createDatabaseCallback())
             .build()
@@ -63,12 +64,6 @@ object DatabaseModule {
 
     /**
      * Insere dados iniciais de teste para desenvolvimento.
-     *
-     * Emprego: SIDIA Teste
-     * - Jornada: 44h/semana (8h12 seg-sex)
-     * - Horário: 08:00-12:00 / 13:00-17:12
-     * - Intervalo mínimo: 60min (tolerância +20min)
-     * - Admissão: 10/11/2021
      */
     private fun inserirDadosIniciais(db: SupportSQLiteDatabase) {
         val now = LocalDateTime.now().toString()
@@ -128,11 +123,11 @@ object DatabaseModule {
                 atualizadoEm
             ) VALUES (
                 1,
-                492,    -- 8h12 = 8*60 + 12 = 492 minutos
-                600,    -- 10h máximo
-                660,    -- 11h interjornada
-                60,     -- 1h intervalo mínimo
-                20,     -- +20min tolerância no retorno do intervalo
+                492,
+                600,
+                660,
+                60,
+                20,
                 0,
                 0,
                 'NUMERICO',
@@ -159,8 +154,6 @@ object DatabaseModule {
         // ========================================================================
         // 3. HORÁRIOS POR DIA DA SEMANA
         // ========================================================================
-        
-        // Segunda a Sexta - Dias úteis com horário padrão
         val diasUteis = listOf("SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA")
         diasUteis.forEach { dia ->
             db.execSQL(
@@ -184,15 +177,15 @@ object DatabaseModule {
                     1,
                     '$dia',
                     1,
-                    492,        -- 8h12
-                    '08:00',    -- entrada
-                    '12:00',    -- saída almoço
-                    '13:00',    -- volta almoço
-                    '17:12',    -- saída
-                    60,         -- 1h intervalo mínimo
-                    20,         -- +20min tolerância retorno
-                    NULL,       -- usa tolerância global
-                    NULL,       -- usa tolerância global
+                    492,
+                    '08:00',
+                    '12:00',
+                    '13:00',
+                    '17:12',
+                    60,
+                    20,
+                    NULL,
+                    NULL,
                     '$now',
                     '$now'
                 )
@@ -200,7 +193,6 @@ object DatabaseModule {
             )
         }
 
-        // Sábado e Domingo - Folga
         val diasFolga = listOf("SABADO", "DOMINGO")
         diasFolga.forEach { dia ->
             db.execSQL(
@@ -223,8 +215,8 @@ object DatabaseModule {
                 ) VALUES (
                     1,
                     '$dia',
-                    0,          -- inativo (folga)
-                    0,          -- sem carga horária
+                    0,
+                    0,
                     NULL,
                     NULL,
                     NULL,
@@ -242,7 +234,7 @@ object DatabaseModule {
     }
 
     // ========================================================================
-    // PROVIDERS DOS DAOs
+    // PROVIDERS DOS DAOs EXISTENTES
     // ========================================================================
 
     @Provides
@@ -281,4 +273,15 @@ object DatabaseModule {
     @Singleton
     fun provideVersaoJornadaDao(database: MeuPontoDatabase): VersaoJornadaDao = database.versaoJornadaDao()
 
+    // ========================================================================
+    // PROVIDERS DOS NOVOS DAOs - FERIADOS
+    // ========================================================================
+
+    @Provides
+    @Singleton
+    fun provideFeriadoDao(database: MeuPontoDatabase): FeriadoDao = database.feriadoDao()
+
+    @Provides
+    @Singleton
+    fun provideConfiguracaoPontesAnoDao(database: MeuPontoDatabase): ConfiguracaoPontesAnoDao = database.configuracaoPontesAnoDao()
 }
