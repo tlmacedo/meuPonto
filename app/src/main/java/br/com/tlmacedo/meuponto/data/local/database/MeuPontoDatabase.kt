@@ -8,6 +8,7 @@ import br.com.tlmacedo.meuponto.data.local.database.converter.Converters
 import br.com.tlmacedo.meuponto.data.local.database.converter.FeriadoConverters
 import br.com.tlmacedo.meuponto.data.local.database.dao.AjusteSaldoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.AuditLogDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.AusenciaDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.ConfiguracaoEmpregoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.ConfiguracaoPontesAnoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.EmpregoDao
@@ -19,6 +20,7 @@ import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.VersaoJornadaDao
 import br.com.tlmacedo.meuponto.data.local.database.entity.AjusteSaldoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.AuditLogEntity
+import br.com.tlmacedo.meuponto.data.local.database.entity.AusenciaEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.ConfiguracaoEmpregoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.ConfiguracaoPontesAnoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.EmpregoEntity
@@ -33,7 +35,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
  * Classe principal do banco de dados Room.
  *
  * @since 1.0.0
- * @updated 3.0.0 - Versão 11: Adicionadas tabelas de Feriados e ConfiguracaoPontesAno
+ * @updated 4.0.0 - Versão 13: Adicionada tabela de Ausências
  */
 @Database(
     entities = [
@@ -46,11 +48,11 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         FechamentoPeriodoEntity::class,
         MarcadorEntity::class,
         AuditLogEntity::class,
-        // Novas entidades - Feriados
         FeriadoEntity::class,
-        ConfiguracaoPontesAnoEntity::class
+        ConfiguracaoPontesAnoEntity::class,
+        AusenciaEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 @TypeConverters(Converters::class, FeriadoConverters::class)
@@ -67,9 +69,12 @@ abstract class MeuPontoDatabase : RoomDatabase() {
     abstract fun marcadorDao(): MarcadorDao
     abstract fun auditLogDao(): AuditLogDao
 
-    // Novos DAOs - Feriados
+    // DAOs - Feriados
     abstract fun feriadoDao(): FeriadoDao
     abstract fun configuracaoPontesAnoDao(): ConfiguracaoPontesAnoDao
+
+    // DAO - Ausências
+    abstract fun ausenciaDao(): AusenciaDao
 
     companion object {
         const val DATABASE_NAME = "meuponto.db"

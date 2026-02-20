@@ -19,6 +19,11 @@ import br.com.tlmacedo.meuponto.domain.usecase.ponto.DeterminarProximoTipoPontoU
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ExcluirPontoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterPontosDoDiaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.RegistrarPontoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
+import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
+import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -66,6 +71,7 @@ class HomeViewModel @Inject constructor(
     private val listarEmpregosUseCase: ListarEmpregosUseCase,
     private val trocarEmpregoAtivoUseCase: TrocarEmpregoAtivoUseCase,
     private val obterFeriadosDaDataUseCase: ObterFeriadosDaDataUseCase,
+    private val buscarAusenciaPorDataUseCase: BuscarAusenciaPorDataUseCase,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository
@@ -246,6 +252,7 @@ class HomeViewModel @Inject constructor(
      *
      * @updated 2.8.0 - Corrigido para buscar horário da versão de jornada correta
      * @updated 3.4.0 - Adicionado carregamento de feriados
+     * @updated 4.0.0 - Integrado cálculo de dias especiais (feriado zera jornada)
      */
     private fun carregarPontosDoDia() {
         pontosCollectionJob?.cancel()
@@ -258,27 +265,50 @@ class HomeViewModel @Inject constructor(
 
             // 1. Buscar feriados do dia
             val feriados = obterFeriadosDaDataUseCase(data, empregoId)
-            _uiState.update { it.copy(feriadosDoDia = feriados) }
 
-            // 2. Buscar a versão de jornada vigente para a data selecionada
+            // 2. Buscar ausência do dia (férias, folga, falta, atestado)
+            val resultadoAusencia = empregoId?.let {
+                buscarAusenciaPorDataUseCase(it, data)
+            }
+            val ausencia = resultadoAusencia?.ausencia
+
+            _uiState.update {
+                it.copy(
+                    feriadosDoDia = feriados,
+                    ausenciaDoDia = ausencia
+                )
+            }
+
+            // 3. Determinar o tipo de dia especial (ausência tem prioridade sobre feriado)
+            val tipoDiaEspecial = determinarTipoDiaEspecial(
+                feriados = feriados,
+                ausencia = ausencia
+            )
+
+            // 4. Buscar a versão de jornada vigente para a data selecionada
             val versaoJornada = empregoId?.let {
                 versaoJornadaRepository.buscarPorEmpregoEData(it, data)
             }
 
-            // 3. Buscar configuração do dia da semana DA VERSÃO CORRETA
+            // 5. Buscar configuração do dia da semana DA VERSÃO CORRETA
             val diaSemana = DiaSemana.fromDayOfWeek(data.dayOfWeek)
             val horarioDia = versaoJornada?.id?.let { versaoId ->
                 horarioDiaSemanaRepository.buscarPorVersaoEDia(versaoId, diaSemana)
             } ?: empregoId?.let {
-                // Fallback: se não tiver versão, busca pelo emprego (compatibilidade)
                 horarioDiaSemanaRepository.buscarPorEmpregoEDia(it, diaSemana)
             }
 
-            // 4. Atualizar versão de jornada no estado
+            // 6. Atualizar versão de jornada no estado
             _uiState.update { it.copy(versaoJornadaAtual = versaoJornada) }
 
             obterPontosDoDiaUseCase(data).collect { pontos ->
-                val resumo = calcularResumoDiaUseCase(pontos, data, horarioDia)
+                // 7. Calcular resumo com tipo de dia especial
+                val resumo = calcularResumoDiaUseCase(
+                    pontos = pontos,
+                    data = data,
+                    horarioDiaSemana = horarioDia,
+                    tipoDiaEspecial = tipoDiaEspecial
+                )
                 val proximoTipo = determinarProximoTipoPontoUseCase(pontos)
 
                 _uiState.update {
@@ -292,6 +322,42 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * Determina o tipo de dia especial com base em ausências e feriados.
+     *
+     * PRIORIDADE:
+     * 1. Ausência (férias, atestado, folga, falta) - sempre tem prioridade máxima
+     * 2. Feriado (nacional, estadual, municipal)
+     * 3. Dia normal
+     *
+     * @param feriados Lista de feriados do dia
+     * @param ausencia Ausência do dia (se houver)
+     * @return TipoDiaEspecial correspondente
+     */
+    private fun determinarTipoDiaEspecial(
+        feriados: List<Feriado>,
+        ausencia: Ausencia? = null
+    ): TipoDiaEspecial {
+        // 1. Ausência tem prioridade máxima
+        if (ausencia != null) {
+            return ausencia.tipo.toTipoDiaEspecial()
+        }
+
+        // 2. Verificar feriados
+        if (feriados.isEmpty()) return TipoDiaEspecial.NORMAL
+
+        val temFeriadoFolga = feriados.any { feriado ->
+            feriado.tipo in TipoFeriado.tiposFolga()
+        }
+
+        return if (temFeriadoFolga) {
+            TipoDiaEspecial.FERIADO
+        } else {
+            TipoDiaEspecial.NORMAL
+        }
+    }
+
 
     /**
      * Carrega o banco de horas até a data selecionada.

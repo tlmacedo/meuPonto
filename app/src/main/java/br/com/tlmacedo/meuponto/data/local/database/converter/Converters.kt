@@ -6,6 +6,7 @@ import br.com.tlmacedo.meuponto.domain.model.AcaoAuditoria
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -72,4 +73,10 @@ class Converters {
 
     @TypeConverter
     fun toAcaoAuditoria(value: String?): AcaoAuditoria? = value?.let { AcaoAuditoria.valueOf(it) }
+
+    @TypeConverter
+    fun fromTipoAusencia(value: TipoAusencia): String = value.name
+
+    @TypeConverter
+    fun toTipoAusencia(value: String): TipoAusencia = TipoAusencia.valueOf(value)
 }

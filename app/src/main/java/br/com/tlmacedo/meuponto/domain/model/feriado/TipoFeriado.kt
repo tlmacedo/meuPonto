@@ -43,13 +43,26 @@ enum class TipoFeriado(
 
     companion object {
         /**
-         * Retorna tipos que representam dias de folga efetiva.
+         * Retorna tipos que representam dias de folga efetiva (jornada zerada).
+         * Inclui feriados oficiais, pontes e facultativos.
+         *
+         * Regra: Todos esses tipos zeram a jornada.
+         * - Sem registro: saldo = 0, banco inalterado
+         * - Com registro: saldo = trabalhado (hora extra)
          */
-        fun tiposFolga(): List<TipoFeriado> = listOf(NACIONAL, ESTADUAL, MUNICIPAL)
+        fun tiposFolga(): List<TipoFeriado> = listOf(
+            NACIONAL,
+            ESTADUAL,
+            MUNICIPAL,
+            FACULTATIVO,
+            PONTE
+        )
 
         /**
          * Retorna tipos que podem ser opcionais dependendo da empresa.
+         * @deprecated Use tiposFolga() - todos os feriados agora zeram jornada
          */
+        @Deprecated("Todos os tipos de feriado agora zeram a jornada")
         fun tiposOpcionais(): List<TipoFeriado> = listOf(FACULTATIVO, PONTE)
     }
 }

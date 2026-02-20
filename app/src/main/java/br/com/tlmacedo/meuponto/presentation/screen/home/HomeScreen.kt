@@ -326,6 +326,7 @@ internal fun HomeContent(
         // Card de Resumo com contador em tempo real
         item {
             ResumoCard(
+                horaAtual = uiState.horaAtual,
                 resumoDia = uiState.resumoDia,
                 bancoHoras = uiState.bancoHoras,
                 versaoJornada = uiState.versaoJornadaAtual,

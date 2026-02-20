@@ -4,6 +4,7 @@ package br.com.tlmacedo.meuponto.domain.usecase.ponto
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import java.time.Duration
 import java.time.LocalDate
 import javax.inject.Inject
@@ -18,24 +19,24 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.1.0 - Simplificado (tipo calculado por posição)
- * @updated 2.6.0 - Usa horaEfetiva para considerar tolerâncias
- * @updated 2.8.0 - Recebe HorarioDiaSemana para configuração de tolerância de intervalo
  * @updated 2.11.0 - Simplificado: ResumoDia calcula horasTrabalhadas internamente
+ * @updated 4.0.0 - Adicionado suporte a dias especiais (feriado, férias, folga, falta, atestado)
  */
 class CalcularResumoDiaUseCase @Inject constructor() {
 
     /**
-     * Calcula o resumo do dia com configurações de tolerância.
+     * Calcula o resumo do dia com configurações de tolerância e tipo de dia especial.
      *
      * @param pontos Lista de pontos do dia
      * @param data Data do resumo
      * @param horarioDiaSemana Configuração do dia (opcional, para tolerâncias)
+     * @param tipoDiaEspecial Tipo de dia especial (feriado, férias, etc.)
      */
     operator fun invoke(
         pontos: List<Ponto>,
         data: LocalDate = LocalDate.now(),
-        horarioDiaSemana: HorarioDiaSemana? = null
+        horarioDiaSemana: HorarioDiaSemana? = null,
+        tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL
     ): ResumoDia {
         // Valores padrão se não houver configuração
         val cargaHoraria = horarioDiaSemana?.cargaHorariaMinutos ?: 480
@@ -47,7 +48,8 @@ class CalcularResumoDiaUseCase @Inject constructor() {
             pontos = pontos.sortedBy { it.dataHora },
             cargaHorariaDiaria = Duration.ofMinutes(cargaHoraria.toLong()),
             intervaloMinimoMinutos = intervaloMinimo,
-            toleranciaIntervaloMinutos = toleranciaIntervalo
+            toleranciaIntervaloMinutos = toleranciaIntervalo,
+            tipoDiaEspecial = tipoDiaEspecial
         )
     }
 
@@ -57,12 +59,14 @@ class CalcularResumoDiaUseCase @Inject constructor() {
     operator fun invoke(
         pontos: List<Ponto>,
         data: LocalDate,
-        cargaHorariaDiariaMinutos: Int
+        cargaHorariaDiariaMinutos: Int,
+        tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL
     ): ResumoDia {
         return ResumoDia(
             data = data,
             pontos = pontos.sortedBy { it.dataHora },
-            cargaHorariaDiaria = Duration.ofMinutes(cargaHorariaDiariaMinutos.toLong())
+            cargaHorariaDiaria = Duration.ofMinutes(cargaHorariaDiariaMinutos.toLong()),
+            tipoDiaEspecial = tipoDiaEspecial
         )
     }
 }

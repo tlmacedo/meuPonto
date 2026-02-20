@@ -9,6 +9,7 @@ import br.com.tlmacedo.meuponto.util.minutosParaTurno
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 
 /**
  * Status simplificado do dia para exibição no histórico.
@@ -21,7 +22,81 @@ enum class StatusDiaResumo(val descricao: String, val isConsistente: Boolean) {
     EM_ANDAMENTO("Em andamento", true),
     INCOMPLETO("Incompleto", false),
     COM_PROBLEMAS("Com problemas", false),
-    SEM_REGISTRO("Sem registro", true)
+    SEM_REGISTRO("Sem registro", true),
+    FERIADO("Feriado", true),
+    FERIADO_TRABALHADO("Feriado trabalhado", true)
+}
+
+/**
+ * Tipo de dia especial que afeta o cálculo de jornada.
+ *
+ * REGRAS DE CÁLCULO:
+ *
+ * Jornada ZERADA (trabalho = hora extra):
+ * - FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA
+ *
+ * Jornada NORMAL (débito se não trabalhar):
+ * - NORMAL, FOLGA, FALTA_INJUSTIFICADA
+ *
+ * @author Thiago
+ * @since 4.0.0
+ */
+enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
+    /** Dia normal de trabalho */
+    NORMAL("Dia normal", "📅"),
+
+    /** Feriado oficial (nacional/estadual/municipal) - jornada zerada */
+    FERIADO("Feriado", "🎉"),
+
+    /** Ponte (dia entre feriado e fim de semana) - jornada zerada */
+    PONTE("Ponte", "🌉"),
+
+    /** Ponto facultativo - jornada zerada */
+    FACULTATIVO("Ponto Facultativo", "📋"),
+
+    /** Férias - jornada zerada */
+    FERIAS("Férias", "🏖️"),
+
+    /** Atestado/Declaração (ausência justificada) - jornada zerada */
+    ATESTADO("Atestado", "🏥"),
+
+    /** Falta justificada - jornada zerada */
+    FALTA_JUSTIFICADA("Falta Justificada", "📝"),
+
+    /** Folga - jornada normal (gera débito) */
+    FOLGA("Folga", "😴"),
+
+    /** Falta injustificada - jornada normal (gera débito) */
+    FALTA_INJUSTIFICADA("Falta Injustificada", "❌");
+
+    /**
+     * Verifica se este tipo zera a jornada (não gera débito).
+     *
+     * Zeram jornada: FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA
+     * Mantêm jornada: NORMAL, FOLGA, FALTA_INJUSTIFICADA
+     */
+    val zeraJornada: Boolean
+        get() = this in listOf(
+            FERIADO,
+            PONTE,
+            FACULTATIVO,
+            FERIAS,
+            ATESTADO,
+            FOLGA,
+            FALTA_JUSTIFICADA
+        )
+
+    /**
+     * Verifica se é um tipo de feriado (para exibição do banner).
+     */
+    val isTipoFeriado: Boolean
+        get() = this in listOf(FERIADO, PONTE, FACULTATIVO)
+
+    /**
+     * Verifica se é ausência justificada (abonada).
+     */
+    val isAusenciaJustificada: Boolean
+        get() = this in listOf(FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA)
 }
 
 /**
@@ -30,24 +105,25 @@ enum class StatusDiaResumo(val descricao: String, val isConsistente: Boolean) {
  * ARQUITETURA:
  * - Os intervalos (turnos) são a fonte única de verdade para cálculos
  * - `horasTrabalhadas` é calculado a partir da soma das durações dos intervalos
- * - Isso garante consistência entre o que é exibido nos cards e o resumo
+ * - `tipoDiaEspecial` define o comportamento do cálculo
+ * - Suporte a tempo em andamento (turno aberto) para cálculos em tempo real
+ *
+ * REGRAS DE CÁLCULO:
+ * - Jornada zerada: saldo = trabalhado (hora extra)
+ * - Jornada normal: saldo = trabalhado - jornada (pode ser negativo)
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.1.0 - Removida dependência de TipoPonto
- * @updated 2.4.0 - Adicionado cálculo de pausas entre turnos
- * @updated 2.8.0 - Adicionada configuração de intervalo para tolerância
- * @updated 2.9.0 - Adicionado cálculo de hora de entrada considerada com tolerância
- * @updated 2.10.0 - Corrigido cálculo de duração do turno usando hora considerada
- * @updated 2.11.0 - Refatorado: horasTrabalhadas calculado a partir dos intervalos (single source of truth)
- * @updated 3.0.0 - Adicionadas propriedades para suporte ao histórico (single source of truth)
+ * @updated 4.0.0 - Adicionado suporte a dias especiais
+ * @updated 4.1.0 - Adicionado cálculo com tempo em andamento
  */
 data class ResumoDia(
     val data: LocalDate,
     val pontos: List<Ponto> = emptyList(),
     val cargaHorariaDiaria: Duration = Duration.ofHours(8),
     val intervaloMinimoMinutos: Int = 60,
-    val toleranciaIntervaloMinutos: Int = 15
+    val toleranciaIntervaloMinutos: Int = 15,
+    val tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL
 ) {
 
     /** Lista de intervalos entre pontos de entrada e saída (FONTE ÚNICA DE VERDADE) */
@@ -56,8 +132,40 @@ data class ResumoDia(
     }
 
     /**
-     * Total de horas trabalhadas (CALCULADO A PARTIR DOS INTERVALOS).
-     * Isso garante consistência com o que é exibido nos cards de turno.
+     * Verifica se há um turno aberto (entrada sem saída correspondente).
+     */
+    val temTurnoAberto: Boolean
+        get() = pontos.isNotEmpty() && pontos.size % 2 != 0
+
+    /**
+     * Obtém o horário de início do turno aberto (última entrada sem saída).
+     */
+    val horarioInicioTurnoAberto: LocalDateTime?
+        get() = if (temTurnoAberto) {
+            pontos.sortedBy { it.dataHora }.lastOrNull()?.dataHora
+        } else null
+
+    /**
+     * Calcula o tempo em andamento do turno aberto (desde a última entrada até agora).
+     * Retorna Duration.ZERO se não houver turno aberto ou se a data não for hoje.
+     */
+    fun calcularTempoEmAndamento(horaAtual: LocalTime = LocalTime.now()): Duration {
+        if (!temTurnoAberto) return Duration.ZERO
+        if (data != LocalDate.now()) return Duration.ZERO
+
+        val inicioTurno = horarioInicioTurnoAberto ?: return Duration.ZERO
+        val agora = LocalDateTime.of(data, horaAtual)
+
+        return if (agora.isAfter(inicioTurno)) {
+            Duration.between(inicioTurno, agora)
+        } else {
+            Duration.ZERO
+        }
+    }
+
+    /**
+     * Total de horas trabalhadas (CALCULADO A PARTIR DOS INTERVALOS FECHADOS).
+     * NÃO inclui o tempo em andamento de turnos abertos.
      */
     val horasTrabalhadas: Duration by lazy {
         intervalos
@@ -65,21 +173,74 @@ data class ResumoDia(
             .fold(Duration.ZERO) { acc, duracao -> acc.plus(duracao) }
     }
 
-    /** Horas trabalhadas em minutos */
+    /**
+     * Total de horas trabalhadas INCLUINDO o tempo em andamento.
+     * Use esta propriedade para exibição em tempo real na UI.
+     */
+    fun horasTrabalhadasComAndamento(horaAtual: LocalTime = LocalTime.now()): Duration {
+        return horasTrabalhadas.plus(calcularTempoEmAndamento(horaAtual))
+    }
+
+    /**
+     * Horas trabalhadas em minutos (sem andamento).
+     */
     val horasTrabalhadasMinutos: Int
         get() = horasTrabalhadas.toMinutes().toInt()
 
-    /** Carga horária diária em minutos */
+    /**
+     * Horas trabalhadas em minutos INCLUINDO tempo em andamento.
+     */
+    fun horasTrabalhadasComAndamentoMinutos(horaAtual: LocalTime = LocalTime.now()): Int {
+        return horasTrabalhadasComAndamento(horaAtual).toMinutes().toInt()
+    }
+
+    /** Carga horária diária em minutos (configurada na versão de jornada) */
     val cargaHorariaDiariaMinutos: Int
         get() = cargaHorariaDiaria.toMinutes().toInt()
 
-    /** Saldo do dia (positivo = hora extra, negativo = deve horas) */
-    val saldoDia: Duration
-        get() = horasTrabalhadas.minus(cargaHorariaDiaria)
+    /**
+     * Carga horária efetiva do dia (usada no cálculo de saldo).
+     *
+     * - Jornada zerada (FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA): 0h
+     * - Jornada normal (NORMAL, FOLGA, FALTA_INJUSTIFICADA): carga configurada
+     */
+    val cargaHorariaEfetiva: Duration
+        get() = if (tipoDiaEspecial.zeraJornada) Duration.ZERO else cargaHorariaDiaria
 
-    /** Saldo do dia em minutos */
+    /** Carga horária efetiva em minutos */
+    val cargaHorariaEfetivaMinutos: Int
+        get() = cargaHorariaEfetiva.toMinutes().toInt()
+
+    /**
+     * Saldo do dia (positivo = hora extra, negativo = deve horas).
+     * NÃO inclui tempo em andamento.
+     *
+     * Cálculo único: saldo = trabalhado - cargaHorariaEfetiva
+     *
+     * - Jornada zerada: saldo = trabalhado - 0 = trabalhado (sempre >= 0)
+     * - Jornada normal: saldo = trabalhado - jornada (pode ser negativo)
+     */
+    val saldoDia: Duration
+        get() = horasTrabalhadas.minus(cargaHorariaEfetiva)
+
+    /**
+     * Saldo do dia INCLUINDO tempo em andamento.
+     * Use esta propriedade para exibição em tempo real na UI.
+     */
+    fun saldoDiaComAndamento(horaAtual: LocalTime = LocalTime.now()): Duration {
+        return horasTrabalhadasComAndamento(horaAtual).minus(cargaHorariaEfetiva)
+    }
+
+    /** Saldo do dia em minutos (sem andamento) */
     val saldoDiaMinutos: Int
         get() = saldoDia.toMinutes().toInt()
+
+    /**
+     * Saldo do dia em minutos INCLUINDO tempo em andamento.
+     */
+    fun saldoDiaComAndamentoMinutos(horaAtual: LocalTime = LocalTime.now()): Int {
+        return saldoDiaComAndamento(horaAtual).toMinutes().toInt()
+    }
 
     /** Verifica se o dia tem saldo positivo */
     val temSaldoPositivo: Boolean
@@ -102,7 +263,54 @@ data class ResumoDia(
         get() = proximoPontoDescricao(pontos.size)
 
     // ========================================================================
-    // PROPRIEDADES PARA HISTÓRICO (Single Source of Truth)
+    // PROPRIEDADES DE DIAS ESPECIAIS
+    // ========================================================================
+
+    /** Verifica se é um dia com jornada zerada (não gera débito) */
+    val isJornadaZerada: Boolean
+        get() = tipoDiaEspecial.zeraJornada
+
+    /** Verifica se é um dia de feriado (inclui ponte e facultativo) */
+    val isFeriado: Boolean
+        get() = tipoDiaEspecial.isTipoFeriado
+
+    /** Verifica se é um dia de férias */
+    val isFerias: Boolean
+        get() = tipoDiaEspecial == TipoDiaEspecial.FERIAS
+
+    /** Verifica se é um dia de folga */
+    val isFolga: Boolean
+        get() = tipoDiaEspecial == TipoDiaEspecial.FOLGA
+
+    /** Verifica se é um dia de falta injustificada */
+    val isFaltaInjustificada: Boolean
+        get() = tipoDiaEspecial == TipoDiaEspecial.FALTA_INJUSTIFICADA
+
+    /** Verifica se é um dia de falta justificada */
+    val isFaltaJustificada: Boolean
+        get() = tipoDiaEspecial == TipoDiaEspecial.FALTA_JUSTIFICADA
+
+    /** Verifica se é um dia de atestado/declaração */
+    val isAtestado: Boolean
+        get() = tipoDiaEspecial == TipoDiaEspecial.ATESTADO
+
+    /** Verifica se é um dia especial (não normal) */
+    val isDiaEspecial: Boolean
+        get() = tipoDiaEspecial != TipoDiaEspecial.NORMAL
+
+    /**
+     * Verifica se há inconsistência de ponto aberto em dia passado.
+     */
+    val temInconsistenciaPontoAberto: Boolean
+        get() {
+            if (pontos.isEmpty()) return false
+            val hoje = LocalDate.now()
+            val temPontoAberto = pontos.size % 2 != 0
+            return temPontoAberto && data.isBefore(hoje)
+        }
+
+    // ========================================================================
+    // PROPRIEDADES PARA HISTÓRICO
     // ========================================================================
 
     /** Quantidade de pontos registrados */
@@ -117,55 +325,54 @@ data class ResumoDia(
     val ultimoPonto: Ponto?
         get() = pontos.maxByOrNull { it.dataHora }
 
-    /** Calcula minutos de intervalo total (soma de todas as pausas consideradas entre turnos) */
+    /** Calcula minutos de intervalo total (soma de todas as pausas consideradas) */
     val minutosIntervaloTotal: Int
         get() = intervalos
             .mapNotNull { it.pausaConsideradaMinutos }
             .sum()
 
-    /** Calcula minutos de intervalo real (soma de todas as pausas reais entre turnos) */
+    /** Calcula minutos de intervalo real */
     val minutosIntervaloReal: Int
         get() = intervalos
             .mapNotNull { it.pausaAntesMinutos }
             .sum()
 
     /**
-     * Verifica se o dia tem problemas (jornada incompleta ou intervalo insuficiente).
-     * Usado para filtros e indicadores visuais no histórico.
+     * Verifica se o dia tem problemas.
      */
     val temProblemas: Boolean
         get() {
-            // Jornada incompleta (ímpar de pontos, exceto 1 que é "em andamento")
+            if (temInconsistenciaPontoAberto) return true
             if (!jornadaCompleta && pontos.size > 1) return true
-
-            // Intervalo insuficiente (se tem 4+ pontos)
-            if (pontos.size >= 4) {
+            if (pontos.size >= 4 && !tipoDiaEspecial.zeraJornada) {
                 val intervaloReal = intervalos.getOrNull(1)?.pausaAntesMinutos ?: 0
-                val toleranciaProblema = 10 // 10min de tolerância antes de considerar problema
+                val toleranciaProblema = 10
                 if (intervaloReal < intervaloMinimoMinutos - toleranciaProblema) return true
             }
-
             return false
         }
 
     /**
      * Status do dia para exibição no histórico.
-     * Simplifica a lógica de StatusDia para uso em listas.
      */
     val statusDia: StatusDiaResumo
         get() = when {
+            // Dias com jornada zerada (feriado, férias, atestado, etc.)
+            tipoDiaEspecial.zeraJornada && pontos.isNotEmpty() -> StatusDiaResumo.FERIADO_TRABALHADO
+            tipoDiaEspecial.zeraJornada -> StatusDiaResumo.FERIADO
+            // Dias com jornada normal (normal, folga, falta injustificada)
             pontos.isEmpty() -> StatusDiaResumo.SEM_REGISTRO
-            !jornadaCompleta && pontos.size == 1 -> StatusDiaResumo.EM_ANDAMENTO
+            !jornadaCompleta && pontos.size == 1 && data == LocalDate.now() -> StatusDiaResumo.EM_ANDAMENTO
             !jornadaCompleta -> StatusDiaResumo.INCOMPLETO
             temProblemas -> StatusDiaResumo.COM_PROBLEMAS
             else -> StatusDiaResumo.COMPLETO
         }
 
-    /** Verifica se o dia tem intervalo registrado (4+ pontos = pelo menos um intervalo) */
+    /** Verifica se o dia tem intervalo registrado */
     val temIntervalo: Boolean
         get() = minutosIntervaloReal > 0
 
-    /** Verifica se a tolerância de intervalo foi aplicada (intervalo real ≠ considerado) */
+    /** Verifica se a tolerância de intervalo foi aplicada */
     val temToleranciaIntervaloAplicada: Boolean
         get() = minutosIntervaloReal != minutosIntervaloTotal && minutosIntervaloTotal > 0
 
@@ -177,22 +384,32 @@ data class ResumoDia(
     val horasTrabalhadasFormatadas: String
         get() = horasTrabalhadas.formatarDuracao()
 
+    /** Horas trabalhadas com andamento formatadas */
+    fun horasTrabalhadasComAndamentoFormatadas(horaAtual: LocalTime = LocalTime.now()): String {
+        return horasTrabalhadasComAndamento(horaAtual).formatarDuracao()
+    }
+
     /** Saldo do dia formatado (ex: "+00h 51min" ou "-01h 30min") */
     val saldoDiaFormatado: String
         get() = saldoDia.formatarSaldo()
 
-    /** Carga horária formatada (ex: "08h 00min") */
+    /** Saldo do dia com andamento formatado */
+    fun saldoDiaComAndamentoFormatado(horaAtual: LocalTime = LocalTime.now()): String {
+        return saldoDiaComAndamento(horaAtual).formatarSaldo()
+    }
+
+    /** Carga horária formatada (ex: "08h 00min" ou "00h 00min" para dia especial) */
     val cargaHorariaDiariaFormatada: String
-        get() = cargaHorariaDiaria.formatarDuracao()
+        get() = cargaHorariaEfetiva.formatarDuracao()
+
+    /** Descrição do tipo de dia especial */
+    val tipoDiaEspecialDescricao: String
+        get() = tipoDiaEspecial.descricao
 
     // ========================================================================
-    // CÁLCULO DOS INTERVALOS (LÓGICA CENTRALIZADA)
+    // CÁLCULO DOS INTERVALOS
     // ========================================================================
 
-    /**
-     * Calcula os intervalos (turnos) do dia com todas as tolerâncias aplicadas.
-     * Esta é a FONTE ÚNICA DE VERDADE para todos os cálculos de tempo.
-     */
     private fun calcularIntervalos(): List<IntervaloPonto> {
         val pontosOrdenados = pontos.sortedBy { it.dataHora }
         val lista = mutableListOf<IntervaloPonto>()
@@ -203,31 +420,25 @@ data class ResumoDia(
             val saida = pontosOrdenados.getOrNull(i + 1)
 
             if (entrada != null) {
-                // Calcular pausa antes deste turno (tempo desde a saída anterior)
                 val saidaAnterior = if (i >= 2) pontosOrdenados.getOrNull(i - 1) else null
 
                 val pausaAntesMinutos = saidaAnterior?.let {
                     Duration.between(it.dataHora, entrada.dataHora).toMinutes().toInt()
                 }
 
-                // Calcular pausa considerada (com tolerância)
                 val pausaConsideradaMinutos = pausaAntesMinutos?.let { pausa ->
                     calcularPausaConsiderada(pausa)
                 }
 
-                // Calcular hora de entrada considerada quando tolerância é aplicada
                 val horaEntradaConsiderada: LocalDateTime? = if (
                     saidaAnterior != null &&
                     pausaAntesMinutos != null &&
                     pausaConsideradaMinutos != null &&
                     pausaAntesMinutos != pausaConsideradaMinutos
                 ) {
-                    // Entrada considerada = saída anterior + intervalo considerado
                     saidaAnterior.dataHora.plusMinutes(pausaConsideradaMinutos.toLong())
                 } else null
 
-                // Calcular duração do turno usando a hora de entrada EFETIVA
-                // (hora considerada se existir, senão hora real)
                 val horaEntradaEfetiva = horaEntradaConsiderada ?: entrada.dataHora
                 val duracaoTurno = saida?.let {
                     Duration.between(horaEntradaEfetiva, it.dataHora)
@@ -251,27 +462,12 @@ data class ResumoDia(
         return lista
     }
 
-    /**
-     * Calcula a pausa considerada aplicando a tolerância.
-     *
-     * Regra: Se a pausa real estiver dentro do intervalo
-     * [intervaloMinimo, intervaloMinimo + tolerancia], considera como intervaloMinimo.
-     *
-     * Exemplos (com intervalo=60min e tolerância=15min):
-     * - Pausa de 55min → considera 55min (abaixo do mínimo)
-     * - Pausa de 60min → considera 60min (exato)
-     * - Pausa de 70min → considera 60min (dentro da tolerância)
-     * - Pausa de 75min → considera 60min (exato na tolerância)
-     * - Pausa de 80min → considera 80min (fora da tolerância)
-     */
     private fun calcularPausaConsiderada(pausaReal: Int): Int {
         val limiteInferior = intervaloMinimoMinutos
         val limiteSuperior = intervaloMinimoMinutos + toleranciaIntervaloMinutos
 
         return when {
-            // Pausa dentro da tolerância → considera como intervalo mínimo
             pausaReal in limiteInferior..limiteSuperior -> intervaloMinimoMinutos
-            // Fora da tolerância → usa valor real
             else -> pausaReal
         }
     }
@@ -279,23 +475,6 @@ data class ResumoDia(
 
 /**
  * Representa um intervalo entre entrada e saída (turno de trabalho).
- *
- * @property entrada Ponto de entrada do turno
- * @property saida Ponto de saída do turno (null se ainda aberto)
- * @property duracao Duração do turno (calculada com hora efetiva)
- * @property pausaAntesMinutos Tempo de pausa real antes deste turno
- * @property pausaConsideradaMinutos Tempo de pausa considerado (após tolerância)
- * @property intervaloMinimoMinutos Intervalo mínimo configurado
- * @property toleranciaMinutos Tolerância de intervalo configurada
- * @property horaEntradaConsiderada Hora de entrada ajustada pela tolerância do intervalo
- *
- * @author Thiago
- * @since 1.0.0
- * @updated 2.4.0 - Adicionada pausaAntesMinutos e novos formatadores
- * @updated 2.8.0 - Adicionada tolerância de intervalo
- * @updated 2.9.0 - Adicionada horaEntradaConsiderada
- * @updated 2.10.0 - Duração calculada com hora efetiva
- * @updated 2.11.0 - Padronizado formato "00h 00min"
  */
 data class IntervaloPonto(
     val entrada: Ponto,
@@ -307,88 +486,47 @@ data class IntervaloPonto(
     val toleranciaMinutos: Int? = null,
     val horaEntradaConsiderada: LocalDateTime? = null
 ) {
-    /** Verifica se o intervalo está aberto (sem saída) */
     val aberto: Boolean get() = saida == null
 
-    /** Duração em minutos */
     val duracaoMinutos: Int?
         get() = duracao?.toMinutes()?.toInt()
 
-    /** Verifica se tem pausa antes (intervalo entre turnos) */
     val temPausaAntes: Boolean
         get() = pausaAntesMinutos != null && pausaAntesMinutos > 0
 
-    /**
-     * Verifica se a tolerância foi aplicada (pausa real ≠ pausa considerada).
-     */
     val toleranciaAplicada: Boolean
         get() = pausaAntesMinutos != null &&
                 pausaConsideradaMinutos != null &&
                 pausaAntesMinutos != pausaConsideradaMinutos
 
-    /**
-     * Verifica se é intervalo de almoço (>= intervalo mínimo).
-     * Usado para escolher o ícone: almoço (🍽️) ou café (☕).
-     */
     val isIntervaloAlmoco: Boolean
         get() = pausaAntesMinutos != null &&
                 intervaloMinimoMinutos != null &&
                 pausaAntesMinutos >= intervaloMinimoMinutos
 
-    /**
-     * Verifica se a entrada tem hora considerada diferente da hora real.
-     */
     val temHoraEntradaConsiderada: Boolean
         get() = horaEntradaConsiderada != null
 
-    // ========================================================================
-    // FORMATADORES (padrão "00h 00min")
-    // ========================================================================
-
-    /**
-     * Formata a duração do turno.
-     * @return String formatada (ex: "Turno de 05h 04min")
-     */
     fun formatarDuracao(): String {
         return duracaoMinutos?.minutosParaTurno() ?: "Em andamento..."
     }
 
-    /**
-     * Formata a duração do turno de forma compacta.
-     * @return String formatada (ex: "05h 04min")
-     */
     fun formatarDuracaoCompacta(): String {
         return duracaoMinutos?.minutosParaDuracaoCompacta() ?: "..."
     }
 
-    /**
-     * Formata a pausa real antes do turno.
-     * @return String formatada (ex: "Intervalo de 01h 14min") ou null se não houver pausa
-     */
     fun formatarPausaAntes(): String? {
         return pausaAntesMinutos?.minutosParaIntervalo()
     }
 
-    /**
-     * Formata a pausa considerada (após tolerância).
-     * @return String formatada (ex: "Intervalo de 01h 00min") ou null se não houver pausa
-     */
     fun formatarPausaConsiderada(): String? {
         return pausaConsideradaMinutos?.minutosParaIntervalo()
     }
 
-    /**
-     * Formata a pausa antes de forma compacta.
-     * @return String formatada (ex: "01h 14min") ou null se não houver pausa
-     */
     fun formatarPausaAntesCompacta(): String? {
         return pausaAntesMinutos?.minutosParaDuracaoCompacta()
     }
 
-    /**
-     * Formata a pausa considerada de forma compacta.
-     * @return String formatada (ex: "01h 00min") ou null se não houver pausa
-     */
     fun formatarPausaConsideradaCompacta(): String? {
         return pausaConsideradaMinutos?.minutosParaDuracaoCompacta()
     }

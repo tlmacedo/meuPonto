@@ -24,6 +24,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciaFormScreen
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciasScreen
 import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
@@ -45,6 +47,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
  * @since 1.0.0
  * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
  * @updated 3.4.0 - Adicionado módulo de Feriados
+ * @updated 4.0.0 - Adicionado módulo de Ausências
  */
 @Composable
 fun MeuPontoNavHost(
@@ -95,9 +98,7 @@ fun MeuPontoNavHost(
                 HistoryScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDay = { data ->
-                        // Navega para Home com a data selecionada
                         navController.navigate(MeuPontoDestinations.homeComData(data.toString())) {
-                            // Limpa a pilha até a Home para evitar múltiplas instâncias
                             popUpTo(MeuPontoDestinations.HOME_BASE) {
                                 inclusive = true
                             }
@@ -117,6 +118,55 @@ fun MeuPontoNavHost(
             ) {
                 EditPontoScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // ===== AUSÊNCIAS =====
+
+            composable(MeuPontoDestinations.AUSENCIAS) {
+                AusenciasScreen(
+                    onVoltar = { navController.popBackStack() },
+                    onNovaAusencia = {
+                        navController.navigate(MeuPontoDestinations.NOVA_AUSENCIA_BASE)
+                    },
+                    onEditarAusencia = { ausenciaId ->
+                        navController.navigate(MeuPontoDestinations.editarAusencia(ausenciaId))
+                    }
+                )
+            }
+
+            composable(
+                route = MeuPontoDestinations.NOVA_AUSENCIA,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_TIPO) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument(MeuPontoDestinations.ARG_DATA) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) {
+                AusenciaFormScreen(
+                    onVoltar = { navController.popBackStack() },
+                    onSalvo = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = MeuPontoDestinations.EDITAR_AUSENCIA,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_AUSENCIA_ID) {
+                        type = NavType.LongType
+                    }
+                )
+            ) {
+                AusenciaFormScreen(
+                    onVoltar = { navController.popBackStack() },
+                    onSalvo = { navController.popBackStack() }
                 )
             }
 
@@ -142,6 +192,9 @@ fun MeuPontoNavHost(
                     },
                     onNavigateToFeriados = {
                         navController.navigate(MeuPontoDestinations.FERIADOS)
+                    },
+                    onNavigateToAusencias = {
+                        navController.navigate(MeuPontoDestinations.AUSENCIAS)
                     },
                     onNavigateToSobre = {
                         navController.navigate(MeuPontoDestinations.SOBRE)

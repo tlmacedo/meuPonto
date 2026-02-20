@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.di
 
 import br.com.tlmacedo.meuponto.data.repository.AjusteSaldoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.AuditLogRepositoryImpl
+import br.com.tlmacedo.meuponto.data.repository.AusenciaRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.ConfiguracaoEmpregoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.EmpregoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.FechamentoPeriodoRepositoryImpl
@@ -13,6 +14,7 @@ import br.com.tlmacedo.meuponto.data.repository.PontoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.VersaoJornadaRepositoryImpl
 import br.com.tlmacedo.meuponto.domain.repository.AjusteSaldoRepository
 import br.com.tlmacedo.meuponto.domain.repository.AuditLogRepository
+import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
@@ -32,7 +34,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.7.0 - Adicionado VersaoJornadaRepository
+ * @updated 4.0.0 - Adicionado AusenciaRepository
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -77,4 +79,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindVersaoJornadaRepository(impl: VersaoJornadaRepositoryImpl): VersaoJornadaRepository
+
+    // ========================================================================
+    // AUSÊNCIAS
+    // ========================================================================
+
+    @Binds
+    @Singleton
+    abstract fun bindAusenciaRepository(impl: AusenciaRepositoryImpl): AusenciaRepository
 }

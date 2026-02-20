@@ -6,8 +6,10 @@ import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
+import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import java.time.LocalDate
@@ -21,12 +23,7 @@ import java.util.Locale
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 2.5.0 - Adicionado showDatePicker, corrigido formato de data
- * @updated 2.6.0 - Flags para controle de registro por tipo de dia
- * @updated 2.7.0 - Adicionado showEmpregoMenu para menu de opções do emprego
- * @updated 2.8.0 - Adicionada versaoJornadaAtual para exibição do período no ResumoCard
- * @updated 3.4.0 - Adicionado suporte a feriados
- * @updated 3.7.0 - Adicionado suporte a NSR (dialog e exibição)
+ * @updated 4.0.0 - Adicionado suporte a ausências (férias, folga, falta, atestado)
  */
 data class HomeUiState(
     val dataSelecionada: LocalDate = LocalDate.now(),
@@ -41,6 +38,8 @@ data class HomeUiState(
     val configuracaoEmprego: ConfiguracaoEmprego? = null,
     // Feriados
     val feriadosDoDia: List<Feriado> = emptyList(),
+    // Ausências
+    val ausenciaDoDia: Ausencia? = null,
     // Loading e dialogs
     val isLoading: Boolean = false,
     val isLoadingEmpregos: Boolean = false,
@@ -76,9 +75,6 @@ data class HomeUiState(
     val isFuturo: Boolean
         get() = dataSelecionada.isAfter(LocalDate.now())
 
-    /**
-     * Verifica se a data é passada (anterior a hoje).
-     */
     val isPassado: Boolean
         get() = dataSelecionada.isBefore(LocalDate.now())
 
@@ -86,15 +82,9 @@ data class HomeUiState(
     // NSR
     // ========================================================================
 
-    /**
-     * Verifica se NSR está habilitado para o emprego ativo.
-     */
     val nsrHabilitado: Boolean
         get() = configuracaoEmprego?.habilitarNsr == true
 
-    /**
-     * Tipo de NSR configurado (NUMERICO ou ALFANUMERICO).
-     */
     val tipoNsr: TipoNsr
         get() = configuracaoEmprego?.tipoNsr ?: TipoNsr.NUMERICO
 
@@ -102,27 +92,77 @@ data class HomeUiState(
     // FERIADOS
     // ========================================================================
 
-    /**
-     * Verifica se a data selecionada é feriado.
-     */
     val isFeriado: Boolean
         get() = feriadosDoDia.isNotEmpty()
 
-    /**
-     * Feriado principal da data (para exibição resumida).
-     */
     val feriadoPrincipal: Feriado?
         get() = feriadosDoDia.firstOrNull()
 
-    /**
-     * Verifica se há múltiplos feriados na data.
-     */
     val temMultiplosFeriados: Boolean
         get() = feriadosDoDia.size > 1
 
+    // ========================================================================
+    // AUSÊNCIAS
+    // ========================================================================
+
     /**
-     * Formata a data selecionada para exibição no navegador.
+     * Verifica se há ausência registrada para o dia.
      */
+    val temAusencia: Boolean
+        get() = ausenciaDoDia != null
+
+    /**
+     * Verifica se é dia de férias.
+     */
+    val isFerias: Boolean
+        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FERIAS
+
+    /**
+     * Verifica se é dia de folga (compensação, day-off, etc.).
+     */
+    val isFolga: Boolean
+        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FOLGA
+
+    /**
+     * Verifica se é falta.
+     */
+    val isFalta: Boolean
+        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FALTA_INJUSTIFICADA
+
+    /**
+     * Verifica se é atestado médico.
+     */
+    val isAtestado: Boolean
+        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.ATESTADO
+
+    /**
+     * Verifica se é licença (maternidade, paternidade, etc.).
+     */
+    val isLicenca: Boolean
+        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FALTA_JUSTIFICADA
+
+    /**
+     * Verifica se é dia especial (qualquer tipo que não seja NORMAL).
+     */
+    val isDiaEspecial: Boolean
+        get() = resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL
+
+    /**
+     * Descrição da ausência para exibição.
+     */
+    val descricaoAusencia: String?
+        get() = ausenciaDoDia?.descricao ?: ausenciaDoDia?.tipoDescricao
+
+    /**
+     * Emoji do tipo de dia especial.
+     */
+    val emojiDiaEspecial: String
+        get() = resumoDia.tipoDiaEspecial.emoji
+
+    // ========================================================================
+    // FORMATAÇÃO DE DATA
+    // ========================================================================
+
     val dataFormatada: String
         get() {
             val diaSemana = dataSelecionada.format(formatterDiaSemana)
@@ -156,30 +196,21 @@ data class HomeUiState(
         get() = empregoAtivo?.nome ?: "Nenhum emprego"
 
     /**
-     * Verifica se pode registrar ponto (hoje ou passado, com emprego ativo).
-     * Dias futuros NÃO permitem registro de ponto.
+     * Verifica se pode registrar ponto.
+     * Dias com ausência (férias, folga) NÃO permitem registro de ponto.
      */
     val podeRegistrarPonto: Boolean
-        get() = temEmpregoAtivo && !isFuturo && (empregoAtivo?.podeRegistrarPonto == true)
+        get() = temEmpregoAtivo &&
+                !isFuturo &&
+                !temAusencia &&  // Bloqueia se tiver ausência
+                (empregoAtivo?.podeRegistrarPonto == true)
 
-    /**
-     * Verifica se pode registrar ponto automático (apenas hoje).
-     * Registro automático = com horário atual do sistema.
-     */
     val podeRegistrarPontoAutomatico: Boolean
         get() = podeRegistrarPonto && isHoje
 
-    /**
-     * Verifica se pode registrar ponto manual (hoje ou passado).
-     * Registro manual = usuário informa o horário.
-     */
     val podeRegistrarPontoManual: Boolean
         get() = podeRegistrarPonto
 
-    /**
-     * Verifica se pode registrar eventos especiais (férias, folga, falta).
-     * Permitido em qualquer dia (passado, presente ou futuro).
-     */
     val podeRegistrarEventoEspecial: Boolean
         get() = temEmpregoAtivo
 
@@ -209,6 +240,7 @@ data class HomeUiState(
 
     val statusJornada: String
         get() = when {
+            temAusencia -> ausenciaDoDia?.tipoDescricao ?: "Ausência"
             !temPontos -> "Aguardando entrada"
             jornadaEmAndamento -> "Jornada em andamento"
             resumoDia.jornadaCompleta -> "Jornada finalizada"
@@ -216,26 +248,54 @@ data class HomeUiState(
         }
 
     // ========================================================================
+    // DIAS ESPECIAIS - CONSOLIDADO
+    // ========================================================================
+
+    val isFeriadoEfetivo: Boolean
+        get() = resumoDia.isFeriado
+
+    val isFeriadoTrabalhado: Boolean
+        get() = resumoDia.isFeriado && resumoDia.pontos.isNotEmpty()
+
+    /**
+     * Mensagem informativa sobre o tipo de dia.
+     */
+    val mensagemTipoDia: String?
+        get() = when {
+            isFerias -> "Férias - sem jornada obrigatória"
+            isAtestado -> "Atestado médico - sem jornada obrigatória"
+            isLicenca -> "Licença - sem jornada obrigatória"
+            isFolga -> "Folga - sem jornada obrigatória"
+            isFalta -> "Falta - dia não trabalhado"
+            isFeriadoTrabalhado -> "Feriado trabalhado - horas contam como extra"
+            isFeriadoEfetivo -> "Feriado - sem jornada obrigatória"
+            else -> null
+        }
+
+    /**
+     * Ícone/emoji para exibição do tipo de dia.
+     */
+    val iconeTipoDia: String
+        get() = when {
+            isFerias -> "🏖️"
+            isAtestado -> "🏥"
+            isLicenca -> "📋"
+            isFolga -> "🏠"
+            isFalta -> "❌"
+            isFeriadoEfetivo -> "🎉"
+            else -> ""
+        }
+
+    // ========================================================================
     // VERSÃO DE JORNADA
     // ========================================================================
 
-    /**
-     * Verifica se há uma versão de jornada disponível para a data selecionada.
-     */
     val temVersaoJornada: Boolean
         get() = versaoJornadaAtual != null
 
-    /**
-     * Período formatado da versão de jornada atual.
-     * Ex: "01/01/2025 em diante" ou "01/01/2025 até 31/12/2025"
-     */
     val periodoVersaoJornadaFormatado: String?
         get() = versaoJornadaAtual?.periodoFormatado
 
-    /**
-     * Título da versão de jornada atual.
-     * Ex: "Versão 1" ou "Versão 2 - Horário Flexível"
-     */
     val tituloVersaoJornada: String?
         get() = versaoJornadaAtual?.titulo
 }

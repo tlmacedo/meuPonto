@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Event
@@ -54,6 +55,7 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
  * @param onNavigateToAjustesBancoHoras Callback para navegar à tela de ajustes de banco de horas
  * @param onNavigateToMarcadores Callback para navegar à tela de marcadores
  * @param onNavigateToFeriados Callback para navegar à tela de feriados
+ * @param onNavigateToAusencias Callback para navegar à tela de ausências
  * @param onNavigateToSobre Callback para navegar à tela sobre o app
  * @param modifier Modificador opcional para customização do layout
  * @param viewModel ViewModel da tela de configurações
@@ -61,6 +63,7 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
  * @author Thiago
  * @since 2.0.0
  * @updated 3.4.0 - Adicionado item de menu para Feriados
+ * @updated 4.0.0 - Adicionado item de menu para Ausências
  */
 @Composable
 fun SettingsScreen(
@@ -71,6 +74,7 @@ fun SettingsScreen(
     onNavigateToAjustesBancoHoras: () -> Unit,
     onNavigateToMarcadores: () -> Unit,
     onNavigateToFeriados: () -> Unit,
+    onNavigateToAusencias: () -> Unit = {},
     onNavigateToSobre: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -135,6 +139,13 @@ fun SettingsScreen(
                 title = "Feriados",
                 subtitle = "Gerenciar feriados e pontes facultativas",
                 onClick = onNavigateToFeriados
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Default.BeachAccess,
+                title = "Ausências",
+                subtitle = "Férias, folgas, faltas e licenças",
+                onClick = onNavigateToAusencias
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))

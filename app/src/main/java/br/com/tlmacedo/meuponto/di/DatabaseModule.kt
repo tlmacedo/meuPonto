@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
 import br.com.tlmacedo.meuponto.data.local.database.dao.*
 import br.com.tlmacedo.meuponto.data.local.database.migration.*
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_12_13
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,7 +49,8 @@ object DatabaseModule {
                 MIGRATION_8_9,
                 MIGRATION_9_10,
                 MIGRATION_10_11,
-                MIGRATION_11_12
+                MIGRATION_11_12,
+                MIGRATION_12_13
             )
             .addCallback(createDatabaseCallback())
             .build()
@@ -285,4 +287,13 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideConfiguracaoPontesAnoDao(database: MeuPontoDatabase): ConfiguracaoPontesAnoDao = database.configuracaoPontesAnoDao()
+
+    // ========================================================================
+    // PROVIDER DO DAO - AUSÊNCIAS
+    // ========================================================================
+
+    @Provides
+    @Singleton
+    fun provideAusenciaDao(database: MeuPontoDatabase): AusenciaDao = database.ausenciaDao()
+
 }

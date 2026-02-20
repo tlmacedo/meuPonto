@@ -8,6 +8,7 @@ package br.com.tlmacedo.meuponto.presentation.navigation
  * @since 1.0.0
  * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
  * @updated 3.4.0 - Adicionado módulo de Feriados
+ * @updated 4.0.0 - Adicionado módulo de Ausências
  */
 object MeuPontoDestinations {
 
@@ -62,6 +63,20 @@ object MeuPontoDestinations {
     /** Tela de criação de novo feriado (sem ID) */
     const val NOVO_FERIADO = "settings/feriados/editar"
 
+    // === AUSÊNCIAS ===
+
+    /** Tela de listagem de ausências */
+    const val AUSENCIAS = "ausencias"
+
+    /** Tela de edição de ausência existente */
+    const val EDITAR_AUSENCIA = "ausencias/editar/{ausenciaId}"
+
+    /** Tela de criação de nova ausência */
+    const val NOVA_AUSENCIA = "ausencias/nova?tipo={tipo}&data={data}"
+
+    /** Rota base para nova ausência (sem parâmetros) */
+    const val NOVA_AUSENCIA_BASE = "ausencias/nova"
+
     // === ARGUMENTOS DE NAVEGAÇÃO ===
 
     /** Argumento para ID do ponto */
@@ -75,6 +90,12 @@ object MeuPontoDestinations {
 
     /** Argumento para ID do feriado */
     const val ARG_FERIADO_ID = "feriadoId"
+
+    /** Argumento para ID da ausência */
+    const val ARG_AUSENCIA_ID = "ausenciaId"
+
+    /** Argumento para tipo de ausência */
+    const val ARG_TIPO = "tipo"
 
     // === FUNÇÕES DE CRIAÇÃO DE ROTAS ===
 
@@ -109,4 +130,31 @@ object MeuPontoDestinations {
      * @return Rota formatada com o ID
      */
     fun editarFeriado(feriadoId: Long): String = "settings/feriados/editar/$feriadoId"
+
+    /**
+     * Cria a rota para edição de ausência.
+     *
+     * @param ausenciaId ID da ausência a ser editada
+     * @return Rota formatada com o ID
+     */
+    fun editarAusencia(ausenciaId: Long): String = "ausencias/editar/$ausenciaId"
+
+    /**
+     * Cria a rota para nova ausência com parâmetros opcionais.
+     *
+     * @param tipo Tipo de ausência (opcional)
+     * @param data Data inicial (opcional, formato ISO: yyyy-MM-dd)
+     * @return Rota formatada
+     */
+    fun novaAusencia(tipo: String? = null, data: String? = null): String {
+        val params = mutableListOf<String>()
+        tipo?.let { params.add("tipo=$it") }
+        data?.let { params.add("data=$it") }
+
+        return if (params.isNotEmpty()) {
+            "ausencias/nova?${params.joinToString("&")}"
+        } else {
+            NOVA_AUSENCIA_BASE
+        }
+    }
 }
