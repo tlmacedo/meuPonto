@@ -66,13 +66,13 @@ fun SummaryCard(
             ) {
                 // Horas trabalhadas
                 SummaryItem(
-                    label = "Trabalhado",
+                    label = "Trabalhado no dia",
                     value = horasTrabalhadas?.let { formatarMinutos(it) } ?: "--:--"
                 )
 
                 // Saldo
                 SummaryItem(
-                    label = "Saldo",
+                    label = "Saldo do dia",
                     value = saldo?.formatado ?: "--:--",
                     valueColor = when {
                         saldo == null -> MaterialTheme.colorScheme.onSecondaryContainer

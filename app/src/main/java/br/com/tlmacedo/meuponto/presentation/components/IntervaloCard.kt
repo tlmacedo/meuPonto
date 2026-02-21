@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Coffee
@@ -41,12 +42,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
+import br.com.tlmacedo.meuponto.domain.model.TipoPausa
 import br.com.tlmacedo.meuponto.presentation.theme.EntradaBg
 import br.com.tlmacedo.meuponto.presentation.theme.EntradaColor
 import br.com.tlmacedo.meuponto.presentation.theme.SaidaBg
@@ -70,6 +73,7 @@ import java.time.format.DateTimeFormatter
  * @updated 3.6.0 - Novo layout diagonal com suporte a edição via long press
  * @updated 3.7.0 - Adicionada exibição do NSR
  * @updated 3.8.0 - Melhorias visuais: alinhamento centralizado e maior contraste
+ * @updated 4.2.0 - Classificação correta de pausas (Café, Saída Rápida, Almoço)
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -95,7 +99,7 @@ fun IntervaloCard(
                 textoConsiderado = if (intervalo.toleranciaAplicada) {
                     intervalo.formatarPausaConsideradaCompacta()
                 } else null,
-                isAlmoco = intervalo.isIntervaloAlmoco
+                tipoPausa = intervalo.tipoPausa ?: TipoPausa.CAFE
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -417,15 +421,25 @@ fun IntervaloCard(
 
 /**
  * Componente que exibe o tempo de pausa/intervalo entre turnos.
+ *
+ * @param textoReal Tempo real da pausa formatado
+ * @param textoConsiderado Tempo considerado (com tolerância) formatado, ou null se não aplicável
+ * @param tipoPausa Tipo da pausa (Café, Saída Rápida ou Almoço)
+ *
+ * @updated 4.2.0 - Agora usa TipoPausa para classificação correta
  */
 @Composable
 private fun PausaEntreIntervalos(
     textoReal: String,
     textoConsiderado: String? = null,
-    isAlmoco: Boolean = true,
+    tipoPausa: TipoPausa,
     modifier: Modifier = Modifier
 ) {
-    val tipoIntervalo = if (isAlmoco) "Almoço" else "Café"
+    val icone: ImageVector = when (tipoPausa) {
+        TipoPausa.CAFE -> Icons.Default.Coffee
+        TipoPausa.SAIDA_RAPIDA -> Icons.AutoMirrored.Filled.DirectionsWalk
+        TipoPausa.ALMOCO -> Icons.Default.Restaurant
+    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -466,13 +480,13 @@ private fun PausaEntreIntervalos(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
-                    imageVector = if (isAlmoco) Icons.Default.Restaurant else Icons.Default.Coffee,
-                    contentDescription = "Intervalo de $tipoIntervalo",
+                    imageVector = icone,
+                    contentDescription = "Intervalo de ${tipoPausa.descricao}",
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "$tipoIntervalo ${textoConsiderado ?: textoReal}",
+                    text = "${tipoPausa.descricao} ${textoConsiderado ?: textoReal}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)

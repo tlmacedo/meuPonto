@@ -4,7 +4,6 @@ package br.com.tlmacedo.meuponto.presentation.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -45,18 +45,9 @@ import java.time.format.DateTimeFormatter
 /**
  * Botão compacto para registrar ponto no dia atual.
  *
- * Layout horizontal com horário atual e opção de registro manual lado a lado.
- * Usado apenas para o dia de HOJE.
- *
- * @param proximoTipo Tipo do próximo ponto (ENTRADA ou SAIDA)
- * @param horaAtual Hora atual para exibição
- * @param onRegistrarAgora Callback para registro imediato
- * @param onRegistrarManual Callback para registro com horário personalizado
- * @param modifier Modificador opcional
- *
  * @author Thiago
  * @since 1.0.0
- * @updated 3.0.0 - Layout compactado horizontal
+ * @updated 5.0.0 - Corrigido VerticalDivider com altura fixa
  */
 @Composable
 fun RegistrarPontoButton(
@@ -87,15 +78,17 @@ fun RegistrarPontoButton(
         colors = CardDefaults.cardColors(
             containerColor = corPrincipal
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
-            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .shadow(4.dp, RoundedCornerShape(14.dp))
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp) // Altura fixa para o botão
         ) {
             // Área principal clicável - registro automático
             Row(
@@ -108,48 +101,50 @@ fun RegistrarPontoButton(
                         indication = null,
                         onClick = onRegistrarAgora
                     )
-                    .padding(vertical = 16.dp, horizontal = 12.dp)
+                    .padding(horizontal = 12.dp)
             ) {
                 Icon(
                     imageVector = icone,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(22.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = texto,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = horaAtual.format(formatadorHora),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                 )
             }
 
-            // Divisor vertical
+            // Divisor vertical com altura fixa
             VerticalDivider(
+                modifier = Modifier
+                    .height(32.dp),
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f),
-                modifier = Modifier.padding(vertical = 12.dp)
+                thickness = 1.dp
             )
 
             // Botão para registro manual
             Box(
                 modifier = Modifier
                     .clickable(onClick = onRegistrarManual)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Schedule,
                     contentDescription = "Informar outro horário",
                     tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -159,17 +154,9 @@ fun RegistrarPontoButton(
 /**
  * Botão compacto para registrar ponto manual em dias anteriores.
  *
- * Exibe apenas a opção de informar horário, sem registro automático.
- * Usado para dias PASSADOS.
- *
- * @param proximoTipo Tipo do próximo ponto (ENTRADA ou SAIDA)
- * @param dataFormatada Data formatada para exibição
- * @param onRegistrarManual Callback para registro com horário personalizado
- * @param modifier Modificador opcional
- *
  * @author Thiago
  * @since 2.6.0
- * @updated 3.0.0 - Layout compactado
+ * @updated 5.0.0 - Layout compactado
  */
 @Composable
 fun RegistrarPontoManualButton(
@@ -197,11 +184,11 @@ fun RegistrarPontoManualButton(
         colors = CardDefaults.cardColors(
             containerColor = corPrincipal
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
-            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .shadow(4.dp, RoundedCornerShape(14.dp))
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -219,12 +206,12 @@ fun RegistrarPontoManualButton(
                 imageVector = icone,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Registrar ${proximoTipo.descricao}",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -233,12 +220,12 @@ fun RegistrarPontoManualButton(
                 imageVector = Icons.Default.Schedule,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "Informar horário",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
             )
         }

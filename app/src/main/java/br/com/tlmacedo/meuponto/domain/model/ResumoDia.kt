@@ -10,6 +10,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import kotlin.math.abs
 
 /**
  * Status simplificado do dia para exibição no histórico.
@@ -112,10 +113,17 @@ enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
  * - Jornada zerada: saldo = trabalhado (hora extra)
  * - Jornada normal: saldo = trabalhado - jornada (pode ser negativo)
  *
+ * TOLERÂNCIA DE INTERVALO:
+ * - A tolerância é aplicada APENAS UMA VEZ por dia
+ * - É aplicada na pausa cujo horário de saída (início da pausa) seja mais próximo
+ *   do `saidaIntervaloIdeal` configurado
+ * - Se não houver `saidaIntervaloIdeal`, aplica na primeira pausa elegível
+ *
  * @author Thiago
  * @since 1.0.0
  * @updated 4.0.0 - Adicionado suporte a dias especiais
  * @updated 4.1.0 - Adicionado cálculo com tempo em andamento
+ * @updated 4.2.0 - Tolerância de intervalo aplicada apenas uma vez (na pausa mais próxima do horário padrão)
  */
 data class ResumoDia(
     val data: LocalDate,
@@ -123,7 +131,9 @@ data class ResumoDia(
     val cargaHorariaDiaria: Duration = Duration.ofHours(8),
     val intervaloMinimoMinutos: Int = 60,
     val toleranciaIntervaloMinutos: Int = 15,
-    val tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL
+    val tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL,
+    /** Horário ideal de saída para intervalo (almoço) - usado para determinar qual pausa recebe tolerância */
+    val saidaIntervaloIdeal: LocalTime? = null
 ) {
 
     /** Lista de intervalos entre pontos de entrada e saída (FONTE ÚNICA DE VERDADE) */
@@ -410,11 +420,96 @@ data class ResumoDia(
     // CÁLCULO DOS INTERVALOS
     // ========================================================================
 
+    /**
+     * Representa uma pausa candidata a receber tolerância.
+     */
+    private data class PausaCandidata(
+        val indice: Int,
+        val horaSaidaParaIntervalo: LocalDateTime,
+        val pausaRealMinutos: Int
+    )
+
+    /**
+     * Calcula os intervalos aplicando tolerância APENAS UMA VEZ.
+     *
+     * REGRA:
+     * - Identifica todas as pausas elegíveis (entre intervaloMinimoMinutos e intervaloMinimoMinutos + tolerancia)
+     * - Seleciona a pausa cujo horário de saída (início da pausa) seja mais próximo do saidaIntervaloIdeal
+     * - Se não houver saidaIntervaloIdeal, seleciona a primeira pausa elegível com duração >= intervaloMinimoMinutos
+     * - Apenas essa pausa recebe a tolerância e é marcada como "pausa principal" (almoço)
+     */
     private fun calcularIntervalos(): List<IntervaloPonto> {
         val pontosOrdenados = pontos.sortedBy { it.dataHora }
-        val lista = mutableListOf<IntervaloPonto>()
+
+        // Primeiro passo: coletar informações de todas as pausas
+        data class InfoPausa(
+            val indice: Int,
+            val horaSaidaParaIntervalo: LocalDateTime,
+            val pausaRealMinutos: Int,
+            val elegivelTolerancia: Boolean
+        )
+
+        val infoPausas = mutableListOf<InfoPausa>()
+        val limiteInferior = intervaloMinimoMinutos
+        val limiteSuperior = intervaloMinimoMinutos + toleranciaIntervaloMinutos
 
         var i = 0
+        var indicePausa = 0
+        while (i < pontosOrdenados.size) {
+            val entrada = pontosOrdenados.getOrNull(i)
+            val saidaAnterior = if (i >= 2) pontosOrdenados.getOrNull(i - 1) else null
+
+            if (entrada != null && saidaAnterior != null) {
+                val pausaMinutos = Duration.between(saidaAnterior.dataHora, entrada.dataHora).toMinutes().toInt()
+
+                infoPausas.add(
+                    InfoPausa(
+                        indice = indicePausa,
+                        horaSaidaParaIntervalo = saidaAnterior.dataHora,
+                        pausaRealMinutos = pausaMinutos,
+                        elegivelTolerancia = pausaMinutos in limiteInferior..limiteSuperior
+                    )
+                )
+                indicePausa++
+            }
+            i += 2
+        }
+
+        // Segundo passo: determinar qual é a pausa principal (almoço)
+        // Critérios em ordem de prioridade:
+        // 1. Se houver saidaIntervaloIdeal: a pausa mais próxima desse horário (que tenha >= intervaloMinimoMinutos)
+        // 2. Se não houver: a primeira pausa com duração >= intervaloMinimoMinutos
+        val indicePausaPrincipal: Int? = if (infoPausas.isNotEmpty()) {
+            val pausasLongas = infoPausas.filter { it.pausaRealMinutos >= intervaloMinimoMinutos }
+
+            if (saidaIntervaloIdeal != null && pausasLongas.isNotEmpty()) {
+                // Seleciona a pausa mais próxima do horário ideal
+                pausasLongas.minByOrNull { pausa ->
+                    val horaSaida = pausa.horaSaidaParaIntervalo.toLocalTime()
+                    abs(Duration.between(horaSaida, saidaIntervaloIdeal).toMinutes())
+                }?.indice
+            } else if (pausasLongas.isNotEmpty()) {
+                // Sem horário ideal: primeira pausa longa
+                pausasLongas.firstOrNull()?.indice
+            } else {
+                // Nenhuma pausa longa: não há almoço
+                null
+            }
+        } else {
+            null
+        }
+
+        // A tolerância só é aplicada na pausa principal (se elegível)
+        val indicePausaComTolerancia: Int? = indicePausaPrincipal?.let { idx ->
+            val info = infoPausas.find { it.indice == idx }
+            if (info?.elegivelTolerancia == true) idx else null
+        }
+
+        // Terceiro passo: construir os intervalos
+        val lista = mutableListOf<IntervaloPonto>()
+        i = 0
+        indicePausa = 0
+
         while (i < pontosOrdenados.size) {
             val entrada = pontosOrdenados.getOrNull(i)
             val saida = pontosOrdenados.getOrNull(i + 1)
@@ -426,8 +521,15 @@ data class ResumoDia(
                     Duration.between(it.dataHora, entrada.dataHora).toMinutes().toInt()
                 }
 
+                // Aplica tolerância APENAS se esta for a pausa selecionada
+                val deveAplicarTolerancia = saidaAnterior != null && indicePausa == indicePausaComTolerancia
+
                 val pausaConsideradaMinutos = pausaAntesMinutos?.let { pausa ->
-                    calcularPausaConsiderada(pausa)
+                    if (deveAplicarTolerancia && pausa in limiteInferior..limiteSuperior) {
+                        intervaloMinimoMinutos
+                    } else {
+                        pausa
+                    }
                 }
 
                 val horaEntradaConsiderada: LocalDateTime? = if (
@@ -444,6 +546,9 @@ data class ResumoDia(
                     Duration.between(horaEntradaEfetiva, it.dataHora)
                 }
 
+                // Marca se esta é a pausa principal (almoço)
+                val isPausaPrincipal = saidaAnterior != null && indicePausa == indicePausaPrincipal
+
                 lista.add(
                     IntervaloPonto(
                         entrada = entrada,
@@ -453,28 +558,42 @@ data class ResumoDia(
                         pausaConsideradaMinutos = pausaConsideradaMinutos,
                         intervaloMinimoMinutos = intervaloMinimoMinutos,
                         toleranciaMinutos = toleranciaIntervaloMinutos,
-                        horaEntradaConsiderada = horaEntradaConsiderada
+                        horaEntradaConsiderada = horaEntradaConsiderada,
+                        isPausaPrincipal = isPausaPrincipal
                     )
                 )
+
+                if (saidaAnterior != null) {
+                    indicePausa++
+                }
             }
             i += 2
         }
         return lista
     }
+}
 
-    private fun calcularPausaConsiderada(pausaReal: Int): Int {
-        val limiteInferior = intervaloMinimoMinutos
-        val limiteSuperior = intervaloMinimoMinutos + toleranciaIntervaloMinutos
+/**
+ * Tipo de pausa entre turnos de trabalho.
+ *
+ * @author Thiago
+ * @since 4.2.0
+ */
+enum class TipoPausa(val descricao: String, val emoji: String) {
+    /** Pausa para café (≤ 30 minutos) */
+    CAFE("Café", "☕"),
 
-        return when {
-            pausaReal in limiteInferior..limiteSuperior -> intervaloMinimoMinutos
-            else -> pausaReal
-        }
-    }
+    /** Saída rápida (> 30 minutos, mas não é almoço) */
+    SAIDA_RAPIDA("Saída Rápida", "🚶"),
+
+    /** Intervalo de almoço (pausa principal do dia, próxima ao horário configurado) */
+    ALMOCO("Almoço", "🍽️")
 }
 
 /**
  * Representa um intervalo entre entrada e saída (turno de trabalho).
+ *
+ * @updated 4.2.0 - Adicionado tipoPausa para classificação correta das pausas
  */
 data class IntervaloPonto(
     val entrada: Ponto,
@@ -484,8 +603,15 @@ data class IntervaloPonto(
     val pausaConsideradaMinutos: Int? = null,
     val intervaloMinimoMinutos: Int? = null,
     val toleranciaMinutos: Int? = null,
-    val horaEntradaConsiderada: LocalDateTime? = null
+    val horaEntradaConsiderada: LocalDateTime? = null,
+    /** Indica se esta é a pausa principal (almoço) do dia */
+    val isPausaPrincipal: Boolean = false
 ) {
+    companion object {
+        /** Limite em minutos para considerar uma pausa como "café" */
+        private const val LIMITE_CAFE_MINUTOS = 30
+    }
+
     val aberto: Boolean get() = saida == null
 
     val duracaoMinutos: Int?
@@ -499,10 +625,30 @@ data class IntervaloPonto(
                 pausaConsideradaMinutos != null &&
                 pausaAntesMinutos != pausaConsideradaMinutos
 
+    /**
+     * Tipo da pausa baseado na duração e se é a pausa principal.
+     *
+     * Regras:
+     * - ALMOCO: é a pausa principal do dia (próxima ao horário de almoço configurado)
+     * - CAFE: ≤ 30 minutos
+     * - SAIDA_RAPIDA: > 30 minutos, mas não é a pausa principal
+     */
+    val tipoPausa: TipoPausa?
+        get() {
+            val minutos = pausaAntesMinutos ?: return null
+            return when {
+                isPausaPrincipal -> TipoPausa.ALMOCO
+                minutos <= LIMITE_CAFE_MINUTOS -> TipoPausa.CAFE
+                else -> TipoPausa.SAIDA_RAPIDA
+            }
+        }
+
+    /**
+     * @deprecated Use tipoPausa em vez disso
+     */
+    @Deprecated("Use tipoPausa == TipoPausa.ALMOCO", ReplaceWith("tipoPausa == TipoPausa.ALMOCO"))
     val isIntervaloAlmoco: Boolean
-        get() = pausaAntesMinutos != null &&
-                intervaloMinimoMinutos != null &&
-                pausaAntesMinutos >= intervaloMinimoMinutos
+        get() = tipoPausa == TipoPausa.ALMOCO
 
     val temHoraEntradaConsiderada: Boolean
         get() = horaEntradaConsiderada != null

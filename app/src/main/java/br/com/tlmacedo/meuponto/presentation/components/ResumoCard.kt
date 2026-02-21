@@ -61,17 +61,11 @@ private val GradientStart = Color(0xFF2D3748)
 private val GradientEnd = Color(0xFF1A202C)
 
 /**
- * Card compacto de resumo do dia com gradiente moderno e cores semânticas.
- *
- * DESIGN:
- * - Gradiente cinza escuro moderno com tons azulados
- * - Alto contraste para textos brancos e cores semânticas
- * - Visual sofisticado e profissional
- * - Textos dinâmicos conforme tipo de dia (Férias, Atestado, etc.)
+ * Card compacto de resumo do dia.
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 4.4.0 - Textos dinâmicos para dias especiais (férias, atestado, folga)
+ * @updated 5.0.0 - Layout compactado
  */
 @Composable
 fun ResumoCard(
@@ -84,27 +78,20 @@ fun ResumoCard(
     modifier: Modifier = Modifier
 ) {
     val textoPrincipal = Color.White
-    val textoSecundario = Color.White.copy(alpha = 0.9f)
     val textoTerciario = Color.White.copy(alpha = 0.7f)
 
-    // Calcular valores com tempo em andamento
     val minutosTrabalhados = resumoDia.horasTrabalhadasComAndamentoMinutos(horaAtual)
     val saldoDiaMinutos = resumoDia.saldoDiaComAndamentoMinutos(horaAtual)
-
-    // Banco de horas: saldo acumulado + saldo do dia atual (com andamento)
     val bancoTotalMinutos = bancoHoras.saldoTotalMinutos + saldoDiaMinutos - resumoDia.saldoDiaMinutos
 
-    // Gradiente diagonal moderno
     val gradientBrush = Brush.linearGradient(
         colors = listOf(GradientStart, GradientEnd)
     )
 
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        ),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         modifier = modifier.fillMaxWidth()
     ) {
         Box(
@@ -115,9 +102,9 @@ fun ResumoCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(14.dp)
             ) {
-                // Cabeçalho
+                // Cabeçalho compacto
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -126,12 +113,11 @@ fun ResumoCard(
                     Column {
                         Text(
                             text = "Resumo do Dia",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = textoPrincipal
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        // Info jornada - dinâmica conforme tipo de dia
+                        // Info jornada
                         when {
                             resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL -> {
                                 DiaEspecialJornadaInfo(
@@ -168,9 +154,9 @@ fun ResumoCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Divisor sutil
+                // Divisor
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -178,9 +164,9 @@ fun ResumoCard(
                         .background(Color.White.copy(alpha = 0.1f))
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Resumo em três colunas
+                // Resumo em três colunas (compacto)
                 Row(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     modifier = Modifier.fillMaxWidth()
@@ -196,7 +182,7 @@ fun ResumoCard(
                     )
 
                     ResumoItemSaldo(
-                        titulo = "Saldo",
+                        titulo = "Saldo do dia",
                         saldoMinutos = saldoDiaMinutos,
                         isFeriado = resumoDia.isFeriado,
                         corTitulo = textoTerciario,
@@ -204,7 +190,7 @@ fun ResumoCard(
                     )
 
                     ResumoItemBanco(
-                        titulo = "Banco",
+                        titulo = "Banco de horas",
                         saldoMinutos = bancoTotalMinutos,
                         corTitulo = textoTerciario,
                         modifier = Modifier.weight(1f)
@@ -215,9 +201,6 @@ fun ResumoCard(
     }
 }
 
-/**
- * Info compacta de jornada e versão.
- */
 @Composable
 private fun JornadaVersaoInfoCompact(
     cargaHorariaFormatada: String,
@@ -229,38 +212,45 @@ private fun JornadaVersaoInfoCompact(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
+        Text(
+            text = "Jornada esperada:",
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 11.sp,
+            color = corTexto
+        )
+        Spacer(modifier = Modifier.width(3.dp))
         Icon(
             imageVector = Icons.Default.Schedule,
             contentDescription = null,
             tint = corTexto,
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(12.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(3.dp))
         Text(
             text = cargaHorariaFormatada,
-            style = MaterialTheme.typography.bodySmall,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 11.sp,
             color = corTexto
         )
 
         versaoJornada?.let { versao ->
             Text(
                 text = " • ",
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 11.sp,
                 color = corTexto.copy(alpha = 0.5f)
             )
             Icon(
                 imageVector = Icons.Default.DateRange,
                 contentDescription = null,
                 tint = corTexto,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(12.dp)
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(3.dp))
             Text(
                 text = versao.periodoFormatado,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 11.sp,
                 color = corTexto,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -269,9 +259,6 @@ private fun JornadaVersaoInfoCompact(
     }
 }
 
-/**
- * Info de jornada para dias de feriado.
- */
 @Composable
 private fun FeriadoJornadaInfo(
     corTexto: Color,
@@ -285,21 +272,18 @@ private fun FeriadoJornadaInfo(
             imageVector = Icons.Outlined.WorkOff,
             contentDescription = null,
             tint = corTexto,
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(12.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(3.dp))
         Text(
             text = "Feriado • Sem jornada obrigatória",
-            style = MaterialTheme.typography.bodySmall,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 11.sp,
             color = corTexto
         )
     }
 }
 
-/**
- * Info de jornada para dias especiais (férias, atestado, folga, etc.).
- */
 @Composable
 private fun DiaEspecialJornadaInfo(
     tipoDiaEspecial: TipoDiaEspecial,
@@ -314,21 +298,18 @@ private fun DiaEspecialJornadaInfo(
             imageVector = tipoDiaEspecial.getIcon(),
             contentDescription = null,
             tint = tipoDiaEspecial.getCor(),
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(12.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(3.dp))
         Text(
             text = "${tipoDiaEspecial.descricao} • Sem jornada obrigatória",
-            style = MaterialTheme.typography.bodySmall,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 11.sp,
             color = corTexto
         )
     }
 }
 
-/**
- * Badge de status compacto.
- */
 @Composable
 private fun StatusBadgeCompact(
     texto: String,
@@ -338,40 +319,28 @@ private fun StatusBadgeCompact(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(Color.White.copy(alpha = 0.1f))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Icon(
             imageVector = icone,
             contentDescription = null,
             tint = corIcone,
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(12.dp)
         )
         Text(
             text = texto,
             style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
             color = Color.White
         )
     }
 }
 
-/**
- * Item de resumo principal - dinâmico conforme tipo de dia.
- *
- * - Dia normal: "Trabalhado" com ícone de relógio
- * - Férias: "Férias" com ícone de praia
- * - Atestado: "Atestado" com ícone de hospital
- * - Folga: "Folga" com ícone de casa
- * - Falta: "Falta" com ícone de evento cancelado
- */
-/**
- * Item de resumo principal - dinâmico conforme tipo de dia.
- */
 @Composable
 private fun ResumoItemPrincipal(
     tipoDiaEspecial: TipoDiaEspecial,
@@ -382,7 +351,6 @@ private fun ResumoItemPrincipal(
     corTitulo: Color,
     modifier: Modifier = Modifier
 ) {
-    // Configuração dinâmica baseada no tipo de dia
     val (titulo, icone, corIconeEspecial) = when (tipoDiaEspecial) {
         TipoDiaEspecial.FERIAS -> Triple("Férias", Icons.Default.BeachAccess, Color(0xFF00BCD4))
         TipoDiaEspecial.ATESTADO -> Triple("Atestado", Icons.Default.LocalHospital, Color(0xFFEF5350))
@@ -392,12 +360,10 @@ private fun ResumoItemPrincipal(
         TipoDiaEspecial.FERIADO -> Triple("Feriado", Icons.Outlined.WorkOff, Color(0xFF4CAF50))
         TipoDiaEspecial.PONTE -> Triple("Ponte", Icons.Outlined.WorkOff, Color(0xFF9C27B0))
         TipoDiaEspecial.FACULTATIVO -> Triple("Facultativo", Icons.Outlined.WorkOff, Color(0xFFE91E63))
-        TipoDiaEspecial.NORMAL -> Triple("Trabalhado", Icons.Default.AccessTime, null)
+        TipoDiaEspecial.NORMAL -> Triple("Trabalhado no dia", Icons.Default.AccessTime, null)
     }
 
-    // Para dias especiais (não trabalhados), mostrar de forma diferente
     val isDiaEspecialNaoTrabalhado = tipoDiaEspecial != TipoDiaEspecial.NORMAL
-
     val atingiuJornada = minutosTrabalhados >= minutosJornada
     val temTrabalho = minutosTrabalhados > 0
 
@@ -428,7 +394,6 @@ private fun ResumoItemPrincipal(
         }
     }
 
-    // Valor formatado - para dias especiais mostra texto diferente
     val valorFormatado = if (isDiaEspecialNaoTrabalhado && minutosTrabalhados == 0) {
         "—"
     } else {
@@ -437,13 +402,12 @@ private fun ResumoItemPrincipal(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.padding(horizontal = 4.dp)
+        modifier = modifier.padding(horizontal = 2.dp)
     ) {
-        // Ícone com fundo
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(48.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(corFundoIcone)
         ) {
@@ -451,36 +415,34 @@ private fun ResumoItemPrincipal(
                 imageVector = icone,
                 contentDescription = titulo,
                 tint = corIcone,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // Título
         Text(
             text = titulo,
             style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             color = corTitulo,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
-        // Valor com fundo
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(6.dp))
                 .background(Color.White.copy(alpha = 0.08f))
-                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
                 text = valorFormatado,
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = corValor,
                 textAlign = TextAlign.Center
@@ -489,9 +451,6 @@ private fun ResumoItemPrincipal(
     }
 }
 
-/**
- * Item de resumo para Saldo do Dia.
- */
 @Composable
 private fun ResumoItemSaldo(
     titulo: String,
@@ -531,13 +490,12 @@ private fun ResumoItemSaldo(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.padding(horizontal = 4.dp)
+        modifier = modifier.padding(horizontal = 2.dp)
     ) {
-        // Ícone com fundo
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(48.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(corFundoIcone)
         ) {
@@ -545,36 +503,34 @@ private fun ResumoItemSaldo(
                 imageVector = icone,
                 contentDescription = titulo,
                 tint = corIcone,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // Título
         Text(
             text = titulo,
             style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             color = corTitulo,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
-        // Valor com fundo
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(6.dp))
                 .background(Color.White.copy(alpha = 0.08f))
-                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
                 text = valorFormatado,
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = corValor,
                 textAlign = TextAlign.Center
@@ -583,9 +539,6 @@ private fun ResumoItemSaldo(
     }
 }
 
-/**
- * Item de resumo para Banco de Horas.
- */
 @Composable
 private fun ResumoItemBanco(
     titulo: String,
@@ -618,13 +571,12 @@ private fun ResumoItemBanco(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.padding(horizontal = 4.dp)
+        modifier = modifier.padding(horizontal = 2.dp)
     ) {
-        // Ícone com fundo
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(48.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(corFundoIcone)
         ) {
@@ -632,36 +584,34 @@ private fun ResumoItemBanco(
                 imageVector = Icons.Default.AccountBalance,
                 contentDescription = titulo,
                 tint = corIcone,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // Título
         Text(
             text = titulo,
             style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             color = corTitulo,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
-        // Valor com fundo
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(6.dp))
                 .background(Color.White.copy(alpha = 0.08f))
-                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
                 text = valorFormatado,
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = corValor,
                 textAlign = TextAlign.Center
@@ -670,13 +620,7 @@ private fun ResumoItemBanco(
     }
 }
 
-// ============================================================================
-// Extensões para TipoDiaEspecial
-// ============================================================================
-
-/**
- * Retorna o ícone apropriado para cada tipo de dia especial.
- */
+// Extensões
 private fun TipoDiaEspecial.getIcon(): ImageVector = when (this) {
     TipoDiaEspecial.FERIAS -> Icons.Default.BeachAccess
     TipoDiaEspecial.ATESTADO -> Icons.Default.LocalHospital
@@ -689,9 +633,6 @@ private fun TipoDiaEspecial.getIcon(): ImageVector = when (this) {
     TipoDiaEspecial.NORMAL -> Icons.Default.AccessTime
 }
 
-/**
- * Retorna a cor apropriada para cada tipo de dia especial.
- */
 private fun TipoDiaEspecial.getCor(): Color = when (this) {
     TipoDiaEspecial.FERIAS -> Color(0xFF00BCD4)
     TipoDiaEspecial.ATESTADO -> Color(0xFFEF5350)
@@ -704,9 +645,6 @@ private fun TipoDiaEspecial.getCor(): Color = when (this) {
     TipoDiaEspecial.NORMAL -> Color.White
 }
 
-/**
- * Retorna descrição curta para badge.
- */
 private val TipoDiaEspecial.descricaoCurta: String
     get() = when (this) {
         TipoDiaEspecial.FERIAS -> "Férias"
@@ -720,36 +658,18 @@ private val TipoDiaEspecial.descricaoCurta: String
         TipoDiaEspecial.NORMAL -> ""
     }
 
-/**
- * Formata duração (sem sinal) para exibição compacta.
- */
 private fun formatarDuracaoCompacta(minutos: Int): String {
     val minutosAbs = abs(minutos)
     val horas = minutosAbs / 60
     val mins = minutosAbs % 60
-
-    return if (horas > 0) {
-        "%02dh %02dmin".format(horas, mins)
-    } else {
-        "%02dmin".format(mins)
-    }
+    return if (horas > 0) "%02dh %02dmin".format(horas, mins) else "%02dmin".format(mins)
 }
 
-/**
- * Formata saldo com sinal para exibição compacta.
- */
 private fun formatarSaldoCompacto(minutos: Int): String {
     if (minutos == 0) return "00min"
-
     val minutosAbs = abs(minutos)
     val horas = minutosAbs / 60
     val mins = minutosAbs % 60
-
     val sinal = if (minutos > 0) "+ " else "- "
-
-    return if (horas > 0) {
-        "$sinal%02dh %02dmin".format(horas, mins)
-    } else {
-        "$sinal%02dmin".format(mins)
-    }
+    return if (horas > 0) "$sinal%02dh %02dmin".format(horas, mins) else "$sinal%02dmin".format(mins)
 }

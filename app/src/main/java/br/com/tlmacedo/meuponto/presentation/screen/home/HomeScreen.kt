@@ -22,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -61,18 +62,9 @@ import java.time.format.DateTimeFormatter
 /**
  * Tela principal do aplicativo Meu Ponto.
  *
- * Exibe o resumo do dia, botão de registro de ponto,
- * navegação por data, seleção de emprego e lista de intervalos
- * trabalhados de forma visual e intuitiva.
- *
- * @param viewModel ViewModel da tela
- * @param onNavigateToHistory Callback para navegar ao histórico
- * @param onNavigateToSettings Callback para navegar às configurações
- * @param onNavigateToEditPonto Callback para navegar à edição de ponto
- *
  * @author Thiago
  * @since 2.0.0
- * @updated 2.6.0 - Nome do emprego movido para TopBar
+ * @updated 5.2.0 - DateNavigator, ResumoCard e botão de registro fixos
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -255,9 +247,7 @@ fun HomeScreen(
 
 /**
  * Conteúdo principal da tela Home.
- */
-/**
- * Conteúdo principal da tela Home.
+ * Header fixo (DateNavigator + ResumoCard + Botão Registro) + Lista scrollável.
  */
 @Composable
 internal fun HomeContent(
@@ -265,15 +255,18 @@ internal fun HomeContent(
     onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = modifier.fillMaxSize()
-    ) {
-        // Chip de emprego (compacto) - apenas para ações de seleção/edição
-        // Só mostra se não tiver emprego ou tiver múltiplos
-        if (!uiState.temEmpregoAtivo || uiState.temMultiplosEmpregos) {
-            item {
+    Column(modifier = modifier.fillMaxSize()) {
+        // ================================================================
+        // HEADER FIXO - DateNavigator + ResumoCard + Botão (não rola)
+        // ================================================================
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            // Chip de emprego (apenas se necessário)
+            if (!uiState.temEmpregoAtivo || uiState.temMultiplosEmpregos) {
                 EmpregoSelectorChip(
                     empregoAtivo = uiState.empregoAtivo,
                     temMultiplosEmpregos = uiState.temMultiplosEmpregos,
@@ -285,24 +278,14 @@ internal fun HomeContent(
                             onAction(HomeAction.AbrirSeletorEmprego)
                         }
                     },
-                    onLongClick = {
-                        onAction(HomeAction.AbrirMenuEmprego)
-                    },
-                    onNovoEmprego = {
-                        onAction(HomeAction.NavegarParaNovoEmprego)
-                    },
-                    onEditarEmprego = {
-                        onAction(HomeAction.NavegarParaEditarEmprego)
-                    },
-                    onDismissMenu = {
-                        onAction(HomeAction.FecharMenuEmprego)
-                    }
+                    onLongClick = { onAction(HomeAction.AbrirMenuEmprego) },
+                    onNovoEmprego = { onAction(HomeAction.NavegarParaNovoEmprego) },
+                    onEditarEmprego = { onAction(HomeAction.NavegarParaEditarEmprego) },
+                    onDismissMenu = { onAction(HomeAction.FecharMenuEmprego) }
                 )
             }
-        }
 
-        // Navegador de Data
-        item {
+            // Navegador de Data (FIXO)
             DateNavigator(
                 dataFormatada = uiState.dataFormatada,
                 dataFormatadaCurta = uiState.dataFormatadaCurta,
@@ -313,30 +296,8 @@ internal fun HomeContent(
                 onProximoDia = { onAction(HomeAction.ProximoDia) },
                 onSelecionarData = { onAction(HomeAction.AbrirDatePicker) }
             )
-        }
 
-        // Banner de Feriado (se houver)
-        if (uiState.isFeriado) {
-            item {
-                FeriadoBanner(
-                    feriados = uiState.feriadosDoDia
-                )
-            }
-        }
-
-        // Banner de Ausência (férias, atestado, folga, etc.)
-        if (uiState.temAusencia) {
-            item {
-                uiState.ausenciaDoDia?.let { ausencia ->
-                    AusenciaBanner(
-                        ausencia = ausencia
-                    )
-                }
-            }
-        }
-
-        // Card de Resumo com contador em tempo real
-        item {
+            // Card de Resumo (FIXO)
             ResumoCard(
                 horaAtual = uiState.horaAtual,
                 resumoDia = uiState.resumoDia,
@@ -345,19 +306,16 @@ internal fun HomeContent(
                 dataHoraInicioContador = uiState.dataHoraInicioContador,
                 mostrarContador = uiState.deveExibirContador
             )
-        }
-        // Botão de Registrar Ponto
-        if (uiState.podeRegistrarPontoAutomatico) {
-            item {
+
+            // Botão de Registrar Ponto (FIXO)
+            if (uiState.podeRegistrarPontoAutomatico) {
                 RegistrarPontoButton(
                     proximoTipo = uiState.proximoTipo,
                     horaAtual = uiState.horaAtual,
                     onRegistrarAgora = { onAction(HomeAction.RegistrarPontoAgora) },
                     onRegistrarManual = { onAction(HomeAction.AbrirTimePickerDialog) }
                 )
-            }
-        } else if (uiState.podeRegistrarPontoManual) {
-            item {
+            } else if (uiState.podeRegistrarPontoManual) {
                 RegistrarPontoManualButton(
                     proximoTipo = uiState.proximoTipo,
                     dataFormatada = uiState.dataFormatadaCurta,
@@ -366,58 +324,89 @@ internal fun HomeContent(
             }
         }
 
-        // Aviso de data futura
-        if (uiState.isFuturo) {
-            item {
-                FutureDateWarning()
-            }
-        }
-
-        // Aviso de sem emprego
-        if (!uiState.temEmpregoAtivo) {
-            item {
-                NoEmpregoWarning()
-            }
-        }
-
-        // Título da seção de intervalos
-        if (uiState.temPontos) {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Registros ${if (uiState.isHoje) "de Hoje" else "do Dia"}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-
-            // Lista de intervalos
-            items(
-                items = uiState.resumoDia.intervalos,
-                key = { it.entrada.id }
-            ) { intervalo ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically()
-                ) {
-                    IntervaloCard(
-                        intervalo = intervalo,
-                        mostrarContadorTempoReal = uiState.isHoje,
-                        mostrarNsr = uiState.nsrHabilitado,
-                        onEditarEntrada = { pontoId ->
-                            onAction(HomeAction.EditarPonto(pontoId))
-                        },
-                        onEditarSaida = { pontoId ->
-                            onAction(HomeAction.EditarPonto(pontoId))
-                        }
-                    )
+        // ================================================================
+        // CONTEÚDO SCROLLÁVEL - Banners, avisos e registros
+        // ================================================================
+        LazyColumn(
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Banner de Feriado (se houver)
+            if (uiState.isFeriado) {
+                item(key = "feriado_banner") {
+                    FeriadoBanner(feriados = uiState.feriadosDoDia)
                 }
             }
-        } else if (uiState.temEmpregoAtivo && !uiState.isFuturo) {
-            item {
-                EmptyPontosState()
+
+            // Banner de Ausência
+            if (uiState.temAusencia) {
+                item(key = "ausencia_banner") {
+                    uiState.ausenciaDoDia?.let { ausencia ->
+                        AusenciaBanner(ausencia = ausencia)
+                    }
+                }
+            }
+
+            // Aviso de data futura
+            if (uiState.isFuturo) {
+                item(key = "futuro_warning") {
+                    FutureDateWarning()
+                }
+            }
+
+            // Aviso de sem emprego
+            if (!uiState.temEmpregoAtivo) {
+                item(key = "no_emprego_warning") {
+                    NoEmpregoWarning()
+                }
+            }
+
+            // Seção de Registros de Ponto
+            if (uiState.temPontos) {
+                // Divisor e título
+                item(key = "registros_header") {
+                    Column {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Registros ${if (uiState.isHoje) "de Hoje" else "do Dia"}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                }
+
+                // Lista de intervalos
+                items(
+                    items = uiState.resumoDia.intervalos,
+                    key = { "intervalo_${it.entrada.id}" }
+                ) { intervalo ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn() + slideInVertically(),
+                        exit = fadeOut() + slideOutVertically()
+                    ) {
+                        IntervaloCard(
+                            intervalo = intervalo,
+                            mostrarContadorTempoReal = uiState.isHoje,
+                            mostrarNsr = uiState.nsrHabilitado,
+                            onEditarEntrada = { pontoId ->
+                                onAction(HomeAction.EditarPonto(pontoId))
+                            },
+                            onEditarSaida = { pontoId ->
+                                onAction(HomeAction.EditarPonto(pontoId))
+                            }
+                        )
+                    }
+                }
+            } else if (uiState.temEmpregoAtivo && !uiState.isFuturo) {
+                item(key = "empty_state") {
+                    EmptyPontosState()
+                }
             }
         }
     }
@@ -477,7 +466,7 @@ private fun FutureDateWarning() {
     ) {
         Text(
             text = "📅",
-            style = MaterialTheme.typography.displayMedium
+            style = MaterialTheme.typography.displaySmall
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -508,7 +497,7 @@ private fun NoEmpregoWarning() {
     ) {
         Text(
             text = "🏢",
-            style = MaterialTheme.typography.displayMedium
+            style = MaterialTheme.typography.displaySmall
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -539,7 +528,7 @@ private fun EmptyPontosState() {
     ) {
         Text(
             text = "😴",
-            style = MaterialTheme.typography.displayMedium
+            style = MaterialTheme.typography.displaySmall
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(

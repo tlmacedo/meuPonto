@@ -17,10 +17,16 @@ import javax.inject.Inject
  * - O ResumoDia é responsável por calcular horasTrabalhadas a partir dos intervalos
  * - Isso garante consistência (single source of truth)
  *
+ * TOLERÂNCIA DE INTERVALO:
+ * - A tolerância é aplicada APENAS UMA VEZ por dia
+ * - É aplicada na pausa cujo horário de saída seja mais próximo do saidaIntervaloIdeal
+ * - Isso evita que múltiplas pausas no mesmo dia recebam tolerância indevidamente
+ *
  * @author Thiago
  * @since 1.0.0
  * @updated 2.11.0 - Simplificado: ResumoDia calcula horasTrabalhadas internamente
  * @updated 4.0.0 - Adicionado suporte a dias especiais (feriado, férias, folga, falta, atestado)
+ * @updated 4.2.0 - Adicionado saidaIntervaloIdeal para tolerância única de intervalo
  */
 class CalcularResumoDiaUseCase @Inject constructor() {
 
@@ -29,7 +35,7 @@ class CalcularResumoDiaUseCase @Inject constructor() {
      *
      * @param pontos Lista de pontos do dia
      * @param data Data do resumo
-     * @param horarioDiaSemana Configuração do dia (opcional, para tolerâncias)
+     * @param horarioDiaSemana Configuração do dia (opcional, para tolerâncias e horário ideal)
      * @param tipoDiaEspecial Tipo de dia especial (feriado, férias, etc.)
      */
     operator fun invoke(
@@ -42,6 +48,7 @@ class CalcularResumoDiaUseCase @Inject constructor() {
         val cargaHoraria = horarioDiaSemana?.cargaHorariaMinutos ?: 480
         val intervaloMinimo = horarioDiaSemana?.intervaloMinimoMinutos ?: 60
         val toleranciaIntervalo = horarioDiaSemana?.toleranciaIntervaloMaisMinutos ?: 15
+        val saidaIntervaloIdeal = horarioDiaSemana?.saidaIntervaloIdeal
 
         return ResumoDia(
             data = data,
@@ -49,12 +56,14 @@ class CalcularResumoDiaUseCase @Inject constructor() {
             cargaHorariaDiaria = Duration.ofMinutes(cargaHoraria.toLong()),
             intervaloMinimoMinutos = intervaloMinimo,
             toleranciaIntervaloMinutos = toleranciaIntervalo,
-            tipoDiaEspecial = tipoDiaEspecial
+            tipoDiaEspecial = tipoDiaEspecial,
+            saidaIntervaloIdeal = saidaIntervaloIdeal
         )
     }
 
     /**
      * Sobrecarga para compatibilidade com código existente.
+     * Nota: Esta sobrecarga NÃO passa saidaIntervaloIdeal, então aplica tolerância na primeira pausa elegível.
      */
     operator fun invoke(
         pontos: List<Ponto>,

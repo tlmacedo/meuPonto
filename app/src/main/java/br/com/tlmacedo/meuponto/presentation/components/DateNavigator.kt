@@ -32,27 +32,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Componente para navegação entre datas.
- *
- * Exibe a data atual com setas para navegar entre dias.
- * - Seta esquerda: sempre volta um dia
- * - Seta direita: sempre avança um dia
- * - Clique na data: abre seletor de calendário
- *
- * @param dataFormatada Data formatada para exibição principal
- * @param dataFormatadaCurta Data em formato curto (dd/MM/yyyy)
- * @param isHoje Indica se a data selecionada é hoje
- * @param podeNavegarAnterior Se pode navegar para dia anterior
- * @param podeNavegarProximo Se pode navegar para próximo dia
- * @param onDiaAnterior Callback para navegar ao dia anterior
- * @param onProximoDia Callback para navegar ao próximo dia
- * @param onSelecionarData Callback para abrir seletor de data
- * @param modifier Modificador opcional
+ * Componente compacto para navegação entre datas.
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 2.5.0 - Navegação sempre dia a dia, clique na data abre calendário
- * @updated 2.6.0 - Data curta sempre visível
+ * @updated 5.0.0 - Layout compactado
  */
 @Composable
 fun DateNavigator(
@@ -71,7 +55,7 @@ fun DateNavigator(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -79,12 +63,13 @@ fun DateNavigator(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(horizontal = 4.dp, vertical = 4.dp)
         ) {
-            // Botão dia anterior - sempre navega para trás
+            // Botão dia anterior
             IconButton(
                 onClick = onDiaAnterior,
-                enabled = podeNavegarAnterior
+                enabled = podeNavegarAnterior,
+                modifier = Modifier.size(40.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
@@ -94,11 +79,11 @@ fun DateNavigator(
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                     },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
-            // Data central - clicável para abrir calendário
+            // Data central - clicável
             AnimatedContent(
                 targetState = dataFormatada to dataFormatadaCurta,
                 transitionSpec = {
@@ -116,25 +101,25 @@ fun DateNavigator(
                 ) {
                     Text(
                         text = dataLonga,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center
                     )
-                    // Sempre mostrar a data curta
                     Text(
                         text = dataCurta,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            // Botão próximo dia - sempre navega para frente
+            // Botão próximo dia
             IconButton(
                 onClick = onProximoDia,
-                enabled = podeNavegarProximo
+                enabled = podeNavegarProximo,
+                modifier = Modifier.size(40.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -144,7 +129,7 @@ fun DateNavigator(
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                     },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
