@@ -16,19 +16,14 @@ import javax.inject.Singleton
 /**
  * Implementação concreta do repositório de configurações de emprego.
  *
- * @property configuracaoEmpregoDao DAO do Room para operações de banco de dados
- *
  * @author Thiago
  * @since 2.0.0
+ * @updated 3.0.0 - Atualizado para nova estrutura de ciclos
  */
 @Singleton
 class ConfiguracaoEmpregoRepositoryImpl @Inject constructor(
     private val configuracaoEmpregoDao: ConfiguracaoEmpregoDao
 ) : ConfiguracaoEmpregoRepository {
-
-    // ========================================================================
-    // Operações de Escrita (CRUD)
-    // ========================================================================
 
     override suspend fun inserir(configuracao: ConfiguracaoEmprego): Long {
         return configuracaoEmpregoDao.inserir(configuracao.toEntity())
@@ -41,10 +36,6 @@ class ConfiguracaoEmpregoRepositoryImpl @Inject constructor(
     override suspend fun excluir(configuracao: ConfiguracaoEmprego) {
         configuracaoEmpregoDao.excluir(configuracao.toEntity())
     }
-
-    // ========================================================================
-    // Operações de Leitura
-    // ========================================================================
 
     override suspend fun buscarPorId(id: Long): ConfiguracaoEmprego? {
         return configuracaoEmpregoDao.buscarPorId(id)?.toDomain()
@@ -67,23 +58,15 @@ class ConfiguracaoEmpregoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun buscarPeriodoBancoHoras(empregoId: Long): Int {
-        return configuracaoEmpregoDao.buscarPeriodoBancoHoras(empregoId) ?: 0
+        return configuracaoEmpregoDao.buscarPeriodoBancoMeses(empregoId) ?: 0
     }
-
-    // ========================================================================
-    // Operações Reativas (Flows)
-    // ========================================================================
 
     override fun observarPorEmpregoId(empregoId: Long): Flow<ConfiguracaoEmprego?> {
         return configuracaoEmpregoDao.observarPorEmpregoId(empregoId).map { it?.toDomain() }
     }
 
-    // ========================================================================
-    // Atualizações Parciais
-    // ========================================================================
-
     override suspend fun atualizarUltimoFechamentoBanco(empregoId: Long, data: LocalDate) {
-        configuracaoEmpregoDao.atualizarUltimoFechamentoBanco(
+        configuracaoEmpregoDao.atualizarDataInicioCicloBanco(
             empregoId = empregoId,
             data = data.toString(),
             atualizadoEm = LocalDateTime.now().toString()

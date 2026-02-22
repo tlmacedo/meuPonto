@@ -35,7 +35,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
  * Classe principal do banco de dados Room.
  *
  * @since 1.0.0
- * @updated 5.4.0 - Versão 14: Campos específicos para tipos de ausência
+ * @updated 6.0.0 - Versão 15: Refatoração do sistema de ciclos de banco de horas
  */
 @Database(
     entities = [
@@ -52,7 +52,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         ConfiguracaoPontesAnoEntity::class,
         AusenciaEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 @TypeConverters(Converters::class, FeriadoConverters::class)

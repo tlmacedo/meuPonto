@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 14,
-    "identityHash": "83ae13f18dd22d4d2418069f581af6b4",
+    "version": 15,
+    "identityHash": "371b52b855828c4691c9d7af506c45f2",
     "entities": [
       {
         "tableName": "pontos",
@@ -855,7 +855,7 @@
       },
       {
         "tableName": "fechamentos_periodo",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `dataFechamento` TEXT NOT NULL, `dataInicioPeriodo` TEXT NOT NULL, `dataFimPeriodo` TEXT NOT NULL, `saldoAnteriorMinutos` INTEGER NOT NULL, `tipo` TEXT NOT NULL, `observacao` TEXT, `criadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `emprego_id` INTEGER NOT NULL, `data_fechamento` TEXT NOT NULL, `data_inicio_periodo` TEXT NOT NULL, `data_fim_periodo` TEXT NOT NULL, `saldo_anterior_minutos` INTEGER NOT NULL, `tipo` TEXT NOT NULL, `observacao` TEXT, `criado_em` TEXT NOT NULL, FOREIGN KEY(`emprego_id`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -865,31 +865,31 @@
           },
           {
             "fieldPath": "empregoId",
-            "columnName": "empregoId",
+            "columnName": "emprego_id",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
             "fieldPath": "dataFechamento",
-            "columnName": "dataFechamento",
+            "columnName": "data_fechamento",
             "affinity": "TEXT",
             "notNull": true
           },
           {
             "fieldPath": "dataInicioPeriodo",
-            "columnName": "dataInicioPeriodo",
+            "columnName": "data_inicio_periodo",
             "affinity": "TEXT",
             "notNull": true
           },
           {
             "fieldPath": "dataFimPeriodo",
-            "columnName": "dataFimPeriodo",
+            "columnName": "data_fim_periodo",
             "affinity": "TEXT",
             "notNull": true
           },
           {
             "fieldPath": "saldoAnteriorMinutos",
-            "columnName": "saldoAnteriorMinutos",
+            "columnName": "saldo_anterior_minutos",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -907,7 +907,7 @@
           },
           {
             "fieldPath": "criadoEm",
-            "columnName": "criadoEm",
+            "columnName": "criado_em",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -920,44 +920,42 @@
         },
         "indices": [
           {
-            "name": "index_fechamentos_periodo_empregoId",
+            "name": "index_fechamentos_periodo_emprego_id",
             "unique": false,
             "columnNames": [
-              "empregoId"
+              "emprego_id"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_emprego_id` ON `${TABLE_NAME}` (`emprego_id`)"
           },
           {
-            "name": "index_fechamentos_periodo_empregoId_dataFechamento",
+            "name": "index_fechamentos_periodo_data_fechamento",
             "unique": false,
             "columnNames": [
-              "empregoId",
-              "dataFechamento"
+              "data_fechamento"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_empregoId_dataFechamento` ON `${TABLE_NAME}` (`empregoId`, `dataFechamento`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_data_fechamento` ON `${TABLE_NAME}` (`data_fechamento`)"
           },
           {
-            "name": "index_fechamentos_periodo_empregoId_tipo",
+            "name": "index_fechamentos_periodo_tipo",
             "unique": false,
             "columnNames": [
-              "empregoId",
               "tipo"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_empregoId_tipo` ON `${TABLE_NAME}` (`empregoId`, `tipo`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_tipo` ON `${TABLE_NAME}` (`tipo`)"
           },
           {
-            "name": "index_fechamentos_periodo_empregoId_dataInicioPeriodo_dataFimPeriodo",
-            "unique": false,
+            "name": "index_fechamentos_periodo_emprego_id_data_inicio_periodo_data_fim_periodo",
+            "unique": true,
             "columnNames": [
-              "empregoId",
-              "dataInicioPeriodo",
-              "dataFimPeriodo"
+              "emprego_id",
+              "data_inicio_periodo",
+              "data_fim_periodo"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_empregoId_dataInicioPeriodo_dataFimPeriodo` ON `${TABLE_NAME}` (`empregoId`, `dataInicioPeriodo`, `dataFimPeriodo`)"
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_fechamentos_periodo_emprego_id_data_inicio_periodo_data_fim_periodo` ON `${TABLE_NAME}` (`emprego_id`, `data_inicio_periodo`, `data_fim_periodo`)"
           }
         ],
         "foreignKeys": [
@@ -966,7 +964,7 @@
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "empregoId"
+              "emprego_id"
             ],
             "referencedColumns": [
               "id"
@@ -1619,7 +1617,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '83ae13f18dd22d4d2418069f581af6b4')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '371b52b855828c4691c9d7af506c45f2')"
     ]
   }
 }

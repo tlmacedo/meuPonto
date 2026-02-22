@@ -1,3 +1,4 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/validacao/ValidarConfiguracaoEmpregoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.validacao
 
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
@@ -5,6 +6,10 @@ import javax.inject.Inject
 
 /**
  * Caso de uso para validar configurações de emprego.
+ *
+ * @author Thiago
+ * @since 2.0.0
+ * @updated 3.0.0 - Atualizado para nova estrutura de ciclos
  */
 class ValidarConfiguracaoEmpregoUseCase @Inject constructor() {
 
@@ -25,12 +30,12 @@ class ValidarConfiguracaoEmpregoUseCase @Inject constructor() {
             "Intervalo interjornada deve estar entre 0 e 24 horas",
             "INTERVALO_INVALIDO"
         )
-        data object PrimeiroDiaMesInvalido : ErroValidacao(
-            "Primeiro dia do mês deve estar entre 1 e 28",
-            "PRIMEIRO_DIA_INVALIDO"
+        data object DiaInicioFechamentoInvalido : ErroValidacao(
+            "Dia de início do fechamento deve estar entre 1 e 28",
+            "DIA_INICIO_INVALIDO"
         )
         data object PeriodoBancoInvalido : ErroValidacao(
-            "Período do banco de horas deve estar entre 0 e 24 meses",
+            "Período do banco de horas inválido",
             "PERIODO_BANCO_INVALIDO"
         )
     }
@@ -48,13 +53,14 @@ class ValidarConfiguracaoEmpregoUseCase @Inject constructor() {
             erros.add(ErroValidacao.IntervaloInvalido)
         }
 
-        // Validação do primeiro dia do mês
-        if (configuracao.primeiroDiaMes !in 1..28) {
-            erros.add(ErroValidacao.PrimeiroDiaMesInvalido)
+        // Validação do dia de início do fechamento RH
+        if (configuracao.diaInicioFechamentoRH !in 1..28) {
+            erros.add(ErroValidacao.DiaInicioFechamentoInvalido)
         }
 
         // Validação do período de banco de horas
-        if (configuracao.periodoBancoHorasMeses !in 0..24) {
+        val periodoBancoTotal = configuracao.periodoBancoSemanas + configuracao.periodoBancoMeses
+        if (configuracao.bancoHorasHabilitado && periodoBancoTotal == 0) {
             erros.add(ErroValidacao.PeriodoBancoInvalido)
         }
 

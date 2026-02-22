@@ -3,7 +3,9 @@ package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -11,16 +13,15 @@ import javax.inject.Inject
  * Caso de uso para obter os pontos de um dia específico.
  *
  * Retorna um [Flow] reativo que emite a lista atualizada de pontos sempre
- * que houver alterações no banco de dados. Ideal para observação em tempo
- * real na interface do usuário.
- *
- * @property repository Repositório de pontos para busca dos registros
+ * que houver alterações no banco de dados.
  *
  * @author Thiago
  * @since 1.0.0
+ * @updated 3.0.0 - Usa observarPorEmpregoEData para suporte a múltiplos empregos
  */
 class ObterPontosDoDiaUseCase @Inject constructor(
-    private val repository: PontoRepository
+    private val repository: PontoRepository,
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase
 ) {
     /**
      * Observa os pontos de uma data específica de forma reativa.
@@ -28,7 +29,22 @@ class ObterPontosDoDiaUseCase @Inject constructor(
      * @param data Data para buscar os pontos (padrão: hoje)
      * @return [Flow] que emite a lista de pontos ordenados por hora
      */
-    operator fun invoke(data: LocalDate = LocalDate.now()): Flow<List<Ponto>> {
-        return repository.observarPontosPorData(data)
+    suspend operator fun invoke(data: LocalDate = LocalDate.now()): Flow<List<Ponto>> {
+        val empregoId = when (val resultado = obterEmpregoAtivoUseCase()) {
+            is ObterEmpregoAtivoUseCase.Resultado.Sucesso -> resultado.emprego.id
+            else -> return emptyFlow()
+        }
+        return repository.observarPorEmpregoEData(empregoId, data)
+    }
+
+    /**
+     * Observa os pontos de uma data específica para um emprego específico.
+     *
+     * @param empregoId ID do emprego
+     * @param data Data para buscar os pontos (padrão: hoje)
+     * @return [Flow] que emite a lista de pontos ordenados por hora
+     */
+    fun invoke(empregoId: Long, data: LocalDate = LocalDate.now()): Flow<List<Ponto>> {
+        return repository.observarPorEmpregoEData(empregoId, data)
     }
 }

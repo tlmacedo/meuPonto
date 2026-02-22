@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import java.time.LocalDate
@@ -13,9 +14,9 @@ import java.time.LocalDateTime
 /**
  * Entidade Room que armazena as configurações específicas de cada emprego.
  *
+ * @author Thiago
  * @since 2.0.0
- * @updated 2.5.0 - Removidas toleranciaEntradaMinutos e toleranciaSaidaMinutos
- *                  (agora configuradas apenas por dia em HorarioDiaSemanaEntity)
+ * @updated 3.0.0 - Refatoração do sistema de ciclos de banco de horas
  */
 @Entity(
     tableName = "configuracoes_emprego",
@@ -59,18 +60,20 @@ data class ConfiguracaoEmpregoEntity(
     val exibirDuracaoTurno: Boolean = true,
     val exibirDuracaoIntervalo: Boolean = true,
 
-    // PERÍODO
+    // PERÍODO RH (FECHAMENTO MENSAL)
     val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
-    val primeiroDiaMes: Int = 1,
+    val diaInicioFechamentoRH: Int = 1,
 
     // SALDO
     val zerarSaldoSemanal: Boolean = false,
-    val zerarSaldoMensal: Boolean = false,
+    val zerarSaldoPeriodoRH: Boolean = false,
     val ocultarSaldoTotal: Boolean = false,
 
-    // BANCO DE HORAS
-    val periodoBancoHorasMeses: Int = 0,
-    val ultimoFechamentoBanco: LocalDate? = null,
+    // BANCO DE HORAS - CICLO
+    val bancoHorasHabilitado: Boolean = false,
+    val periodoBancoSemanas: Int = 0,
+    val periodoBancoMeses: Int = 0,
+    val dataInicioCicloBancoAtual: LocalDate? = null,
     val diasUteisLembreteFechamento: Int = 3,
     val habilitarSugestaoAjuste: Boolean = false,
     val zerarBancoAntesPeriodo: Boolean = false,
@@ -80,8 +83,11 @@ data class ConfiguracaoEmpregoEntity(
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 )
 
-fun ConfiguracaoEmpregoEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego =
-    br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego(
+/**
+ * Converte Entity para Domain Model.
+ */
+fun ConfiguracaoEmpregoEntity.toDomain(): ConfiguracaoEmprego =
+    ConfiguracaoEmprego(
         id = id,
         empregoId = empregoId,
         cargaHorariaDiariaMinutos = cargaHorariaDiariaMinutos,
@@ -98,12 +104,14 @@ fun ConfiguracaoEmpregoEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.
         exibirDuracaoTurno = exibirDuracaoTurno,
         exibirDuracaoIntervalo = exibirDuracaoIntervalo,
         primeiroDiaSemana = primeiroDiaSemana,
-        primeiroDiaMes = primeiroDiaMes,
+        diaInicioFechamentoRH = diaInicioFechamentoRH,
         zerarSaldoSemanal = zerarSaldoSemanal,
-        zerarSaldoMensal = zerarSaldoMensal,
+        zerarSaldoPeriodoRH = zerarSaldoPeriodoRH,
         ocultarSaldoTotal = ocultarSaldoTotal,
-        periodoBancoHorasMeses = periodoBancoHorasMeses,
-        ultimoFechamentoBanco = ultimoFechamentoBanco,
+        bancoHorasHabilitado = bancoHorasHabilitado,
+        periodoBancoSemanas = periodoBancoSemanas,
+        periodoBancoMeses = periodoBancoMeses,
+        dataInicioCicloBancoAtual = dataInicioCicloBancoAtual,
         diasUteisLembreteFechamento = diasUteisLembreteFechamento,
         habilitarSugestaoAjuste = habilitarSugestaoAjuste,
         zerarBancoAntesPeriodo = zerarBancoAntesPeriodo,
@@ -111,7 +119,10 @@ fun ConfiguracaoEmpregoEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.
         atualizadoEm = atualizadoEm
     )
 
-fun br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego.toEntity(): ConfiguracaoEmpregoEntity =
+/**
+ * Converte Domain Model para Entity.
+ */
+fun ConfiguracaoEmprego.toEntity(): ConfiguracaoEmpregoEntity =
     ConfiguracaoEmpregoEntity(
         id = id,
         empregoId = empregoId,
@@ -129,12 +140,14 @@ fun br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego.toEntity(): Config
         exibirDuracaoTurno = exibirDuracaoTurno,
         exibirDuracaoIntervalo = exibirDuracaoIntervalo,
         primeiroDiaSemana = primeiroDiaSemana,
-        primeiroDiaMes = primeiroDiaMes,
+        diaInicioFechamentoRH = diaInicioFechamentoRH,
         zerarSaldoSemanal = zerarSaldoSemanal,
-        zerarSaldoMensal = zerarSaldoMensal,
+        zerarSaldoPeriodoRH = zerarSaldoPeriodoRH,
         ocultarSaldoTotal = ocultarSaldoTotal,
-        periodoBancoHorasMeses = periodoBancoHorasMeses,
-        ultimoFechamentoBanco = ultimoFechamentoBanco,
+        bancoHorasHabilitado = bancoHorasHabilitado,
+        periodoBancoSemanas = periodoBancoSemanas,
+        periodoBancoMeses = periodoBancoMeses,
+        dataInicioCicloBancoAtual = dataInicioCicloBancoAtual,
         diasUteisLembreteFechamento = diasUteisLembreteFechamento,
         habilitarSugestaoAjuste = habilitarSugestaoAjuste,
         zerarBancoAntesPeriodo = zerarBancoAntesPeriodo,

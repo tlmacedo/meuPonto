@@ -24,6 +24,7 @@ import java.util.Locale
  * @author Thiago
  * @since 2.0.0
  * @updated 4.0.0 - Adicionado suporte a ausências (férias, folga, falta, atestado)
+ * @updated 6.0.0 - Adicionado campo motivoExclusao para auditoria obrigatória
  */
 data class HomeUiState(
     val dataSelecionada: LocalDate = LocalDate.now(),
@@ -52,7 +53,9 @@ data class HomeUiState(
     val showNsrDialog: Boolean = false,
     val nsrPendente: String = "",
     val horaPendenteParaRegistro: LocalTime? = null,
+    // Exclusão de ponto
     val pontoParaExcluir: Ponto? = null,
+    val motivoExclusao: String = "",
     val erro: String? = null
 ) {
     companion object {

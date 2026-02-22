@@ -1,8 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/empregos/editar/EditarEmpregoScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar
 
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -22,18 +20,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -80,9 +79,6 @@ import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import kotlinx.coroutines.flow.collectLatest
 import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 
 /**
  * Tela de edição/criação de emprego.
@@ -138,7 +134,7 @@ fun EditarEmpregoScreen(
                 uiState = uiState,
                 onAction = viewModel::onAction,
                 onSetShowInicioTrabalhoPicker = viewModel::setShowInicioTrabalhoPicker,
-                onSetShowUltimoFechamentoPicker = viewModel::setShowUltimoFechamentoPicker,
+                onSetShowDataInicioCicloPicker = viewModel::setShowDataInicioCicloPicker,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -151,10 +147,10 @@ private fun EditarEmpregoContent(
     uiState: EditarEmpregoUiState,
     onAction: (EditarEmpregoAction) -> Unit,
     onSetShowInicioTrabalhoPicker: (Boolean) -> Unit,
-    onSetShowUltimoFechamentoPicker: (Boolean) -> Unit,
+    onSetShowDataInicioCicloPicker: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // DATE PICKER DIALOGS
+    // DATE PICKER - Data Início Trabalho
     if (uiState.showInicioTrabalhoPicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = uiState.dataInicioTrabalho?.toDatePickerMillis()
@@ -175,22 +171,21 @@ private fun EditarEmpregoContent(
         }
     }
 
-    if (uiState.showUltimoFechamentoPicker) {
+    // DATE PICKER - Data Início Ciclo Banco
+    if (uiState.showDataInicioCicloPicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dataInicioTrabalho?.toDatePickerMillis()
+            initialSelectedDateMillis = uiState.dataInicioCicloBanco?.toDatePickerMillis()
         )
         DatePickerDialog(
-            onDismissRequest = { onSetShowUltimoFechamentoPicker(false) },
+            onDismissRequest = { onSetShowDataInicioCicloPicker(false) },
             confirmButton = {
                 TextButton(onClick = {
-                    val date = datePickerState.selectedDateMillis?.let {
-                        it.toLocalDateFromDatePicker()
-                    }
-                    onAction(EditarEmpregoAction.AlterarUltimoFechamentoBanco(date))
+                    val date = datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()
+                    onAction(EditarEmpregoAction.AlterarDataInicioCicloBanco(date))
                 }) { Text("Confirmar") }
             },
             dismissButton = {
-                TextButton(onClick = { onSetShowUltimoFechamentoPicker(false) }) { Text("Cancelar") }
+                TextButton(onClick = { onSetShowDataInicioCicloPicker(false) }) { Text("Cancelar") }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -227,7 +222,6 @@ private fun EditarEmpregoContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // DATA DE INÍCIO NO TRABALHO
                 OutlinedTextField(
                     value = uiState.dataInicioTrabalhoFormatada,
                     onValueChange = {},
@@ -257,7 +251,7 @@ private fun EditarEmpregoContent(
                     label = "Carga Horária Diária",
                     value = uiState.cargaHorariaDiaria.toMinutes().toInt(),
                     onValueChange = { onAction(EditarEmpregoAction.AlterarCargaHorariaDiaria(Duration.ofMinutes(it.toLong()))) },
-                    valueRange = 0..720,
+                    valueRange = 240..600,
                     sliderStep = 30,
                     formatAsHours = true
                 )
@@ -268,7 +262,7 @@ private fun EditarEmpregoContent(
                     label = "Jornada Máxima Diária",
                     value = uiState.jornadaMaximaDiariaMinutos,
                     onValueChange = { onAction(EditarEmpregoAction.AlterarJornadaMaximaDiaria(it)) },
-                    valueRange = 0..720,
+                    valueRange = 360..720,
                     sliderStep = 30,
                     formatAsHours = true
                 )
@@ -281,86 +275,19 @@ private fun EditarEmpregoContent(
                     onValueChange = { onAction(EditarEmpregoAction.AlterarIntervaloMinimo(it)) },
                     valueRange = 0..120,
                     sliderStep = 15,
-                    formatAsHours = false
+                    formatAsHours = true
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 MinutesSliderWithSteppers(
-                    label = "Intervalo Entre Jornadas",
+                    label = "Intervalo Interjornada",
                     value = uiState.intervaloInterjornadaMinutos,
                     onValueChange = { onAction(EditarEmpregoAction.AlterarIntervaloInterjornada(it)) },
-                    valueRange = 0..2880,
-                    sliderStep = 60,
+                    valueRange = 540..780,
+                    sliderStep = 30,
                     formatAsHours = true
                 )
-            }
-        }
-
-        // TOLERÂNCIAS
-        item {
-            FormSection(
-                title = "Tolerâncias",
-                icon = Icons.Default.Timer,
-                isExpanded = uiState.secaoExpandida == SecaoFormulario.TOLERANCIAS,
-                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.TOLERANCIAS)) }
-            ) {
-                MinutesSliderWithSteppers(
-                    label = "Tolerância Intervalo (+)",
-                    value = uiState.toleranciaIntervaloMaisMinutos,
-                    onValueChange = { onAction(EditarEmpregoAction.AlterarToleranciaIntervaloMais(it)) },
-                    valueRange = 0..60,
-                    sliderStep = 1,
-                    formatAsHours = false
-                )
-            }
-        }
-
-        // NSR E LOCALIZAÇÃO
-        item {
-            FormSection(
-                title = "NSR e Localização",
-                icon = Icons.Default.LocationOn,
-                isExpanded = uiState.secaoExpandida == SecaoFormulario.NSR_LOCALIZACAO,
-                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.NSR_LOCALIZACAO)) }
-            ) {
-                SwitchOption(
-                    title = "Habilitar NSR",
-                    description = "Número Sequencial de Registro",
-                    checked = uiState.habilitarNsr,
-                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarNsr(it)) }
-                )
-
-                AnimatedVisibility(visible = uiState.habilitarNsr) {
-                    Column {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TipoNsrSelector(
-                            selected = uiState.tipoNsr,
-                            onSelect = { onAction(EditarEmpregoAction.AlterarTipoNsr(it)) }
-                        )
-                    }
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                SwitchOption(
-                    title = "Habilitar Localização",
-                    description = "Capturar localização ao registrar ponto",
-                    checked = uiState.habilitarLocalizacao,
-                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarLocalizacao(it)) }
-                )
-
-                AnimatedVisibility(visible = uiState.habilitarLocalizacao) {
-                    Column {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        SwitchOption(
-                            title = "Captura Automática",
-                            description = "Capturar localização automaticamente",
-                            checked = uiState.localizacaoAutomatica,
-                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarLocalizacaoAutomatica(it)) }
-                        )
-                    }
-                }
             }
         }
 
@@ -372,28 +299,96 @@ private fun EditarEmpregoContent(
                 isExpanded = uiState.secaoExpandida == SecaoFormulario.BANCO_HORAS,
                 onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.BANCO_HORAS)) }
             ) {
-                MinutesSliderWithSteppers(
-                    label = "Período do Banco",
-                    value = uiState.periodoBancoHorasValor,
-                    onValueChange = { onAction(EditarEmpregoAction.AlterarPeriodoBancoHoras(it)) },
-                    valueRange = 0..15,
-                    sliderStep = 1,
-                    formatAsHours = false,
-                    displayFormatter = { valState -> 
-                        when (valState) {
-                            0 -> "Desabilitado"
-                            1 -> "1 semana"
-                            2 -> "2 semanas"
-                            3 -> "3 semanas"
-                            else -> "${valState - 3} mês(es)"
-                        }
-                    }
+                SwitchOption(
+                    title = "Habilitar Banco de Horas",
+                    description = "Ativar controle de ciclos do banco de horas",
+                    checked = uiState.bancoHorasHabilitado,
+                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarBancoHorasHabilitado(it)) }
                 )
 
-                AnimatedVisibility(visible = uiState.temBancoHoras) {
+                AnimatedVisibility(visible = uiState.bancoHorasHabilitado) {
                     Column {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        MinutesSliderWithSteppers(
+                            label = "Período do Ciclo",
+                            value = uiState.periodoBancoValor,
+                            onValueChange = { onAction(EditarEmpregoAction.AlterarPeriodoBancoHoras(it)) },
+                            valueRange = 1..15,
+                            sliderStep = 1,
+                            formatAsHours = false,
+                            displayFormatter = { valor ->
+                                when (valor) {
+                                    1 -> "1 semana"
+                                    2 -> "2 semanas"
+                                    3 -> "3 semanas"
+                                    else -> "${valor - 3} mês(es)"
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = uiState.dataInicioCicloFormatada,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Início do Ciclo Atual") },
+                            supportingText = {
+                                if (uiState.temBancoHoras && uiState.dataInicioCicloBanco != null) {
+                                    Text("Fim do ciclo: ${uiState.dataFimCicloCalculada}")
+                                }
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { onSetShowDataInicioCicloPicker(true) }) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSetShowDataInicioCicloPicker(true) }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (uiState.temBancoHoras && uiState.dataInicioCicloBanco != null) {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Ciclo Atual",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = uiState.cicloDescricao,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = "Período: ${uiState.periodoBancoDescricao}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
@@ -402,61 +397,48 @@ private fun EditarEmpregoContent(
                                 checked = uiState.zerarBancoAntesPeriodo,
                                 onCheckedChange = { onAction(EditarEmpregoAction.AlterarZerarBancoAntesPeriodo(it)) }
                             )
-                            Text(
-                                text = "Zerar banco de horas antes do período",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Ignorar registros anteriores",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = "Não considerar registros antes da data de início do ciclo",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-                        DiaSemanaSelector(
-                            label = "Primeiro Dia da Semana",
-                            selected = uiState.primeiroDiaSemana,
-                            onSelect = { onAction(EditarEmpregoAction.AlterarPrimeiroDiaSemana(it)) }
+                        Text(
+                            text = "Período de Fechamento (RH)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         MinutesSliderWithSteppers(
-                            label = "Dia de Fechamento (RH)",
-                            value = uiState.primeiroDiaMes,
-                            onValueChange = { onAction(EditarEmpregoAction.AlterarPrimeiroDiaMes(it)) },
-                            valueRange = 1..30,
+                            label = "Dia de Início do Período",
+                            value = uiState.diaInicioFechamentoRH,
+                            onValueChange = { onAction(EditarEmpregoAction.AlterarDiaInicioFechamentoRH(it)) },
+                            valueRange = 1..28,
                             sliderStep = 1,
                             formatAsHours = false,
-                            suffix = ""
+                            suffix = "",
+                            helperText = uiState.exemploPeriodoRH
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         SwitchOption(
-                            title = uiState.labelZerarSaldoDinamico,
-                            description = "Reiniciar saldo a cada fechamento de período",
-                            checked = uiState.zerarSaldoMensal,
-                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarZerarSaldoMensal(it)) }
+                            title = "Zerar Saldo no Fechamento RH",
+                            description = "Reiniciar saldo a cada fechamento de período do RH",
+                            checked = uiState.zerarSaldoPeriodoRH,
+                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarZerarSaldoPeriodoRH(it)) }
                         )
-
-                        // DATA DO ÚLTIMO FECHAMENTO (Só exibe se Zerar Saldo estiver ativado)
-                        AnimatedVisibility(visible = uiState.zerarSaldoMensal) {
-                            Column {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                OutlinedTextField(
-                                    value = uiState.ultimoFechamentoBancoFormatado,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("Última data de fechamento do banco") },
-                                    trailingIcon = {
-                                        IconButton(onClick = { onSetShowUltimoFechamentoPicker(true) }) {
-                                            Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onSetShowUltimoFechamentoPicker(true) }
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -495,10 +477,7 @@ private fun EditarEmpregoContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null
-                )
+                Icon(imageVector = Icons.Default.Check, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(uiState.textoBotaoSalvar)
             }
@@ -557,22 +536,22 @@ private fun MinutesSliderWithSteppers(
                 onClick = { onValueChange((value - 1).coerceIn(valueRange)) },
                 enabled = value > valueRange.first
             ) {
-                Icon(Icons.Default.Remove, contentDescription = "Diminuir 1 unidade")
+                Icon(Icons.Default.Remove, contentDescription = "Diminuir")
             }
             Slider(
                 value = value.toFloat(),
                 onValueChange = { onValueChange(it.toInt()) },
                 valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
-                steps = if (sliderStep > 0 && (valueRange.last - valueRange.first) > sliderStep) 
-                            ((valueRange.last - valueRange.first) / sliderStep) - 1 
-                        else 0,
+                steps = if (sliderStep > 0 && (valueRange.last - valueRange.first) > sliderStep)
+                    ((valueRange.last - valueRange.first) / sliderStep) - 1
+                else 0,
                 modifier = Modifier.weight(1f)
             )
             IconButton(
                 onClick = { onValueChange((value + 1).coerceIn(valueRange)) },
                 enabled = value < valueRange.last
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Aumentar 1 unidade")
+                Icon(Icons.Default.Add, contentDescription = "Aumentar")
             }
         }
 
@@ -606,6 +585,7 @@ private fun FormSection(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clickable { onToggle() }
                     .padding(16.dp)
             ) {
                 Icon(
@@ -620,12 +600,10 @@ private fun FormSection(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = onToggle) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Recolher" else "Expandir"
-                    )
-                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Recolher" else "Expandir"
+                )
             }
 
             AnimatedVisibility(
@@ -660,68 +638,14 @@ private fun SwitchOption(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text(text = title, style = MaterialTheme.typography.bodyMedium)
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TipoNsrSelector(
-    selected: TipoNsr,
-    onSelect: (TipoNsr) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        OutlinedTextField(
-            value = when (selected) {
-                TipoNsr.NUMERICO -> "Numérico"
-                TipoNsr.ALFANUMERICO -> "Alfanumérico"
-            },
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Tipo do NSR") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text("Numérico") },
-                onClick = {
-                    onSelect(TipoNsr.NUMERICO)
-                    expanded = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text("Alfanumérico") },
-                onClick = {
-                    onSelect(TipoNsr.ALFANUMERICO)
-                    expanded = false
-                }
-            )
-        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

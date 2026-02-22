@@ -25,21 +25,9 @@ import javax.inject.Inject
 /**
  * ViewModel da tela de Histórico.
  *
- * Gerencia o estado da tela de histórico, carregando os registros
- * de ponto do mês selecionado e usando ResumoDia para cálculos consistentes.
- *
- * @property repository Repositório de pontos para busca dos dados
- * @property calcularResumoDiaUseCase UseCase para cálculo de resumo (single source of truth)
- * @property horarioDiaSemanaRepository Repositório para buscar configurações de horário
- * @property versaoJornadaRepository Repositório para buscar versões de jornada
- * @property obterEmpregoAtivoUseCase UseCase para obter o emprego ativo
- *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.5.0 - Adicionados filtros e controle de expansão
- * @updated 3.0.0 - Refatorado para usar CalcularResumoDiaUseCase
- * @updated 3.1.0 - Corrigido: agora passa HorarioDiaSemana para cálculos consistentes com Home
- * @updated 3.2.0 - Corrigido: agora usa versionamento de jornada para buscar carga horária histórica
+ * @updated 3.3.0 - Usa observarPorEmpregoEPeriodo para suporte a múltiplos empregos
  */
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
@@ -61,10 +49,6 @@ class HistoryViewModel @Inject constructor(
 
     /**
      * Carrega o histórico do mês selecionado.
-     * Usa CalcularResumoDiaUseCase para garantir consistência nos cálculos.
-     *
-     * IMPORTANTE: Busca a versão de jornada vigente para cada data,
-     * garantindo que a carga horária histórica seja usada corretamente.
      */
     fun carregarHistorico() {
         carregarJob?.cancel()
@@ -72,7 +56,6 @@ class HistoryViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                // Obter emprego ativo para buscar configurações de horário
                 val empregoId: Long? = when (val resultado = obterEmpregoAtivoUseCase()) {
                     is ObterEmpregoAtivoUseCase.Resultado.Sucesso -> resultado.emprego.id
                     else -> null
@@ -83,26 +66,21 @@ class HistoryViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Pré-carregar todas as versões de jornada do emprego
                 val versoesJornada = versaoJornadaRepository.buscarPorEmprego(empregoId)
-
-                // Cache de horários por versão de jornada (para evitar N+1 queries)
                 val horariosPorVersao = mutableMapOf<Long, Map<DiaSemana, HorarioDiaSemana>>()
 
                 val mesSelecionado = _uiState.value.mesSelecionado
                 val primeiroDia = mesSelecionado.withDayOfMonth(1)
                 val ultimoDia = mesSelecionado.withDayOfMonth(mesSelecionado.lengthOfMonth())
 
-                repository.observarPontosPorPeriodo(primeiroDia, ultimoDia)
+                // Usa observarPorEmpregoEPeriodo em vez de observarPontosPorPeriodo (deprecated)
+                repository.observarPorEmpregoEPeriodo(empregoId, primeiroDia, ultimoDia)
                     .collect { pontos ->
-                        // Agrupa pontos por dia e usa o UseCase para calcular cada resumo
                         val resumosPorDia = pontos
                             .groupBy { it.data }
                             .map { (data, pontosData) ->
-                                // Buscar a versão de jornada vigente para esta data específica
                                 val versaoVigente = encontrarVersaoVigente(versoesJornada, data)
 
-                                // Buscar horários da versão vigente (com cache)
                                 val horariosDaVersao = versaoVigente?.let { versao ->
                                     horariosPorVersao.getOrPut(versao.id) {
                                         horarioDiaSemanaRepository
@@ -111,11 +89,9 @@ class HistoryViewModel @Inject constructor(
                                     }
                                 } ?: emptyMap()
 
-                                // Buscar configuração do dia da semana
                                 val diaSemana = DiaSemana.fromDayOfWeek(data.dayOfWeek)
                                 val horarioDia = horariosDaVersao[diaSemana]
 
-                                // Usa o mesmo UseCase da Home - SINGLE SOURCE OF TRUTH
                                 calcularResumoDiaUseCase(
                                     pontos = pontosData,
                                     data = data,
@@ -138,13 +114,6 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Encontra a versão de jornada vigente para uma data específica.
-     *
-     * @param versoes Lista de todas as versões do emprego (ordenadas por dataInicio DESC)
-     * @param data Data para verificar
-     * @return Versão vigente ou null se não houver
-     */
     private fun encontrarVersaoVigente(
         versoes: List<VersaoJornada>,
         data: LocalDate
@@ -152,21 +121,16 @@ class HistoryViewModel @Inject constructor(
         return versoes.find { versao -> versao.contemData(data) }
     }
 
-    /**
-     * Altera o mês selecionado para visualização.
-     */
     fun selecionarMes(novoMes: LocalDate) {
         _uiState.update { it.copy(mesSelecionado = novoMes, diaExpandido = null) }
         carregarHistorico()
     }
 
-    /** Navega para o mês anterior */
     fun mesAnterior() {
         val novoMes = _uiState.value.mesSelecionado.minusMonths(1)
         selecionarMes(novoMes)
     }
 
-    /** Navega para o próximo mês */
     fun proximoMes() {
         if (_uiState.value.podeIrProximoMes) {
             val novoMes = _uiState.value.mesSelecionado.plusMonths(1)
@@ -174,16 +138,10 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Altera o filtro ativo.
-     */
     fun alterarFiltro(filtro: FiltroHistorico) {
         _uiState.update { it.copy(filtroAtivo = filtro, diaExpandido = null) }
     }
 
-    /**
-     * Expande ou colapsa um dia específico.
-     */
     fun toggleDiaExpandido(data: LocalDate) {
         _uiState.update { state ->
             state.copy(
@@ -192,9 +150,6 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Limpa a mensagem de erro.
-     */
     fun limparErro() {
         _uiState.update { it.copy(errorMessage = null) }
     }

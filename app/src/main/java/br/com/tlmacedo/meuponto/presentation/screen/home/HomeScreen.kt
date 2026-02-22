@@ -26,6 +26,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -187,6 +188,8 @@ fun HomeScreen(
         DeletePontoConfirmDialog(
             ponto = uiState.pontoParaExcluir!!,
             pontosHoje = uiState.pontosHoje,
+            motivo = uiState.motivoExclusao,
+            onMotivoChange = { viewModel.onAction(HomeAction.AtualizarMotivoExclusao(it)) },
             onConfirm = { viewModel.onAction(HomeAction.ConfirmarExclusao) },
             onDismiss = { viewModel.onAction(HomeAction.CancelarExclusao) }
         )
@@ -418,6 +421,8 @@ internal fun HomeContent(
 private fun DeletePontoConfirmDialog(
     ponto: br.com.tlmacedo.meuponto.domain.model.Ponto,
     pontosHoje: List<br.com.tlmacedo.meuponto.domain.model.Ponto>,
+    motivo: String,
+    onMotivoChange: (String) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -429,19 +434,53 @@ private fun DeletePontoConfirmDialog(
         "ponto"
     }
 
+    val motivoValido = motivo.trim().length >= 5
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Excluir Ponto") },
         text = {
-            Text(
-                "Deseja realmente excluir o registro de $tipoDescricao às ${
-                    ponto.hora.format(DateTimeFormatter.ofPattern("HH:mm"))
-                }?"
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Deseja realmente excluir o registro de $tipoDescricao às ${
+                        ponto.hora.format(DateTimeFormatter.ofPattern("HH:mm"))
+                    }?"
+                )
+
+                OutlinedTextField(
+                    value = motivo,
+                    onValueChange = onMotivoChange,
+                    label = { Text("Motivo da exclusão *") },
+                    placeholder = { Text("Ex: Registro duplicado") },
+                    supportingText = {
+                        if (motivo.isNotEmpty() && !motivoValido) {
+                            Text(
+                                "Mínimo 5 caracteres",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    isError = motivo.isNotEmpty() && !motivoValido,
+                    singleLine = false,
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Excluir", color = MaterialTheme.colorScheme.error)
+            TextButton(
+                onClick = onConfirm,
+                enabled = motivoValido
+            ) {
+                Text(
+                    "Excluir",
+                    color = if (motivoValido)
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                )
             }
         },
         dismissButton = {

@@ -1,3 +1,4 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/emprego/CriarEmpregoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.emprego
 
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
@@ -55,7 +56,7 @@ class CriarEmpregoUseCase @Inject constructor(
                 jornadaMaximaDiariaMinutos = 600,
                 intervaloMinimoInterjornadaMinutos = 660,
                 primeiroDiaSemana = DiaSemana.SEGUNDA,
-                primeiroDiaMes = 1
+                diaInicioFechamentoRH = 1
             )
             configuracaoEmpregoRepository.inserir(configuracao)
 

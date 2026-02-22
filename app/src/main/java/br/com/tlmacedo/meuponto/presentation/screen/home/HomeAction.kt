@@ -14,6 +14,7 @@ import java.time.LocalTime
  * @updated 2.5.0 - Adicionadas ações para DatePicker
  * @updated 2.7.0 - Adicionadas ações para navegação de emprego (criar/editar)
  * @updated 3.7.0 - Adicionadas ações para NSR dialog
+ * @updated 6.0.0 - Adicionada ação para motivo de exclusão (auditoria)
  */
 sealed interface HomeAction {
 
@@ -45,6 +46,11 @@ sealed interface HomeAction {
 
     data class SolicitarExclusao(val ponto: Ponto) : HomeAction
     data object CancelarExclusao : HomeAction
+
+    /** Atualiza o motivo da exclusão no dialog */
+    data class AtualizarMotivoExclusao(val motivo: String) : HomeAction
+
+    /** Confirma a exclusão com motivo */
     data object ConfirmarExclusao : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════

@@ -13,7 +13,7 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.11.0 - Usa formatadores padronizados de MinutosExtensions
+ * @updated 3.0.0 - Usa diaInicioFechamentoRH
  */
 class CalcularSaldoMensalUseCase @Inject constructor(
     private val calcularSaldoDiaUseCase: CalcularSaldoDiaUseCase,
@@ -28,25 +28,22 @@ class CalcularSaldoMensalUseCase @Inject constructor(
         val diasUteis: Int,
         val saldosDiarios: List<CalcularSaldoDiaUseCase.SaldoDia>
     ) {
-        /** Trabalhado: "00h 00min" */
         val trabalhadoFormatado: String
             get() = trabalhadoMinutos.minutosParaHoraMinuto()
 
-        /** Esperado: "00h 00min" */
         val esperadoFormatado: String
             get() = esperadoMinutos.minutosParaHoraMinuto()
 
-        /** Saldo: "+00h 00min" ou "-00h 00min" */
         val saldoFormatado: String
             get() = saldoMinutos.minutosParaSaldoFormatado()
     }
 
     suspend operator fun invoke(empregoId: Long, mes: YearMonth): SaldoMensal {
         val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-        val primeiroDiaMes = configuracao?.primeiroDiaMes ?: 1
+        val diaInicio = configuracao?.diaInicioFechamentoRH ?: 1
 
-        val dataInicio = calcularDataInicio(mes, primeiroDiaMes)
-        val dataFim = calcularDataFim(mes, primeiroDiaMes)
+        val dataInicio = calcularDataInicio(mes, diaInicio)
+        val dataFim = calcularDataFim(mes, diaInicio)
 
         val saldosDiarios = mutableListOf<CalcularSaldoDiaUseCase.SaldoDia>()
         var dataAtual = dataInicio
@@ -74,19 +71,19 @@ class CalcularSaldoMensalUseCase @Inject constructor(
         )
     }
 
-    private fun calcularDataInicio(mes: YearMonth, primeiroDiaMes: Int): LocalDate {
-        return if (primeiroDiaMes == 1) {
+    private fun calcularDataInicio(mes: YearMonth, diaInicio: Int): LocalDate {
+        return if (diaInicio == 1) {
             mes.atDay(1)
         } else {
-            mes.minusMonths(1).atDay(primeiroDiaMes)
+            mes.minusMonths(1).atDay(diaInicio)
         }
     }
 
-    private fun calcularDataFim(mes: YearMonth, primeiroDiaMes: Int): LocalDate {
-        return if (primeiroDiaMes == 1) {
+    private fun calcularDataFim(mes: YearMonth, diaInicio: Int): LocalDate {
+        return if (diaInicio == 1) {
             mes.atEndOfMonth()
         } else {
-            mes.atDay(primeiroDiaMes - 1)
+            mes.atDay(diaInicio - 1)
         }
     }
 }

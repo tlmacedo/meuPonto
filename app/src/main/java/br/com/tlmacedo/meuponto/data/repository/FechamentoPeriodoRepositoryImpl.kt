@@ -14,136 +14,70 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Implementação concreta do repositório de fechamentos de período.
- *
- * @property fechamentoPeriodoDao DAO do Room para operações de banco de dados
+ * Implementação do repositório de fechamentos de período.
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 3.0.0 - Suporte a ciclos de banco de horas
  */
 @Singleton
 class FechamentoPeriodoRepositoryImpl @Inject constructor(
-    private val fechamentoPeriodoDao: FechamentoPeriodoDao
+    private val fechamentoDao: FechamentoPeriodoDao
 ) : FechamentoPeriodoRepository {
 
-    // ========================================================================
-    // Operações de Escrita (CRUD)
-    // ========================================================================
+    override suspend fun inserir(fechamento: FechamentoPeriodo): Long =
+        fechamentoDao.insert(fechamento.toEntity())
 
-    override suspend fun inserir(fechamento: FechamentoPeriodo): Long {
-        return fechamentoPeriodoDao.inserir(fechamento.toEntity())
-    }
+    override suspend fun atualizar(fechamento: FechamentoPeriodo) =
+        fechamentoDao.update(fechamento.toEntity())
 
-    override suspend fun atualizar(fechamento: FechamentoPeriodo) {
-        fechamentoPeriodoDao.atualizar(fechamento.toEntity())
-    }
+    override suspend fun excluir(fechamento: FechamentoPeriodo) =
+        fechamentoDao.delete(fechamento.toEntity())
 
-    override suspend fun excluir(fechamento: FechamentoPeriodo) {
-        fechamentoPeriodoDao.excluir(fechamento.toEntity())
-    }
+    override suspend fun buscarPorId(id: Long): FechamentoPeriodo? =
+        fechamentoDao.getById(id)?.toDomain()
 
-    override suspend fun excluirPorId(id: Long) {
-        fechamentoPeriodoDao.excluirPorId(id)
-    }
+    override fun observarPorEmpregoId(empregoId: Long): Flow<List<FechamentoPeriodo>> =
+        fechamentoDao.observeByEmpregoId(empregoId).map { list ->
+            list.map { it.toDomain() }
+        }
 
-    // ========================================================================
-    // Operações de Leitura
-    // ========================================================================
+    override suspend fun buscarPorEmpregoId(empregoId: Long): List<FechamentoPeriodo> =
+        fechamentoDao.getByEmpregoId(empregoId).map { it.toDomain() }
 
-    override suspend fun buscarPorId(id: Long): FechamentoPeriodo? {
-        return fechamentoPeriodoDao.buscarPorId(id)?.toDomain()
-    }
+    override suspend fun buscarPorEmpregoIdETipo(
+        empregoId: Long,
+        tipo: TipoFechamento
+    ): List<FechamentoPeriodo> =
+        fechamentoDao.getByEmpregoIdAndTipo(empregoId, tipo).map { it.toDomain() }
 
-    override suspend fun buscarPorEmprego(empregoId: Long): List<FechamentoPeriodo> {
-        return fechamentoPeriodoDao.buscarPorEmprego(empregoId).map { it.toDomain() }
-    }
+    override suspend fun buscarFechamentosBancoHoras(empregoId: Long): List<FechamentoPeriodo> =
+        fechamentoDao.getFechamentosBancoHoras(empregoId).map { it.toDomain() }
 
-    override suspend fun buscarPorTipo(empregoId: Long, tipo: TipoFechamento): List<FechamentoPeriodo> {
-        return fechamentoPeriodoDao.buscarPorTipo(empregoId, tipo).map { it.toDomain() }
-    }
+    override fun observarFechamentosBancoHoras(empregoId: Long): Flow<List<FechamentoPeriodo>> =
+        fechamentoDao.observeFechamentosBancoHoras(empregoId).map { list ->
+            list.map { it.toDomain() }
+        }
+
+    override suspend fun buscarPorData(empregoId: Long, data: LocalDate): FechamentoPeriodo? =
+        fechamentoDao.buscarPorData(empregoId, data)?.toDomain()
 
     override suspend fun buscarPorPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
-    ): FechamentoPeriodo? {
-        return fechamentoPeriodoDao.buscarPorPeriodo(
-            empregoId,
-            dataInicio.toString(),
-            dataFim.toString()
-        )?.toDomain()
-    }
+    ): List<FechamentoPeriodo> =
+        fechamentoDao.getByPeriodo(empregoId, dataInicio, dataFim).map { it.toDomain() }
 
-    override suspend fun buscarUltimoFechamento(empregoId: Long): FechamentoPeriodo? {
-        return fechamentoPeriodoDao.buscarUltimoFechamento(empregoId)?.toDomain()
-    }
+    override suspend fun buscarUltimoFechamento(empregoId: Long): FechamentoPeriodo? =
+        fechamentoDao.getUltimoFechamento(empregoId)?.toDomain()
 
-    override suspend fun buscarUltimoFechamentoPorTipo(
-        empregoId: Long,
-        tipo: TipoFechamento
-    ): FechamentoPeriodo? {
-        return fechamentoPeriodoDao.buscarUltimoFechamentoPorTipo(empregoId, tipo)?.toDomain()
-    }
+    override suspend fun buscarUltimoFechamentoBanco(empregoId: Long): FechamentoPeriodo? =
+        fechamentoDao.getUltimoFechamentoBanco(empregoId)?.toDomain()
 
-    // ========================================================================
-    // Verificações
-    // ========================================================================
+    override suspend fun excluirPorEmpregoId(empregoId: Long) =
+        fechamentoDao.deleteByEmpregoId(empregoId)
 
-    override suspend fun existeFechamentoNoPeriodo(
-        empregoId: Long,
-        dataInicio: LocalDate,
-        dataFim: LocalDate
-    ): Boolean {
-        return fechamentoPeriodoDao.existeFechamentoNoPeriodo(
-            empregoId,
-            dataInicio.toString(),
-            dataFim.toString()
-        )
-    }
-
-    override suspend fun existeFechamentoPorEmprego(empregoId: Long): Boolean {
-        return fechamentoPeriodoDao.existeFechamentoPorEmprego(empregoId)
-    }
-
-    // ========================================================================
-    // Cálculos
-    // ========================================================================
-
-    override suspend fun buscarUltimoSaldoAnterior(empregoId: Long): Int? {
-        return fechamentoPeriodoDao.buscarUltimoSaldoAnterior(empregoId)
-    }
-
-    override suspend fun somarSaldosAnteriores(empregoId: Long): Int {
-        return fechamentoPeriodoDao.somarSaldosAnteriores(empregoId)
-    }
-
-    override suspend fun contarPorEmprego(empregoId: Long): Int {
-        return fechamentoPeriodoDao.contarPorEmprego(empregoId)
-    }
-
-    // ========================================================================
-    // Operações Reativas (Flows)
-    // ========================================================================
-
-    override fun observarPorEmprego(empregoId: Long): Flow<List<FechamentoPeriodo>> {
-        return fechamentoPeriodoDao.listarPorEmprego(empregoId).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
-
-    override fun observarPorTipo(empregoId: Long, tipo: TipoFechamento): Flow<List<FechamentoPeriodo>> {
-        return fechamentoPeriodoDao.listarPorTipo(empregoId, tipo).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
-
-    override fun observarUltimoFechamento(empregoId: Long): Flow<FechamentoPeriodo?> {
-        return fechamentoPeriodoDao.observarUltimoFechamento(empregoId).map { it?.toDomain() }
-    }
-
-    override fun observarUltimos(empregoId: Long, limite: Int): Flow<List<FechamentoPeriodo>> {
-        return fechamentoPeriodoDao.listarUltimosPorEmprego(empregoId, limite).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override suspend fun contarPorEmpregoId(empregoId: Long): Int =
+        fechamentoDao.countByEmpregoId(empregoId)
 }

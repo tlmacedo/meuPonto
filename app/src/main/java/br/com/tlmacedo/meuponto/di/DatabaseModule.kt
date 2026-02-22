@@ -21,7 +21,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 5.4.0 - Adicionada migração 13->14 para campos específicos de ausência
+ * @updated 6.0.0 - Adicionada migração 14->15 para novo sistema de ciclos de banco
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -50,7 +50,8 @@ object DatabaseModule {
                 MIGRATION_10_11,
                 MIGRATION_11_12,
                 MIGRATION_12_13,
-                MIGRATION_13_14  // Nova migração
+                MIGRATION_13_14,
+                MIGRATION_14_15  // Nova migração - sistema de ciclos
             )
             .addCallback(createDatabaseCallback())
             .build()
@@ -67,6 +68,7 @@ object DatabaseModule {
 
     /**
      * Insere dados iniciais de teste para desenvolvimento.
+     * NOTA: Usa os novos nomes de campos (versão 15)
      */
     private fun inserirDadosIniciais(db: SupportSQLiteDatabase) {
         val now = LocalDateTime.now().toString()
@@ -94,7 +96,7 @@ object DatabaseModule {
         )
 
         // ========================================================================
-        // 2. CONFIGURAÇÃO DO EMPREGO
+        // 2. CONFIGURAÇÃO DO EMPREGO (novos nomes de campos - versão 15)
         // ========================================================================
         db.execSQL(
             """
@@ -114,11 +116,14 @@ object DatabaseModule {
                 exibirDuracaoTurno,
                 exibirDuracaoIntervalo,
                 primeiroDiaSemana,
-                primeiroDiaMes,
+                diaInicioFechamentoRH,
                 zerarSaldoSemanal,
-                zerarSaldoMensal,
+                zerarSaldoPeriodoRH,
                 ocultarSaldoTotal,
-                periodoBancoHorasMeses,
+                bancoHorasHabilitado,
+                periodoBancoSemanas,
+                periodoBancoMeses,
+                dataInicioCicloBancoAtual,
                 diasUteisLembreteFechamento,
                 habilitarSugestaoAjuste,
                 zerarBancoAntesPeriodo,
@@ -145,6 +150,9 @@ object DatabaseModule {
                 0,
                 0,
                 0,
+                0,
+                0,
+                NULL,
                 3,
                 0,
                 0,

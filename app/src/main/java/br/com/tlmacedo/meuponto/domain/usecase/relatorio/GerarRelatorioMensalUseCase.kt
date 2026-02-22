@@ -17,8 +17,7 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.1.0 - Removida dependência de TipoPonto (tipo calculado por posição)
- * @updated 2.11.0 - Usa formatadores padronizados de MinutosExtensions
+ * @updated 3.0.0 - Atualizado para usar diaInicioFechamentoRH
  */
 class GerarRelatorioMensalUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
@@ -35,7 +34,6 @@ class GerarRelatorioMensalUseCase @Inject constructor(
         val diasTrabalhados: Int,
         val diasUteis: Int
     ) {
-        /** Saldo: "+00h 00min" ou "-00h 00min" */
         val saldoFormatado: String
             get() = saldoMinutos.minutosParaSaldoFormatado()
     }
@@ -53,18 +51,18 @@ class GerarRelatorioMensalUseCase @Inject constructor(
 
     suspend operator fun invoke(empregoId: Long, mes: YearMonth): RelatorioMensal {
         val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-        val primeiroDia = configuracao?.primeiroDiaMes ?: 1
+        val diaInicio = configuracao?.diaInicioFechamentoRH ?: 1
 
-        val dataInicio = if (primeiroDia == 1) {
+        val dataInicio = if (diaInicio == 1) {
             mes.atDay(1)
         } else {
-            mes.minusMonths(1).atDay(primeiroDia)
+            mes.minusMonths(1).atDay(diaInicio)
         }
 
-        val dataFim = if (primeiroDia == 1) {
+        val dataFim = if (diaInicio == 1) {
             mes.atEndOfMonth()
         } else {
-            mes.atDay(primeiroDia - 1)
+            mes.atDay(diaInicio - 1)
         }
 
         val pontos = pontoRepository.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
@@ -110,10 +108,6 @@ class GerarRelatorioMensalUseCase @Inject constructor(
         )
     }
 
-    /**
-     * Calcula tempo trabalhado baseado na posição dos pontos.
-     * Índice par = entrada, índice ímpar = saída.
-     */
     private fun calcularTempoTrabalhado(pontos: List<Ponto>): Long {
         if (pontos.isEmpty()) return 0L
 
@@ -121,10 +115,9 @@ class GerarRelatorioMensalUseCase @Inject constructor(
         var totalMinutos = 0L
         var i = 0
 
-        // Processa pares: índice 0 (entrada) + índice 1 (saída), etc.
         while (i < pontosOrdenados.size - 1) {
-            val entrada = pontosOrdenados[i]      // índice par = entrada
-            val saida = pontosOrdenados[i + 1]    // índice ímpar = saída
+            val entrada = pontosOrdenados[i]
+            val saida = pontosOrdenados[i + 1]
             totalMinutos += ChronoUnit.MINUTES.between(entrada.hora, saida.hora)
             i += 2
         }

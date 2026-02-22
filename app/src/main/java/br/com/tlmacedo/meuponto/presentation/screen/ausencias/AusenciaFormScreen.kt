@@ -80,6 +80,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.presentation.components.DurationInputField
 import coil.compose.AsyncImage
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
@@ -337,7 +338,7 @@ fun AusenciaFormScreen(
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         SectionTitle("Data e Horário")
 
                         // Data
@@ -381,34 +382,32 @@ fun AusenciaFormScreen(
                         HorizontalDivider()
 
                         // Duração da declaração
-                        Text(
-                            text = "Tempo da declaração",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        DuracaoSelector(
-                            horas = uiState.duracaoDeclaracaoHoras,
-                            minutos = uiState.duracaoDeclaracaoMinutos,
-                            onDuracaoChange = { h, m ->
-                                viewModel.onAction(AusenciaFormAction.AtualizarDuracaoDeclaracao(h, m))
-                            }
+                        DurationInputField(
+                            totalMinutos = uiState.duracaoDeclaracaoHoras * 60 + uiState.duracaoDeclaracaoMinutos,
+                            onValueChange = { totalMinutos ->
+                                val horas = totalMinutos / 60
+                                val minutos = totalMinutos % 60
+                                viewModel.onAction(AusenciaFormAction.AtualizarDuracaoDeclaracao(horas, minutos))
+                            },
+                            label = "Tempo da declaração",
+                            minValue = 1, // Mínimo 1 minuto
+                            maxValue = 720, // Máximo 12 horas
+                            modifier = Modifier.fillMaxWidth()
                         )
 
                         // Duração do abono
-                        Text(
-                            text = "Tempo que será abonado",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        DuracaoSelector(
-                            horas = uiState.duracaoAbonoHoras,
-                            minutos = uiState.duracaoAbonoMinutos,
-                            maxHoras = uiState.duracaoDeclaracaoHoras,
-                            maxMinutos = if (uiState.duracaoAbonoHoras == uiState.duracaoDeclaracaoHoras)
-                                uiState.duracaoDeclaracaoMinutos else 59,
-                            onDuracaoChange = { h, m ->
-                                viewModel.onAction(AusenciaFormAction.AtualizarDuracaoAbono(h, m))
-                            }
+                        val maxAbono = uiState.duracaoDeclaracaoHoras * 60 + uiState.duracaoDeclaracaoMinutos
+                        DurationInputField(
+                            totalMinutos = uiState.duracaoAbonoHoras * 60 + uiState.duracaoAbonoMinutos,
+                            onValueChange = { totalMinutos ->
+                                val horas = totalMinutos / 60
+                                val minutos = totalMinutos % 60
+                                viewModel.onAction(AusenciaFormAction.AtualizarDuracaoAbono(horas, minutos))
+                            },
+                            label = "Tempo que será abonado",
+                            minValue = 0,
+                            maxValue = maxAbono, // Não pode ser maior que a declaração
+                            modifier = Modifier.fillMaxWidth()
                         )
 
                         // Info card
@@ -682,85 +681,6 @@ private fun QuantidadeDiasSelector(
             enabled = quantidade < 365
         ) {
             Icon(Icons.Default.Add, "Aumentar")
-        }
-    }
-}
-
-@Composable
-private fun DuracaoSelector(
-    horas: Int,
-    minutos: Int,
-    maxHoras: Int = 12,
-    maxMinutos: Int = 59,
-    onDuracaoChange: (Int, Int) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Horas
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f)
-        ) {
-            IconButton(
-                onClick = { if (horas > 0) onDuracaoChange(horas - 1, minutos) },
-                enabled = horas > 0
-            ) {
-                Icon(Icons.Default.Remove, "Diminuir horas")
-            }
-            Text(
-                text = "${horas}h",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.width(40.dp),
-                textAlign = TextAlign.Center
-            )
-            IconButton(
-                onClick = { if (horas < maxHoras) onDuracaoChange(horas + 1, minutos) },
-                enabled = horas < maxHoras
-            ) {
-                Icon(Icons.Default.Add, "Aumentar horas")
-            }
-        }
-
-        // Minutos
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f)
-        ) {
-            IconButton(
-                onClick = {
-                    val novoMinuto = if (minutos >= 15) minutos - 15 else 45
-                    val novaHora = if (minutos < 15 && horas > 0) horas - 1 else horas
-                    if (novaHora > 0 || novoMinuto > 0) {
-                        onDuracaoChange(novaHora, novoMinuto)
-                    }
-                },
-                enabled = horas > 0 || minutos > 0
-            ) {
-                Icon(Icons.Default.Remove, "Diminuir minutos")
-            }
-            Text(
-                text = "${minutos}min",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.width(60.dp),
-                textAlign = TextAlign.Center
-            )
-            IconButton(
-                onClick = {
-                    val novoMinuto = (minutos + 15) % 60
-                    val novaHora = if (minutos + 15 >= 60) horas + 1 else horas
-                    if (novaHora <= maxHoras) {
-                        onDuracaoChange(novaHora, novoMinuto)
-                    }
-                },
-                enabled = horas < maxHoras || minutos < maxMinutos
-            ) {
-                Icon(Icons.Default.Add, "Aumentar minutos")
-            }
         }
     }
 }

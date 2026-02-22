@@ -5,10 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.model.DiaSemana
+import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
+import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
@@ -18,12 +22,8 @@ import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularResumoDiaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.DeterminarProximoTipoPontoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ExcluirPontoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterPontosDoDiaUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterResumoDiaCompletoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.RegistrarPontoUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
-import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
-import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
-import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -74,8 +74,10 @@ class HomeViewModel @Inject constructor(
     private val buscarAusenciaPorDataUseCase: BuscarAusenciaPorDataUseCase,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository,
-    private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository
+    private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
+    private val obterResumoDiaCompletoUseCase: ObterResumoDiaCompletoUseCase  // ← ADICIONAR
 ) : ViewModel() {
+
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -122,6 +124,7 @@ class HomeViewModel @Inject constructor(
             // Ações de exclusão
             is HomeAction.SolicitarExclusao -> solicitarExclusao(action.ponto)
             is HomeAction.CancelarExclusao -> cancelarExclusao()
+            is HomeAction.AtualizarMotivoExclusao -> atualizarMotivoExclusao(action.motivo)
             is HomeAction.ConfirmarExclusao -> confirmarExclusao()
 
             // Ações de navegação por data
@@ -254,71 +257,27 @@ class HomeViewModel @Inject constructor(
      * @updated 3.4.0 - Adicionado carregamento de feriados
      * @updated 4.0.0 - Integrado cálculo de dias especiais (feriado zera jornada)
      */
+    // Trecho para substituir em HomeViewModel.carregarPontosDoDia()
     private fun carregarPontosDoDia() {
         pontosCollectionJob?.cancel()
 
         val data = _uiState.value.dataSelecionada
-        val empregoId = _uiState.value.empregoAtivo?.id
+        val empregoId = _uiState.value.empregoAtivo?.id ?: return
 
         pontosCollectionJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // 1. Buscar feriados do dia
-            val feriados = obterFeriadosDaDataUseCase(data, empregoId)
-
-            // 2. Buscar ausência do dia (férias, folga, falta, atestado)
-            val resultadoAusencia = empregoId?.let {
-                buscarAusenciaPorDataUseCase(it, data)
-            }
-            val ausencia = resultadoAusencia?.ausencia
-
-            _uiState.update {
-                it.copy(
-                    feriadosDoDia = feriados,
-                    ausenciaDoDia = ausencia
-                )
-            }
-
-            // 3. Determinar o tipo de dia especial (ausência tem prioridade sobre feriado)
-            val tipoDiaEspecial = determinarTipoDiaEspecial(
-                feriados = feriados,
-                ausencia = ausencia
-            )
-
-            // 4. Buscar a versão de jornada vigente para a data selecionada
-            val versaoJornada = empregoId?.let {
-                versaoJornadaRepository.buscarPorEmpregoEData(it, data)
-            }
-
-            // 5. Buscar configuração do dia da semana DA VERSÃO CORRETA
-            val diaSemana = DiaSemana.fromDayOfWeek(data.dayOfWeek)
-            val horarioDia = versaoJornada?.id?.let { versaoId ->
-                horarioDiaSemanaRepository.buscarPorVersaoEDia(versaoId, diaSemana)
-            } ?: empregoId?.let {
-                horarioDiaSemanaRepository.buscarPorEmpregoEDia(it, diaSemana)
-            }
-
-            // 6. Atualizar versão de jornada no estado
-            _uiState.update { it.copy(versaoJornadaAtual = versaoJornada) }
-
-            // 7. Extrair tempo abonado (para DECLARACAO)
-            val tempoAbonadoMinutos = ausencia?.duracaoAbonoMinutos ?: 0
-
-            obterPontosDoDiaUseCase(data).collect { pontos ->
-                // 8. Calcular resumo com tipo de dia especial e tempo abonado
-                val resumo = calcularResumoDiaUseCase(
-                    pontos = pontos,
-                    data = data,
-                    horarioDiaSemana = horarioDia,
-                    tipoDiaEspecial = tipoDiaEspecial,
-                    tempoAbonadoMinutos = tempoAbonadoMinutos
-                )
-                val proximoTipo = determinarProximoTipoPontoUseCase(pontos)
+            // UMA ÚNICA chamada para obter TUDO
+            obterResumoDiaCompletoUseCase.observar(empregoId, data).collect { resumoCompleto ->
+                val proximoTipo = determinarProximoTipoPontoUseCase(resumoCompleto.pontos)
 
                 _uiState.update {
                     it.copy(
-                        pontosHoje = pontos,
-                        resumoDia = resumo,
+                        pontosHoje = resumoCompleto.pontos,
+                        resumoDia = resumoCompleto.resumoDia,
+                        feriadosDoDia = listOfNotNull(resumoCompleto.feriado),
+                        ausenciaDoDia = resumoCompleto.ausenciaPrincipal,
+                        versaoJornadaAtual = null, // pode buscar se necessário
                         proximoTipo = proximoTipo,
                         isLoading = false
                     )
@@ -683,7 +642,8 @@ class HomeViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 showDeleteConfirmDialog = false,
-                pontoParaExcluir = null
+                pontoParaExcluir = null,
+                motivoExclusao = ""  // ADICIONAR - limpar motivo
             )
         }
     }
@@ -693,9 +653,23 @@ class HomeViewModel @Inject constructor(
      */
     private fun confirmarExclusao() {
         val ponto = _uiState.value.pontoParaExcluir ?: return
+        val motivo = _uiState.value.motivoExclusao.trim()
+
+        // Validação do motivo
+        if (motivo.length < 5) {
+            viewModelScope.launch {
+                _uiEvent.emit(HomeUiEvent.MostrarErro("Informe um motivo válido (mínimo 5 caracteres)"))
+            }
+            return
+        }
 
         viewModelScope.launch {
-            when (val resultado = excluirPontoUseCase(ponto.id)) {
+            val parametros = ExcluirPontoUseCase.Parametros(
+                pontoId = ponto.id,
+                motivo = motivo
+            )
+
+            when (val resultado = excluirPontoUseCase(parametros)) {
                 is ExcluirPontoUseCase.Resultado.Sucesso -> {
                     _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ponto excluído com sucesso"))
                 }
@@ -709,8 +683,23 @@ class HomeViewModel @Inject constructor(
                     _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.erros.joinToString("\n")))
                 }
             }
-            cancelarExclusao()
+
+            // Limpar estado do dialog
+            _uiState.update {
+                it.copy(
+                    showDeleteConfirmDialog = false,
+                    pontoParaExcluir = null,
+                    motivoExclusao = ""
+                )
+            }
         }
+    }
+
+    /**
+     * Atualiza o motivo da exclusão.
+     */
+    private fun atualizarMotivoExclusao(motivo: String) {
+        _uiState.update { it.copy(motivoExclusao = motivo) }
     }
 
     // ══════════════════════════════════════════════════════════════════════

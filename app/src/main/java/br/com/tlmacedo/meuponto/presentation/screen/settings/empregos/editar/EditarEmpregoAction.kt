@@ -7,9 +7,11 @@ import java.time.Duration
 import java.time.LocalDate
 
 /**
- * Sealed class que representa as ações possíveis na tela de edição de emprego.
+ * Ações disponíveis na tela de edição de emprego.
  *
- * @updated 2.5.0 - Removidas ações de tolerância entrada/saída
+ * @author Thiago
+ * @since 2.0.0
+ * @updated 3.0.0 - Novas ações para ciclo de banco de horas
  */
 sealed class EditarEmpregoAction {
     // Dados básicos
@@ -22,32 +24,31 @@ sealed class EditarEmpregoAction {
     data class AlterarIntervaloMinimo(val minutos: Int) : EditarEmpregoAction()
     data class AlterarIntervaloInterjornada(val minutos: Int) : EditarEmpregoAction()
 
-    // Tolerâncias (apenas intervalo)
+    // Tolerâncias
     data class AlterarToleranciaIntervaloMais(val minutos: Int) : EditarEmpregoAction()
 
-    // NSR
+    // NSR e Localização
     data class AlterarHabilitarNsr(val habilitado: Boolean) : EditarEmpregoAction()
     data class AlterarTipoNsr(val tipo: TipoNsr) : EditarEmpregoAction()
-
-    // Localização
     data class AlterarHabilitarLocalizacao(val habilitado: Boolean) : EditarEmpregoAction()
     data class AlterarLocalizacaoAutomatica(val automatica: Boolean) : EditarEmpregoAction()
 
     // Validações
     data class AlterarExigeJustificativa(val exigir: Boolean) : EditarEmpregoAction()
 
-    // Banco de Horas
+    // Período RH
     data class AlterarPrimeiroDiaSemana(val dia: DiaSemana) : EditarEmpregoAction()
-    data class AlterarPrimeiroDiaMes(val dia: Int) : EditarEmpregoAction()
+    data class AlterarDiaInicioFechamentoRH(val dia: Int) : EditarEmpregoAction()
+    data class AlterarZerarSaldoPeriodoRH(val zerar: Boolean) : EditarEmpregoAction()
+
+    // Banco de Horas - Ciclo
+    data class AlterarBancoHorasHabilitado(val habilitado: Boolean) : EditarEmpregoAction()
     data class AlterarPeriodoBancoHoras(val valor: Int) : EditarEmpregoAction()
-    data class AlterarZerarSaldoMensal(val zerar: Boolean) : EditarEmpregoAction()
+    data class AlterarDataInicioCicloBanco(val data: LocalDate?) : EditarEmpregoAction()
     data class AlterarZerarBancoAntesPeriodo(val zerar: Boolean) : EditarEmpregoAction()
-    data class AlterarUltimoFechamentoBanco(val data: LocalDate?) : EditarEmpregoAction()
 
     // UI
     data class ToggleSecao(val secao: SecaoFormulario) : EditarEmpregoAction()
-
-    // Ações principais
     data object Salvar : EditarEmpregoAction()
     data object Cancelar : EditarEmpregoAction()
     data object LimparErro : EditarEmpregoAction()

@@ -6,28 +6,18 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
- * Entidade Room que representa um fechamento de período no banco de dados.
- *
- * Esta entidade armazena os registros de fechamento de banco de horas,
- * permitindo o controle histórico de saldos anteriores e períodos fechados.
- *
- * @property id Identificador único gerado automaticamente
- * @property empregoId ID do emprego associado (FK)
- * @property dataFechamento Data em que o fechamento foi realizado
- * @property dataInicioPeriodo Data de início do período fechado
- * @property dataFimPeriodo Data de fim do período fechado
- * @property saldoAnteriorMinutos Saldo em minutos transportado do período anterior
- * @property tipo Tipo de fechamento (MENSAL, SEMESTRAL, ANUAL, MANUAL)
- * @property observacao Observação opcional sobre o fechamento
- * @property criadoEm Data/hora de criação do registro
+ * Entidade Room que armazena fechamentos de período do banco de horas.
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 3.0.0 - Suporte a fechamentos automáticos de ciclo
+ * @updated 6.0.0 - Corrigido mapeamento de colunas e índices para corresponder ao banco
  */
 @Entity(
     tableName = "fechamentos_periodo",
@@ -63,27 +53,18 @@ data class FechamentoPeriodoEntity(
     val dataFimPeriodo: LocalDate,
 
     @ColumnInfo(name = "saldo_anterior_minutos")
-    val saldoAnteriorMinutos: Int = 0,
+    val saldoAnteriorMinutos: Int,
 
-    @ColumnInfo(name = "tipo")
-    val tipo: TipoFechamento = TipoFechamento.MENSAL,
+    val tipo: TipoFechamento,
 
-    @ColumnInfo(name = "observacao")
     val observacao: String? = null,
 
     @ColumnInfo(name = "criado_em")
     val criadoEm: LocalDateTime = LocalDateTime.now()
 )
 
-// ============================================================================
-// Funções de Mapeamento (Mapper Extensions)
-// ============================================================================
-
-/**
- * Converte FechamentoPeriodoEntity (camada de dados) para FechamentoPeriodo (camada de domínio).
- */
-fun FechamentoPeriodoEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo =
-    br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo(
+fun FechamentoPeriodoEntity.toDomain(): FechamentoPeriodo =
+    FechamentoPeriodo(
         id = id,
         empregoId = empregoId,
         dataFechamento = dataFechamento,
@@ -95,10 +76,7 @@ fun FechamentoPeriodoEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.Fe
         criadoEm = criadoEm
     )
 
-/**
- * Converte FechamentoPeriodo (camada de domínio) para FechamentoPeriodoEntity (camada de dados).
- */
-fun br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo.toEntity(): FechamentoPeriodoEntity =
+fun FechamentoPeriodo.toEntity(): FechamentoPeriodoEntity =
     FechamentoPeriodoEntity(
         id = id,
         empregoId = empregoId,
