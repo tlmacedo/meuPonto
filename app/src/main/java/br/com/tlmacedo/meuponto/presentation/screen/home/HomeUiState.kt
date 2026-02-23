@@ -5,6 +5,7 @@ import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
@@ -70,6 +71,7 @@ sealed class EstadoCiclo {
  * @updated 4.0.0 - Adicionado suporte a ausências (férias, folga, falta, atestado)
  * @updated 6.0.0 - Adicionado campo motivoExclusao para auditoria obrigatória
  * @updated 6.2.0 - Adicionado suporte a ciclos de banco de horas
+ * @updated 6.4.0 - Adicionado fechamentoCicloAnterior para exibir marco de início de ciclo
  */
 data class HomeUiState(
     val dataSelecionada: LocalDate = LocalDate.now(),
@@ -104,7 +106,9 @@ data class HomeUiState(
     val erro: String? = null,
     // Ciclo de banco de horas
     val estadoCiclo: EstadoCiclo = EstadoCiclo.Nenhum,
-    val showFechamentoCicloDialog: Boolean = false
+    val showFechamentoCicloDialog: Boolean = false,
+    // Fechamento de ciclo anterior (para exibir marco de início de novo ciclo)
+    val fechamentoCicloAnterior: FechamentoPeriodo? = null
 ) {
     companion object {
         private val localeBR = Locale("pt", "BR")
@@ -210,6 +214,26 @@ data class HomeUiState(
             is EstadoCiclo.EmAndamento -> estado.ciclo.saldoAtualFormatado
             else -> null
         }
+
+    // ========================================================================
+    // FECHAMENTO DE CICLO ANTERIOR (MARCO DE INÍCIO DE NOVO CICLO)
+    // ========================================================================
+
+    /**
+     * Verifica se a data selecionada é o primeiro dia de um novo ciclo
+     * (dia seguinte ao fechamento de um ciclo anterior).
+     */
+    val isInicioDeCiclo: Boolean
+        get() = fechamentoCicloAnterior?.let { fechamento ->
+            dataSelecionada == fechamento.dataFimPeriodo.plusDays(1)
+        } ?: false
+
+    /**
+     * Verifica se deve exibir o banner de fechamento de ciclo anterior.
+     * Exibe quando a data selecionada é o primeiro dia do novo ciclo.
+     */
+    val deveExibirBannerFechamentoCiclo: Boolean
+        get() = isInicioDeCiclo && fechamentoCicloAnterior != null
 
     // ========================================================================
     // FORMATAÇÃO DE DATA

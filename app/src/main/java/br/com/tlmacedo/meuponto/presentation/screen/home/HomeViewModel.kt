@@ -10,6 +10,7 @@ import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
+import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
@@ -73,7 +74,8 @@ class HomeViewModel @Inject constructor(
     private val verificarCicloPendenteUseCase: VerificarCicloPendenteUseCase,
     private val fecharCicloUseCase: FecharCicloUseCase,
     private val inicializarCiclosRetroativosUseCase: InicializarCiclosRetroativosUseCase,
-    private val reverterFechamentoIncorretoUseCase: ReverterFechamentoIncorretoUseCase
+    private val reverterFechamentoIncorretoUseCase: ReverterFechamentoIncorretoUseCase,
+    private val fechamentoPeriodoRepository: FechamentoPeriodoRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -368,6 +370,7 @@ class HomeViewModel @Inject constructor(
                     carregarConfiguracaoEmprego(emprego.id)
                     carregarPontosDoDia()
                     carregarBancoHoras()
+                    carregarFechamentoCicloAnterior()
                     verificarCicloBancoHoras()
                 }
             }
@@ -459,6 +462,25 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun carregarFechamentoCicloAnterior() {
+        viewModelScope.launch {
+            val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
+            val dataSelecionada = _uiState.value.dataSelecionada
+
+            // Buscar fechamento cujo dataFimPeriodo seja o dia anterior à data selecionada
+            val fechamento = fechamentoPeriodoRepository.buscarUltimoFechamentoBancoAteData(
+                empregoId = empregoId,
+                ateData = dataSelecionada.plusDays(1) // +1 para incluir o fechamento do dia anterior
+            )
+
+            // Verificar se a data selecionada é o dia seguinte ao fechamento
+            val fechamentoRelevante = fechamento?.takeIf {
+                it.dataFimPeriodo.plusDays(1) == dataSelecionada
+            }
+
+            _uiState.update { it.copy(fechamentoCicloAnterior = fechamentoRelevante) }
+        }
+    }
     private fun recarregarDados() {
         carregarPontosDoDia()
         carregarBancoHoras()
@@ -507,6 +529,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(dataSelecionada = data) }
         carregarPontosDoDia()
         carregarBancoHoras()
+        carregarFechamentoCicloAnterior()
     }
 
     // ══════════════════════════════════════════════════════════════════════

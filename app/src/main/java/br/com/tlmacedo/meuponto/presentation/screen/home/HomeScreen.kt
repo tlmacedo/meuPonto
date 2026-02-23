@@ -48,6 +48,7 @@ import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
 import br.com.tlmacedo.meuponto.presentation.components.DateNavigator
 import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorBottomSheet
 import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorChip
+import br.com.tlmacedo.meuponto.presentation.components.FechamentoCicloBanner
 import br.com.tlmacedo.meuponto.presentation.components.FeriadoBanner
 import br.com.tlmacedo.meuponto.presentation.components.IntervaloCard
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
@@ -314,6 +315,15 @@ internal fun HomeContent(
                 dataHoraInicioContador = uiState.dataHoraInicioContador,
                 mostrarContador = uiState.deveExibirContador
             )
+
+            // ═══════════════════════════════════════════════════════════════
+            // ADICIONAR AQUI: Banner de fechamento de ciclo anterior
+            // ═══════════════════════════════════════════════════════════════
+            if (uiState.deveExibirBannerFechamentoCiclo) {
+                uiState.fechamentoCicloAnterior?.let { fechamento ->
+                    FechamentoCicloBanner(fechamento = fechamento)
+                }
+            }
 
             if (uiState.temAusencia) {
                 uiState.ausenciaDoDia?.let { ausencia ->
