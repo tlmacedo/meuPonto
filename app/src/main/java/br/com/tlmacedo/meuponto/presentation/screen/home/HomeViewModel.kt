@@ -15,6 +15,7 @@ import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.FecharCicloUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.InicializarCiclosRetroativosUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.banco.ReverterFechamentoIncorretoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.VerificarCicloPendenteUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
@@ -51,6 +52,7 @@ import kotlin.math.abs
  * @author Thiago
  * @since 2.0.0
  * @updated 6.2.0 - Adicionado suporte a ciclos de banco de horas
+ * @updated 6.3.0 - Adicionado suporte a reversão de fechamentos incorretos
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -70,7 +72,8 @@ class HomeViewModel @Inject constructor(
     private val obterResumoDiaCompletoUseCase: ObterResumoDiaCompletoUseCase,
     private val verificarCicloPendenteUseCase: VerificarCicloPendenteUseCase,
     private val fecharCicloUseCase: FecharCicloUseCase,
-    private val inicializarCiclosRetroativosUseCase: InicializarCiclosRetroativosUseCase
+    private val inicializarCiclosRetroativosUseCase: InicializarCiclosRetroativosUseCase,
+    private val reverterFechamentoIncorretoUseCase: ReverterFechamentoIncorretoUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -89,7 +92,59 @@ class HomeViewModel @Inject constructor(
         carregarPontosDoDia()
         carregarBancoHoras()
         iniciarRelogioAtualizado()
-        verificarCicloBancoHoras()
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // CORREÇÃO TEMPORÁRIA: Reverter fechamentos incorretos
+        // TODO: Remover após executar uma vez com sucesso!
+        // ═══════════════════════════════════════════════════════════════════════
+        // reverterFechamentosIncorretos()
+    }
+
+    /**
+     * TEMPORÁRIO: Reverte fechamentos de ciclo incorretos.
+     *
+     * O ciclo correto é: 11/08/2025 ~ 10/02/2026
+     * A data de início do ciclo atual deve ser 11/08/2025 (pois ainda não venceu de verdade)
+     *
+     * REMOVER ESTE MÉTODO APÓS EXECUTAR COM SUCESSO!
+     */
+    private fun reverterFechamentosIncorretos() {
+        viewModelScope.launch {
+            // Aguardar emprego ser carregado
+            delay(2000)
+
+            val empregoId = _uiState.value.empregoAtivo?.id
+            if (empregoId == null) {
+                android.util.Log.w("REVERTER_DEBUG", "EmpregoId ainda é null, aguardando...")
+                delay(3000)
+            }
+
+            val empregoIdFinal = _uiState.value.empregoAtivo?.id ?: return@launch
+
+            android.util.Log.d("REVERTER_DEBUG", "Iniciando reversão para emprego: $empregoIdFinal")
+
+            // Data de início do ciclo CORRETA (seu ciclo original)
+            val dataInicioCicloCorreta = LocalDate.of(2025, 8, 11)
+
+            when (val resultado = reverterFechamentoIncorretoUseCase(empregoIdFinal, dataInicioCicloCorreta)) {
+                is ReverterFechamentoIncorretoUseCase.Resultado.Sucesso -> {
+                    android.util.Log.d("REVERTER_DEBUG", "✅ SUCESSO!")
+                    android.util.Log.d("REVERTER_DEBUG", "   Fechamentos removidos: ${resultado.fechamentosRemovidos}")
+                    android.util.Log.d("REVERTER_DEBUG", "   Ajustes removidos: ${resultado.ajustesRemovidos}")
+
+                    // Recarregar dados após correção
+                    carregarBancoHoras()
+                    verificarCicloBancoHoras()
+
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem(
+                        "Dados corrigidos! ${resultado.fechamentosRemovidos} fechamentos e ${resultado.ajustesRemovidos} ajustes removidos."
+                    ))
+                }
+                is ReverterFechamentoIncorretoUseCase.Resultado.Erro -> {
+                    android.util.Log.e("REVERTER_DEBUG", "❌ ERRO: ${resultado.mensagem}")
+                }
+            }
+        }
     }
 
     fun onAction(action: HomeAction) {
@@ -149,9 +204,9 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Inicializar ciclos retroativos
-            val resultadoInit = inicializarCiclosRetroativosUseCase(empregoId)
-            android.util.Log.d("CICLO_DEBUG", "inicializarCiclos resultado: $resultadoInit")
+            // Inicializar ciclos retroativos - DESABILITADO TEMPORARIAMENTE
+             val resultadoInit = inicializarCiclosRetroativosUseCase(empregoId)
+             android.util.Log.d("CICLO_DEBUG", "inicializarCiclos resultado: $resultadoInit")
 
             // Verificar estado do ciclo atual
             val resultado = verificarCicloPendenteUseCase(empregoId)

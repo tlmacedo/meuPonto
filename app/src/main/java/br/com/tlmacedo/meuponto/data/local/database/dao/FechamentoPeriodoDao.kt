@@ -17,8 +17,7 @@ import java.time.LocalDate
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 3.0.0 - Novos métodos para busca de ciclos
- * @updated 6.0.0 - Corrigido nomes de colunas para snake_case
+ * @updated 6.4.0 - Novo método para buscar fechamento até uma data específica
  */
 @Dao
 interface FechamentoPeriodoDao {
@@ -103,6 +102,27 @@ interface FechamentoPeriodoDao {
         LIMIT 1
     """)
     suspend fun getUltimoFechamentoBanco(empregoId: Long): FechamentoPeriodoEntity?
+
+    /**
+     * Busca o último fechamento de banco de horas que TERMINOU ANTES de uma data específica.
+     *
+     * Usado para calcular o banco de horas histórico. Por exemplo:
+     * - Se consultamos 05/02/2026 e existe fechamento com data_fim_periodo = 10/02/2026
+     * - Esse fechamento NÃO será retornado (porque 10/02 >= 05/02)
+     * - Apenas fechamentos cujo ciclo terminou ANTES da data consultada são considerados
+     */
+    @Query("""
+        SELECT * FROM fechamentos_periodo 
+        WHERE emprego_id = :empregoId 
+        AND tipo IN ('BANCO_HORAS', 'CICLO_BANCO_AUTOMATICO')
+        AND data_fim_periodo < :ateData
+        ORDER BY data_fim_periodo DESC
+        LIMIT 1
+    """)
+    suspend fun getUltimoFechamentoBancoAteData(
+        empregoId: Long,
+        ateData: LocalDate
+    ): FechamentoPeriodoEntity?
 
     @Query("DELETE FROM fechamentos_periodo WHERE emprego_id = :empregoId")
     suspend fun deleteByEmpregoId(empregoId: Long)

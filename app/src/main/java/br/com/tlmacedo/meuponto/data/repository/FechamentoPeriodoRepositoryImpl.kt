@@ -18,7 +18,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 3.0.0 - Suporte a ciclos de banco de horas
+ * @updated 6.4.0 - Novo método para buscar fechamento até uma data específica
  */
 @Singleton
 class FechamentoPeriodoRepositoryImpl @Inject constructor(
@@ -74,6 +74,12 @@ class FechamentoPeriodoRepositoryImpl @Inject constructor(
 
     override suspend fun buscarUltimoFechamentoBanco(empregoId: Long): FechamentoPeriodo? =
         fechamentoDao.getUltimoFechamentoBanco(empregoId)?.toDomain()
+
+    override suspend fun buscarUltimoFechamentoBancoAteData(
+        empregoId: Long,
+        ateData: LocalDate
+    ): FechamentoPeriodo? =
+        fechamentoDao.getUltimoFechamentoBancoAteData(empregoId, ateData)?.toDomain()
 
     override suspend fun excluirPorEmpregoId(empregoId: Long) =
         fechamentoDao.deleteByEmpregoId(empregoId)

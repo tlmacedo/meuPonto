@@ -3,7 +3,7 @@ package br.com.tlmacedo.meuponto.domain.usecase.banco
 
 import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
-import br.com.tlmacedo.meuponto.domain.usecase.saldo.CalcularSaldoPeriodoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
@@ -12,15 +12,16 @@ import javax.inject.Inject
  * UseCase para verificar se há ciclo de banco de horas pendente de fechamento.
  *
  * Um ciclo está pendente quando:
- * - dataAtual >= dataFimCiclo (o ciclo já terminou)
+ * - dataAtual > dataFimCiclo (o ciclo já terminou)
  * - Não foi criado um FechamentoPeriodo para este ciclo ainda
  *
  * @author Thiago
  * @since 6.2.0
+ * @updated 6.3.0 - Usa CalcularBancoHorasUseCase.calcularParaPeriodo para cálculo consistente
  */
 class VerificarCicloPendenteUseCase @Inject constructor(
     private val configuracaoRepository: ConfiguracaoEmpregoRepository,
-    private val calcularSaldoPeriodoUseCase: CalcularSaldoPeriodoUseCase
+    private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase
 ) {
 
     /**
@@ -53,7 +54,8 @@ class VerificarCicloPendenteUseCase @Inject constructor(
         return when {
             // Ciclo já encerrou - precisa fechar
             dataAtual.isAfter(dataFimCiclo) -> {
-                val saldo = calcularSaldoPeriodoUseCase(
+                // IMPORTANTE: Calcula o saldo EXATAMENTE do período do ciclo!
+                val resultado = calcularBancoHorasUseCase.calcularParaPeriodo(
                     empregoId = empregoId,
                     dataInicio = dataInicioCiclo,
                     dataFim = dataFimCiclo
@@ -63,7 +65,7 @@ class VerificarCicloPendenteUseCase @Inject constructor(
                     ciclo = CicloBancoHoras(
                         dataInicio = dataInicioCiclo,
                         dataFim = dataFimCiclo,
-                        saldoAtualMinutos = saldo.saldoTotalMinutos,
+                        saldoAtualMinutos = resultado.bancoHoras.saldoTotalMinutos,
                         isCicloAtual = false
                     ),
                     diasAposVencimento = -diasParaFim
@@ -72,7 +74,8 @@ class VerificarCicloPendenteUseCase @Inject constructor(
 
             // Ciclo próximo do fim - aviso
             diasParaFim <= configuracao.diasUteisLembreteFechamento -> {
-                val saldo = calcularSaldoPeriodoUseCase(
+                // Para ciclo em andamento, calcula até a data atual
+                val resultado = calcularBancoHorasUseCase.calcularParaPeriodo(
                     empregoId = empregoId,
                     dataInicio = dataInicioCiclo,
                     dataFim = dataAtual
@@ -82,7 +85,7 @@ class VerificarCicloPendenteUseCase @Inject constructor(
                     ciclo = CicloBancoHoras(
                         dataInicio = dataInicioCiclo,
                         dataFim = dataFimCiclo,
-                        saldoAtualMinutos = saldo.saldoTotalMinutos,
+                        saldoAtualMinutos = resultado.bancoHoras.saldoTotalMinutos,
                         isCicloAtual = true
                     ),
                     diasRestantes = diasParaFim
@@ -91,7 +94,8 @@ class VerificarCicloPendenteUseCase @Inject constructor(
 
             // Ciclo normal - sem pendências
             else -> {
-                val saldo = calcularSaldoPeriodoUseCase(
+                // Para ciclo em andamento, calcula até a data atual
+                val resultado = calcularBancoHorasUseCase.calcularParaPeriodo(
                     empregoId = empregoId,
                     dataInicio = dataInicioCiclo,
                     dataFim = dataAtual
@@ -101,7 +105,7 @@ class VerificarCicloPendenteUseCase @Inject constructor(
                     ciclo = CicloBancoHoras(
                         dataInicio = dataInicioCiclo,
                         dataFim = dataFimCiclo,
-                        saldoAtualMinutos = saldo.saldoTotalMinutos,
+                        saldoAtualMinutos = resultado.bancoHoras.saldoTotalMinutos,
                         isCicloAtual = true
                     ),
                     diasRestantes = diasParaFim

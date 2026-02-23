@@ -11,7 +11,7 @@ import java.time.LocalDate
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 3.0.0 - Novos métodos para ciclos de banco de horas
+ * @updated 6.4.0 - Novo método para buscar fechamento até uma data específica
  */
 interface FechamentoPeriodoRepository {
 
@@ -44,6 +44,22 @@ interface FechamentoPeriodoRepository {
     suspend fun buscarUltimoFechamento(empregoId: Long): FechamentoPeriodo?
 
     suspend fun buscarUltimoFechamentoBanco(empregoId: Long): FechamentoPeriodo?
+
+    /**
+     * Busca o último fechamento de banco de horas que TERMINOU ANTES de uma data específica.
+     *
+     * Usado para calcular o banco de horas histórico quando navegamos para datas passadas.
+     * Por exemplo: se estamos em 05/02/2026 e existe um fechamento que terminou em 10/02/2026,
+     * esse fechamento NÃO deve ser considerado (o ciclo ainda não tinha terminado naquela data).
+     *
+     * @param empregoId ID do emprego
+     * @param ateData Data limite (exclusive) - só retorna fechamentos com dataFimPeriodo < ateData
+     * @return Último fechamento anterior à data, ou null se não houver
+     */
+    suspend fun buscarUltimoFechamentoBancoAteData(
+        empregoId: Long,
+        ateData: LocalDate
+    ): FechamentoPeriodo?
 
     suspend fun excluirPorEmpregoId(empregoId: Long)
 

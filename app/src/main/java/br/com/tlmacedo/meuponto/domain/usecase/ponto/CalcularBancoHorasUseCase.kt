@@ -40,7 +40,7 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 6.1.0 - Corrigido para iterar todos os dias do período
+ * @updated 6.4.0 - Corrigido cálculo histórico para navegação entre datas
  */
 class CalcularBancoHorasUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
@@ -85,6 +85,9 @@ class CalcularBancoHorasUseCase @Inject constructor(
 
     /**
      * Calcula o banco de horas até uma data específica de forma reativa.
+     *
+     * IMPORTANTE: Para navegação entre datas, considera o fechamento mais recente
+     * que TERMINOU ANTES da data solicitada, não fechamentos futuros.
      */
     operator fun invoke(
         empregoId: Long,
@@ -97,14 +100,21 @@ class CalcularBancoHorasUseCase @Inject constructor(
             ausenciaRepository.observarAtivasPorEmprego(empregoId),
             feriadoRepository.observarTodosAtivos()
         ) { pontos, fechamentos, ajustes, ausencias, feriados ->
-            val ultimoFechamento = fechamentos
+            // ═══════════════════════════════════════════════════════════════════
+            // IMPORTANTE: Buscar o fechamento relevante para a data solicitada
+            // Um fechamento é relevante se dataFimPeriodo < ateData
+            // Isso garante que ao navegar para 05/02, não consideramos
+            // o fechamento de 10/02 que ainda não existia naquela data
+            // ═══════════════════════════════════════════════════════════════════
+            val fechamentoRelevante = fechamentos
                 .filter { it.tipo in listOf(TipoFechamento.BANCO_HORAS, TipoFechamento.CICLO_BANCO_AUTOMATICO) }
-                .maxByOrNull { it.dataFechamento }
+                .filter { it.dataFimPeriodo < ateData } // Só fechamentos ANTERIORES à data
+                .maxByOrNull { it.dataFimPeriodo }
 
             calcularBancoHoras(
                 empregoId = empregoId,
                 pontos = pontos,
-                ultimoFechamento = ultimoFechamento,
+                ultimoFechamento = fechamentoRelevante,
                 ajustes = ajustes,
                 ausencias = ausencias,
                 feriados = feriados,
@@ -115,12 +125,17 @@ class CalcularBancoHorasUseCase @Inject constructor(
 
     /**
      * Calcula o banco de horas de forma síncrona (suspend).
+     * Considera fechamentos anteriores para determinar a data de início.
      */
     suspend fun calcular(
         empregoId: Long,
         ateData: LocalDate = LocalDate.now()
     ): ResultadoBancoHoras {
-        val ultimoFechamento = fechamentoPeriodoRepository.buscarUltimoFechamentoBanco(empregoId)
+        // Buscar fechamento relevante (que terminou ANTES da data solicitada)
+        val ultimoFechamento = fechamentoPeriodoRepository.buscarUltimoFechamentoBancoAteData(
+            empregoId = empregoId,
+            ateData = ateData
+        )
 
         val dataInicio = ultimoFechamento?.dataFimPeriodo?.plusDays(1)
             ?: pontoRepository.buscarPrimeiraData(empregoId)
@@ -139,6 +154,57 @@ class CalcularBancoHorasUseCase @Inject constructor(
             ausencias = ausencias,
             feriados = feriados,
             ateData = ateData
+        )
+    }
+
+    /**
+     * Calcula o banco de horas até uma data específica (suspend).
+     * Usado para exibição na tela.
+     */
+    suspend fun calcularAteData(
+        empregoId: Long,
+        ateData: LocalDate
+    ): ResultadoBancoHoras {
+        return calcular(empregoId, ateData)
+    }
+
+    /**
+     * Calcula o saldo de um período específico, IGNORANDO fechamentos.
+     *
+     * Usado para fechamento de ciclos, onde precisamos calcular o saldo
+     * exatamente do período do ciclo (dataInicio ~ dataFim), sem considerar
+     * fechamentos anteriores que poderiam alterar a data de início do cálculo.
+     *
+     * @param empregoId ID do emprego
+     * @param dataInicio Data de início do período (inclusive)
+     * @param dataFim Data fim do período (inclusive)
+     * @return Resultado com o saldo do período
+     */
+    suspend fun calcularParaPeriodo(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): ResultadoBancoHoras {
+        android.util.Log.d("BANCO_DEBUG", "calcularParaPeriodo: $dataInicio ~ $dataFim")
+
+        val pontos = pontoRepository.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
+        val ajustes = ajusteSaldoRepository.buscarPorPeriodo(empregoId, dataInicio, dataFim)
+        val ausencias = ausenciaRepository.buscarPorPeriodo(empregoId, dataInicio, dataFim)
+        val feriados = feriadoRepository.buscarPorPeriodo(dataInicio, dataFim)
+
+        android.util.Log.d("BANCO_DEBUG", "  Pontos: ${pontos.size}")
+        android.util.Log.d("BANCO_DEBUG", "  Ajustes: ${ajustes.size}, total: ${ajustes.sumOf { it.minutos }}")
+        android.util.Log.d("BANCO_DEBUG", "  Ausências: ${ausencias.size}")
+        android.util.Log.d("BANCO_DEBUG", "  Feriados: ${feriados.size}")
+
+        return calcularBancoHorasParaPeriodo(
+            empregoId = empregoId,
+            pontos = pontos,
+            ajustes = ajustes,
+            ausencias = ausencias,
+            feriados = feriados,
+            dataInicio = dataInicio,
+            dataFim = dataFim
         )
     }
 
@@ -171,10 +237,59 @@ class CalcularBancoHorasUseCase @Inject constructor(
             )
         }
 
-        val pontosNoPeriodo = pontos.filter { it.data in dataInicio..ateData }
-        val ajustesNoPeriodo = ajustes.filter { it.data in dataInicio..ateData }
+        val resultado = calcularBancoHorasInterno(
+            empregoId = empregoId,
+            pontos = pontos,
+            ajustes = ajustes,
+            ausencias = ausencias,
+            feriados = feriados,
+            dataInicio = dataInicio,
+            dataFim = ateData
+        )
+
+        return resultado.copy(ultimoFechamento = ultimoFechamento)
+    }
+
+    /**
+     * Calcula o banco de horas para um período específico (sem considerar fechamentos).
+     */
+    private suspend fun calcularBancoHorasParaPeriodo(
+        empregoId: Long,
+        pontos: List<Ponto>,
+        ajustes: List<AjusteSaldo>,
+        ausencias: List<Ausencia>,
+        feriados: List<Feriado>,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): ResultadoBancoHoras {
+        return calcularBancoHorasInterno(
+            empregoId = empregoId,
+            pontos = pontos,
+            ajustes = ajustes,
+            ausencias = ausencias,
+            feriados = feriados,
+            dataInicio = dataInicio,
+            dataFim = dataFim
+        ).copy(ultimoFechamento = null)
+    }
+
+    /**
+     * Lógica interna de cálculo do banco de horas.
+     * Compartilhada entre os métodos públicos.
+     */
+    private suspend fun calcularBancoHorasInterno(
+        empregoId: Long,
+        pontos: List<Ponto>,
+        ajustes: List<AjusteSaldo>,
+        ausencias: List<Ausencia>,
+        feriados: List<Feriado>,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): ResultadoBancoHoras {
+        val pontosNoPeriodo = pontos.filter { it.data in dataInicio..dataFim }
+        val ajustesNoPeriodo = ajustes.filter { it.data in dataInicio..dataFim }
         val ausenciasNoPeriodo = ausencias.filter {
-            it.ativo && it.dataInicio <= ateData && it.dataFim >= dataInicio
+            it.ativo && it.dataInicio <= dataFim && it.dataFim >= dataInicio
         }
 
         // Pré-processar dados para evitar N+1 queries
@@ -182,11 +297,11 @@ class CalcularBancoHorasUseCase @Inject constructor(
 
         // Mapear feriados por data
         val feriadosPorData = mutableMapOf<LocalDate, Feriado>()
-        val anosNoPeriodo = (dataInicio.year..ateData.year).toList()
+        val anosNoPeriodo = (dataInicio.year..dataFim.year).toList()
         for (feriado in feriados.filter { it.ativo }) {
             for (ano in anosNoPeriodo) {
                 feriado.getDataParaAno(ano)?.let { data ->
-                    if (data in dataInicio..ateData) {
+                    if (data in dataInicio..dataFim) {
                         feriadosPorData[data] = feriado
                     }
                 }
@@ -197,7 +312,7 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val ausenciasPorData = mutableMapOf<LocalDate, MutableList<Ausencia>>()
         for (ausencia in ausenciasNoPeriodo) {
             var data = maxOf(ausencia.dataInicio, dataInicio)
-            while (data <= minOf(ausencia.dataFim, ateData)) {
+            while (data <= minOf(ausencia.dataFim, dataFim)) {
                 ausenciasPorData.getOrPut(data) { mutableListOf() }.add(ausencia)
                 data = data.plusDays(1)
             }
@@ -221,7 +336,7 @@ class CalcularBancoHorasUseCase @Inject constructor(
         // saldo negativo!
         // ═══════════════════════════════════════════════════════════════════
         var dataAtual = dataInicio
-        while (dataAtual <= ateData) {
+        while (dataAtual <= dataFim) {
             val pontosNoDia = pontosPorDia[dataAtual] ?: emptyList()
             val ausenciasDoDia = ausenciasPorData[dataAtual] ?: emptyList()
             val feriadoDoDia = feriadosPorData[dataAtual]
@@ -281,16 +396,20 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val totalAjustesMinutos = ajustesNoPeriodo.sumOf { it.minutos }
         saldoTotal = saldoTotal.plusMinutes(totalAjustesMinutos.toLong())
 
+        android.util.Log.d("BANCO_DEBUG", "  Resultado: saldo=${saldoTotal.toMinutes()} min, " +
+                "diasTrabalhados=$diasTrabalhados, diasComAusencia=$diasComAusencia, " +
+                "diasUteisSemRegistro=$diasUteisSemRegistro, ajustes=$totalAjustesMinutos")
+
         return ResultadoBancoHoras(
             saldoTotal = saldoTotal,
             dataInicio = dataInicio,
-            dataFim = ateData,
+            dataFim = dataFim,
             diasTrabalhados = diasTrabalhados,
             diasComAusencia = diasComAusencia,
             diasUteisSemRegistro = diasUteisSemRegistro,
             totalAjustesMinutos = totalAjustesMinutos,
             totalAbonosMinutos = totalAbonosMinutos,
-            ultimoFechamento = ultimoFechamento
+            ultimoFechamento = null
         )
     }
 }
