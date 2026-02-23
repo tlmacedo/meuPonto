@@ -382,13 +382,18 @@ enum class TipoAusencia(
 
     /**
      * Converte para [TipoDiaEspecial] usado no cálculo de jornada.
+     *
+     * @param tipoFolga Subtipo de folga (obrigatório quando tipo == FOLGA)
      */
-    fun toTipoDiaEspecial(): TipoDiaEspecial = when (this) {
+    fun toTipoDiaEspecial(tipoFolga: TipoFolga? = null): TipoDiaEspecial = when (this) {
         FERIAS -> TipoDiaEspecial.FERIAS
         ATESTADO -> TipoDiaEspecial.ATESTADO
-        DECLARACAO -> TipoDiaEspecial.NORMAL  // Dia normal com abono parcial
+        DECLARACAO -> TipoDiaEspecial.NORMAL
         FALTA_JUSTIFICADA -> TipoDiaEspecial.FALTA_JUSTIFICADA
-        FOLGA -> TipoDiaEspecial.FOLGA
+        FOLGA -> when (tipoFolga) {
+            TipoFolga.DAY_OFF -> TipoDiaEspecial.FALTA_JUSTIFICADA // Zera jornada
+            TipoFolga.COMPENSACAO, null -> TipoDiaEspecial.FOLGA   // Mantém jornada
+        }
         FALTA_INJUSTIFICADA -> TipoDiaEspecial.FALTA_INJUSTIFICADA
     }
 

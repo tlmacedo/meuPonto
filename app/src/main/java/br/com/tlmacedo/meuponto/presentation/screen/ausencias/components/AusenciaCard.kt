@@ -103,7 +103,7 @@ fun AusenciaCard(
             ) {
                 // Nome do tipo
                 Text(
-                    text = ausencia.tipoDescricao,
+                    text = ausencia.tipoDescricaoCompleta,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,

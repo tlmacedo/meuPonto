@@ -41,6 +41,7 @@ data class ResultadoTipoDia(
  *
  * @author Thiago
  * @since 4.0.0
+ * @updated 6.0.0 - Corrigido suporte a TipoFolga (DAY_OFF vs COMPENSACAO)
  */
 class ObterTipoDiaEspecialUseCase @Inject constructor(
     private val feriadoRepository: FeriadoRepository,
@@ -61,7 +62,7 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
 
         if (ausencia != null) {
             return ResultadoTipoDia(
-                tipoDiaEspecial = ausencia.tipo.toTipoDiaEspecial(),
+                tipoDiaEspecial = ausencia.tipo.toTipoDiaEspecial(ausencia.tipoFolga),
                 ausencia = ausencia,
                 descricao = ausencia.descricao ?: ausencia.tipoDescricao
             )
@@ -107,7 +108,7 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
             val ausencia = ausencias.firstOrNull()
             if (ausencia != null) {
                 return@combine ResultadoTipoDia(
-                    tipoDiaEspecial = ausencia.tipo.toTipoDiaEspecial(),
+                    tipoDiaEspecial = ausencia.tipo.toTipoDiaEspecial(ausencia.tipoFolga),
                     ausencia = ausencia,
                     descricao = ausencia.descricao ?: ausencia.tipoDescricao
                 )

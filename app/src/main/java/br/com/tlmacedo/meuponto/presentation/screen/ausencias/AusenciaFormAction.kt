@@ -2,6 +2,7 @@
 package br.com.tlmacedo.meuponto.presentation.screen.ausencias
 
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -10,13 +11,14 @@ import java.time.LocalTime
  *
  * @author Thiago
  * @since 4.0.0
- * @updated 5.5.0 - Removido SubTipoFolga
+ * @updated 6.1.0 - Adicionado SelecionarTipoFolga
  */
 sealed interface AusenciaFormAction {
     // ========================================================================
     // TIPO DE AUSÊNCIA
     // ========================================================================
     data class SelecionarTipo(val tipo: TipoAusencia) : AusenciaFormAction
+    data class SelecionarTipoFolga(val tipoFolga: TipoFolga) : AusenciaFormAction
     data object AbrirTipoSelector : AusenciaFormAction
     data object FecharTipoSelector : AusenciaFormAction
 

@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.AtualizarAusenciaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.CriarAusenciaUseCase
@@ -109,6 +110,9 @@ class AusenciaFormViewModel @Inject constructor(
             }
             is AusenciaFormAction.FecharTipoSelector -> {
                 _uiState.update { it.copy(showTipoSelector = false) }
+            }
+            is AusenciaFormAction.SelecionarTipoFolga -> {
+                _uiState.update { it.copy(tipoFolga = action.tipoFolga) }
             }
 
             // ================================================================
@@ -269,7 +273,8 @@ class AusenciaFormViewModel @Inject constructor(
                 tipo = tipo,
                 descricao = if (state.descricao.isBlank()) tipo.descricao else state.descricao,
                 showTipoSelector = false,
-                // Reset campos específicos ao mudar tipo
+                // CORREÇÃO: manter o tipoFolga do state
+                tipoFolga = state.tipoFolga,
                 horaInicio = if (tipo == TipoAusencia.DECLARACAO) LocalTime.of(8, 0) else state.horaInicio,
                 periodoAquisitivo = if (tipo == TipoAusencia.FERIAS) state.periodoAquisitivo else "",
                 imagemUri = if (tipo.permiteAnexo) state.imagemUri else null

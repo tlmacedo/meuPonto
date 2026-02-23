@@ -28,8 +28,8 @@ import javax.inject.Inject
 /**
  * Caso de uso para calcular o banco de horas acumulado.
  *
- * REFATORADO: Agora usa ObterResumoDiaCompletoUseCase como fonte única
- * de verdade para o cálculo de cada dia.
+ * IMPORTANTE: Itera por TODOS os dias do período (não apenas dias com pontos),
+ * pois dias úteis sem registro geram saldo negativo.
  *
  * FÓRMULA DO BANCO:
  * bancoHoras = Σ(saldoDia) + Σ(ajustesManuais)
@@ -40,7 +40,7 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 6.0.0 - Refatorado para usar ObterResumoDiaCompletoUseCase
+ * @updated 6.1.0 - Corrigido para iterar todos os dias do período
  */
 class CalcularBancoHorasUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
@@ -60,6 +60,7 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val dataFim: LocalDate,
         val diasTrabalhados: Int,
         val diasComAusencia: Int = 0,
+        val diasUteisSemRegistro: Int = 0,
         val totalAjustesMinutos: Int,
         val totalAbonosMinutos: Int = 0,
         val ultimoFechamento: FechamentoPeriodo?
@@ -150,9 +151,25 @@ class CalcularBancoHorasUseCase @Inject constructor(
         feriados: List<Feriado>,
         ateData: LocalDate
     ): ResultadoBancoHoras {
+        // Determinar data de início do cálculo
         val dataInicio = ultimoFechamento?.dataFimPeriodo?.plusDays(1)
             ?: pontos.minOfOrNull { it.data }
             ?: ateData
+
+        // Se não há pontos e não há fechamento, retorna zerado
+        if (dataInicio > ateData) {
+            return ResultadoBancoHoras(
+                saldoTotal = Duration.ZERO,
+                dataInicio = ateData,
+                dataFim = ateData,
+                diasTrabalhados = 0,
+                diasComAusencia = 0,
+                diasUteisSemRegistro = 0,
+                totalAjustesMinutos = 0,
+                totalAbonosMinutos = 0,
+                ultimoFechamento = ultimoFechamento
+            )
+        }
 
         val pontosNoPeriodo = pontos.filter { it.data in dataInicio..ateData }
         val ajustesNoPeriodo = ajustes.filter { it.data in dataInicio..ateData }
@@ -186,42 +203,50 @@ class CalcularBancoHorasUseCase @Inject constructor(
             }
         }
 
-        // Cache de versões de jornada
+        // Cache de versões de jornada e horários
         val versaoCache = mutableMapOf<Long, VersaoCache>()
+        val horarioSemVersaoCache = mutableMapOf<DiaSemana, HorarioDiaSemana?>()
         val configGlobal = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
         val cargaPadrao = configGlobal?.cargaHorariaDiariaMinutos ?: 480
 
         var saldoTotal = Duration.ZERO
         var diasTrabalhados = 0
         var diasComAusencia = 0
+        var diasUteisSemRegistro = 0
         var totalAbonosMinutos = 0
 
-        // Processar todos os dias relevantes
-        val todasAsDatas = (pontosPorDia.keys + ausenciasPorData.keys)
-            .filter { it in dataInicio..ateData }
-            .toSortedSet()
+        // ═══════════════════════════════════════════════════════════════════
+        // IMPORTANTE: Iterar por TODOS os dias do período, não apenas
+        // os dias com pontos/ausências. Dias úteis sem registro geram
+        // saldo negativo!
+        // ═══════════════════════════════════════════════════════════════════
+        var dataAtual = dataInicio
+        while (dataAtual <= ateData) {
+            val pontosNoDia = pontosPorDia[dataAtual] ?: emptyList()
+            val ausenciasDoDia = ausenciasPorData[dataAtual] ?: emptyList()
+            val feriadoDoDia = feriadosPorData[dataAtual]
 
-        for (data in todasAsDatas) {
-            val pontosNoDia = pontosPorDia[data] ?: emptyList()
-            val ausenciasDoDia = ausenciasPorData[data] ?: emptyList()
-            val feriadoDoDia = feriadosPorData[data]
+            // Buscar configuração de jornada para o dia
+            val diaSemana = DiaSemana.fromJavaDayOfWeek(dataAtual.dayOfWeek)
+            val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, dataAtual)
 
-            // Buscar configuração de jornada
-            val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
-            val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
-
-            val horarioDia = versaoJornada?.let { versao ->
-                val cached = versaoCache[versao.id] ?: run {
-                    val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(versao.id)
+            val horarioDia = if (versaoJornada != null) {
+                val cached = versaoCache[versaoJornada.id] ?: run {
+                    val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
                         .associateBy { it.diaSemana }
-                    VersaoCache(versao, horarios).also { versaoCache[versao.id] = it }
+                    VersaoCache(versaoJornada, horarios).also { versaoCache[versaoJornada.id] = it }
                 }
                 cached.horariosPorDia[diaSemana]
-            } ?: horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+            } else {
+                // Cache para horários sem versão específica
+                horarioSemVersaoCache.getOrPut(diaSemana) {
+                    horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+                }
+            }
 
             // Usar a FONTE ÚNICA para calcular o resumo do dia
             val resumoCompleto = obterResumoDiaCompletoUseCase.invokeComDados(
-                data = data,
+                data = dataAtual,
                 pontos = pontosNoDia,
                 ausencias = ausenciasDoDia,
                 feriado = feriadoDoDia,
@@ -236,10 +261,20 @@ class CalcularBancoHorasUseCase @Inject constructor(
             if (ausenciasDoDia.isNotEmpty()) {
                 diasComAusencia++
             }
+
+            // Dia útil sem registro = tinha jornada esperada mas não bateu ponto
+            val jornadaEsperada = resumoCompleto.cargaHorariaEfetivaMinutos
+            if (jornadaEsperada > 0 && pontosNoDia.isEmpty() && ausenciasDoDia.isEmpty() && feriadoDoDia == null) {
+                diasUteisSemRegistro++
+            }
+
             totalAbonosMinutos += resumoCompleto.tempoAbonadoMinutos
 
             // Somar saldo do dia ao total
             saldoTotal = saldoTotal.plus(resumoCompleto.saldoDia)
+
+            // Próximo dia
+            dataAtual = dataAtual.plusDays(1)
         }
 
         // Adicionar ajustes manuais
@@ -252,6 +287,7 @@ class CalcularBancoHorasUseCase @Inject constructor(
             dataFim = ateData,
             diasTrabalhados = diasTrabalhados,
             diasComAusencia = diasComAusencia,
+            diasUteisSemRegistro = diasUteisSemRegistro,
             totalAjustesMinutos = totalAjustesMinutos,
             totalAbonosMinutos = totalAbonosMinutos,
             ultimoFechamento = ultimoFechamento

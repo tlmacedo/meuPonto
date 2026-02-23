@@ -4,6 +4,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.ausencias
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -125,7 +126,7 @@ enum class ModoPeriodo {
 /**
  * Estado do formulário de ausência.
  *
- * @updated 5.5.0 - Removido SubTipoFolga
+ * @updated 6.1.0 - Adicionado TipoFolga
  */
 data class AusenciaFormUiState(
     // Identificação
@@ -135,6 +136,7 @@ data class AusenciaFormUiState(
 
     // Tipo
     val tipo: TipoAusencia = TipoAusencia.FERIAS,
+    val tipoFolga: TipoFolga = TipoFolga.COMPENSACAO, // Novo campo
 
     // Período (para tipos que usam período)
     val modoPeriodo: ModoPeriodo = ModoPeriodo.DATA_FINAL,
@@ -187,6 +189,7 @@ data class AusenciaFormUiState(
                 empregoId = ausencia.empregoId,
                 isEdicao = true,
                 tipo = ausencia.tipo,
+                tipoFolga = ausencia.tipoFolga ?: TipoFolga.COMPENSACAO,
                 modoPeriodo = ModoPeriodo.DATA_FINAL,
                 dataInicio = ausencia.dataInicio,
                 dataFim = ausencia.dataFim,
@@ -234,6 +237,10 @@ data class AusenciaFormUiState(
 
     val horaFimDeclaracao: LocalTime
         get() = horaInicio.plusMinutes(duracaoDeclaracaoTotalMinutos.toLong())
+
+    /** Indica se deve mostrar o seletor de tipo de folga */
+    val mostrarTipoFolga: Boolean
+        get() = tipo == TipoAusencia.FOLGA
 
     // ========================================================================
     // FORMATAÇÕES
@@ -335,6 +342,7 @@ data class AusenciaFormUiState(
             id = id,
             empregoId = empregoId,
             tipo = tipo,
+            tipoFolga = if (tipo == TipoAusencia.FOLGA) tipoFolga else null,
             dataInicio = dataInicio,
             dataFim = if (tipo.usaPeriodo) dataFimFinal else dataInicio,
             descricao = descricao.ifBlank { tipo.descricao },

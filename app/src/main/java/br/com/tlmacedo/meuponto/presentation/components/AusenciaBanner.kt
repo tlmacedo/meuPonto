@@ -93,13 +93,19 @@ fun AusenciaBanner(
                 Spacer(modifier = Modifier.width(10.dp))
 
                 // Tipo da ausência
+                val textoTipo = buildString {
+                    append(ausencia.tipo.descricao)
+                    ausencia.tipoFolga?.let { append(" (${it.descricao})") }
+                }
+
                 Text(
-                    text = ausencia.tipo.descricao,
+                    text = textoTipo,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = contentColor,
                     modifier = Modifier.weight(1f)
                 )
+
 
                 // Ícone de anexo (se houver imagem)
                 if (ausencia.imagemUri != null) {
@@ -119,11 +125,11 @@ fun AusenciaBanner(
                     }
                 }
 
-                // Badge de status
-                AusenciaStatusBadge(
-                    isJustificada = ausencia.isJustificada,
-                    contentColor = contentColor
-                )
+//                // Badge de status
+//                AusenciaStatusBadge(
+//                    isJustificada = ausencia.isJustificada,
+//                    contentColor = contentColor
+//                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))

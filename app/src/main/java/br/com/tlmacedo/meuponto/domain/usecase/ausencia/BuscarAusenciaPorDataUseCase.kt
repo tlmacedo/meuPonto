@@ -45,7 +45,7 @@ class BuscarAusenciaPorDataUseCase @Inject constructor(
         // Pega a primeira ausência ativa (não deveria haver mais de uma por validação)
         val ausencia = ausencias.firstOrNull()
 
-        val tipoDiaEspecial = ausencia?.tipo?.toTipoDiaEspecial()
+        val tipoDiaEspecial = ausencia?.tipo?.toTipoDiaEspecial(ausencia.tipoFolga)
             ?: TipoDiaEspecial.NORMAL
 
         return ResultadoAusenciaDia(
@@ -60,7 +60,7 @@ class BuscarAusenciaPorDataUseCase @Inject constructor(
     fun observar(empregoId: Long, data: LocalDate): Flow<ResultadoAusenciaDia> {
         return ausenciaRepository.observarPorData(empregoId, data).map { ausencias ->
             val ausencia = ausencias.firstOrNull()
-            val tipoDiaEspecial = ausencia?.tipo?.toTipoDiaEspecial()
+            val tipoDiaEspecial = ausencia?.tipo?.toTipoDiaEspecial(ausencia.tipoFolga)
                 ?: TipoDiaEspecial.NORMAL
 
             ResultadoAusenciaDia(

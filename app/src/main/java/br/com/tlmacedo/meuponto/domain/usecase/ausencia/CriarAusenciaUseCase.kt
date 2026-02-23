@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.domain.usecase.ausencia
 
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -35,6 +36,7 @@ class CriarAusenciaUseCase @Inject constructor(
     suspend operator fun invoke(
         empregoId: Long,
         tipo: TipoAusencia,
+        tipoFolga: TipoFolga? = null,  // ← ADICIONAR
         dataInicio: LocalDate,
         dataFim: LocalDate = dataInicio,
         descricao: String? = null,
@@ -65,6 +67,7 @@ class CriarAusenciaUseCase @Inject constructor(
         val ausencia = Ausencia(
             empregoId = empregoId,
             tipo = tipo,
+            tipoFolga = tipoFolga,
             dataInicio = dataInicio,
             dataFim = dataFim,
             descricao = descricao ?: tipo.descricao,
@@ -95,6 +98,7 @@ class CriarAusenciaUseCase @Inject constructor(
         return invoke(
             empregoId = ausencia.empregoId,
             tipo = ausencia.tipo,
+            tipoFolga = ausencia.tipoFolga,
             dataInicio = ausencia.dataInicio,
             dataFim = ausencia.dataFim,
             descricao = ausencia.descricao,

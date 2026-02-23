@@ -11,6 +11,7 @@ import java.time.LocalDateTime
  * @author Thiago
  * @since 4.0.0
  * @updated 5.5.0 - Removido SubTipoFolga
+ * @updated 5.7.0 - Corrigido mapeamento de tipoFolga
  */
 
 /**
@@ -21,6 +22,7 @@ fun Ausencia.toEntity(): AusenciaEntity {
         id = id,
         empregoId = empregoId,
         tipo = tipo,
+        tipoFolga = tipoFolga,  // ✅ ADICIONADO
         dataInicio = dataInicio,
         dataFim = dataFim,
         descricao = descricao,
@@ -44,6 +46,7 @@ fun AusenciaEntity.toDomain(): Ausencia {
         id = id,
         empregoId = empregoId,
         tipo = tipo,
+        tipoFolga = tipoFolga,  // ✅ ADICIONADO
         dataInicio = dataInicio,
         dataFim = dataFim,
         descricao = descricao,

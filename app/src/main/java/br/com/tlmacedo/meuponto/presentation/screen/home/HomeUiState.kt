@@ -262,13 +262,21 @@ data class HomeUiState(
 
     /**
      * Mensagem informativa sobre o tipo de dia.
+     * @updated 6.1.0 - Adicionado suporte a tipoFolga (Day-off/Compensação)
      */
     val mensagemTipoDia: String?
         get() = when {
             isFerias -> "Férias - sem jornada obrigatória"
             isAtestado -> "Atestado médico - sem jornada obrigatória"
             isLicenca -> "Licença - sem jornada obrigatória"
-            isFolga -> "Folga - sem jornada obrigatória"
+            isFolga -> {
+                val tipoFolgaDescricao = ausenciaDoDia?.tipoDescricaoCompleta ?: "Folga"
+                val complemento = if (ausenciaDoDia?.zeraJornadaEfetiva == true)
+                    "sem jornada obrigatória"
+                else
+                    "desconta do banco"
+                "$tipoFolgaDescricao - $complemento"
+            }
             isFalta -> "Falta - dia não trabalhado"
             isFeriadoTrabalhado -> "Feriado trabalhado - horas contam como extra"
             isFeriadoEfetivo -> "Feriado - sem jornada obrigatória"
@@ -283,7 +291,7 @@ data class HomeUiState(
             isFerias -> "🏖️"
             isAtestado -> "🏥"
             isLicenca -> "📋"
-            isFolga -> "🏠"
+            isFolga -> ausenciaDoDia?.tipoFolga?.emoji ?: "🏠"
             isFalta -> "❌"
             isFeriadoEfetivo -> "🎉"
             else -> ""

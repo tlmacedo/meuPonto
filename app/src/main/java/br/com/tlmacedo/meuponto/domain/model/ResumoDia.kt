@@ -83,7 +83,6 @@ enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
             FACULTATIVO,
             FERIAS,
             ATESTADO,
-            FOLGA,
             FALTA_JUSTIFICADA
         )
 

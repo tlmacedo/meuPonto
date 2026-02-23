@@ -7,6 +7,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -43,6 +44,7 @@ data class AusenciaEntity(
 
     val empregoId: Long,
     val tipo: TipoAusencia,
+    val tipoFolga: TipoFolga? = null,
     val dataInicio: LocalDate,
     val dataFim: LocalDate,
 
@@ -84,6 +86,7 @@ data class AusenciaEntity(
             id = id,
             empregoId = empregoId,
             tipo = tipo,
+            tipoFolga = tipoFolga,
             dataInicio = dataInicio,
             dataFim = dataFim,
             descricao = descricao,
@@ -108,6 +111,7 @@ data class AusenciaEntity(
                 id = ausencia.id,
                 empregoId = ausencia.empregoId,
                 tipo = ausencia.tipo,
+                tipoFolga = ausencia.tipoFolga,
                 dataInicio = ausencia.dataInicio,
                 dataFim = ausencia.dataFim,
                 descricao = ausencia.descricao,

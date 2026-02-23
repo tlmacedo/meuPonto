@@ -287,7 +287,7 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Determina o tipo de dia especial com base em ausências e feriados.
+     * Determina o tipo de dia especial com base nas ausências e feriados.
      *
      * PRIORIDADE:
      * 1. Ausência (férias, atestado, folga, falta) - sempre tem prioridade máxima
@@ -304,7 +304,7 @@ class HomeViewModel @Inject constructor(
     ): TipoDiaEspecial {
         // 1. Ausência tem prioridade máxima
         if (ausencia != null) {
-            return ausencia.tipo.toTipoDiaEspecial()
+            return ausencia.tipo.toTipoDiaEspecial(ausencia.tipoFolga)  // ✅ FIX
         }
 
         // 2. Verificar feriados

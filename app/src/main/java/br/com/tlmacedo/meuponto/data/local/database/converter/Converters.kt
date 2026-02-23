@@ -7,6 +7,7 @@ import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -80,4 +81,13 @@ class Converters {
 
     @TypeConverter
     fun toTipoAusencia(value: String): TipoAusencia = TipoAusencia.valueOf(value)
+
+    @TypeConverter
+    fun fromTipoFolga(value: TipoFolga?): String? = value?.name
+
+    @TypeConverter
+    fun toTipoFolga(value: String?): TipoFolga? = value?.let {
+        try { TipoFolga.valueOf(it) } catch (e: Exception) { null }
+    }
+
 }

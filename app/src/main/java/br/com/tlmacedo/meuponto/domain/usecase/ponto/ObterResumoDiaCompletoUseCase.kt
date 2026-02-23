@@ -235,9 +235,6 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         }
     }
 
-    /**
-     * Determina o tipo de dia especial e sua descrição.
-     */
     private fun determinarTipoDiaEspecial(
         ausencias: List<Ausencia>,
         feriado: Feriado?
@@ -245,8 +242,11 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         // Ausência que NÃO é declaração tem prioridade
         val ausenciaPrincipal = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO }
         if (ausenciaPrincipal != null) {
-            return ausenciaPrincipal.tipo.toTipoDiaEspecial() to
-                    (ausenciaPrincipal.descricao ?: ausenciaPrincipal.tipoDescricao)
+            // Usar o método atualizado que considera tipoFolga
+            val tipoDiaEspecial = ausenciaPrincipal.tipo.toTipoDiaEspecial(ausenciaPrincipal.tipoFolga)
+            val descricao = ausenciaPrincipal.tipoDescricaoCompleta +
+                    (ausenciaPrincipal.observacao?.let { " - $it" } ?: "")
+            return tipoDiaEspecial to descricao
         }
 
         // Feriado

@@ -138,20 +138,20 @@ fun ResumoCard(
                         }
                     }
 
-                    // Badge de status
-                    when {
-                        mostrarContador -> StatusBadgeCompact(texto = "Em andamento")
-                        resumoDia.isFeriado && resumoDia.pontos.isNotEmpty() -> StatusBadgeCompact(
-                            texto = "Hora extra",
-                            icone = Icons.Default.Star,
-                            corIcone = Success
-                        )
-                        resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL -> StatusBadgeCompact(
-                            texto = resumoDia.tipoDiaEspecial.descricaoCurta,
-                            icone = resumoDia.tipoDiaEspecial.getIcon(),
-                            corIcone = resumoDia.tipoDiaEspecial.getCor()
-                        )
-                    }
+//                    // Badge de status
+//                    when {
+//                        mostrarContador -> StatusBadgeCompact(texto = "Em andamento")
+//                        resumoDia.isFeriado && resumoDia.pontos.isNotEmpty() -> StatusBadgeCompact(
+//                            texto = "Hora extra",
+//                            icone = Icons.Default.Star,
+//                            corIcone = Success
+//                        )
+//                        resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL -> StatusBadgeCompact(
+//                            texto = resumoDia.tipoDiaEspecial.descricaoCurta,
+//                            icone = resumoDia.tipoDiaEspecial.getIcon(),
+//                            corIcone = resumoDia.tipoDiaEspecial.getCor()
+//                        )
+//                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
