@@ -2,8 +2,10 @@
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
 import br.com.tlmacedo.meuponto.domain.model.BancoHoras
+import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
@@ -19,12 +21,55 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
+ * Estados possíveis do ciclo de banco de horas.
+ *
+ * @author Thiago
+ * @since 6.2.0
+ */
+sealed class EstadoCiclo {
+    /** Banco de horas não habilitado ou sem configuração */
+    data object Nenhum : EstadoCiclo()
+
+    /** Ciclo em andamento normal */
+    data class EmAndamento(
+        val ciclo: CicloBancoHoras,
+        val diasRestantes: Int
+    ) : EstadoCiclo()
+
+    /** Ciclo próximo do fim (alerta) */
+    data class ProximoDoFim(
+        val ciclo: CicloBancoHoras,
+        val diasRestantes: Int
+    ) : EstadoCiclo() {
+        val mensagem: String
+            get() = when (diasRestantes) {
+                0 -> "Ciclo encerra hoje"
+                1 -> "Ciclo encerra amanhã"
+                else -> "Ciclo encerra em $diasRestantes dias"
+            }
+    }
+
+    /** Ciclo pendente de fechamento */
+    data class Pendente(
+        val ciclo: CicloBancoHoras,
+        val diasAposVencimento: Int
+    ) : EstadoCiclo() {
+        val mensagem: String
+            get() = when (diasAposVencimento) {
+                1 -> "Ciclo encerrou ontem"
+                else -> "Ciclo encerrou há $diasAposVencimento dias"
+            }
+    }
+}
+
+/**
  * Estado da tela Home.
  *
  * @author Thiago
  * @since 2.0.0
  * @updated 4.0.0 - Adicionado suporte a ausências (férias, folga, falta, atestado)
  * @updated 6.0.0 - Adicionado campo motivoExclusao para auditoria obrigatória
+ * @updated 6.2.0 - Adicionado suporte a ciclos de banco de horas
  */
 data class HomeUiState(
     val dataSelecionada: LocalDate = LocalDate.now(),
@@ -56,7 +101,10 @@ data class HomeUiState(
     // Exclusão de ponto
     val pontoParaExcluir: Ponto? = null,
     val motivoExclusao: String = "",
-    val erro: String? = null
+    val erro: String? = null,
+    // Ciclo de banco de horas
+    val estadoCiclo: EstadoCiclo = EstadoCiclo.Nenhum,
+    val showFechamentoCicloDialog: Boolean = false
 ) {
     companion object {
         private val localeBR = Locale("pt", "BR")
@@ -108,59 +156,60 @@ data class HomeUiState(
     // AUSÊNCIAS
     // ========================================================================
 
-    /**
-     * Verifica se há ausência registrada para o dia.
-     */
     val temAusencia: Boolean
         get() = ausenciaDoDia != null
 
-    /**
-     * Verifica se é dia de férias.
-     */
     val isFerias: Boolean
         get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FERIAS
 
-    /**
-     * Verifica se é dia de folga (compensação, day-off, etc.).
-     */
     val isFolga: Boolean
         get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FOLGA
 
-    /**
-     * Verifica se é falta.
-     */
     val isFalta: Boolean
         get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FALTA_INJUSTIFICADA
 
-    /**
-     * Verifica se é atestado médico.
-     */
     val isAtestado: Boolean
         get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.ATESTADO
 
-    /**
-     * Verifica se é licença (maternidade, paternidade, etc.).
-     */
     val isLicenca: Boolean
         get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FALTA_JUSTIFICADA
 
-    /**
-     * Verifica se é dia especial (qualquer tipo que não seja NORMAL).
-     */
     val isDiaEspecial: Boolean
         get() = resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL
 
-    /**
-     * Descrição da ausência para exibição.
-     */
     val descricaoAusencia: String?
         get() = ausenciaDoDia?.descricao ?: ausenciaDoDia?.tipoDescricao
 
-    /**
-     * Emoji do tipo de dia especial.
-     */
     val emojiDiaEspecial: String
         get() = resumoDia.tipoDiaEspecial.emoji
+
+    // ========================================================================
+    // CICLO DE BANCO DE HORAS - PROPRIEDADES COMPUTADAS
+    // ========================================================================
+
+    val temCicloPendente: Boolean
+        get() = estadoCiclo is EstadoCiclo.Pendente
+
+    val cicloProximoDoFim: Boolean
+        get() = estadoCiclo is EstadoCiclo.ProximoDoFim
+
+    val deveExibirBannerCiclo: Boolean
+        get() = temCicloPendente || cicloProximoDoFim
+
+    val mensagemBannerCiclo: String?
+        get() = when (val estado = estadoCiclo) {
+            is EstadoCiclo.Pendente -> estado.mensagem
+            is EstadoCiclo.ProximoDoFim -> estado.mensagem
+            else -> null
+        }
+
+    val saldoCicloFormatado: String?
+        get() = when (val estado = estadoCiclo) {
+            is EstadoCiclo.Pendente -> estado.ciclo.saldoAtualFormatado
+            is EstadoCiclo.ProximoDoFim -> estado.ciclo.saldoAtualFormatado
+            is EstadoCiclo.EmAndamento -> estado.ciclo.saldoAtualFormatado
+            else -> null
+        }
 
     // ========================================================================
     // FORMATAÇÃO DE DATA
@@ -198,14 +247,10 @@ data class HomeUiState(
     val nomeEmpregoAtivo: String
         get() = empregoAtivo?.nome ?: "Nenhum emprego"
 
-    /**
-     * Verifica se pode registrar ponto.
-     * Dias com ausência (férias, folga) NÃO permitem registro de ponto.
-     */
     val podeRegistrarPonto: Boolean
         get() = temEmpregoAtivo &&
                 !isFuturo &&
-                !temAusencia &&  // Bloqueia se tiver ausência
+                !temAusencia &&
                 (empregoAtivo?.podeRegistrarPonto == true)
 
     val podeRegistrarPontoAutomatico: Boolean
@@ -226,7 +271,7 @@ data class HomeUiState(
     val temIntervaloAberto: Boolean
         get() = isHoje && resumoDia.intervalos.any { it.aberto }
 
-    val intervaloAberto: br.com.tlmacedo.meuponto.domain.model.IntervaloPonto?
+    val intervaloAberto: IntervaloPonto?
         get() = if (isHoje) resumoDia.intervalos.find { it.aberto } else null
 
     val dataHoraInicioContador: LocalDateTime?
@@ -260,10 +305,6 @@ data class HomeUiState(
     val isFeriadoTrabalhado: Boolean
         get() = resumoDia.isFeriado && resumoDia.pontos.isNotEmpty()
 
-    /**
-     * Mensagem informativa sobre o tipo de dia.
-     * @updated 6.1.0 - Adicionado suporte a tipoFolga (Day-off/Compensação)
-     */
     val mensagemTipoDia: String?
         get() = when {
             isFerias -> "Férias - sem jornada obrigatória"
@@ -283,9 +324,6 @@ data class HomeUiState(
             else -> null
         }
 
-    /**
-     * Ícone/emoji para exibição do tipo de dia.
-     */
     val iconeTipoDia: String
         get() = when {
             isFerias -> "🏖️"

@@ -103,4 +103,14 @@ sealed interface HomeAction {
     data object AtualizarHora : HomeAction
     data object LimparErro : HomeAction
     data object RecarregarDados : HomeAction
+
+
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE CICLO DE BANCO DE HORAS
+    // ══════════════════════════════════════════════════════════════════════
+
+    data object AbrirDialogFechamentoCiclo : HomeAction
+    data object FecharDialogFechamentoCiclo : HomeAction
+    data object ConfirmarFechamentoCiclo : HomeAction
+    data object NavegarParaHistoricoCiclos : HomeAction
 }

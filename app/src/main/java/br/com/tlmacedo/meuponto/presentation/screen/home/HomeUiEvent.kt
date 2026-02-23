@@ -21,4 +21,7 @@ sealed interface HomeUiEvent {
     data class EmpregoTrocado(val nomeEmprego: String) : HomeUiEvent
     data object NavegarParaNovoEmprego : HomeUiEvent
     data class NavegarParaEditarEmprego(val empregoId: Long) : HomeUiEvent
+
+    data object NavegarParaHistoricoCiclos : HomeUiEvent
+
 }

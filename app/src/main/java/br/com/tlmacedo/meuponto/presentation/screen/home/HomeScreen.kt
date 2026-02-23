@@ -1,8 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -46,28 +44,31 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
+import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
 import br.com.tlmacedo.meuponto.presentation.components.DateNavigator
 import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorBottomSheet
 import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorChip
+import br.com.tlmacedo.meuponto.presentation.components.FeriadoBanner
 import br.com.tlmacedo.meuponto.presentation.components.IntervaloCard
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.components.NsrInputDialog
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoButton
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoManualButton
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
-import br.com.tlmacedo.meuponto.presentation.components.FeriadoBanner
-import br.com.tlmacedo.meuponto.presentation.components.NsrInputDialog
+import br.com.tlmacedo.meuponto.presentation.screen.home.components.FechamentoCicloDialog
+import br.com.tlmacedo.meuponto.util.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-
 
 /**
  * Tela principal do aplicativo Meu Ponto.
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 5.2.0 - DateNavigator, ResumoCard e botão de registro fixos
+ * @updated 6.2.0 - Adicionado suporte a ciclos de banco de horas
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,51 +79,46 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToEditPonto: (Long) -> Unit = {},
     onNavigateToNovoEmprego: () -> Unit = {},
-    onNavigateToEditarEmprego: (Long) -> Unit = {}
+    onNavigateToEditarEmprego: (Long) -> Unit = {},
+    onNavigateToHistoricoCiclos: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Coleta eventos
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is HomeUiEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(event.mensagem)
                 }
-
                 is HomeUiEvent.MostrarErro -> {
                     snackbarHostState.showSnackbar(event.mensagem)
                 }
-
                 is HomeUiEvent.NavegarParaHistorico -> {
                     onNavigateToHistory()
                 }
-
                 is HomeUiEvent.NavegarParaConfiguracoes -> {
                     onNavigateToSettings()
                 }
-
                 is HomeUiEvent.NavegarParaEditarPonto -> {
                     onNavigateToEditPonto(event.pontoId)
                 }
-
                 is HomeUiEvent.EmpregoTrocado -> {
                     snackbarHostState.showSnackbar("Emprego alterado: ${event.nomeEmprego}")
                 }
-
                 is HomeUiEvent.NavegarParaNovoEmprego -> {
                     onNavigateToNovoEmprego()
                 }
-
                 is HomeUiEvent.NavegarParaEditarEmprego -> {
                     onNavigateToEditarEmprego(event.empregoId)
+                }
+                is HomeUiEvent.NavegarParaHistoricoCiclos -> {
+                    onNavigateToHistoricoCiclos()
                 }
             }
         }
     }
 
-    // Navegar para data específica quando vindo do histórico
     LaunchedEffect(dataSelecionadaInicial) {
         dataSelecionadaInicial?.let { dataString ->
             try {
@@ -134,7 +130,6 @@ fun HomeScreen(
         }
     }
 
-    // Dialog de TimePicker
     if (uiState.showTimePickerDialog) {
         TimePickerDialog(
             titulo = "Registrar ${uiState.proximoTipo.descricao}",
@@ -148,7 +143,6 @@ fun HomeScreen(
         )
     }
 
-    // Dialog de DatePicker
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = uiState.dataSelecionada
@@ -183,7 +177,6 @@ fun HomeScreen(
         }
     }
 
-    // Dialog de confirmação de exclusão
     if (uiState.showDeleteConfirmDialog && uiState.pontoParaExcluir != null) {
         DeletePontoConfirmDialog(
             ponto = uiState.pontoParaExcluir!!,
@@ -195,7 +188,6 @@ fun HomeScreen(
         )
     }
 
-    // Dialog de NSR
     if (uiState.showNsrDialog) {
         NsrInputDialog(
             tipoNsr = uiState.tipoNsr,
@@ -207,7 +199,6 @@ fun HomeScreen(
         )
     }
 
-    // Bottom Sheet de seleção de emprego
     if (uiState.showEmpregoSelector) {
         EmpregoSelectorBottomSheet(
             empregos = uiState.empregosDisponiveis,
@@ -218,6 +209,14 @@ fun HomeScreen(
             onDismiss = {
                 viewModel.onAction(HomeAction.FecharSeletorEmprego)
             }
+        )
+    }
+
+    if (uiState.showFechamentoCicloDialog && uiState.estadoCiclo is EstadoCiclo.Pendente) {
+        FechamentoCicloDialog(
+            estadoCiclo = uiState.estadoCiclo as EstadoCiclo.Pendente,
+            onConfirmar = { viewModel.onAction(HomeAction.ConfirmarFechamentoCiclo) },
+            onCancelar = { viewModel.onAction(HomeAction.FecharDialogFechamentoCiclo) }
         )
     }
 
@@ -255,10 +254,6 @@ fun HomeScreen(
     }
 }
 
-/**
- * Conteúdo principal da tela Home.
- * Header fixo (DateNavigator + ResumoCard + Botão Registro) + Lista scrollável.
- */
 @Composable
 internal fun HomeContent(
     uiState: HomeUiState,
@@ -266,16 +261,21 @@ internal fun HomeContent(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        // ================================================================
-        // HEADER FIXO - DateNavigator + ResumoCard + Ausência + Botão (não rola)
-        // ================================================================
+
+        // Banner de ciclo (fixo no topo do conteúdo)
+        CicloBanner(
+            estadoCiclo = uiState.estadoCiclo,
+            onFecharCiclo = { onAction(HomeAction.AbrirDialogFechamentoCiclo) },
+            onVerHistorico = { onAction(HomeAction.NavegarParaHistoricoCiclos) }
+        )
+
+        // Header fixo
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // Chip de emprego (apenas se necessário)
             if (!uiState.temEmpregoAtivo || uiState.temMultiplosEmpregos) {
                 EmpregoSelectorChip(
                     empregoAtivo = uiState.empregoAtivo,
@@ -295,7 +295,6 @@ internal fun HomeContent(
                 )
             }
 
-            // Navegador de Data (FIXO)
             DateNavigator(
                 dataFormatada = uiState.dataFormatada,
                 dataFormatadaCurta = uiState.dataFormatadaCurta,
@@ -307,7 +306,6 @@ internal fun HomeContent(
                 onSelecionarData = { onAction(HomeAction.AbrirDatePicker) }
             )
 
-            // Card de Resumo (FIXO)
             ResumoCard(
                 horaAtual = uiState.horaAtual,
                 resumoDia = uiState.resumoDia,
@@ -317,14 +315,12 @@ internal fun HomeContent(
                 mostrarContador = uiState.deveExibirContador
             )
 
-            // Banner de Ausência (FIXO)
             if (uiState.temAusencia) {
                 uiState.ausenciaDoDia?.let { ausencia ->
                     AusenciaBanner(ausencia = ausencia)
                 }
             }
 
-            // Botão de Registrar Ponto (FIXO)
             if (uiState.podeRegistrarPontoAutomatico) {
                 RegistrarPontoButton(
                     proximoTipo = uiState.proximoTipo,
@@ -340,33 +336,26 @@ internal fun HomeContent(
                 )
             }
 
-            // Banner de Feriado (se houver)
             if (uiState.isFeriado) {
                 FeriadoBanner(feriados = uiState.feriadosDoDia)
             }
 
-            // Aviso de data futura
             if (uiState.isFuturo) {
                 FutureDateWarning()
             }
 
-            // Aviso de sem emprego
             if (!uiState.temEmpregoAtivo) {
                 NoEmpregoWarning()
             }
         }
 
-        // ================================================================
-        // CONTEÚDO SCROLLÁVEL - Banners, avisos e registros
-        // ================================================================
+        // Conteúdo scrollável
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // Seção de Registros de Ponto
             if (uiState.temPontos) {
-                // Divisor e título
                 item(key = "registros_header") {
                     Column {
                         HorizontalDivider(
@@ -382,7 +371,6 @@ internal fun HomeContent(
                     }
                 }
 
-                // Lista de intervalos
                 items(
                     items = uiState.resumoDia.intervalos,
                     key = { "intervalo_${it.entrada.id}" }
@@ -414,9 +402,6 @@ internal fun HomeContent(
     }
 }
 
-/**
- * Dialog de confirmação de exclusão de ponto.
- */
 @Composable
 private fun DeletePontoConfirmDialog(
     ponto: br.com.tlmacedo.meuponto.domain.model.Ponto,
@@ -491,9 +476,6 @@ private fun DeletePontoConfirmDialog(
     )
 }
 
-/**
- * Aviso de data futura.
- */
 @Composable
 private fun FutureDateWarning() {
     Column(
@@ -522,9 +504,6 @@ private fun FutureDateWarning() {
     }
 }
 
-/**
- * Aviso de sem emprego ativo.
- */
 @Composable
 private fun NoEmpregoWarning() {
     Column(
@@ -553,9 +532,6 @@ private fun NoEmpregoWarning() {
     }
 }
 
-/**
- * Estado vazio - sem pontos registrados.
- */
 @Composable
 private fun EmptyPontosState() {
     Column(

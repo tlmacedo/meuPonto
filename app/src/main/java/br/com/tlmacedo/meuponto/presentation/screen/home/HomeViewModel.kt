@@ -13,6 +13,9 @@ import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.banco.FecharCicloUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.banco.InicializarCiclosRetroativosUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.banco.VerificarCicloPendenteUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
@@ -38,25 +41,16 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlin.math.abs
 
 /**
  * ViewModel da tela Home.
  *
- * Gerencia o estado da tela principal do aplicativo, incluindo:
- * - Registro e listagem de pontos do dia
- * - Navegação entre datas
- * - Seleção de emprego ativo
- * - Cálculo de resumos e saldos
- * - Versão de jornada vigente
- * - Feriados do dia
- * - Suporte a NSR
- *
  * @author Thiago
  * @since 2.0.0
- * @updated 2.8.0 - Adicionado carregamento de versão de jornada
- * @updated 3.4.0 - Adicionado suporte a feriados
- * @updated 3.7.0 - Adicionado suporte a NSR
+ * @updated 6.2.0 - Adicionado suporte a ciclos de banco de horas
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -73,9 +67,11 @@ class HomeViewModel @Inject constructor(
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
-    private val obterResumoDiaCompletoUseCase: ObterResumoDiaCompletoUseCase  // ← ADICIONAR
+    private val obterResumoDiaCompletoUseCase: ObterResumoDiaCompletoUseCase,
+    private val verificarCicloPendenteUseCase: VerificarCicloPendenteUseCase,
+    private val fecharCicloUseCase: FecharCicloUseCase,
+    private val inicializarCiclosRetroativosUseCase: InicializarCiclosRetroativosUseCase
 ) : ViewModel() {
-
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -83,7 +79,6 @@ class HomeViewModel @Inject constructor(
     private val _uiEvent = MutableSharedFlow<HomeUiEvent>()
     val uiEvent: SharedFlow<HomeUiEvent> = _uiEvent.asSharedFlow()
 
-    // Job para coleta de pontos (cancelável ao trocar de data/emprego)
     private var pontosCollectionJob: Job? = null
     private var bancoHorasCollectionJob: Job? = null
     private var versaoJornadaCollectionJob: Job? = null
@@ -94,89 +89,201 @@ class HomeViewModel @Inject constructor(
         carregarPontosDoDia()
         carregarBancoHoras()
         iniciarRelogioAtualizado()
+        verificarCicloBancoHoras()
     }
 
-    /**
-     * Processa as ações do usuário.
-     */
     fun onAction(action: HomeAction) {
         when (action) {
-            // Ações de registro de ponto
             is HomeAction.RegistrarPontoAgora -> iniciarRegistroPonto(LocalTime.now())
             is HomeAction.AbrirTimePickerDialog -> abrirTimePicker()
             is HomeAction.FecharTimePickerDialog -> fecharTimePicker()
             is HomeAction.RegistrarPontoManual -> iniciarRegistroPonto(action.hora)
-
-            // Ações de NSR
             is HomeAction.AtualizarNsr -> atualizarNsr(action.nsr)
             is HomeAction.ConfirmarRegistroComNsr -> confirmarRegistroComNsr()
             is HomeAction.CancelarNsrDialog -> cancelarNsrDialog()
-
-            // No HomeViewModel, dentro do onAction:
             is HomeAction.EditarPonto -> {
                 viewModelScope.launch {
                     _uiEvent.emit(HomeUiEvent.NavegarParaEditarPonto(action.pontoId))
                 }
             }
-
-            // Ações de exclusão
             is HomeAction.SolicitarExclusao -> solicitarExclusao(action.ponto)
             is HomeAction.CancelarExclusao -> cancelarExclusao()
             is HomeAction.AtualizarMotivoExclusao -> atualizarMotivoExclusao(action.motivo)
             is HomeAction.ConfirmarExclusao -> confirmarExclusao()
-
-            // Ações de navegação por data
             is HomeAction.DiaAnterior -> navegarDiaAnterior()
             is HomeAction.ProximoDia -> navegarProximoDia()
             is HomeAction.IrParaHoje -> irParaHoje()
             is HomeAction.SelecionarData -> selecionarData(action.data)
-
-            // Ações de emprego
             is HomeAction.AbrirSeletorEmprego -> abrirSeletorEmprego()
             is HomeAction.FecharSeletorEmprego -> fecharSeletorEmprego()
             is HomeAction.SelecionarEmprego -> selecionarEmprego(action.emprego)
-
-            // Ações de navegação
             is HomeAction.NavegarParaHistorico -> navegarParaHistorico()
             is HomeAction.NavegarParaConfiguracoes -> navegarParaConfiguracoes()
-
-            // Ações internas
             is HomeAction.AtualizarHora -> atualizarHora()
             is HomeAction.LimparErro -> limparErro()
             is HomeAction.RecarregarDados -> recarregarDados()
-
-            // No when de onAction, adicione:
             is HomeAction.AbrirDatePicker -> abrirDatePicker()
             is HomeAction.FecharDatePicker -> fecharDatePicker()
-
             is HomeAction.NavegarParaNovoEmprego -> navegarParaNovoEmprego()
             is HomeAction.NavegarParaEditarEmprego -> navegarParaEditarEmprego()
             is HomeAction.AbrirMenuEmprego -> abrirMenuEmprego()
             is HomeAction.FecharMenuEmprego -> fecharMenuEmprego()
+            is HomeAction.AbrirDialogFechamentoCiclo -> abrirDialogFechamentoCiclo()
+            is HomeAction.FecharDialogFechamentoCiclo -> fecharDialogFechamentoCiclo()
+            is HomeAction.ConfirmarFechamentoCiclo -> confirmarFechamentoCiclo()
+            is HomeAction.NavegarParaHistoricoCiclos -> navegarParaHistoricoCiclos()
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // CICLO DE BANCO DE HORAS
+    // ══════════════════════════════════════════════════════════════════════
+
+    private fun verificarCicloBancoHoras() {
+        viewModelScope.launch {
+            val empregoId = _uiState.value.empregoAtivo?.id
+            android.util.Log.d("CICLO_DEBUG", "verificarCicloBancoHoras - empregoId: $empregoId")
+
+            if (empregoId == null) {
+                android.util.Log.d("CICLO_DEBUG", "empregoId é null, retornando")
+                return@launch
+            }
+
+            // Inicializar ciclos retroativos
+            val resultadoInit = inicializarCiclosRetroativosUseCase(empregoId)
+            android.util.Log.d("CICLO_DEBUG", "inicializarCiclos resultado: $resultadoInit")
+
+            // Verificar estado do ciclo atual
+            val resultado = verificarCicloPendenteUseCase(empregoId)
+            android.util.Log.d("CICLO_DEBUG", "verificarCicloPendente resultado: $resultado")
+
+            when (resultado) {
+                is VerificarCicloPendenteUseCase.Resultado.CicloPendente -> {
+                    android.util.Log.d("CICLO_DEBUG", "CICLO PENDENTE detectado!")
+                    _uiState.update {
+                        it.copy(
+                            estadoCiclo = EstadoCiclo.Pendente(
+                                ciclo = resultado.ciclo,
+                                diasAposVencimento = resultado.diasAposVencimento
+                            )
+                        )
+                    }
+                }
+
+                is VerificarCicloPendenteUseCase.Resultado.CicloProximoDoFim -> {
+                    _uiState.update {
+                        it.copy(
+                            estadoCiclo = EstadoCiclo.ProximoDoFim(
+                                ciclo = resultado.ciclo,
+                                diasRestantes = resultado.diasRestantes
+                            )
+                        )
+                    }
+                }
+
+                is VerificarCicloPendenteUseCase.Resultado.CicloEmAndamento -> {
+                    _uiState.update {
+                        it.copy(
+                            estadoCiclo = EstadoCiclo.EmAndamento(
+                                ciclo = resultado.ciclo,
+                                diasRestantes = resultado.diasRestantes
+                            )
+                        )
+                    }
+                }
+
+                is VerificarCicloPendenteUseCase.Resultado.SemConfiguracao,
+                is VerificarCicloPendenteUseCase.Resultado.BancoNaoHabilitado,
+                is VerificarCicloPendenteUseCase.Resultado.CicloNaoConfigurado -> {
+                    _uiState.update { it.copy(estadoCiclo = EstadoCiclo.Nenhum) }
+                }
+            }
+        }
+    }
+
+    private fun abrirDialogFechamentoCiclo() {
+        _uiState.update { it.copy(showFechamentoCicloDialog = true) }
+    }
+
+    private fun fecharDialogFechamentoCiclo() {
+        _uiState.update { it.copy(showFechamentoCicloDialog = false) }
+    }
+
+    private fun confirmarFechamentoCiclo() {
+        viewModelScope.launch {
+            val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
+
+            _uiState.update { it.copy(isLoading = true, showFechamentoCicloDialog = false) }
+
+            when (val resultado = fecharCicloUseCase.fecharCiclosPendentes(empregoId)) {
+                is FecharCicloUseCase.ResultadoMultiplo.Sucesso -> {
+                    val qtd = resultado.ciclosFechados.size
+                    val saldoTotal = resultado.ciclosFechados.sumOf { it.saldoAtualMinutos }
+
+                    _uiEvent.emit(
+                        HomeUiEvent.MostrarMensagem(
+                            if (qtd == 1) {
+                                "Ciclo fechado. Saldo zerado: ${formatarMinutos(saldoTotal)}"
+                            } else {
+                                "$qtd ciclos fechados. Saldo total zerado: ${formatarMinutos(saldoTotal)}"
+                            }
+                        )
+                    )
+
+                    resultado.novoCiclo?.let { novoCiclo ->
+                        _uiState.update {
+                            it.copy(
+                                estadoCiclo = EstadoCiclo.EmAndamento(
+                                    ciclo = novoCiclo,
+                                    diasRestantes = ChronoUnit.DAYS
+                                        .between(LocalDate.now(), novoCiclo.dataFim).toInt()
+                                )
+                            )
+                        }
+                    }
+
+                    carregarBancoHoras()
+                }
+
+                is FecharCicloUseCase.ResultadoMultiplo.NenhumPendente -> {
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Nenhum ciclo pendente"))
+                }
+
+                is FecharCicloUseCase.ResultadoMultiplo.Erro -> {
+                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.mensagem))
+                }
+            }
+
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    private fun navegarParaHistoricoCiclos() {
+        viewModelScope.launch {
+            _uiEvent.emit(HomeUiEvent.NavegarParaHistoricoCiclos)
+        }
+    }
+
+    private fun formatarMinutos(minutos: Int): String {
+        val sinal = if (minutos >= 0) "+" else "-"
+        val total = abs(minutos)
+        val horas = total / 60
+        val mins = total % 60
+        return "$sinal${String.format("%02d:%02d", horas, mins)}"
     }
 
     // ══════════════════════════════════════════════════════════════════════
     // MENU DE EMPREGO
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Abre o menu de opções do emprego.
-     */
     private fun abrirMenuEmprego() {
         _uiState.update { it.copy(showEmpregoMenu = true) }
     }
 
-    /**
-     * Fecha o menu de opções do emprego.
-     */
     private fun fecharMenuEmprego() {
         _uiState.update { it.copy(showEmpregoMenu = false) }
     }
 
-    /**
-     * Navega para a tela de criar novo emprego.
-     */
     private fun navegarParaNovoEmprego() {
         viewModelScope.launch {
             fecharMenuEmprego()
@@ -184,9 +291,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Navega para a tela de editar o emprego ativo.
-     */
     private fun navegarParaEditarEmprego() {
         val empregoId = _uiState.value.empregoAtivo?.id ?: return
         viewModelScope.launch {
@@ -199,28 +303,22 @@ class HomeViewModel @Inject constructor(
     // CARREGAMENTO DE DADOS
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Carrega o emprego ativo e inicia a observação dos dados.
-     */
     private fun carregarEmpregoAtivo() {
         viewModelScope.launch {
             obterEmpregoAtivoUseCase.observar().collect { emprego ->
                 val empregoAnterior = _uiState.value.empregoAtivo
                 _uiState.update { it.copy(empregoAtivo = emprego) }
 
-                // Recarrega dados se o emprego mudou
                 if (emprego != null && empregoAnterior?.id != emprego.id) {
                     carregarConfiguracaoEmprego(emprego.id)
-                    carregarPontosDoDia()  // Isso já carrega versão, banco e feriados
+                    carregarPontosDoDia()
                     carregarBancoHoras()
+                    verificarCicloBancoHoras()
                 }
             }
         }
     }
 
-    /**
-     * Carrega a configuração do emprego ativo.
-     */
     private fun carregarConfiguracaoEmprego(empregoId: Long) {
         viewModelScope.launch {
             val configuracao = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
@@ -228,9 +326,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Carrega a lista de empregos disponíveis.
-     */
     private fun carregarEmpregos() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingEmpregos = true) }
@@ -245,17 +340,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Carrega os pontos do dia selecionado.
-     *
-     * IMPORTANTE: Busca o horário da versão de jornada correta para a data,
-     * garantindo que a carga horária exibida corresponda à configuração vigente.
-     *
-     * @updated 2.8.0 - Corrigido para buscar horário da versão de jornada correta
-     * @updated 3.4.0 - Adicionado carregamento de feriados
-     * @updated 4.0.0 - Integrado cálculo de dias especiais (feriado zera jornada)
-     */
-    // Trecho para substituir em HomeViewModel.carregarPontosDoDia()
     private fun carregarPontosDoDia() {
         pontosCollectionJob?.cancel()
 
@@ -265,7 +349,6 @@ class HomeViewModel @Inject constructor(
         pontosCollectionJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // UMA ÚNICA chamada para obter TUDO
             obterResumoDiaCompletoUseCase.observar(empregoId, data).collect { resumoCompleto ->
                 val proximoTipo = determinarProximoTipoPontoUseCase(resumoCompleto.pontos)
 
@@ -275,7 +358,7 @@ class HomeViewModel @Inject constructor(
                         resumoDia = resumoCompleto.resumoDia,
                         feriadosDoDia = resumoCompleto.feriadosDoDia,
                         ausenciaDoDia = resumoCompleto.ausenciaPrincipal,
-                        versaoJornadaAtual = null, // pode buscar se necessário
+                        versaoJornadaAtual = null,
                         proximoTipo = proximoTipo,
                         isLoading = false
                     )
@@ -284,28 +367,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Determina o tipo de dia especial com base nas ausências e feriados.
-     *
-     * PRIORIDADE:
-     * 1. Ausência (férias, atestado, folga, falta) - sempre tem prioridade máxima
-     * 2. Feriado (nacional, estadual, municipal)
-     * 3. Dia normal
-     *
-     * @param feriados Lista de feriados do dia
-     * @param ausencia Ausência do dia (se houver)
-     * @return TipoDiaEspecial correspondente
-     */
     private fun determinarTipoDiaEspecial(
         feriados: List<Feriado>,
         ausencia: Ausencia? = null
     ): TipoDiaEspecial {
-        // 1. Ausência tem prioridade máxima
         if (ausencia != null) {
-            return ausencia.tipo.toTipoDiaEspecial(ausencia.tipoFolga)  // ✅ FIX
+            return ausencia.tipo.toTipoDiaEspecial(ausencia.tipoFolga)
         }
 
-        // 2. Verificar feriados
         if (feriados.isEmpty()) return TipoDiaEspecial.NORMAL
 
         val temFeriadoFolga = feriados.any { feriado ->
@@ -319,11 +388,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-
-    /**
-     * Carrega o banco de horas até a data selecionada.
-     * O saldo é dinâmico: calculado desde o último fechamento até a data visualizada.
-     */
     private fun carregarBancoHoras() {
         bancoHorasCollectionJob?.cancel()
 
@@ -340,9 +404,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Recarrega todos os dados da tela.
-     */
     private fun recarregarDados() {
         carregarPontosDoDia()
         carregarBancoHoras()
@@ -352,9 +413,6 @@ class HomeViewModel @Inject constructor(
     // RELÓGIO
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Inicia o timer que atualiza a hora a cada segundo.
-     */
     private fun iniciarRelogioAtualizado() {
         viewModelScope.launch {
             while (true) {
@@ -364,9 +422,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Atualiza a hora manualmente.
-     */
     private fun atualizarHora() {
         _uiState.update { it.copy(horaAtual = LocalTime.now()) }
     }
@@ -375,9 +430,6 @@ class HomeViewModel @Inject constructor(
     // NAVEGAÇÃO POR DATA
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Navega para o dia anterior.
-     */
     private fun navegarDiaAnterior() {
         val novaData = _uiState.value.dataSelecionada.minusDays(1)
         if (_uiState.value.podeNavegaAnterior) {
@@ -385,9 +437,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Navega para o próximo dia.
-     */
     private fun navegarProximoDia() {
         val novaData = _uiState.value.dataSelecionada.plusDays(1)
         if (_uiState.value.podeNavegarProximo) {
@@ -395,21 +444,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Navega para a data de hoje.
-     */
     private fun irParaHoje() {
         selecionarData(LocalDate.now())
     }
 
-    /**
-     * Seleciona uma data específica e recarrega os dados.
-     * O banco de horas é recalculado até a nova data selecionada.
-     * A versão de jornada é atualizada automaticamente em carregarPontosDoDia().
-     */
     private fun selecionarData(data: LocalDate) {
         _uiState.update { it.copy(dataSelecionada = data) }
-        carregarPontosDoDia()  // Já carrega versão de jornada e feriados
+        carregarPontosDoDia()
         carregarBancoHoras()
     }
 
@@ -417,30 +458,20 @@ class HomeViewModel @Inject constructor(
     // SELEÇÃO DE EMPREGO
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Abre o seletor de emprego.
-     */
     private fun abrirSeletorEmprego() {
         _uiState.update { it.copy(showEmpregoSelector = true) }
     }
 
-    /**
-     * Fecha o seletor de emprego.
-     */
     private fun fecharSeletorEmprego() {
         _uiState.update { it.copy(showEmpregoSelector = false) }
     }
 
-    /**
-     * Seleciona um emprego como ativo.
-     */
     private fun selecionarEmprego(emprego: Emprego) {
         viewModelScope.launch {
             when (val resultado = trocarEmpregoAtivoUseCase(emprego)) {
                 is TrocarEmpregoAtivoUseCase.Resultado.Sucesso -> {
                     fecharSeletorEmprego()
                     _uiEvent.emit(HomeUiEvent.EmpregoTrocado(emprego.nome))
-                    // Recarrega dados após troca de emprego
                     carregarConfiguracaoEmprego(emprego.id)
                     recarregarDados()
                 }
@@ -461,25 +492,14 @@ class HomeViewModel @Inject constructor(
     // REGISTRO DE PONTO
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Abre o dialog de seleção de horário.
-     */
     private fun abrirTimePicker() {
         _uiState.update { it.copy(showTimePickerDialog = true) }
     }
 
-    /**
-     * Fecha o dialog de seleção de horário.
-     */
     private fun fecharTimePicker() {
         _uiState.update { it.copy(showTimePickerDialog = false) }
     }
 
-    /**
-     * Inicia o processo de registro de ponto.
-     * Se NSR estiver habilitado, abre o dialog de NSR.
-     * Caso contrário, registra o ponto diretamente.
-     */
     private fun iniciarRegistroPonto(hora: LocalTime) {
         val empregoId = _uiState.value.empregoAtivo?.id
         if (empregoId == null) {
@@ -489,12 +509,9 @@ class HomeViewModel @Inject constructor(
             return
         }
 
-        // Fecha o TimePicker se estiver aberto
         fecharTimePicker()
 
-        // Verifica se NSR está habilitado
         if (_uiState.value.nsrHabilitado) {
-            // Abre dialog de NSR
             _uiState.update {
                 it.copy(
                     showNsrDialog = true,
@@ -503,21 +520,14 @@ class HomeViewModel @Inject constructor(
                 )
             }
         } else {
-            // Registra diretamente
             registrarPonto(hora, null)
         }
     }
 
-    /**
-     * Atualiza o valor do NSR digitado.
-     */
     private fun atualizarNsr(nsr: String) {
         _uiState.update { it.copy(nsrPendente = nsr) }
     }
 
-    /**
-     * Confirma o registro do ponto com o NSR informado.
-     */
     private fun confirmarRegistroComNsr() {
         val hora = _uiState.value.horaPendenteParaRegistro ?: return
         val nsr = _uiState.value.nsrPendente
@@ -529,7 +539,6 @@ class HomeViewModel @Inject constructor(
             return
         }
 
-        // Fecha o dialog
         _uiState.update {
             it.copy(
                 showNsrDialog = false,
@@ -538,13 +547,9 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        // Registra o ponto com NSR
         registrarPonto(hora, nsr)
     }
 
-    /**
-     * Cancela o dialog de NSR.
-     */
     private fun cancelarNsrDialog() {
         _uiState.update {
             it.copy(
@@ -555,9 +560,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Registra um ponto com o horário e NSR especificados.
-     */
     private fun registrarPonto(hora: LocalTime, nsr: String?) {
         val empregoId = _uiState.value.empregoAtivo?.id
         if (empregoId == null) {
@@ -604,7 +606,6 @@ class HomeViewModel @Inject constructor(
                     _uiEvent.emit(HomeUiEvent.MostrarErro("Localização é obrigatória para este emprego"))
                 }
                 is RegistrarPontoUseCase.Resultado.NsrObrigatorio -> {
-                    // Abre dialog de NSR se não foi fornecido
                     _uiState.update {
                         it.copy(
                             showNsrDialog = true,
@@ -621,9 +622,6 @@ class HomeViewModel @Inject constructor(
     // EXCLUSÃO DE PONTO
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Solicita confirmação para excluir um ponto.
-     */
     private fun solicitarExclusao(ponto: Ponto) {
         _uiState.update {
             it.copy(
@@ -633,27 +631,20 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Cancela a exclusão do ponto.
-     */
     private fun cancelarExclusao() {
         _uiState.update {
             it.copy(
                 showDeleteConfirmDialog = false,
                 pontoParaExcluir = null,
-                motivoExclusao = ""  // ADICIONAR - limpar motivo
+                motivoExclusao = ""
             )
         }
     }
 
-    /**
-     * Confirma e executa a exclusão do ponto.
-     */
     private fun confirmarExclusao() {
         val ponto = _uiState.value.pontoParaExcluir ?: return
         val motivo = _uiState.value.motivoExclusao.trim()
 
-        // Validação do motivo
         if (motivo.length < 5) {
             viewModelScope.launch {
                 _uiEvent.emit(HomeUiEvent.MostrarErro("Informe um motivo válido (mínimo 5 caracteres)"))
@@ -682,7 +673,6 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            // Limpar estado do dialog
             _uiState.update {
                 it.copy(
                     showDeleteConfirmDialog = false,
@@ -693,9 +683,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Atualiza o motivo da exclusão.
-     */
     private fun atualizarMotivoExclusao(motivo: String) {
         _uiState.update { it.copy(motivoExclusao = motivo) }
     }
@@ -704,27 +691,18 @@ class HomeViewModel @Inject constructor(
     // NAVEGAÇÃO
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Navega para a tela de edição de ponto.
-     */
     private fun navegarParaEdicao(pontoId: Long) {
         viewModelScope.launch {
             _uiEvent.emit(HomeUiEvent.NavegarParaEditarPonto(pontoId))
         }
     }
 
-    /**
-     * Navega para a tela de histórico.
-     */
     private fun navegarParaHistorico() {
         viewModelScope.launch {
             _uiEvent.emit(HomeUiEvent.NavegarParaHistorico)
         }
     }
 
-    /**
-     * Navega para a tela de configurações.
-     */
     private fun navegarParaConfiguracoes() {
         viewModelScope.launch {
             _uiEvent.emit(HomeUiEvent.NavegarParaConfiguracoes)
@@ -735,9 +713,6 @@ class HomeViewModel @Inject constructor(
     // UTILIDADES
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Limpa a mensagem de erro atual.
-     */
     private fun limparErro() {
         _uiState.update { it.copy(erro = null) }
     }
@@ -746,16 +721,10 @@ class HomeViewModel @Inject constructor(
     // DATE PICKER
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Abre o DatePicker para seleção de data.
-     */
     private fun abrirDatePicker() {
         _uiState.update { it.copy(showDatePicker = true) }
     }
 
-    /**
-     * Fecha o DatePicker.
-     */
     private fun fecharDatePicker() {
         _uiState.update { it.copy(showDatePicker = false) }
     }
