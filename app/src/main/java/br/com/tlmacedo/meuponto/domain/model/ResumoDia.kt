@@ -25,7 +25,8 @@ enum class StatusDiaResumo(val descricao: String, val isConsistente: Boolean) {
     COM_PROBLEMAS("Com problemas", false),
     SEM_REGISTRO("Sem registro", true),
     FERIADO("Feriado", true),
-    FERIADO_TRABALHADO("Feriado trabalhado", true)
+    FERIADO_TRABALHADO("Feriado trabalhado", true),
+    FUTURO("Futuro", true)
 }
 
 /**
@@ -110,6 +111,7 @@ enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
  * - Suporte a tempo abonado (declaração/atestado parcial)
  *
  * REGRAS DE CÁLCULO:
+ * - Dias futuros: saldo = 0 (não calculado)
  * - Jornada zerada: saldo = trabalhado (hora extra)
  * - Jornada normal: saldo = trabalhado + abonado - jornada (pode ser negativo)
  *
@@ -125,6 +127,7 @@ enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
  * @updated 4.1.0 - Adicionado cálculo com tempo em andamento
  * @updated 4.2.0 - Tolerância de intervalo aplicada apenas uma vez (na pausa mais próxima do horário padrão)
  * @updated 5.5.0 - Adicionado tempoAbonadoMinutos para declarações/atestados parciais
+ * @updated 6.5.0 - Dias futuros não têm saldo calculado (saldo = 0)
  */
 data class ResumoDia(
     val data: LocalDate,
@@ -143,6 +146,33 @@ data class ResumoDia(
     val intervalos: List<IntervaloPonto> by lazy {
         calcularIntervalos()
     }
+
+    // ========================================================================
+    // VERIFICAÇÃO DE DATA FUTURA
+    // ========================================================================
+
+    /**
+     * Verifica se este dia é futuro (após hoje).
+     * Dias futuros não têm saldo calculado.
+     */
+    val isFuturo: Boolean
+        get() = data.isAfter(LocalDate.now())
+
+    /**
+     * Verifica se este dia é hoje.
+     */
+    val isHoje: Boolean
+        get() = data == LocalDate.now()
+
+    /**
+     * Verifica se este dia é passado (antes de hoje).
+     */
+    val isPassado: Boolean
+        get() = data.isBefore(LocalDate.now())
+
+    // ========================================================================
+    // TURNO ABERTO E TEMPO EM ANDAMENTO
+    // ========================================================================
 
     /**
      * Verifica se há um turno aberto (entrada sem saída correspondente).
@@ -176,6 +206,10 @@ data class ResumoDia(
         }
     }
 
+    // ========================================================================
+    // HORAS TRABALHADAS
+    // ========================================================================
+
     /**
      * Total de horas trabalhadas (CALCULADO A PARTIR DOS INTERVALOS FECHADOS).
      * NÃO inclui o tempo em andamento de turnos abertos.
@@ -208,6 +242,10 @@ data class ResumoDia(
         return horasTrabalhadasComAndamento(horaAtual).toMinutes().toInt()
     }
 
+    // ========================================================================
+    // CARGA HORÁRIA
+    // ========================================================================
+
     /** Carga horária diária em minutos (configurada na versão de jornada) */
     val cargaHorariaDiariaMinutos: Int
         get() = cargaHorariaDiaria.toMinutes().toInt()
@@ -215,11 +253,16 @@ data class ResumoDia(
     /**
      * Carga horária efetiva do dia (usada no cálculo de saldo).
      *
+     * - Dias futuros: 0h (não há cálculo)
      * - Jornada zerada (FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA): 0h
      * - Jornada normal (NORMAL, FOLGA, FALTA_INJUSTIFICADA): carga configurada
      */
     val cargaHorariaEfetiva: Duration
-        get() = if (tipoDiaEspecial.zeraJornada) Duration.ZERO else cargaHorariaDiaria
+        get() = when {
+            isFuturo -> Duration.ZERO
+            tipoDiaEspecial.zeraJornada -> Duration.ZERO
+            else -> cargaHorariaDiaria
+        }
 
     /** Carga horária efetiva em minutos */
     val cargaHorariaEfetivaMinutos: Int
@@ -233,23 +276,37 @@ data class ResumoDia(
     val temTempoAbonado: Boolean
         get() = tempoAbonadoMinutos > 0
 
+    // ========================================================================
+    // SALDO DO DIA
+    // ========================================================================
+
     /**
      * Saldo do dia (positivo = hora extra, negativo = deve horas).
      * NÃO inclui tempo em andamento.
      *
-     * Cálculo: saldo = trabalhado + abonado - cargaHorariaEfetiva
-     *
+     * REGRAS:
+     * - Dias futuros: saldo = 0 (não calculado)
      * - Jornada zerada: saldo = trabalhado + abonado - 0 = trabalhado + abonado
      * - Jornada normal: saldo = trabalhado + abonado - jornada (pode ser negativo)
      */
     val saldoDia: Duration
-        get() = horasTrabalhadas.plus(tempoAbonado).minus(cargaHorariaEfetiva)
+        get() {
+            // Dias futuros não têm saldo calculado
+            if (isFuturo) return Duration.ZERO
+
+            return horasTrabalhadas.plus(tempoAbonado).minus(cargaHorariaEfetiva)
+        }
 
     /**
      * Saldo do dia INCLUINDO tempo em andamento.
      * Use esta propriedade para exibição em tempo real na UI.
+     *
+     * Para dias futuros, retorna sempre ZERO.
      */
     fun saldoDiaComAndamento(horaAtual: LocalTime = LocalTime.now()): Duration {
+        // Dias futuros não têm saldo calculado
+        if (isFuturo) return Duration.ZERO
+
         return horasTrabalhadasComAndamento(horaAtual).plus(tempoAbonado).minus(cargaHorariaEfetiva)
     }
 
@@ -266,11 +323,11 @@ data class ResumoDia(
 
     /** Verifica se o dia tem saldo positivo */
     val temSaldoPositivo: Boolean
-        get() = !saldoDia.isNegative && !saldoDia.isZero
+        get() = !isFuturo && !saldoDia.isNegative && !saldoDia.isZero
 
     /** Verifica se o dia tem saldo negativo */
     val temSaldoNegativo: Boolean
-        get() = saldoDia.isNegative
+        get() = !isFuturo && saldoDia.isNegative
 
     /** Verifica se a jornada está completa (número par de pontos) */
     val jornadaCompleta: Boolean
@@ -290,7 +347,7 @@ data class ResumoDia(
 
     /** Verifica se é um dia com jornada zerada (não gera débito) */
     val isJornadaZerada: Boolean
-        get() = tipoDiaEspecial.zeraJornada
+        get() = isFuturo || tipoDiaEspecial.zeraJornada
 
     /** Verifica se é um dia de feriado (inclui ponte e facultativo) */
     val isFeriado: Boolean
@@ -364,6 +421,9 @@ data class ResumoDia(
      */
     val temProblemas: Boolean
         get() {
+            // Dias futuros não têm problemas
+            if (isFuturo) return false
+
             if (temInconsistenciaPontoAberto) return true
             if (!jornadaCompleta && pontos.size > 1) return true
             if (pontos.size >= 4 && !tipoDiaEspecial.zeraJornada) {
@@ -379,6 +439,8 @@ data class ResumoDia(
      */
     val statusDia: StatusDiaResumo
         get() = when {
+            // Dias futuros
+            isFuturo -> StatusDiaResumo.FUTURO
             // Dias com jornada zerada (feriado, férias, atestado, etc.)
             tipoDiaEspecial.zeraJornada && pontos.isNotEmpty() -> StatusDiaResumo.FERIADO_TRABALHADO
             tipoDiaEspecial.zeraJornada -> StatusDiaResumo.FERIADO

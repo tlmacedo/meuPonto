@@ -723,6 +723,7 @@ private fun getStatusIcon(status: StatusDiaResumo): String {
         StatusDiaResumo.SEM_REGISTRO -> "⬜"
         StatusDiaResumo.FERIADO -> "🎉"
         StatusDiaResumo.FERIADO_TRABALHADO -> "⭐"
+        StatusDiaResumo.FUTURO -> "🔮"
     }
 }
 
@@ -731,12 +732,13 @@ private fun getStatusIcon(status: StatusDiaResumo): String {
  */
 private fun getStatusColor(status: StatusDiaResumo): Color {
     return when (status) {
-        StatusDiaResumo.COMPLETO -> Color(0xFF4CAF50)       // Verde
-        StatusDiaResumo.EM_ANDAMENTO -> Color(0xFF2196F3)   // Azul
-        StatusDiaResumo.INCOMPLETO -> Color(0xFFFF9800)     // Laranja
-        StatusDiaResumo.COM_PROBLEMAS -> Color(0xFFF44336)  // Vermelho
-        StatusDiaResumo.SEM_REGISTRO -> Color(0xFF9E9E9E)   // Cinza
-        StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)        // Roxo
+        StatusDiaResumo.COMPLETO -> Color(0xFF4CAF50)           // Verde
+        StatusDiaResumo.EM_ANDAMENTO -> Color(0xFF2196F3)       // Azul
+        StatusDiaResumo.INCOMPLETO -> Color(0xFFFF9800)         // Laranja
+        StatusDiaResumo.COM_PROBLEMAS -> Color(0xFFF44336)      // Vermelho
+        StatusDiaResumo.SEM_REGISTRO -> Color(0xFF9E9E9E)       // Cinza
+        StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)            // Roxo
         StatusDiaResumo.FERIADO_TRABALHADO -> Color(0xFFFF9800) // Laranja (hora extra)
+        StatusDiaResumo.FUTURO -> Color(0xFF78909C)             // Cinza azulado
     }
 }
