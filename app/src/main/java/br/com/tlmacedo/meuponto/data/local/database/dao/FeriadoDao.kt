@@ -147,6 +147,58 @@ interface FeriadoDao {
     """)
     suspend fun buscarPorData(data: LocalDate, diaMes: String): List<FeriadoEntity>
 
+    // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/dao/FeriadoDao.kt
+// ADICIONAR esta nova query após buscarPorData:
+
+    /**
+     * Busca feriados que ocorrem em uma data específica para um emprego.
+     * Já filtra por abrangência no banco para melhor performance.
+     *
+     * @param data Data específica para feriados únicos
+     * @param diaMes Formato "MM-dd" para feriados anuais
+     * @param empregoId ID do emprego para filtrar feriados específicos
+     */
+    @Query("""
+        SELECT * FROM feriados 
+        WHERE ativo = 1 
+        AND (
+            (diaMes = :diaMes AND recorrencia = 'ANUAL')
+            OR (dataEspecifica = :data AND recorrencia = 'UNICO')
+        )
+        AND (
+            abrangencia = 'GLOBAL' 
+            OR (abrangencia = 'EMPREGO_ESPECIFICO' AND empregoId = :empregoId)
+        )
+        ORDER BY tipo
+    """)
+    suspend fun buscarPorDataEEmprego(
+        data: LocalDate,
+        diaMes: String,
+        empregoId: Long
+    ): List<FeriadoEntity>
+
+    /**
+     * Observa feriados que ocorrem em uma data específica para um emprego.
+     */
+    @Query("""
+        SELECT * FROM feriados 
+        WHERE ativo = 1 
+        AND (
+            (diaMes = :diaMes AND recorrencia = 'ANUAL')
+            OR (dataEspecifica = :data AND recorrencia = 'UNICO')
+        )
+        AND (
+            abrangencia = 'GLOBAL' 
+            OR (abrangencia = 'EMPREGO_ESPECIFICO' AND empregoId = :empregoId)
+        )
+        ORDER BY tipo
+    """)
+    fun observarPorDataEEmprego(
+        data: LocalDate,
+        diaMes: String,
+        empregoId: Long
+    ): Flow<List<FeriadoEntity>>
+
     /**
      * Busca feriados em um período.
      */

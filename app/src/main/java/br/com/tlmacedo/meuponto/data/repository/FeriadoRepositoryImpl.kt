@@ -93,6 +93,17 @@ class FeriadoRepositoryImpl @Inject constructor(
         return feriadoDao.buscarPorData(data, diaMes).map { it.toDomain() }
     }
 
+    override suspend fun buscarPorDataEEmprego(data: LocalDate, empregoId: Long): List<Feriado> {
+        val diaMes = String.format("%02d-%02d", data.monthValue, data.dayOfMonth)
+        return feriadoDao.buscarPorDataEEmprego(data, diaMes, empregoId).map { it.toDomain() }
+    }
+
+    override fun observarPorDataEEmprego(data: LocalDate, empregoId: Long): Flow<List<Feriado>> {
+        val diaMes = String.format("%02d-%02d", data.monthValue, data.dayOfMonth)
+        return feriadoDao.observarPorDataEEmprego(data, diaMes, empregoId)
+            .map { list -> list.map { it.toDomain() } }
+    }
+
     override suspend fun buscarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): List<Feriado> {
         return feriadoDao.buscarPorPeriodo(dataInicio, dataFim).map { it.toDomain() }
     }

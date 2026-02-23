@@ -16,7 +16,6 @@ import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUse
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.feriado.ObterFeriadosDaDataUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularResumoDiaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.DeterminarProximoTipoPontoUseCase
@@ -70,7 +69,6 @@ class HomeViewModel @Inject constructor(
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
     private val listarEmpregosUseCase: ListarEmpregosUseCase,
     private val trocarEmpregoAtivoUseCase: TrocarEmpregoAtivoUseCase,
-    private val obterFeriadosDaDataUseCase: ObterFeriadosDaDataUseCase,
     private val buscarAusenciaPorDataUseCase: BuscarAusenciaPorDataUseCase,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository,
@@ -275,7 +273,7 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         pontosHoje = resumoCompleto.pontos,
                         resumoDia = resumoCompleto.resumoDia,
-                        feriadosDoDia = listOfNotNull(resumoCompleto.feriado),
+                        feriadosDoDia = resumoCompleto.feriadosDoDia,
                         ausenciaDoDia = resumoCompleto.ausenciaPrincipal,
                         versaoJornadaAtual = null, // pode buscar se necessário
                         proximoTipo = proximoTipo,

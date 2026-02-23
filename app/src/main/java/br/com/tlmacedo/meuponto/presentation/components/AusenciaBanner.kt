@@ -95,6 +95,9 @@ fun AusenciaBanner(
                 // Tipo da ausência
                 val textoTipo = buildString {
                     append(ausencia.tipo.descricao)
+                    if (ausencia.tipo == TipoAusencia.FERIAS)
+                        append(" (${ausencia.periodoAquisitivo})")
+
                     ausencia.tipoFolga?.let { append(" (${it.descricao})") }
                 }
 

@@ -59,6 +59,18 @@ interface FeriadoRepository {
     suspend fun buscarPorEmprego(empregoId: Long): List<Feriado>
     fun observarPorEmprego(empregoId: Long): Flow<List<Feriado>>
 
+    /**
+     * Busca feriados aplicáveis a uma data e emprego específicos.
+     * Query otimizada que filtra direto no banco.
+     */
+    suspend fun buscarPorDataEEmprego(data: LocalDate, empregoId: Long): List<Feriado>
+
+    /**
+     * Observa feriados aplicáveis a uma data e emprego específicos.
+     * Query otimizada para uso reativo.
+     */
+    fun observarPorDataEEmprego(data: LocalDate, empregoId: Long): Flow<List<Feriado>>
+
     // ========================================================================
     // Consultas Específicas de Pontes
     // ========================================================================

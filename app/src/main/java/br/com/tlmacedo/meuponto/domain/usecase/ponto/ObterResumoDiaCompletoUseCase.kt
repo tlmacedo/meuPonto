@@ -36,12 +36,14 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 6.0.0
+ * @updated 6.1.0 - Corrigido bug de feriados não aparecendo na Home
  */
 data class ResumoDiaCompleto(
     val data: LocalDate,
     val resumoDia: ResumoDia,
     val ausencias: List<Ausencia>,
     val feriado: Feriado?,
+    val feriadosDoDia: List<Feriado> = listOfNotNull(feriado), // Lista completa de feriados
     val horarioDiaSemana: HorarioDiaSemana?,
     val tipoDiaEspecial: TipoDiaEspecial,
     val descricaoDiaEspecial: String?
@@ -61,6 +63,9 @@ data class ResumoDiaCompleto(
     val zeraJornada: Boolean get() = tipoDiaEspecial.zeraJornada
     val temPontos: Boolean get() = pontos.isNotEmpty()
     val jornadaCompleta: Boolean get() = resumoDia.jornadaCompleta
+
+    // Verifica se há feriados no dia
+    val temFeriado: Boolean get() = feriadosDoDia.isNotEmpty()
 
     // Ausência principal (para exibição)
     val ausenciaPrincipal: Ausencia?
@@ -87,6 +92,7 @@ data class ResumoDiaCompleto(
  *
  * @author Thiago
  * @since 6.0.0
+ * @updated 6.1.0 - Unificada busca de feriados usando query otimizada
  */
 class ObterResumoDiaCompletoUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
@@ -108,9 +114,8 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         val ausencias = ausenciaRepository.buscarPorData(empregoId, data)
             .filter { it.ativo }
 
-        // 3. Buscar feriado do dia
-        val feriados = feriadoRepository.buscarPorData(data)
-            .filter { it.ativo && it.aplicavelPara(empregoId) }
+        // 3. Buscar feriados do dia - USANDO QUERY OTIMIZADA
+        val feriados = feriadoRepository.buscarPorDataEEmprego(data, empregoId)
         val feriado = feriados.firstOrNull()
 
         // 4. Buscar configuração de jornada
@@ -150,6 +155,7 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             resumoDia = resumoDia,
             ausencias = ausencias,
             feriado = feriado,
+            feriadosDoDia = feriados,
             horarioDiaSemana = horarioDia,
             tipoDiaEspecial = tipoDiaEspecial,
             descricaoDiaEspecial = descricao
@@ -165,6 +171,7 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         pontos: List<Ponto>,
         ausencias: List<Ausencia>,
         feriado: Feriado?,
+        feriados: List<Feriado> = listOfNotNull(feriado),
         horarioDia: HorarioDiaSemana?,
         cargaHorariaPadrao: Int = 480
     ): ResumoDiaCompleto {
@@ -195,6 +202,7 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             resumoDia = resumoDia,
             ausencias = ausencias,
             feriado = feriado,
+            feriadosDoDia = feriados,
             horarioDiaSemana = horarioDia,
             tipoDiaEspecial = tipoDiaEspecial,
             descricaoDiaEspecial = descricao
@@ -203,17 +211,20 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
 
     /**
      * Observa o resumo completo de um dia (reativo).
+     *
+     * @updated 6.1.0 - Usando query otimizada para feriados
      */
     fun observar(empregoId: Long, data: LocalDate): Flow<ResumoDiaCompleto> {
         val pontosFlow = pontoRepository.observarPorEmpregoEData(empregoId, data)
         val ausenciasFlow = ausenciaRepository.observarPorData(empregoId, data)
-        val feriadosFlow = feriadoRepository.observarTodosAtivos()
+        // CORRIGIDO: Usar query otimizada que filtra no banco
+        val feriadosFlow = feriadoRepository.observarPorDataEEmprego(data, empregoId)
 
         return combine(pontosFlow, ausenciasFlow, feriadosFlow) { pontos, ausencias, feriados ->
             val ausenciasAtivas = ausencias.filter { it.ativo }
-            val feriado = feriados.firstOrNull { it.ocorreEm(data) && it.aplicavelPara(empregoId) }
+            val feriado = feriados.firstOrNull()
 
-            // Buscar configuração (suspend dentro de combine não é ideal, mas funciona)
+            // Buscar configuração de jornada
             val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
             val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
 
@@ -229,6 +240,7 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
                 pontos = pontos,
                 ausencias = ausenciasAtivas,
                 feriado = feriado,
+                feriados = feriados,
                 horarioDia = horarioDia,
                 cargaHorariaPadrao = cargaPadrao
             )
@@ -242,7 +254,6 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         // Ausência que NÃO é declaração tem prioridade
         val ausenciaPrincipal = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO }
         if (ausenciaPrincipal != null) {
-            // Usar o método atualizado que considera tipoFolga
             val tipoDiaEspecial = ausenciaPrincipal.tipo.toTipoDiaEspecial(ausenciaPrincipal.tipoFolga)
             val descricao = ausenciaPrincipal.tipoDescricaoCompleta +
                     (ausenciaPrincipal.observacao?.let { " - $it" } ?: "")
