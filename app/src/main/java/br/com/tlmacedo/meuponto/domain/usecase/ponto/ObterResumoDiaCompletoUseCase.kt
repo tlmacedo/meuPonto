@@ -16,6 +16,7 @@ import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.domain.util.ToleranciaUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.Duration
@@ -88,11 +89,12 @@ data class ResumoDiaCompleto(
  * - Busca da versão de jornada correta
  * - Cálculo do tipo de dia especial
  * - Cálculo do tempo abonado
+ * - APLICAÇÃO DA TOLERÂNCIA DE INTERVALO
  * - Montagem do ResumoDia com todos os parâmetros corretos
  *
  * @author Thiago
  * @since 6.0.0
- * @updated 6.1.0 - Unificada busca de feriados usando query otimizada
+ * @updated 6.7.0 - Tolerância de intervalo pré-processada via ToleranciaUtils
  */
 class ObterResumoDiaCompletoUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
@@ -105,16 +107,18 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
 
     /**
      * Obtém o resumo completo de um dia de forma síncrona.
+     *
+     * @updated 6.7.0 - Tolerância pré-processada via ToleranciaUtils
      */
     suspend operator fun invoke(empregoId: Long, data: LocalDate): ResumoDiaCompleto {
         // 1. Buscar pontos do dia
-        val pontos = pontoRepository.buscarPorEmpregoEData(empregoId, data)
+        val pontosOriginais = pontoRepository.buscarPorEmpregoEData(empregoId, data)
 
         // 2. Buscar ausências do dia
         val ausencias = ausenciaRepository.buscarPorData(empregoId, data)
             .filter { it.ativo }
 
-        // 3. Buscar feriados do dia - USANDO QUERY OTIMIZADA
+        // 3. Buscar feriados do dia
         val feriados = feriadoRepository.buscarPorDataEEmprego(data, empregoId)
         val feriado = feriados.firstOrNull()
 
@@ -129,24 +133,36 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         // 5. Determinar tipo de dia especial
         val (tipoDiaEspecial, descricao) = determinarTipoDiaEspecial(ausencias, feriado)
 
-        // 6. Calcular tempo abonado (soma de todas as declarações)
+        // 6. Calcular tempo abonado
         val tempoAbonadoMinutos = ausencias
             .filter { it.tipo == TipoAusencia.DECLARACAO }
             .sumOf { it.duracaoAbonoMinutos ?: 0 }
 
-        // 7. Montar ResumoDia com todos os parâmetros
+        // 7. APLICAR TOLERÂNCIA DE INTERVALO AOS PONTOS
+        val intervaloMinimo = horarioDia?.intervaloMinimoMinutos ?: 60
+        val tolerancia = horarioDia?.toleranciaIntervaloMaisMinutos ?: 15
+        val saidaIdeal = horarioDia?.saidaIntervaloIdeal
+
+        val pontosComTolerancia = ToleranciaUtils.aplicarTolerancia(
+            pontos = pontosOriginais,
+            intervaloMinimoMinutos = intervaloMinimo,
+            toleranciaMinutos = tolerancia,
+            saidaIntervaloIdeal = saidaIdeal
+        )
+
+        // 8. Montar ResumoDia
         val resumoDia = ResumoDia(
             data = data,
-            pontos = pontos.sortedBy { it.dataHora },
+            pontos = pontosComTolerancia,
             cargaHorariaDiaria = Duration.ofMinutes(
                 (horarioDia?.cargaHorariaMinutos
                     ?: configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)?.cargaHorariaDiariaMinutos
                     ?: 480).toLong()
             ),
-            intervaloMinimoMinutos = horarioDia?.intervaloMinimoMinutos ?: 60,
-            toleranciaIntervaloMinutos = horarioDia?.toleranciaIntervaloMaisMinutos ?: 15,
+            intervaloMinimoMinutos = intervaloMinimo,
+            toleranciaIntervaloMinutos = tolerancia,
             tipoDiaEspecial = tipoDiaEspecial,
-            saidaIntervaloIdeal = horarioDia?.saidaIntervaloIdeal,
+            saidaIntervaloIdeal = saidaIdeal,
             tempoAbonadoMinutos = tempoAbonadoMinutos
         )
 
@@ -162,9 +178,12 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         )
     }
 
+
     /**
      * Obtém o resumo completo de um dia com dados já carregados.
      * Útil para cálculo em lote (banco de horas) evitando N+1 queries.
+     *
+     * @updated 6.7.0 - Tolerância pré-processada via ToleranciaUtils
      */
     fun invokeComDados(
         data: LocalDate,
@@ -183,17 +202,29 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             .filter { it.tipo == TipoAusencia.DECLARACAO }
             .sumOf { it.duracaoAbonoMinutos ?: 0 }
 
-        // 3. Montar ResumoDia
+        // 3. APLICAR TOLERÂNCIA DE INTERVALO AOS PONTOS
+        val intervaloMinimo = horarioDia?.intervaloMinimoMinutos ?: 60
+        val tolerancia = horarioDia?.toleranciaIntervaloMaisMinutos ?: 15
+        val saidaIdeal = horarioDia?.saidaIntervaloIdeal
+
+        val pontosComTolerancia = ToleranciaUtils.aplicarTolerancia(
+            pontos = pontos,
+            intervaloMinimoMinutos = intervaloMinimo,
+            toleranciaMinutos = tolerancia,
+            saidaIntervaloIdeal = saidaIdeal
+        )
+
+        // 4. Montar ResumoDia
         val resumoDia = ResumoDia(
             data = data,
-            pontos = pontos.sortedBy { it.dataHora },
+            pontos = pontosComTolerancia,
             cargaHorariaDiaria = Duration.ofMinutes(
                 (horarioDia?.cargaHorariaMinutos ?: cargaHorariaPadrao).toLong()
             ),
-            intervaloMinimoMinutos = horarioDia?.intervaloMinimoMinutos ?: 60,
-            toleranciaIntervaloMinutos = horarioDia?.toleranciaIntervaloMaisMinutos ?: 15,
+            intervaloMinimoMinutos = intervaloMinimo,
+            toleranciaIntervaloMinutos = tolerancia,
             tipoDiaEspecial = tipoDiaEspecial,
-            saidaIntervaloIdeal = horarioDia?.saidaIntervaloIdeal,
+            saidaIntervaloIdeal = saidaIdeal,
             tempoAbonadoMinutos = tempoAbonadoMinutos
         )
 
@@ -211,20 +242,16 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
 
     /**
      * Observa o resumo completo de um dia (reativo).
-     *
-     * @updated 6.1.0 - Usando query otimizada para feriados
      */
     fun observar(empregoId: Long, data: LocalDate): Flow<ResumoDiaCompleto> {
         val pontosFlow = pontoRepository.observarPorEmpregoEData(empregoId, data)
         val ausenciasFlow = ausenciaRepository.observarPorData(empregoId, data)
-        // CORRIGIDO: Usar query otimizada que filtra no banco
         val feriadosFlow = feriadoRepository.observarPorDataEEmprego(data, empregoId)
 
         return combine(pontosFlow, ausenciasFlow, feriadosFlow) { pontos, ausencias, feriados ->
             val ausenciasAtivas = ausencias.filter { it.ativo }
             val feriado = feriados.firstOrNull()
 
-            // Buscar configuração de jornada
             val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
             val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
 

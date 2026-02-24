@@ -178,7 +178,8 @@ fun IntervaloCard(
                                 textDecoration = TextDecoration.LineThrough
                             )
                             Text(
-                                text = intervalo.horaEntradaConsiderada!!.toLocalTime().format(formatadorHora),
+                                text = intervalo.horaEntradaConsiderada!!.toLocalTime()
+                                    .format(formatadorHora),
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = EntradaColor
@@ -251,16 +252,18 @@ fun IntervaloCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Timer,
-                                contentDescription = null,
-                                tint = if (intervalo.aberto) Warning else MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(14.dp)
-                            )
+                            if (!intervalo.aberto) {
+                                Icon(
+                                    imageVector = Icons.Default.Timer,
+                                    contentDescription = null,
+                                    tint = if (intervalo.aberto) Warning else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
 
                             if (intervalo.aberto && mostrarContadorTempoReal) {
                                 LiveCounterCompact(
-                                    dataHoraInicio = intervalo.entrada.dataHora
+                                    dataHoraInicio = intervalo.entrada.dataHoraEfetiva
                                 )
                             } else {
                                 Text(
