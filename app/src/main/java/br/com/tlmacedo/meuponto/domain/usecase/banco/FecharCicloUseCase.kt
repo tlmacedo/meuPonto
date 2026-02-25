@@ -68,9 +68,6 @@ class FecharCicloUseCase @Inject constructor(
         val dataInicioProximoCiclo = configuracao.calcularDataInicioProximoCiclo()
             ?: return Resultado.Erro("Não foi possível calcular próximo ciclo")
 
-        android.util.Log.d("FECHAR_CICLO", "═══════════════════════════════════════════════")
-        android.util.Log.d("FECHAR_CICLO", "Fechando ciclo: $dataInicioCiclo ~ $dataFimCiclo")
-        android.util.Log.d("FECHAR_CICLO", "Próximo ciclo inicia em: $dataInicioProximoCiclo")
 
         // ═══════════════════════════════════════════════════════════════════
         // IMPORTANTE: Calcular o saldo EXATAMENTE do período do ciclo!
@@ -85,11 +82,6 @@ class FecharCicloUseCase @Inject constructor(
         val saldoMinutos = resultadoBanco.bancoHoras.saldoTotalMinutos
         val agora = LocalDateTime.now()
 
-        android.util.Log.d("FECHAR_CICLO", "Saldo do ciclo: $saldoMinutos min (${formatarMinutos(saldoMinutos)})")
-        android.util.Log.d("FECHAR_CICLO", "  - Dias trabalhados: ${resultadoBanco.diasTrabalhados}")
-        android.util.Log.d("FECHAR_CICLO", "  - Dias com ausência: ${resultadoBanco.diasComAusencia}")
-        android.util.Log.d("FECHAR_CICLO", "  - Dias úteis sem registro: ${resultadoBanco.diasUteisSemRegistro}")
-        android.util.Log.d("FECHAR_CICLO", "  - Ajustes no período: ${resultadoBanco.totalAjustesMinutos}")
 
         // 1. Criar registro de fechamento (histórico)
         val fechamento = FechamentoPeriodo(
@@ -103,7 +95,6 @@ class FecharCicloUseCase @Inject constructor(
             criadoEm = agora
         )
         val fechamentoId = fechamentoRepository.inserir(fechamento)
-        android.util.Log.d("FECHAR_CICLO", "Fechamento criado com ID: $fechamentoId")
 
         // 2. Criar ajuste de zeramento (SEMPRE, mesmo que saldo seja zero)
         // O ajuste é aplicado na DATA DE INÍCIO DO NOVO CICLO
@@ -123,7 +114,6 @@ class FecharCicloUseCase @Inject constructor(
             criadoEm = agora
         )
         val ajusteId = ajusteSaldoRepository.inserir(ajusteZeramento)
-        android.util.Log.d("FECHAR_CICLO", "Ajuste criado com ID: $ajusteId, valor: ${-saldoMinutos} min")
 
         // 3. Atualizar configuração para próximo ciclo
         val novaConfiguracao = configuracao.copy(
@@ -131,7 +121,6 @@ class FecharCicloUseCase @Inject constructor(
             atualizadoEm = agora
         )
         configuracaoRepository.atualizar(novaConfiguracao)
-        android.util.Log.d("FECHAR_CICLO", "Configuração atualizada: novo ciclo inicia em $dataInicioProximoCiclo")
 
         // Montar ciclo para retorno
         val cicloFechado = CicloBancoHoras(
@@ -150,7 +139,6 @@ class FecharCicloUseCase @Inject constructor(
             isCicloAtual = true
         )
 
-        android.util.Log.d("FECHAR_CICLO", "═══════════════════════════════════════════════")
 
         return Resultado.Sucesso(
             cicloFechado = cicloFechado,
@@ -180,22 +168,17 @@ class FecharCicloUseCase @Inject constructor(
 
             // Se o ciclo atual ainda não terminou, paramos
             if (!dataAtual.isAfter(dataFimCiclo)) {
-                android.util.Log.d("CICLO_DEBUG", "Ciclo atual ($dataFimCiclo) ainda não terminou. Parando.")
                 return@repeat
             }
 
-            android.util.Log.d("CICLO_DEBUG", "═══════════════════════════════════════════════")
-            android.util.Log.d("CICLO_DEBUG", "Fechando ciclo pendente #${iteracao + 1}")
 
             // Fechar ciclo
             when (val resultado = invoke(empregoId)) {
                 is Resultado.Sucesso -> {
                     ciclosFechados.add(resultado.cicloFechado)
                     ultimoResultado = resultado
-                    android.util.Log.d("CICLO_DEBUG", "✅ Ciclo fechado com saldo: ${resultado.saldoZerado} min")
                 }
                 is Resultado.Erro -> {
-                    android.util.Log.e("CICLO_DEBUG", "❌ Erro ao fechar ciclo: ${resultado.mensagem}")
                     return ResultadoMultiplo.Erro(resultado.mensagem)
                 }
             }
