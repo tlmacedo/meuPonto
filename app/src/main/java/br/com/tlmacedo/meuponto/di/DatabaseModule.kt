@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import br.com.tlmacedo.meuponto.BuildConfig
 import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
 import br.com.tlmacedo.meuponto.data.local.database.dao.*
 import br.com.tlmacedo.meuponto.data.local.database.migration.*
@@ -13,6 +14,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import timber.log.Timber
 import java.time.LocalDateTime
 import javax.inject.Singleton
 
@@ -52,17 +54,26 @@ object DatabaseModule {
                 MIGRATION_12_13,
                 MIGRATION_13_14,
                 MIGRATION_14_15,
-                MIGRATION_15_16
+                MIGRATION_15_16,
+                MIGRATION_16_17
             )
             .addCallback(createDatabaseCallback())
             .build()
     }
 
+    // ✅ CORREÇÃO: Verificar BuildConfig.DEBUG
     private fun createDatabaseCallback(): RoomDatabase.Callback {
         return object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                inserirDadosIniciais(db)
+
+                // ✅ DADOS DE TESTE APENAS EM DEBUG
+                if (BuildConfig.DEBUG) {
+                    Timber.d("DatabaseModule: Inserindo dados iniciais de desenvolvimento")
+                    inserirDadosIniciais(db)
+                } else {
+                    Timber.i("DatabaseModule: Build de produção - dados de teste não inseridos")
+                }
             }
         }
     }

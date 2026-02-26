@@ -4,10 +4,8 @@ package br.com.tlmacedo.meuponto.presentation.screen.history
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -25,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandLess
@@ -76,7 +75,7 @@ import java.util.Locale
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 3.2.0 - Layout compacto com turnos e intervalos detalhados
+ * @updated 7.0.0 - Corrigido para usar valores com tolerância e exibir saldo do banco
  */
 @Composable
 fun HistoryScreen(
@@ -111,6 +110,8 @@ fun HistoryScreen(
         ) {
             MonthNavigator(
                 mesSelecionado = uiState.mesSelecionado,
+                tituloPeriodo = uiState.tituloPeriodo,
+                subtituloPeriodo = uiState.subtituloPeriodo,
                 podeIrProximo = uiState.podeIrProximoMes,
                 onMesAnterior = viewModel::mesAnterior,
                 onProximoMes = viewModel::proximoMes
@@ -150,12 +151,12 @@ fun HistoryScreen(
                         items(
                             items = uiState.registrosFiltrados,
                             key = { it.data.toString() }
-                        ) { resumo ->
+                        ) { resumoComBanco ->
                             DiaCard(
-                                resumo = resumo,
-                                isExpandido = uiState.diaExpandido == resumo.data,
-                                onToggleExpansao = { viewModel.toggleDiaExpandido(resumo.data) },
-                                onNavigateToDay = { onNavigateToDay(resumo.data) }
+                                resumoComBanco = resumoComBanco,
+                                isExpandido = uiState.diaExpandido == resumoComBanco.data,
+                                onToggleExpansao = { viewModel.toggleDiaExpandido(resumoComBanco.data) },
+                                onNavigateToDay = { onNavigateToDay(resumoComBanco.data) }
                             )
                         }
                     }
@@ -171,14 +172,12 @@ fun HistoryScreen(
 @Composable
 private fun MonthNavigator(
     mesSelecionado: LocalDate,
+    tituloPeriodo: String,
+    subtituloPeriodo: String?,
     podeIrProximo: Boolean,
     onMesAnterior: () -> Unit,
     onProximoMes: () -> Unit
 ) {
-    val formatador = remember {
-        DateTimeFormatter.ofPattern("MMMM 'de' yyyy", Locale("pt", "BR"))
-    }
-
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
         modifier = Modifier.fillMaxWidth()
@@ -197,11 +196,20 @@ private fun MonthNavigator(
                 )
             }
 
-            Text(
-                text = mesSelecionado.format(formatador).replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = tituloPeriodo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                subtituloPeriodo?.let { subtitulo ->
+                    Text(
+                        text = subtitulo,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             IconButton(
                 onClick = onProximoMes,
@@ -253,7 +261,7 @@ private fun ResumoMes(
             )
             ResumoItem(
                 label = "Saldo",
-                valor = saldoMinutos.toLong().minutosParaSaldoFormatado(),
+                valor = saldoMinutos.minutosParaSaldoFormatado(),
                 icon = if (saldoMinutos >= 0) Icons.Default.CheckCircle else Icons.Default.Warning,
                 cor = if (saldoMinutos >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
             )
@@ -333,14 +341,17 @@ private fun FiltrosChips(
 
 /**
  * Card de um dia - Layout compacto com turnos.
+ *
+ * @updated 7.0.0 - Usa ResumoDiaComBanco para exibir saldo do banco
  */
 @Composable
 private fun DiaCard(
-    resumo: ResumoDia,
+    resumoComBanco: ResumoDiaComBanco,
     isExpandido: Boolean,
     onToggleExpansao: () -> Unit,
     onNavigateToDay: () -> Unit
 ) {
+    val resumo = resumoComBanco.resumoDia
     val status = resumo.statusDia
     val statusIcon = getStatusIcon(status)
     val statusColor = getStatusColor(status)
@@ -372,7 +383,6 @@ private fun DiaCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        // Linha 1: Data + Horas trabalhadas
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = resumo.data.format(
@@ -382,7 +392,6 @@ private fun DiaCard(
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
-                        // Linha 2: Dia da semana + (carga horária) + pontos
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = buildString {
@@ -437,32 +446,27 @@ private fun DiaCard(
                 exit = shrinkVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    // --------------------------------------------------------
                     // SEÇÃO: TURNOS
-                    // --------------------------------------------------------
                     if (resumo.intervalos.isNotEmpty()) {
                         TurnosSection(intervalos = resumo.intervalos)
                     }
 
-                    // --------------------------------------------------------
-                    // SEÇÃO: INTERVALO (se houver)
-                    // --------------------------------------------------------
+                    // SEÇÃO: INTERVALO
                     if (resumo.temIntervalo) {
                         Spacer(modifier = Modifier.height(8.dp))
                         IntervaloSection(resumo = resumo)
                     }
 
-                    // --------------------------------------------------------
-                    // SEÇÃO: SALDOS
-                    // --------------------------------------------------------
+                    // SEÇÃO: SALDOS (inclui saldo do banco)
                     if (resumo.jornadaCompleta) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        SaldosSection(resumo = resumo)
+                        SaldosSection(
+                            resumo = resumo,
+                            saldoBancoAcumulado = resumoComBanco.saldoBancoAcumuladoMinutos
+                        )
                     }
 
-                    // --------------------------------------------------------
                     // BOTÃO: VER DETALHES
-                    // --------------------------------------------------------
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
                         onClick = onNavigateToDay,
@@ -486,6 +490,8 @@ private fun DiaCard(
 
 /**
  * Seção que exibe os turnos de trabalho.
+ *
+ * @updated 7.0.0 - Usa dataHoraEfetiva para exibir entrada com tolerância aplicada
  */
 @Composable
 private fun TurnosSection(intervalos: List<IntervaloPonto>) {
@@ -499,8 +505,15 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
         Column(modifier = Modifier.padding(10.dp)) {
             intervalos.forEachIndexed { index, intervalo ->
                 val turnoNum = index + 1
-                val horaEntrada = intervalo.entrada.dataHora.format(timeFormatter)
+
+                // ============================================================
+                // CORREÇÃO: Usar dataHoraEfetiva (com tolerância aplicada)
+                // ============================================================
+                val horaEntradaReal = intervalo.entrada.dataHora.format(timeFormatter)
+                val horaEntradaConsiderada = intervalo.entrada.dataHoraEfetiva.format(timeFormatter)
                 val horaSaida = intervalo.saida?.dataHora?.format(timeFormatter) ?: "..."
+
+                // Duração já é calculada corretamente em IntervaloPonto
                 val duracao = intervalo.formatarDuracaoCompacta()
 
                 Row(
@@ -517,20 +530,39 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(4.dp))
+
+                        // Exibe hora considerada (principal)
                         Text(
-                            text = "$horaEntrada - $horaSaida",
+                            text = "$horaEntradaConsiderada - $horaSaida",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        // Indicador se entrada foi ajustada
-                        if (intervalo.temHoraEntradaConsiderada) {
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = "Entrada ajustada",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(12.dp)
-                            )
+
+                        // Indicador se entrada foi ajustada (mostra hora real)
+                        if (intervalo.toleranciaAplicada) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = "Tolerância aplicada",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        text = horaEntradaReal,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -546,7 +578,6 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
                     )
                 }
 
-                // Espaço entre turnos (exceto último)
                 if (index < intervalos.size - 1) {
                     Spacer(modifier = Modifier.height(4.dp))
                 }
@@ -569,7 +600,6 @@ private fun IntervaloSection(resumo: ResumoDia) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            // Título
             Text(
                 text = "Intervalo",
                 style = MaterialTheme.typography.labelMedium,
@@ -658,11 +688,19 @@ private fun IntervaloSection(resumo: ResumoDia) {
 }
 
 /**
- * Seção que exibe os saldos do dia.
+ * Seção que exibe os saldos do dia e do banco acumulado.
+ *
+ * @updated 7.0.0 - Adicionado saldo do banco acumulado
  */
 @Composable
-private fun SaldosSection(resumo: ResumoDia) {
-    val saldoColor = if (resumo.temSaldoPositivo || !resumo.temSaldoNegativo)
+private fun SaldosSection(
+    resumo: ResumoDia,
+    saldoBancoAcumulado: Int
+) {
+    val saldoDiaColor = if (resumo.temSaldoPositivo || !resumo.temSaldoNegativo)
+        Color(0xFF4CAF50) else Color(0xFFF44336)
+
+    val saldoBancoColor = if (saldoBancoAcumulado >= 0)
         Color(0xFF4CAF50) else Color(0xFFF44336)
 
     Surface(
@@ -685,28 +723,46 @@ private fun SaldosSection(resumo: ResumoDia) {
                     text = resumo.saldoDiaFormatado,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = saldoColor
+                    color = saldoDiaColor
                 )
             }
 
-            // TODO: Saldo do banco (acumulado) - implementar quando tiver o cálculo
-            // Spacer(modifier = Modifier.height(2.dp))
-            // Row(
-            //     horizontalArrangement = Arrangement.SpaceBetween,
-            //     modifier = Modifier.fillMaxWidth()
-            // ) {
-            //     Text(
-            //         text = "Saldo do banco",
-            //         style = MaterialTheme.typography.bodySmall,
-            //         color = MaterialTheme.colorScheme.onSurfaceVariant
-            //     )
-            //     Text(
-            //         text = "+00h 01min", // TODO: calcular acumulado
-            //         style = MaterialTheme.typography.bodySmall,
-            //         fontWeight = FontWeight.Bold,
-            //         color = saldoColor
-            //     )
-            // }
+            // Divisor sutil
+            Spacer(modifier = Modifier.height(6.dp))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                thickness = 0.5.dp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Saldo do banco (acumulado)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalance,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Banco de horas",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    text = saldoBancoAcumulado.minutosParaSaldoFormatado(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = saldoBancoColor
+                )
+            }
         }
     }
 }
@@ -732,13 +788,13 @@ private fun getStatusIcon(status: StatusDiaResumo): String {
  */
 private fun getStatusColor(status: StatusDiaResumo): Color {
     return when (status) {
-        StatusDiaResumo.COMPLETO -> Color(0xFF4CAF50)           // Verde
-        StatusDiaResumo.EM_ANDAMENTO -> Color(0xFF2196F3)       // Azul
-        StatusDiaResumo.INCOMPLETO -> Color(0xFFFF9800)         // Laranja
-        StatusDiaResumo.COM_PROBLEMAS -> Color(0xFFF44336)      // Vermelho
-        StatusDiaResumo.SEM_REGISTRO -> Color(0xFF9E9E9E)       // Cinza
-        StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)            // Roxo
-        StatusDiaResumo.FERIADO_TRABALHADO -> Color(0xFFFF9800) // Laranja (hora extra)
-        StatusDiaResumo.FUTURO -> Color(0xFF78909C)             // Cinza azulado
+        StatusDiaResumo.COMPLETO -> Color(0xFF4CAF50)
+        StatusDiaResumo.EM_ANDAMENTO -> Color(0xFF2196F3)
+        StatusDiaResumo.INCOMPLETO -> Color(0xFFFF9800)
+        StatusDiaResumo.COM_PROBLEMAS -> Color(0xFFF44336)
+        StatusDiaResumo.SEM_REGISTRO -> Color(0xFF9E9E9E)
+        StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)
+        StatusDiaResumo.FERIADO_TRABALHADO -> Color(0xFFFF9800)
+        StatusDiaResumo.FUTURO -> Color(0xFF78909C)
     }
 }
