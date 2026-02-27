@@ -6,7 +6,7 @@ import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import java.time.Duration
-import java.time.LocalDateTime
+import java.time.LocalTime
 import javax.inject.Inject
 
 /**
@@ -17,15 +17,9 @@ import javax.inject.Inject
  *   a horaConsiderada será ajustada para saidaIntervalo + intervaloMinimo.
  * - Se exceder o limite, mantém a hora real registrada.
  *
- * Exemplo:
- * - Saída intervalo: 12:43
- * - Intervalo mínimo: 60 min
- * - Tolerância: 20 min
- * - Retorno real: 14:01 (78 min de intervalo)
- * - Como 78 ≤ 80 → horaConsiderada = 13:43 (12:43 + 60min)
- *
  * @author Thiago
  * @since 2.6.0
+ * @updated 7.0.0 - horaConsiderada agora é LocalTime
  */
 class AplicarToleranciaIntervaloUseCase @Inject constructor(
     private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
@@ -37,7 +31,7 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
      */
     data class ResultadoTolerancia(
         val pontoOriginal: Ponto,
-        val horaConsiderada: LocalDateTime?,
+        val horaConsiderada: LocalTime?,
         val foiAjustado: Boolean,
         val intervaloRealMinutos: Long,
         val intervaloConsideradoMinutos: Long,
@@ -193,7 +187,10 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         val dentroTolerancia = intervaloRealMinutos <= limiteMaximoMinutos
 
         return if (dentroTolerancia && intervaloRealMinutos > intervaloMinimoMinutos) {
-            val horaConsiderada = saidaIntervalo.dataHora.plusMinutes(intervaloMinimoMinutos.toLong())
+            // Calcula hora considerada: saída + intervalo mínimo
+            val horaConsiderada = saidaIntervalo.dataHora
+                .plusMinutes(intervaloMinimoMinutos.toLong())
+                .toLocalTime()
 
             ResultadoTolerancia(
                 pontoOriginal = ponto,
@@ -238,7 +235,9 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         val dentroTolerancia = intervaloRealMinutos <= limiteMaximoMinutos
 
         return if (dentroTolerancia && intervaloRealMinutos > intervaloMinimoMinutos) {
-            val horaConsiderada = saidaIntervalo.dataHora.plusMinutes(intervaloMinimoMinutos.toLong())
+            val horaConsiderada = saidaIntervalo.dataHora
+                .plusMinutes(intervaloMinimoMinutos.toLong())
+                .toLocalTime()
 
             ResultadoTolerancia(
                 pontoOriginal = voltaIntervalo,

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Card
@@ -110,12 +111,16 @@ fun HistoryScreen(
                 .padding(paddingValues)
         ) {
             MonthNavigator(
-                mesSelecionado = uiState.mesSelecionado,
-                podeIrProximo = uiState.podeIrProximoMes,
-                onMesAnterior = viewModel::mesAnterior,
-                onProximoMes = viewModel::proximoMes
+                periodoSelecionado = uiState.periodoSelecionado,
+                podeIrProximo = uiState.podeIrProximoPeriodo,
+                isPeriodoAtual = uiState.isPeriodoAtual,
+                periodoSubtitulo = uiState.periodoSubtitulo,
+                onPeriodoAnterior = viewModel::periodoAnterior,
+                onProximoPeriodo = viewModel::proximoPeriodo,
+                onIrParaAtual = viewModel::irParaPeriodoAtual
             )
 
+            // ... resto do código permanece igual
             if (uiState.hasRegistros && !uiState.isLoading) {
                 ResumoMes(
                     totalMinutos = uiState.totalMinutosTrabalhados,
@@ -138,7 +143,7 @@ fun HistoryScreen(
                         message = if (uiState.hasRegistros)
                             "Não há registros com o filtro selecionado"
                         else
-                            "Nenhum ponto registrado neste mês",
+                            "Nenhum ponto registrado neste período",
                         icon = Icons.Outlined.CalendarMonth
                     )
                 }
@@ -154,6 +159,7 @@ fun HistoryScreen(
                             DiaCard(
                                 resumo = resumo,
                                 isExpandido = uiState.diaExpandido == resumo.data,
+                                saldoBancoAcumulado = uiState.saldoAcumuladoAte(resumo.data),
                                 onToggleExpansao = { viewModel.toggleDiaExpandido(resumo.data) },
                                 onNavigateToDay = { onNavigateToDay(resumo.data) }
                             )
@@ -166,55 +172,102 @@ fun HistoryScreen(
 }
 
 /**
- * Navegador de mês com setas e nome do mês.
+ * Navegador de período com setas e descrição.
+ * Suporta tanto mês calendário quanto período RH customizado.
  */
 @Composable
 private fun MonthNavigator(
-    mesSelecionado: LocalDate,
+    periodoSelecionado: PeriodoHistorico,
     podeIrProximo: Boolean,
-    onMesAnterior: () -> Unit,
-    onProximoMes: () -> Unit
+    isPeriodoAtual: Boolean,
+    periodoSubtitulo: String?,
+    onPeriodoAnterior: () -> Unit,
+    onProximoPeriodo: () -> Unit,
+    onIrParaAtual: () -> Unit
 ) {
-    val formatador = remember {
-        DateTimeFormatter.ofPattern("MMMM 'de' yyyy", Locale("pt", "BR"))
-    }
-
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            IconButton(onClick = onMesAnterior) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = "Mês anterior"
-                )
-            }
-
-            Text(
-                text = mesSelecionado.format(formatador).replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            IconButton(
-                onClick = onProximoMes,
-                enabled = podeIrProximo
+        Column {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "Próximo mês",
-                    tint = if (podeIrProximo)
-                        MaterialTheme.colorScheme.onSurface
-                    else
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                )
+                IconButton(onClick = onPeriodoAnterior) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        contentDescription = "Período anterior"
+                    )
+                }
+
+                // Área central clicável para voltar ao período atual
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(
+                            if (!isPeriodoAtual) {
+                                Modifier.clickable { onIrParaAtual() }
+                            } else Modifier
+                        )
+                ) {
+                    Text(
+                        text = periodoSelecionado.descricaoFormatada,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Subtítulo com info do período RH (se customizado)
+                    periodoSubtitulo?.let { subtitulo ->
+                        Text(
+                            text = subtitulo,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Indicador para voltar ao período atual
+                    if (!isPeriodoAtual) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Today,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Toque para ir ao atual",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                IconButton(
+                    onClick = onProximoPeriodo,
+                    enabled = podeIrProximo
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Próximo período",
+                        tint = if (podeIrProximo)
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                    )
+                }
             }
         }
     }
@@ -338,6 +391,7 @@ private fun FiltrosChips(
 private fun DiaCard(
     resumo: ResumoDia,
     isExpandido: Boolean,
+    saldoBancoAcumulado: Int?, // NOVO PARÂMETRO
     onToggleExpansao: () -> Unit,
     onNavigateToDay: () -> Unit
 ) {
@@ -457,7 +511,10 @@ private fun DiaCard(
                     // --------------------------------------------------------
                     if (resumo.jornadaCompleta) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        SaldosSection(resumo = resumo)
+                        SaldosSection(
+                            resumo = resumo,
+                            saldoBancoAcumulado = saldoBancoAcumulado
+                        )
                     }
 
                     // --------------------------------------------------------
@@ -486,6 +543,9 @@ private fun DiaCard(
 
 /**
  * Seção que exibe os turnos de trabalho.
+ * Mostra hora real vs hora considerada quando houver tolerância aplicada.
+ *
+ * @updated 4.0.0 - Exibe hora considerada quando diferente da hora real
  */
 @Composable
 private fun TurnosSection(intervalos: List<IntervaloPonto>) {
@@ -499,56 +559,112 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
         Column(modifier = Modifier.padding(10.dp)) {
             intervalos.forEachIndexed { index, intervalo ->
                 val turnoNum = index + 1
-                val horaEntrada = intervalo.entrada.dataHora.format(timeFormatter)
-                val horaSaida = intervalo.saida?.dataHora?.format(timeFormatter) ?: "..."
+
+                // Horas reais (batidas)
+                val horaEntradaReal = intervalo.entrada.dataHora.toLocalTime().format(timeFormatter)
+                val horaSaidaReal = intervalo.saida?.dataHora?.toLocalTime()?.format(timeFormatter) ?: "..."
+
+                // Horas consideradas (com tolerância)
+                val horaEntradaConsiderada = intervalo.entrada.horaConsiderada.format(timeFormatter)
+                val horaSaidaConsiderada = intervalo.saida?.horaConsiderada?.format(timeFormatter) ?: "..."
+
+                // Verifica se há tolerância aplicada na entrada ou saída
+                val temToleranciaEntrada = intervalo.entrada.temAjusteTolerancia
+                val temToleranciaSaida = intervalo.saida?.temAjusteTolerancia == true
+                val temAlgumaTolerancia = temToleranciaEntrada || temToleranciaSaida
+
+                // Duração do turno
                 val duracao = intervalo.formatarDuracaoCompacta()
 
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Turno X: HH:mm - HH:mm
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // ============================================================
+                    // Linha principal: Turno X: HH:mm - HH:mm → duração
+                    // ============================================================
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Turno $turnoNum:",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            // Mostra hora considerada (principal) ou hora real se não houver tolerância
+                            if (temAlgumaTolerancia) {
+                                Text(
+                                    text = "$horaEntradaConsiderada - $horaSaidaConsiderada",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Text(
+                                    text = "$horaEntradaReal - $horaSaidaReal",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // Indicador de tolerância aplicada
+                            if (temAlgumaTolerancia) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = "Tolerância aplicada",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+
+                        // Duração
                         Text(
-                            text = "Turno $turnoNum:",
+                            text = "→ $duracao",
                             style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (intervalo.aberto)
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            else
+                                MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "$horaEntrada - $horaSaida",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        // Indicador se entrada foi ajustada
-                        if (intervalo.temHoraEntradaConsiderada) {
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = "Entrada ajustada",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(12.dp)
+                    }
+
+                    // ============================================================
+                    // Linha secundária: Hora real (se diferente da considerada)
+                    // ============================================================
+                    if (temAlgumaTolerancia) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 48.dp) // Alinha com o horário acima
+                        ) {
+                            Text(
+                                text = "⏱️",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Real: $horaEntradaReal - $horaSaidaReal",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-
-                    // Duração
-                    Text(
-                        text = "→ $duracao",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (intervalo.aberto)
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        else
-                            MaterialTheme.colorScheme.primary
-                    )
                 }
 
                 // Espaço entre turnos (exceto último)
                 if (index < intervalos.size - 1) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        thickness = 0.5.dp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
@@ -658,12 +774,24 @@ private fun IntervaloSection(resumo: ResumoDia) {
 }
 
 /**
- * Seção que exibe os saldos do dia.
+ * Seção que exibe os saldos do dia e do banco de horas.
+ *
+ * @param resumo Resumo do dia
+ * @param saldoBancoAcumulado Saldo acumulado do banco de horas até este dia (em minutos)
+ *
+ * @updated 4.0.0 - Adicionado saldo do banco de horas acumulado
  */
 @Composable
-private fun SaldosSection(resumo: ResumoDia) {
-    val saldoColor = if (resumo.temSaldoPositivo || !resumo.temSaldoNegativo)
+private fun SaldosSection(
+    resumo: ResumoDia,
+    saldoBancoAcumulado: Int? = null
+) {
+    val saldoDiaColor = if (resumo.temSaldoPositivo || !resumo.temSaldoNegativo)
         Color(0xFF4CAF50) else Color(0xFFF44336)
+
+    val saldoBancoColor = saldoBancoAcumulado?.let { saldo ->
+        if (saldo >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+    }
 
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -671,7 +799,9 @@ private fun SaldosSection(resumo: ResumoDia) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
+            // ================================================================
             // Saldo do dia
+            // ================================================================
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
@@ -685,28 +815,46 @@ private fun SaldosSection(resumo: ResumoDia) {
                     text = resumo.saldoDiaFormatado,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = saldoColor
+                    color = saldoDiaColor
                 )
             }
 
-            // TODO: Saldo do banco (acumulado) - implementar quando tiver o cálculo
-            // Spacer(modifier = Modifier.height(2.dp))
-            // Row(
-            //     horizontalArrangement = Arrangement.SpaceBetween,
-            //     modifier = Modifier.fillMaxWidth()
-            // ) {
-            //     Text(
-            //         text = "Saldo do banco",
-            //         style = MaterialTheme.typography.bodySmall,
-            //         color = MaterialTheme.colorScheme.onSurfaceVariant
-            //     )
-            //     Text(
-            //         text = "+00h 01min", // TODO: calcular acumulado
-            //         style = MaterialTheme.typography.bodySmall,
-            //         fontWeight = FontWeight.Bold,
-            //         color = saldoColor
-            //     )
-            // }
+            // ================================================================
+            // Saldo do banco de horas (acumulado)
+            // ================================================================
+            if (saldoBancoAcumulado != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    thickness = 0.5.dp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "🏦",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Banco de horas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = saldoBancoAcumulado.minutosParaSaldoFormatado(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = saldoBancoColor ?: MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }
