@@ -8,13 +8,14 @@ import br.com.tlmacedo.meuponto.domain.repository.AuditLogRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import com.google.gson.Gson
 import java.time.LocalDateTime
+import java.time.LocalTime
 import javax.inject.Inject
 
 /**
  * Caso de uso para editar um ponto existente.
  *
  * Suporta edição de:
- * - Horário do ponto
+ * - Horário do ponto (com recálculo automático de horaConsiderada)
  * - NSR (Número Sequencial de Registro)
  * - Localização (latitude, longitude, endereço)
  * - Observação
@@ -23,11 +24,12 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 3.5.0 - Adicionado suporte a NSR, localização e auditoria completa
+ * @updated 7.0.0 - Integração com CalcularHoraConsideradaUseCase para recalcular tolerância
  */
 class EditarPontoUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val auditLogRepository: AuditLogRepository,
+    private val calcularHoraConsideradaUseCase: CalcularHoraConsideradaUseCase,
     private val gson: Gson
 ) {
     data class Parametros(
@@ -69,8 +71,9 @@ class EditarPontoUseCase @Inject constructor(
 
         // Validar horário se foi alterado
         val novaDataHora = parametros.dataHora ?: pontoExistente.dataHora
+        val horarioFoiAlterado = parametros.dataHora != null && parametros.dataHora != pontoExistente.dataHora
 
-        if (parametros.dataHora != null && parametros.dataHora != pontoExistente.dataHora) {
+        if (horarioFoiAlterado) {
             val pontosDoDia = pontoRepository.buscarPorEmpregoEData(
                 pontoExistente.empregoId,
                 novaDataHora.toLocalDate()
@@ -84,9 +87,30 @@ class EditarPontoUseCase @Inject constructor(
             }
         }
 
+        // *** RECALCULAR horaConsiderada se horário foi alterado ***
+        val novaHoraConsiderada: LocalTime = if (horarioFoiAlterado) {
+            // Busca o índice do ponto no dia para calcular tolerância correta
+            val pontosDoDia = pontoRepository.buscarPorEmpregoEData(
+                pontoExistente.empregoId,
+                novaDataHora.toLocalDate()
+            ).sortedBy { it.dataHora }
+
+            val indicePonto = pontosDoDia.indexOfFirst { it.id == parametros.pontoId }
+                .takeIf { it >= 0 } ?: 0
+
+            calcularHoraConsideradaUseCase(
+                empregoId = pontoExistente.empregoId,
+                dataHora = novaDataHora,
+                indicePonto = indicePonto
+            )
+        } else {
+            pontoExistente.horaConsiderada
+        }
+
         // Criar ponto atualizado
         val pontoAtualizado = pontoExistente.copy(
             dataHora = novaDataHora,
+            horaConsiderada = novaHoraConsiderada,
             nsr = parametros.nsr ?: pontoExistente.nsr,
             latitude = parametros.latitude ?: pontoExistente.latitude,
             longitude = parametros.longitude ?: pontoExistente.longitude,
@@ -125,6 +149,7 @@ class EditarPontoUseCase @Inject constructor(
         "id" to id,
         "empregoId" to empregoId,
         "dataHora" to dataHora.toString(),
+        "horaConsiderada" to horaConsiderada.toString(),
         "nsr" to nsr,
         "latitude" to latitude,
         "longitude" to longitude,
