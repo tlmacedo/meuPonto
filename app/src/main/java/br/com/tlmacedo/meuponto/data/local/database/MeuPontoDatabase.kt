@@ -35,7 +35,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
  * Classe principal do banco de dados Room.
  *
  * @since 1.0.0
- * @updated 6.0.0 - Versão 15: Refatoração do sistema de ciclos de banco de horas
+ * @updated 7.0.0 - Versão 17: Adicionado campo horaConsiderada na tabela pontos
  */
 @Database(
     entities = [
@@ -52,7 +52,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         ConfiguracaoPontesAnoEntity::class,
         AusenciaEntity::class
     ],
-    version = 16,
+    version = 18,  // ATUALIZADO de 16 para 17
     exportSchema = true
 )
 @TypeConverters(Converters::class, FeriadoConverters::class)
