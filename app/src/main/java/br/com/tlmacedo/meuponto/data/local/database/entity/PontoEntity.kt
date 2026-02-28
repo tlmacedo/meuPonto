@@ -1,11 +1,10 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/entity/PontoEntity.kt
+// Arquivo: PontoEntity.kt
 package br.com.tlmacedo.meuponto.data.local.database.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import br.com.tlmacedo.meuponto.core.security.CryptoHelper
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -14,12 +13,14 @@ import java.time.LocalTime
 /**
  * Entidade Room que representa um registro de ponto no banco de dados.
  *
- * SEGURANÇA: Os campos latitude, longitude e endereco são armazenados
- * CRIPTOGRAFADOS usando AES-256-GCM (via CryptoHelper).
+ * IMPORTANTE: O tipo do ponto (ENTRADA/SAÍDA) NÃO é armazenado no banco.
+ * É calculado em runtime baseado na posição na lista ordenada por dataHora:
+ * - Índice par (0, 2, 4...) = ENTRADA
+ * - Índice ímpar (1, 3, 5...) = SAÍDA
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 6.1.0 - Campos de localização criptografados
+ * @updated 2.1.0 - Removido campo tipo (calculado em runtime)
  */
 @Entity(
     tableName = "pontos",
@@ -52,12 +53,9 @@ data class PontoEntity(
     val observacao: String? = null,
     val isEditadoManualmente: Boolean = false,
     val nsr: String? = null,
-
-    // ✅ Campos de localização agora são String (criptografados)
-    val latitude: String? = null,
-    val longitude: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val endereco: String? = null,
-
     val marcadorId: Long? = null,
     val justificativaInconsistencia: String? = null,
     val horaConsiderada: LocalDateTime? = null,
@@ -69,7 +67,6 @@ data class PontoEntity(
 
 /**
  * Converte PontoEntity para Ponto (domínio).
- * Descriptografa os campos de localização.
  */
 fun PontoEntity.toDomain(): Ponto = Ponto(
     id = id,
@@ -78,10 +75,9 @@ fun PontoEntity.toDomain(): Ponto = Ponto(
     observacao = observacao,
     isEditadoManualmente = isEditadoManualmente,
     nsr = nsr,
-    // ✅ Descriptografa ao converter para domínio
-    latitude = CryptoHelper.decryptDouble(latitude),
-    longitude = CryptoHelper.decryptDouble(longitude),
-    endereco = CryptoHelper.decrypt(endereco),
+    latitude = latitude,
+    longitude = longitude,
+    endereco = endereco,
     marcadorId = marcadorId,
     justificativaInconsistencia = justificativaInconsistencia,
     horaConsiderada = horaConsiderada,
@@ -91,7 +87,6 @@ fun PontoEntity.toDomain(): Ponto = Ponto(
 
 /**
  * Converte Ponto (domínio) para PontoEntity.
- * Criptografa os campos de localização.
  */
 fun Ponto.toEntity(): PontoEntity = PontoEntity(
     id = id,
@@ -100,10 +95,9 @@ fun Ponto.toEntity(): PontoEntity = PontoEntity(
     observacao = observacao,
     isEditadoManualmente = isEditadoManualmente,
     nsr = nsr,
-    // ✅ Criptografa ao converter para entity
-    latitude = CryptoHelper.encryptDouble(latitude),
-    longitude = CryptoHelper.encryptDouble(longitude),
-    endereco = CryptoHelper.encrypt(endereco),
+    latitude = latitude,
+    longitude = longitude,
+    endereco = endereco,
     marcadorId = marcadorId,
     justificativaInconsistencia = justificativaInconsistencia,
     horaConsiderada = horaConsiderada,

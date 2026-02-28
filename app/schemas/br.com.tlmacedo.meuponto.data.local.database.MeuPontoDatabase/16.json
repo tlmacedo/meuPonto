@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 16,
-    "identityHash": "56d3997560d67f2d23a9c7ee8d1f0b8b",
+    "identityHash": "f1078d410196d230e487f39d9a309676",
     "entities": [
       {
         "tableName": "pontos",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `dataHora` TEXT NOT NULL, `observacao` TEXT, `isEditadoManualmente` INTEGER NOT NULL, `nsr` TEXT, `latitude` TEXT, `longitude` TEXT, `endereco` TEXT, `marcadorId` INTEGER, `justificativaInconsistencia` TEXT, `horaConsiderada` TEXT, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, `data` TEXT NOT NULL, `hora` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`marcadorId`) REFERENCES `marcadores`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `dataHora` TEXT NOT NULL, `observacao` TEXT, `isEditadoManualmente` INTEGER NOT NULL, `nsr` TEXT, `latitude` REAL, `longitude` REAL, `endereco` TEXT, `marcadorId` INTEGER, `justificativaInconsistencia` TEXT, `horaConsiderada` TEXT, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, `data` TEXT NOT NULL, `hora` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`marcadorId`) REFERENCES `marcadores`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -47,13 +47,13 @@
           {
             "fieldPath": "latitude",
             "columnName": "latitude",
-            "affinity": "TEXT",
+            "affinity": "REAL",
             "notNull": false
           },
           {
             "fieldPath": "longitude",
             "columnName": "longitude",
-            "affinity": "TEXT",
+            "affinity": "REAL",
             "notNull": false
           },
           {
@@ -1623,7 +1623,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '56d3997560d67f2d23a9c7ee8d1f0b8b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f1078d410196d230e487f39d9a309676')"
     ]
   }
 }

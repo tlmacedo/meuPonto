@@ -7,6 +7,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.toEntity
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
@@ -23,7 +24,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 6.1.0 - Removidos métodos deprecados (sem filtro por emprego)
+ * @updated 2.0.0 - Adicionado suporte a múltiplos empregos e marcadores
  */
 @Singleton
 class PontoRepositoryImpl @Inject constructor(
@@ -50,6 +51,10 @@ class PontoRepositoryImpl @Inject constructor(
         pontoDao.excluirPorId(id)
     }
 
+    override suspend fun buscarPrimeiraData(empregoId: Long): LocalDate? {
+        return pontoDao.buscarPrimeiraData(empregoId)
+    }
+
     // ========================================================================
     // Operações de Leitura - Por ID
     // ========================================================================
@@ -65,17 +70,76 @@ class PontoRepositoryImpl @Inject constructor(
     }
 
     // ========================================================================
-    // Operações de Leitura - Por Emprego
+    // Operações de Leitura - Legadas (retrocompatibilidade)
+    // ========================================================================
+
+    @Suppress("DEPRECATION")
+    @Deprecated(
+        message = "Use buscarPorEmpregoEData para suporte a múltiplos empregos",
+        replaceWith = ReplaceWith("buscarPorEmpregoEData(empregoId, data)")
+    )
+    override suspend fun buscarPontosPorData(data: LocalDate): List<Ponto> {
+        return pontoDao.listarPorData(data)
+            .first()
+            .map { it.toDomain() }
+    }
+
+    @Suppress("DEPRECATION")
+    @Deprecated(
+        message = "Use buscarUltimoPonto(empregoId) para suporte a múltiplos empregos",
+        replaceWith = ReplaceWith("buscarUltimoPonto(empregoId)")
+    )
+    override suspend fun buscarUltimoPontoDoDia(data: LocalDate): Ponto? {
+        return pontoDao.listarPorData(data)
+            .first()
+            .lastOrNull()
+            ?.toDomain()
+    }
+
+    @Suppress("DEPRECATION")
+    @Deprecated(
+        message = "Use observarPorEmpregoEData para suporte a múltiplos empregos",
+        replaceWith = ReplaceWith("observarPorEmpregoEData(empregoId, data)")
+    )
+    override fun observarPontosPorData(data: LocalDate): Flow<List<Ponto>> {
+        return pontoDao.listarPorData(data).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    @Deprecated(
+        message = "Use observarPorEmprego para suporte a múltiplos empregos",
+        replaceWith = ReplaceWith("observarPorEmprego(empregoId)")
+    )
+    override fun observarTodos(): Flow<List<Ponto>> {
+        return pontoDao.listarTodos().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    @Deprecated(
+        message = "Use observarPorEmpregoEPeriodo para suporte a múltiplos empregos",
+        replaceWith = ReplaceWith("observarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)")
+    )
+    override fun observarPontosPorPeriodo(
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): Flow<List<Ponto>> {
+        return pontoDao.listarPorPeriodo(dataInicio, dataFim).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    // ========================================================================
+    // Operações de Leitura - Por Emprego (Novas)
     // ========================================================================
 
     override fun observarPorEmprego(empregoId: Long): Flow<List<Ponto>> {
         return pontoDao.listarPorEmprego(empregoId).map { entities ->
             entities.map { it.toDomain() }
         }
-    }
-
-    override suspend fun buscarPrimeiraData(empregoId: Long): LocalDate? {
-        return pontoDao.buscarPrimeiraData(empregoId)
     }
 
     override fun observarPorEmpregoEData(empregoId: Long, data: LocalDate): Flow<List<Ponto>> {
