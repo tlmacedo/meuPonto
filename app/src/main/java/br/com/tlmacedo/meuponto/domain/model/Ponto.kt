@@ -43,10 +43,6 @@ data class Ponto(
     val horaFormatada: String get() = String.format("%02d:%02d", hora.hour, hora.minute)
     val horaEfetiva: LocalTime get() = horaConsiderada?.toLocalTime() ?: hora
     val horaEfetivaFormatada: String get() = String.format("%02d:%02d", horaEfetiva.hour, horaEfetiva.minute)
-
-    /** DataHora efetiva (considerada) para cálculos de duração */
-    val dataHoraEfetiva: LocalDateTime get() = horaConsiderada ?: dataHora
-
     val temAjusteTolerancia: Boolean get() = horaConsiderada != null && horaConsiderada != dataHora
     val temLocalizacao: Boolean get() = latitude != null && longitude != null
     val temInconsistencia: Boolean get() = !justificativaInconsistencia.isNullOrBlank()
