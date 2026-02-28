@@ -185,12 +185,17 @@ class CalcularBancoHorasUseCase @Inject constructor(
         dataInicio: LocalDate,
         dataFim: LocalDate
     ): ResultadoBancoHoras {
+        android.util.Log.d("BANCO_DEBUG", "calcularParaPeriodo: $dataInicio ~ $dataFim")
 
         val pontos = pontoRepository.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
         val ajustes = ajusteSaldoRepository.buscarPorPeriodo(empregoId, dataInicio, dataFim)
         val ausencias = ausenciaRepository.buscarPorPeriodo(empregoId, dataInicio, dataFim)
         val feriados = feriadoRepository.buscarPorPeriodo(dataInicio, dataFim)
 
+        android.util.Log.d("BANCO_DEBUG", "  Pontos: ${pontos.size}")
+        android.util.Log.d("BANCO_DEBUG", "  Ajustes: ${ajustes.size}, total: ${ajustes.sumOf { it.minutos }}")
+        android.util.Log.d("BANCO_DEBUG", "  Ausências: ${ausencias.size}")
+        android.util.Log.d("BANCO_DEBUG", "  Feriados: ${feriados.size}")
 
         return calcularBancoHorasParaPeriodo(
             empregoId = empregoId,
@@ -391,6 +396,9 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val totalAjustesMinutos = ajustesNoPeriodo.sumOf { it.minutos }
         saldoTotal = saldoTotal.plusMinutes(totalAjustesMinutos.toLong())
 
+        android.util.Log.d("BANCO_DEBUG", "  Resultado: saldo=${saldoTotal.toMinutes()} min, " +
+                "diasTrabalhados=$diasTrabalhados, diasComAusencia=$diasComAusencia, " +
+                "diasUteisSemRegistro=$diasUteisSemRegistro, ajustes=$totalAjustesMinutos")
 
         return ResultadoBancoHoras(
             saldoTotal = saldoTotal,

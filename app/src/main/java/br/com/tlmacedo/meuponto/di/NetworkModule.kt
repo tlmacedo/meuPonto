@@ -1,7 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/di/NetworkModule.kt
 package br.com.tlmacedo.meuponto.di
 
-import br.com.tlmacedo.meuponto.BuildConfig
 import br.com.tlmacedo.meuponto.data.remote.api.BrasilApiService
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -21,7 +20,6 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 3.0.0
- * @updated 6.8.0 - Logging condicional para segurança em produção
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -38,20 +36,16 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
-        val builder = OkHttpClient.Builder()
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        return OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
-
-        // Logging apenas em builds de debug
-        if (BuildConfig.DEBUG) {
-            val loggingInterceptor = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }
-            builder.addInterceptor(loggingInterceptor)
-        }
-
-        return builder.build()
+            .build()
     }
 
     @Provides
