@@ -16,15 +16,21 @@ import javax.inject.Inject
 /**
  * Caso de uso para registrar um novo ponto.
  *
+ * O tipo do ponto é determinado automaticamente pela posição na lista
+ * (índice par = entrada, ímpar = saída).
+ *
+ * Suporta validação de campos obrigatórios conforme configuração do emprego:
+ * - NSR (Número Sequencial de Registro)
+ * - Localização (latitude, longitude)
+ *
  * @author Thiago
  * @since 2.0.0
- * @updated 7.0.0 - Integração com CalcularHoraConsideradaUseCase para persistir tolerância
+ * @updated 3.5.0 - Adicionado suporte a validação de NSR e localização obrigatórios
  */
 class RegistrarPontoUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val preferenciasRepository: PreferenciasRepository,
-    private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
-    private val calcularHoraConsideradaUseCase: CalcularHoraConsideradaUseCase
+    private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository
 ) {
 
     sealed class Resultado {
@@ -95,21 +101,12 @@ class RegistrarPontoUseCase @Inject constructor(
             }
 
             // Determina descrição do tipo baseado na posição
-            val indicePonto = pontosNoDia.size
-            val tipoDescricao = proximoPontoDescricao(indicePonto)
-
-            // *** Calcula hora considerada com tolerância (retorna LocalTime) ***
-            val horaConsiderada: LocalTime = calcularHoraConsideradaUseCase(
-                empregoId = empregoId,
-                dataHora = dataHora,
-                indicePonto = indicePonto
-            )
+            val tipoDescricao = proximoPontoDescricao(pontosNoDia.size)
 
             val agora = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
             val ponto = Ponto(
                 empregoId = empregoId,
                 dataHora = dataHora,
-                horaConsiderada = horaConsiderada,
                 observacao = parametros.observacao,
                 nsr = parametros.nsr,
                 latitude = parametros.latitude,
@@ -122,13 +119,7 @@ class RegistrarPontoUseCase @Inject constructor(
             val id = pontoRepository.inserir(ponto)
             val pontoSalvo = ponto.copy(id = id)
 
-            // Mensagem inclui informação de tolerância se aplicada
-            val mensagem = buildString {
-                append("$tipoDescricao registrada às ${pontoSalvo.horaFormatada}")
-                if (pontoSalvo.temAjusteTolerancia) {
-                    append(" (considerado: ${pontoSalvo.horaConsideradaFormatada})")
-                }
-            }
+            val mensagem = "$tipoDescricao registrada às ${pontoSalvo.horaFormatada}"
 
             Resultado.Sucesso(pontoSalvo, mensagem)
         } catch (e: Exception) {

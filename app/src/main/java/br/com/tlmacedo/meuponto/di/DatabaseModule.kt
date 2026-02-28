@@ -21,7 +21,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 7.0.0 - Adicionadas migrações 16->17 e 17->18 para campos horaConsiderada, data e hora
+ * @updated 6.0.0 - Adicionada migração 14->15 para novo sistema de ciclos de banco
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -52,9 +52,7 @@ object DatabaseModule {
                 MIGRATION_12_13,
                 MIGRATION_13_14,
                 MIGRATION_14_15,
-                MIGRATION_15_16,
-                MIGRATION_16_17,
-                MIGRATION_17_18  // ADICIONADO
+                MIGRATION_15_16
             )
             .addCallback(createDatabaseCallback())
             .build()
@@ -71,6 +69,7 @@ object DatabaseModule {
 
     /**
      * Insere dados iniciais de teste para desenvolvimento.
+     * NOTA: Usa os novos nomes de campos (versão 15)
      */
     private fun inserirDadosIniciais(db: SupportSQLiteDatabase) {
         val now = LocalDateTime.now().toString()
@@ -98,7 +97,7 @@ object DatabaseModule {
         )
 
         // ========================================================================
-        // 2. CONFIGURAÇÃO DO EMPREGO
+        // 2. CONFIGURAÇÃO DO EMPREGO (novos nomes de campos - versão 15)
         // ========================================================================
         db.execSQL(
             """
