@@ -1,160 +1,80 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/navigation/MeuPontoDestinations.kt
+// Adicionar novas rotas (se não existir, criar o arquivo)
+
 package br.com.tlmacedo.meuponto.presentation.navigation
 
 /**
- * Constantes de destinos de navegação do aplicativo MeuPonto.
- *
- * @author Thiago
- * @since 1.0.0
- * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
- * @updated 3.4.0 - Adicionado módulo de Feriados
- * @updated 4.0.0 - Adicionado módulo de Ausências
+ * Destinos de navegação do aplicativo.
  */
 object MeuPontoDestinations {
-
-    // === TELAS PRINCIPAIS ===
-
-    /** Tela inicial com registro de ponto */
-    const val HOME = "home?data={data}"
-
-    /** Rota base da Home (sem parâmetros) */
+    // Telas principais
     const val HOME_BASE = "home"
-
-    /** Tela de histórico de pontos */
+    const val HOME = "home?data={data}"
     const val HISTORY = "history"
-
-    /** Tela principal de configurações */
     const val SETTINGS = "settings"
 
-    /** Tela de edição de ponto */
-    const val EDIT_PONTO = "edit_ponto/{pontoId}"
-
-    // === CONFIGURAÇÕES - SUB-TELAS ===
-
-    /** Tela de gerenciamento de empregos */
-    const val GERENCIAR_EMPREGOS = "settings/empregos"
-
-    /** Tela de edição/criação de emprego */
-    const val EDITAR_EMPREGO = "settings/empregos/{empregoId}"
-
-    /** Tela de configuração de jornada */
-    const val CONFIGURACAO_JORNADA = "settings/jornada"
-
-    /** Tela de horários por dia da semana */
-    const val HORARIOS_TRABALHO = "settings/horarios"
-
-    /** Tela de ajustes de banco de horas */
-    const val AJUSTES_BANCO_HORAS = "settings/banco-horas"
-
-    /** Tela de gerenciamento de marcadores */
-    const val MARCADORES = "settings/marcadores"
-
-    /** Tela sobre o aplicativo */
-    const val SOBRE = "settings/sobre"
-
-    // === FERIADOS ===
-
-    /** Tela de listagem de feriados */
-    const val FERIADOS = "settings/feriados"
-
-    /** Tela de edição/criação de feriado */
-    const val EDITAR_FERIADO = "settings/feriados/editar/{feriadoId}"
-
-    /** Tela de criação de novo feriado (sem ID) */
-    const val NOVO_FERIADO = "settings/feriados/editar"
-
-    // === AUSÊNCIAS ===
-
-    /** Tela de listagem de ausências */
-    const val AUSENCIAS = "ausencias"
-
-    /** Tela de edição de ausência existente */
-    const val EDITAR_AUSENCIA = "ausencias/editar/{ausenciaId}"
-
-    /** Tela de criação de nova ausência */
-    const val NOVA_AUSENCIA = "ausencias/nova?tipo={tipo}&data={data}"
-
-    /** Rota base para nova ausência (sem parâmetros) */
-    const val NOVA_AUSENCIA_BASE = "ausencias/nova"
-
-    // === ARGUMENTOS DE NAVEGAÇÃO ===
-
-    /** Argumento para ID do ponto */
-    const val ARG_PONTO_ID = "pontoId"
-
-    /** Argumento para ID do emprego */
-    const val ARG_EMPREGO_ID = "empregoId"
-
-    /** Argumento para data selecionada (formato: yyyy-MM-dd) */
+    // Argumentos
     const val ARG_DATA = "data"
-
-    /** Argumento para ID do feriado */
+    const val ARG_PONTO_ID = "pontoId"
+    const val ARG_EMPREGO_ID = "empregoId"
     const val ARG_FERIADO_ID = "feriadoId"
-
-    /** Argumento para ID da ausência */
     const val ARG_AUSENCIA_ID = "ausenciaId"
-
-    /** Argumento para tipo de ausência */
     const val ARG_TIPO = "tipo"
+    const val ARG_VERSAO_ID = "versaoId"
 
-    // === FUNÇÕES DE CRIAÇÃO DE ROTAS ===
+    // Pontos
+    const val EDIT_PONTO = "edit_ponto/{$ARG_PONTO_ID}"
 
-    /**
-     * Cria a rota para edição de ponto.
-     *
-     * @param pontoId ID do ponto a ser editado
-     * @return Rota formatada com o ID
-     */
-    fun editPonto(pontoId: Long): String = "edit_ponto/$pontoId"
+    // Empregos
+    const val GERENCIAR_EMPREGOS = "gerenciar_empregos"
+    const val EDITAR_EMPREGO = "editar_emprego/{$ARG_EMPREGO_ID}"
+    const val NOVO_EMPREGO = "editar_emprego/-1"
 
-    /**
-     * Cria a rota para edição/criação de emprego.
-     *
-     * @param empregoId ID do emprego a ser editado (-1 para novo)
-     * @return Rota formatada com o ID
-     */
-    fun editarEmprego(empregoId: Long = -1L): String = "settings/empregos/$empregoId"
+    // Jornada
+    const val CONFIGURACAO_JORNADA = "configuracao_jornada"
+    const val HORARIOS_TRABALHO = "horarios_trabalho"
+    const val VERSOES_JORNADA = "versoes_jornada"
+    const val EDITAR_VERSAO = "editar_versao/{$ARG_VERSAO_ID}"
 
-    /**
-     * Cria a rota para Home com uma data específica.
-     *
-     * @param data Data a ser selecionada na Home (formato ISO: yyyy-MM-dd)
-     * @return Rota formatada com a data
-     */
-    fun homeComData(data: String): String = "home?data=$data"
+    // Feriados
+    const val FERIADOS = "feriados"
+    const val NOVO_FERIADO = "novo_feriado"
+    const val EDITAR_FERIADO = "editar_feriado/{$ARG_FERIADO_ID}"
 
-    /**
-     * Cria a rota para edição de feriado.
-     *
-     * @param feriadoId ID do feriado a ser editado
-     * @return Rota formatada com o ID
-     */
-    fun editarFeriado(feriadoId: Long): String = "settings/feriados/editar/$feriadoId"
+    // Ausências
+    const val AUSENCIAS = "ausencias"
+    const val NOVA_AUSENCIA_BASE = "nova_ausencia"
+    const val NOVA_AUSENCIA = "nova_ausencia?tipo={$ARG_TIPO}&data={$ARG_DATA}"
+    const val EDITAR_AUSENCIA = "editar_ausencia/{$ARG_AUSENCIA_ID}"
 
-    /**
-     * Cria a rota para edição de ausência.
-     *
-     * @param ausenciaId ID da ausência a ser editada
-     * @return Rota formatada com o ID
-     */
-    fun editarAusencia(ausenciaId: Long): String = "ausencias/editar/$ausenciaId"
+    // Banco de horas
+    const val AJUSTES_BANCO_HORAS = "ajustes_banco_horas"
 
-    /**
-     * Cria a rota para nova ausência com parâmetros opcionais.
-     *
-     * @param tipo Tipo de ausência (opcional)
-     * @param data Data inicial (opcional, formato ISO: yyyy-MM-dd)
-     * @return Rota formatada
-     */
+    // Personalização
+    const val MARCADORES = "marcadores"
+    const val APARENCIA = "aparencia"
+    const val BACKUP = "backup"
+
+    // Sobre
+    const val SOBRE = "sobre"
+
+    // Funções auxiliares
+    fun homeComData(data: String) = "home?data=$data"
+    fun editPonto(pontoId: Long) = "edit_ponto/$pontoId"
+    fun editarEmprego(empregoId: Long) = "editar_emprego/$empregoId"
+    fun editarFeriado(feriadoId: Long) = "editar_feriado/$feriadoId"
+    fun editarAusencia(ausenciaId: Long) = "editar_ausencia/$ausenciaId"
+    fun editarVersao(versaoId: Long) = "editar_versao/$versaoId"
     fun novaAusencia(tipo: String? = null, data: String? = null): String {
-        val params = mutableListOf<String>()
-        tipo?.let { params.add("tipo=$it") }
-        data?.let { params.add("data=$it") }
-
-        return if (params.isNotEmpty()) {
-            "ausencias/nova?${params.joinToString("&")}"
-        } else {
-            NOVA_AUSENCIA_BASE
+        return buildString {
+            append(NOVA_AUSENCIA_BASE)
+            val params = mutableListOf<String>()
+            tipo?.let { params.add("tipo=$it") }
+            data?.let { params.add("data=$it") }
+            if (params.isNotEmpty()) {
+                append("?")
+                append(params.joinToString("&"))
+            }
         }
     }
 }

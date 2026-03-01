@@ -178,17 +178,23 @@ fun MeuPontoNavHost(
                     onNavigateToEmpregos = {
                         navController.navigate(MeuPontoDestinations.GERENCIAR_EMPREGOS)
                     },
+                    onNavigateToEditarEmprego = { empregoId ->
+                        navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
+                    },
+                    onNavigateToNovoEmprego = {
+                        navController.navigate(MeuPontoDestinations.NOVO_EMPREGO)
+                    },
                     onNavigateToJornada = {
                         navController.navigate(MeuPontoDestinations.CONFIGURACAO_JORNADA)
                     },
                     onNavigateToHorarios = {
                         navController.navigate(MeuPontoDestinations.HORARIOS_TRABALHO)
                     },
+                    onNavigateToVersoes = {
+                        navController.navigate(MeuPontoDestinations.VERSOES_JORNADA)
+                    },
                     onNavigateToAjustesBancoHoras = {
                         navController.navigate(MeuPontoDestinations.AJUSTES_BANCO_HORAS)
-                    },
-                    onNavigateToMarcadores = {
-                        navController.navigate(MeuPontoDestinations.MARCADORES)
                     },
                     onNavigateToFeriados = {
                         navController.navigate(MeuPontoDestinations.FERIADOS)
@@ -196,9 +202,37 @@ fun MeuPontoNavHost(
                     onNavigateToAusencias = {
                         navController.navigate(MeuPontoDestinations.AUSENCIAS)
                     },
+                    onNavigateToAparencia = {
+                        navController.navigate(MeuPontoDestinations.APARENCIA)
+                    },
+                    onNavigateToBackup = {
+                        navController.navigate(MeuPontoDestinations.BACKUP)
+                    },
                     onNavigateToSobre = {
                         navController.navigate(MeuPontoDestinations.SOBRE)
                     }
+                )
+            }
+
+            // Adicionar novas rotas placeholder:
+            composable(MeuPontoDestinations.VERSOES_JORNADA) {
+                PlaceholderScreen(
+                    titulo = "Versões de Jornada",
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(MeuPontoDestinations.APARENCIA) {
+                PlaceholderScreen(
+                    titulo = "Aparência",
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(MeuPontoDestinations.BACKUP) {
+                PlaceholderScreen(
+                    titulo = "Backup & Dados",
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
