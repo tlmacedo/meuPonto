@@ -2,13 +2,10 @@
 package br.com.tlmacedo.meuponto.presentation.screen.history
 
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
-import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -16,7 +13,7 @@ import java.util.Locale
 /**
  * Filtros disponíveis para a tela de histórico.
  *
- * @updated 7.6.0 - Reorganizado com filtros específicos para cada tipo
+ * @updated 7.8.0 - Adicionado filtro FUTUROS
  */
 enum class FiltroHistorico(
     val descricao: String,
@@ -30,6 +27,7 @@ enum class FiltroHistorico(
     COM_PROBLEMAS("Problemas"),
 
     // Filtros secundários (acionados pelo resumo)
+    FUTUROS("Futuros", "🔮", true),
     DESCANSO("Descanso", "🛋️", true),
     FERIADOS("Feriados", "🎉", true),
     FERIAS("Férias", "🏖️", true),
@@ -97,9 +95,9 @@ data class PeriodoHistorico(
         get() {
             val hoje = LocalDate.now()
             return when {
-                dataInicio.isAfter(hoje) -> 0 // Período futuro
-                dataFim.isBefore(hoje) || dataFim == hoje -> totalDias // Período passado ou termina hoje
-                else -> (hoje.toEpochDay() - dataInicio.toEpochDay() + 1).toInt() // Período atual
+                dataInicio.isAfter(hoje) -> 0
+                dataFim.isBefore(hoje) || dataFim == hoje -> totalDias
+                else -> (hoje.toEpochDay() - dataInicio.toEpochDay() + 1).toInt()
             }
         }
 
@@ -226,7 +224,7 @@ data class InfoDiaHistorico(
 /**
  * Resumo consolidado do período para exibição.
  *
- * @updated 7.6.0 - Adicionado totalDiasPeriodo calculado corretamente
+ * @updated 7.8.0 - Adicionado diasFuturos e cálculo de dias úteis
  */
 data class ResumoPeriodo(
     val totalMinutosTrabalhados: Int = 0,
@@ -250,7 +248,13 @@ data class ResumoPeriodo(
     val quantidadeDeclaracoes: Int = 0,
     val totalMinutosDeclaracoes: Int = 0,
     val quantidadeAtestados: Int = 0,
-    val nomesFeriados: List<String> = emptyList()
+    val nomesFeriados: List<String> = emptyList(),
+    // Previsão de dias futuros
+    val diasDescansoFuturo: Int = 0,
+    val diasFeriadoFuturo: Int = 0,
+    val diasFeriasFuturo: Int = 0,
+    val diasFolgaFuturo: Int = 0,
+    val diasFuturos: Int = 0
 ) {
     val totalDiasAusencia: Int
         get() = diasFerias + diasFolga + diasAtestado + diasFaltaJustificada + diasFaltaInjustificada
@@ -260,9 +264,34 @@ data class ResumoPeriodo(
     val temToleranciaAplicada: Boolean get() = totalMinutosTolerancia > 0
     val temDeclaracoes: Boolean get() = quantidadeDeclaracoes > 0
     val temAtestados: Boolean get() = quantidadeAtestados > 0
+    val temDiasFuturos: Boolean get() = diasFuturos > 0
 
     /** Total de dias de faltas (justificadas + injustificadas) */
     val totalDiasFaltas: Int get() = diasFaltaJustificada + diasFaltaInjustificada
+
+    /** Total de descansos (passado + futuro) */
+    val totalDescanso: Int get() = diasDescanso + diasDescansoFuturo
+
+    /** Total de feriados (passado + futuro) */
+    val totalFeriados: Int get() = diasFeriado + diasFeriadoFuturo
+
+    /** Total de férias (passado + futuro) */
+    val totalFerias: Int get() = diasFerias + diasFeriasFuturo
+
+    /** Total de folgas (passado + futuro, exceto day-off) */
+    val totalFolgas: Int get() = diasFolgaCompensacao + diasFolgaFuturo
+
+    /** Indica se há previsão de dias futuros */
+    val temPrevisaoFutura: Boolean
+        get() = diasDescansoFuturo > 0 || diasFeriadoFuturo > 0 ||
+                diasFeriasFuturo > 0 || diasFolgaFuturo > 0
+
+    /**
+     * Total de dias úteis no período.
+     * Dias úteis = Total - Descansos - Feriados - Férias - Folgas - Day-offs
+     */
+    val diasUteis: Int
+        get() = totalDiasPeriodo - totalDescanso - totalFeriados - totalFerias - totalFolgas - diasFolgaDayOff
 }
 
 /**
@@ -294,6 +323,7 @@ data class HistoryUiState(
                 !it.jornadaCompleta && it.pontos.isNotEmpty() && !it.resumoDia.isFuturo
             }
             FiltroHistorico.COM_PROBLEMAS -> diasHistorico.filter { it.temProblemas }
+            FiltroHistorico.FUTUROS -> diasHistorico.filter { it.resumoDia.isFuturo }
             FiltroHistorico.DESCANSO -> diasHistorico.filter { it.isDescanso }
             FiltroHistorico.FERIADOS -> diasHistorico.filter { it.temFeriado }
             FiltroHistorico.FERIAS -> diasHistorico.filter {
@@ -322,8 +352,9 @@ data class HistoryUiState(
     val diasComProblemas: Int get() = resumoPeriodo.diasComProblemas
     val diasCompletos: Int get() = resumoPeriodo.diasCompletos
 
-    // Navegação
-    val podeIrProximoPeriodo: Boolean get() = !periodoSelecionado.proximoPeriodo().isFuturo
+    /** Sempre pode avançar para períodos futuros */
+    val podeIrProximoPeriodo: Boolean get() = true
+
     val isPeriodoAtual: Boolean get() = periodoSelecionado.contemHoje
     val usaPeriodoRHCustomizado: Boolean get() = diaInicioFechamento != 1
 
