@@ -2,55 +2,67 @@
 package br.com.tlmacedo.meuponto.presentation.screen.history
 
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
+import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
+import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
  * Filtros disponíveis para a tela de histórico.
+ *
+ * @updated 7.6.0 - Reorganizado com filtros específicos para cada tipo
  */
-enum class FiltroHistorico(val descricao: String) {
+enum class FiltroHistorico(
+    val descricao: String,
+    val emoji: String? = null,
+    val isSecundario: Boolean = false
+) {
+    // Filtros principais (chips visíveis)
     TODOS("Todos"),
     COMPLETOS("Completos"),
     INCOMPLETOS("Incompletos"),
-    COM_PROBLEMAS("Com problemas")
+    COM_PROBLEMAS("Problemas"),
+
+    // Filtros secundários (acionados pelo resumo)
+    DESCANSO("Descanso", "🛋️", true),
+    FERIADOS("Feriados", "🎉", true),
+    FERIAS("Férias", "🏖️", true),
+    FOLGAS("Folgas", "😴", true),
+    DAY_OFF("Day-off", "🎁", true),
+    ATESTADOS("Atestados", "🏥", true),
+    DECLARACOES("Declarações", "📄", true),
+    FALTAS("Faltas", "❌", true);
+
+    companion object {
+        /** Retorna apenas os filtros principais (para exibir nos chips) */
+        val principais: List<FiltroHistorico>
+            get() = entries.filter { !it.isSecundario }
+    }
 }
 
 /**
  * Representa um período de exibição no histórico.
- *
- * @property dataInicio Data de início do período (inclusive)
- * @property dataFim Data de fim do período (inclusive)
- * @property diaInicioFechamento Dia do mês que inicia o período RH (1-28)
- *
- * @author Thiago
- * @since 4.0.0
  */
 data class PeriodoHistorico(
     val dataInicio: LocalDate,
     val dataFim: LocalDate,
     val diaInicioFechamento: Int = 1
 ) {
-    /**
-     * Descrição formatada do período.
-     *
-     * Exemplos:
-     * - Período normal (dia 1): "Fevereiro de 2026"
-     * - Período customizado (dia 16): "16/01 a 15/02/2026"
-     */
     val descricaoFormatada: String
         get() {
             val locale = Locale("pt", "BR")
-
             return if (diaInicioFechamento == 1) {
-                // Período coincide com mês calendário
                 val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
                 dataInicio.format(formatter).replaceFirstChar { it.uppercase() }
             } else {
-                // Período customizado - exibe intervalo completo
                 val formatterDiaMes = DateTimeFormatter.ofPattern("dd/MM", locale)
                 val formatterCompleto = DateTimeFormatter.ofPattern("dd/MM/yyyy", locale)
-
                 if (dataInicio.year == dataFim.year) {
                     "${dataInicio.format(formatterDiaMes)} a ${dataFim.format(formatterCompleto)}"
                 } else {
@@ -59,17 +71,9 @@ data class PeriodoHistorico(
             }
         }
 
-    /**
-     * Descrição curta do período (para badges/chips).
-     *
-     * Exemplos:
-     * - "Fev/2026"
-     * - "16/01-15/02"
-     */
     val descricaoCurta: String
         get() {
             val locale = Locale("pt", "BR")
-
             return if (diaInicioFechamento == 1) {
                 val formatter = DateTimeFormatter.ofPattern("MMM/yyyy", locale)
                 dataInicio.format(formatter).replaceFirstChar { it.uppercase() }
@@ -79,31 +83,36 @@ data class PeriodoHistorico(
             }
         }
 
+    /** Total de dias no período completo (incluindo futuros) */
+    val totalDias: Int
+        get() = (dataFim.toEpochDay() - dataInicio.toEpochDay() + 1).toInt()
+
     /**
-     * Verifica se este período contém a data de hoje.
+     * Total de dias até hoje (excluindo dias futuros).
+     * Para períodos passados, retorna o total de dias.
+     * Para períodos futuros, retorna 0.
+     * Para o período atual, retorna apenas os dias até hoje.
      */
+    val totalDiasAteHoje: Int
+        get() {
+            val hoje = LocalDate.now()
+            return when {
+                dataInicio.isAfter(hoje) -> 0 // Período futuro
+                dataFim.isBefore(hoje) || dataFim == hoje -> totalDias // Período passado ou termina hoje
+                else -> (hoje.toEpochDay() - dataInicio.toEpochDay() + 1).toInt() // Período atual
+            }
+        }
+
     val contemHoje: Boolean
         get() {
             val hoje = LocalDate.now()
             return !hoje.isBefore(dataInicio) && !hoje.isAfter(dataFim)
         }
 
-    /**
-     * Verifica se este período é futuro (começa após hoje).
-     */
-    val isFuturo: Boolean
-        get() = dataInicio.isAfter(LocalDate.now())
-
-    /**
-     * Verifica se este período é passado (terminou antes de hoje).
-     */
-    val isPassado: Boolean
-        get() = dataFim.isBefore(LocalDate.now())
+    val isFuturo: Boolean get() = dataInicio.isAfter(LocalDate.now())
+    val isPassado: Boolean get() = dataFim.isBefore(LocalDate.now())
 
     companion object {
-        /**
-         * Cria um período baseado no mês calendário (dia 1 ao último dia).
-         */
         fun fromMesCalendario(dataReferencia: LocalDate): PeriodoHistorico {
             return PeriodoHistorico(
                 dataInicio = dataReferencia.withDayOfMonth(1),
@@ -112,192 +121,219 @@ data class PeriodoHistorico(
             )
         }
 
-        /**
-         * Cria um período RH baseado na configuração de fechamento.
-         *
-         * @param dataReferencia Qualquer data dentro do período desejado
-         * @param diaInicioFechamento Dia do mês que inicia o período (1-28)
-         */
         fun fromPeriodoRH(dataReferencia: LocalDate, diaInicioFechamento: Int): PeriodoHistorico {
             val diaFechamento = diaInicioFechamento.coerceIn(1, 28)
+            if (diaFechamento == 1) return fromMesCalendario(dataReferencia)
 
-            // Se dia de fechamento é 1, usa mês calendário
-            if (diaFechamento == 1) {
-                return fromMesCalendario(dataReferencia)
-            }
-
-            // Calcula início do período
             val dataInicio = if (dataReferencia.dayOfMonth >= diaFechamento) {
                 dataReferencia.withDayOfMonth(diaFechamento)
             } else {
                 dataReferencia.minusMonths(1).withDayOfMonth(diaFechamento)
             }
-
-            // Fim é o dia anterior ao início do próximo período
             val dataFim = dataInicio.plusMonths(1).minusDays(1)
 
-            return PeriodoHistorico(
-                dataInicio = dataInicio,
-                dataFim = dataFim,
-                diaInicioFechamento = diaFechamento
-            )
+            return PeriodoHistorico(dataInicio, dataFim, diaFechamento)
         }
 
-        /**
-         * Cria o período atual (que contém hoje).
-         */
-        fun periodoAtual(diaInicioFechamento: Int = 1): PeriodoHistorico {
-            return fromPeriodoRH(LocalDate.now(), diaInicioFechamento)
+        fun periodoAtual(diaInicioFechamento: Int = 1) = fromPeriodoRH(LocalDate.now(), diaInicioFechamento)
+    }
+
+    fun periodoAnterior() = fromPeriodoRH(dataInicio.minusDays(1), diaInicioFechamento)
+    fun proximoPeriodo() = fromPeriodoRH(dataFim.plusDays(1), diaInicioFechamento)
+}
+
+/**
+ * Informações extras de um dia para exibição no histórico.
+ */
+data class InfoDiaHistorico(
+    val resumoDia: ResumoDia,
+    val ausencias: List<Ausencia> = emptyList(),
+    val feriado: Feriado? = null,
+    val descricaoDiaEspecial: String? = null,
+    val isSemJornada: Boolean = false
+) {
+    // Delegações para ResumoDia
+    val data: LocalDate get() = resumoDia.data
+    val pontos get() = resumoDia.pontos
+    val jornadaCompleta get() = resumoDia.jornadaCompleta
+    val horasTrabalhadasMinutos get() = resumoDia.horasTrabalhadasMinutos
+    val saldoDiaMinutos get() = resumoDia.saldoDiaMinutos
+    val tipoDiaEspecial get() = resumoDia.tipoDiaEspecial
+    val statusDia get() = resumoDia.statusDia
+    val temProblemas get() = resumoDia.temProblemas
+    val intervalos get() = resumoDia.intervalos
+    val temIntervalo get() = resumoDia.temIntervalo
+
+    // Propriedades calculadas
+    val temFeriado: Boolean get() = feriado != null
+    val temAusencia: Boolean get() = ausencias.isNotEmpty()
+
+    /** É dia de descanso (fim de semana sem jornada) */
+    val isDescanso: Boolean
+        get() = isSemJornada && pontos.isEmpty() && feriado == null && ausencias.isEmpty()
+
+    /** Declarações do dia */
+    val declaracoes: List<Ausencia>
+        get() = ausencias.filter { it.tipo == TipoAusencia.DECLARACAO }
+
+    /** Atestados do dia */
+    val atestados: List<Ausencia>
+        get() = ausencias.filter { it.tipo == TipoAusencia.ATESTADO }
+
+    /** Ausência principal (que não é declaração) */
+    val ausenciaPrincipal: Ausencia?
+        get() = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO }
+
+    /** Total de minutos abonados por declarações */
+    val totalMinutosDeclaracoes: Int
+        get() = declaracoes.sumOf { it.duracaoAbonoMinutos ?: 0 }
+
+    /** Emoji do dia baseado no tipo */
+    val emoji: String
+        get() = when {
+            temFeriado && pontos.isNotEmpty() -> "⭐"
+            temFeriado -> "🎉"
+            ausenciaPrincipal != null -> getEmojiAusencia(ausenciaPrincipal!!)
+            isSemJornada -> "🛋️"
+            resumoDia.isFuturo -> "🔮"
+            jornadaCompleta -> "✅"
+            pontos.isNotEmpty() && !jornadaCompleta -> if (resumoDia.isHoje) "🔄" else "⚠️"
+            pontos.isEmpty() && !isSemJornada -> "⬜"
+            else -> "📅"
+        }
+
+    private fun getEmojiAusencia(ausencia: Ausencia): String {
+        return when (ausencia.tipo) {
+            TipoAusencia.FERIAS -> "🏖️"
+            TipoAusencia.ATESTADO -> "🏥"
+            TipoAusencia.DECLARACAO -> "📄"
+            TipoAusencia.FALTA_JUSTIFICADA -> "📝"
+            TipoAusencia.FOLGA -> if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
+            TipoAusencia.FALTA_INJUSTIFICADA -> "❌"
         }
     }
 
-    /**
-     * Retorna o período anterior a este.
-     */
-    fun periodoAnterior(): PeriodoHistorico {
-        return fromPeriodoRH(dataInicio.minusDays(1), diaInicioFechamento)
-    }
+    /** Descrição curta para exibição */
+    val descricaoCurta: String?
+        get() = when {
+            temFeriado -> feriado?.nome
+            ausenciaPrincipal != null -> ausenciaPrincipal?.tipoDescricaoCompleta
+            isSemJornada -> "Descanso"
+            else -> null
+        }
+}
 
-    /**
-     * Retorna o próximo período após este.
-     */
-    fun proximoPeriodo(): PeriodoHistorico {
-        return fromPeriodoRH(dataFim.plusDays(1), diaInicioFechamento)
-    }
+/**
+ * Resumo consolidado do período para exibição.
+ *
+ * @updated 7.6.0 - Adicionado totalDiasPeriodo calculado corretamente
+ */
+data class ResumoPeriodo(
+    val totalMinutosTrabalhados: Int = 0,
+    val saldoPeriodoMinutos: Int = 0,
+    val diasCompletos: Int = 0,
+    val diasComProblemas: Int = 0,
+    val diasDescanso: Int = 0,
+    val diasFeriado: Int = 0,
+    val diasFerias: Int = 0,
+    val diasFolga: Int = 0,
+    val diasFolgaDayOff: Int = 0,
+    val diasFolgaCompensacao: Int = 0,
+    val diasAtestado: Int = 0,
+    val diasFaltaJustificada: Int = 0,
+    val diasFaltaInjustificada: Int = 0,
+    val totalMinutosAbonados: Int = 0,
+    val totalMinutosTolerancia: Int = 0,
+    val diasUteisSemRegistro: Int = 0,
+    val totalDiasPeriodo: Int = 0,
+    val totalAjustesMinutos: Int = 0,
+    val quantidadeDeclaracoes: Int = 0,
+    val totalMinutosDeclaracoes: Int = 0,
+    val quantidadeAtestados: Int = 0,
+    val nomesFeriados: List<String> = emptyList()
+) {
+    val totalDiasAusencia: Int
+        get() = diasFerias + diasFolga + diasAtestado + diasFaltaJustificada + diasFaltaInjustificada
+
+    val temAusencias: Boolean get() = totalDiasAusencia > 0
+    val temTempoAbonado: Boolean get() = totalMinutosAbonados > 0
+    val temToleranciaAplicada: Boolean get() = totalMinutosTolerancia > 0
+    val temDeclaracoes: Boolean get() = quantidadeDeclaracoes > 0
+    val temAtestados: Boolean get() = quantidadeAtestados > 0
+
+    /** Total de dias de faltas (justificadas + injustificadas) */
+    val totalDiasFaltas: Int get() = diasFaltaJustificada + diasFaltaInjustificada
 }
 
 /**
  * Estado da interface da tela de Histórico.
- *
- * @property resumosPorDia Lista de resumos diários ordenados por data
- * @property periodoSelecionado Período atualmente selecionado para exibição
- * @property diaInicioFechamento Dia do mês que inicia o período RH (da configuração)
- * @property filtroAtivo Filtro de status aplicado
- * @property isLoading Indica se está carregando dados
- * @property errorMessage Mensagem de erro para exibição
- * @property diaExpandido Data do dia atualmente expandido (null = nenhum)
- * @property saldosAcumuladosPorDia Mapa com saldo acumulado até cada dia
- *
- * @author Thiago
- * @since 1.0.0
- * @updated 2.5.0 - Adicionados filtros, resumo e expansão de dias
- * @updated 3.0.0 - Refatorado para usar ResumoDia (single source of truth)
- * @updated 4.0.0 - Suporte a período RH customizado (diaInicioFechamentoRH)
  */
 data class HistoryUiState(
-    val resumosPorDia: List<ResumoDia> = emptyList(),
+    val diasHistorico: List<InfoDiaHistorico> = emptyList(),
     val periodoSelecionado: PeriodoHistorico = PeriodoHistorico.periodoAtual(),
     val diaInicioFechamento: Int = 1,
     val filtroAtivo: FiltroHistorico = FiltroHistorico.TODOS,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val diaExpandido: LocalDate? = null,
-    /** Mapa de data -> saldo acumulado do banco até aquele dia (em minutos) */
     val saldosAcumuladosPorDia: Map<LocalDate, Int> = emptyMap(),
-    /** Saldo inicial do período (vindo de fechamentos anteriores) */
-    val saldoInicialPeriodo: Int = 0
+    val saldoInicialPeriodo: Int = 0,
+    val resumoPeriodo: ResumoPeriodo = ResumoPeriodo()
 ) {
-    // ========================================================================
-    // Propriedades de Compatibilidade (deprecated)
-    // ========================================================================
+    val hasRegistros: Boolean get() = diasHistorico.isNotEmpty()
 
-    /**
-     * @deprecated Use periodoSelecionado.dataInicio em vez disso
-     */
-    @Deprecated("Use periodoSelecionado", ReplaceWith("periodoSelecionado.dataInicio"))
-    val mesSelecionado: LocalDate
-        get() = periodoSelecionado.dataInicio
-
-    // ========================================================================
-    // Verificações de Estado
-    // ========================================================================
-
-    /** Verifica se há registros para exibir */
-    val hasRegistros: Boolean
-        get() = resumosPorDia.isNotEmpty()
-
-    /** Total de dias com registro no período */
     val totalDiasComRegistro: Int
-        get() = resumosPorDia.size
+        get() = diasHistorico.count { it.pontos.isNotEmpty() }
 
-    /** Registros filtrados conforme filtro ativo */
-    val registrosFiltrados: List<ResumoDia>
+    /** Aplica o filtro ativo à lista de dias */
+    val registrosFiltrados: List<InfoDiaHistorico>
         get() = when (filtroAtivo) {
-            FiltroHistorico.TODOS -> resumosPorDia
-            FiltroHistorico.COMPLETOS -> resumosPorDia.filter { it.jornadaCompleta }
-            FiltroHistorico.INCOMPLETOS -> resumosPorDia.filter { !it.jornadaCompleta }
-            FiltroHistorico.COM_PROBLEMAS -> resumosPorDia.filter { it.temProblemas }
+            FiltroHistorico.TODOS -> diasHistorico
+            FiltroHistorico.COMPLETOS -> diasHistorico.filter { it.jornadaCompleta }
+            FiltroHistorico.INCOMPLETOS -> diasHistorico.filter {
+                !it.jornadaCompleta && it.pontos.isNotEmpty() && !it.resumoDia.isFuturo
+            }
+            FiltroHistorico.COM_PROBLEMAS -> diasHistorico.filter { it.temProblemas }
+            FiltroHistorico.DESCANSO -> diasHistorico.filter { it.isDescanso }
+            FiltroHistorico.FERIADOS -> diasHistorico.filter { it.temFeriado }
+            FiltroHistorico.FERIAS -> diasHistorico.filter {
+                it.ausencias.any { a -> a.tipo == TipoAusencia.FERIAS }
+            }
+            FiltroHistorico.FOLGAS -> diasHistorico.filter {
+                it.ausencias.any { a -> a.tipo == TipoAusencia.FOLGA && a.tipoFolga != TipoFolga.DAY_OFF }
+            }
+            FiltroHistorico.DAY_OFF -> diasHistorico.filter {
+                it.ausencias.any { a -> a.tipo == TipoAusencia.FOLGA && a.tipoFolga == TipoFolga.DAY_OFF }
+            }
+            FiltroHistorico.ATESTADOS -> diasHistorico.filter {
+                it.ausencias.any { a -> a.tipo == TipoAusencia.ATESTADO }
+            }
+            FiltroHistorico.DECLARACOES -> diasHistorico.filter { it.declaracoes.isNotEmpty() }
+            FiltroHistorico.FALTAS -> diasHistorico.filter {
+                it.ausencias.any { a ->
+                    a.tipo == TipoAusencia.FALTA_JUSTIFICADA || a.tipo == TipoAusencia.FALTA_INJUSTIFICADA
+                }
+            }
         }
 
-    // ========================================================================
-    // Cálculos de Totais
-    // ========================================================================
+    // Delegações para ResumoPeriodo
+    val totalMinutosTrabalhados: Int get() = resumoPeriodo.totalMinutosTrabalhados
+    val saldoTotalMinutos: Int get() = resumoPeriodo.saldoPeriodoMinutos
+    val diasComProblemas: Int get() = resumoPeriodo.diasComProblemas
+    val diasCompletos: Int get() = resumoPeriodo.diasCompletos
 
-    /** Total de minutos trabalhados no período (apenas dias completos) */
-    val totalMinutosTrabalhados: Int
-        get() = resumosPorDia
-            .filter { it.jornadaCompleta }
-            .sumOf { it.horasTrabalhadasMinutos }
-
-    /** Saldo total do período em minutos */
-    val saldoTotalMinutos: Int
-        get() = resumosPorDia
-            .filter { it.jornadaCompleta }
-            .sumOf { it.saldoDiaMinutos }
-
-    /** Quantidade de dias com problemas */
-    val diasComProblemas: Int
-        get() = resumosPorDia.count { it.temProblemas }
-
-    /** Quantidade de dias completos */
-    val diasCompletos: Int
-        get() = resumosPorDia.count { it.jornadaCompleta }
-
-    // ========================================================================
     // Navegação
-    // ========================================================================
+    val podeIrProximoPeriodo: Boolean get() = !periodoSelecionado.proximoPeriodo().isFuturo
+    val isPeriodoAtual: Boolean get() = periodoSelecionado.contemHoje
+    val usaPeriodoRHCustomizado: Boolean get() = diaInicioFechamento != 1
 
-    /**
-     * Verifica se pode navegar para o próximo período.
-     * Não permite navegar para períodos totalmente futuros.
-     */
-    val podeIrProximoPeriodo: Boolean
-        get() = !periodoSelecionado.proximoPeriodo().isFuturo
-
-    /**
-     * Verifica se o período atual está selecionado.
-     */
-    val isPeriodoAtual: Boolean
-        get() = periodoSelecionado.contemHoje
-
-    /**
-     * Indica se está usando período RH customizado (diferente do mês calendário).
-     */
-    val usaPeriodoRHCustomizado: Boolean
-        get() = diaInicioFechamento != 1
-
-    // ========================================================================
-    // Descrições para UI
-    // ========================================================================
-
-    /**
-     * Descrição do período para exibição no navegador.
-     */
-    val periodoDescricao: String
-        get() = periodoSelecionado.descricaoFormatada
-
-    /**
-     * Subtítulo com informação do período RH (se customizado).
-     */
+    val periodoDescricao: String get() = periodoSelecionado.descricaoFormatada
     val periodoSubtitulo: String?
-        get() = if (usaPeriodoRHCustomizado) {
-            "Período RH: dia $diaInicioFechamento"
-        } else null
+        get() = if (usaPeriodoRHCustomizado) "Período RH: dia $diaInicioFechamento" else null
 
-    /**
-     * Obtém o saldo acumulado até uma data específica.
-     */
-    fun saldoAcumuladoAte(data: LocalDate): Int? {
-        return saldosAcumuladosPorDia[data]
-    }
+    /** Saldo acumulado total (anterior + período) */
+    val saldoAcumuladoTotal: Int
+        get() = saldoInicialPeriodo + resumoPeriodo.saldoPeriodoMinutos
+
+    fun saldoAcumuladoAte(data: LocalDate): Int? = saldosAcumuladosPorDia[data]
 }

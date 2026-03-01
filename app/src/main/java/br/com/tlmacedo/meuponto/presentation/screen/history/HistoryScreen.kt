@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,17 +23,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Today
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -52,16 +57,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.StatusDiaResumo
+import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
+import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
 import br.com.tlmacedo.meuponto.presentation.components.LoadingIndicator
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
@@ -77,7 +89,7 @@ import java.util.Locale
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 3.2.0 - Layout compacto com turnos e intervalos detalhados
+ * @updated 7.6.0 - Novo layout do resumo com filtros clicáveis
  */
 @Composable
 fun HistoryScreen(
@@ -120,16 +132,27 @@ fun HistoryScreen(
                 onIrParaAtual = viewModel::irParaPeriodoAtual
             )
 
-            // ... resto do código permanece igual
             if (uiState.hasRegistros && !uiState.isLoading) {
                 ResumoMes(
-                    totalMinutos = uiState.totalMinutosTrabalhados,
-                    saldoMinutos = uiState.saldoTotalMinutos,
-                    diasCompletos = uiState.diasCompletos,
-                    diasComProblemas = uiState.diasComProblemas
+                    resumoPeriodo = uiState.resumoPeriodo,
+                    totalDiasPeriodo = uiState.periodoSelecionado.totalDiasAteHoje,
+                    saldoInicialPeriodo = uiState.saldoInicialPeriodo,
+                    saldoAcumuladoTotal = uiState.saldoAcumuladoTotal,
+                    filtroAtivo = uiState.filtroAtivo,
+                    onFiltroClick = viewModel::alterarFiltro
                 )
             }
 
+            // Indicador de filtro ativo (se não for TODOS)
+            if (uiState.filtroAtivo != FiltroHistorico.TODOS) {
+                FiltroAtivoIndicator(
+                    filtro = uiState.filtroAtivo,
+                    quantidadeResultados = uiState.registrosFiltrados.size,
+                    onLimparFiltro = { viewModel.alterarFiltro(FiltroHistorico.TODOS) }
+                )
+            }
+
+            // Chips de filtros principais
             FiltrosChips(
                 filtroAtivo = uiState.filtroAtivo,
                 onFiltroSelecionado = viewModel::alterarFiltro
@@ -139,14 +162,26 @@ fun HistoryScreen(
                 uiState.isLoading -> LoadingIndicator()
                 uiState.registrosFiltrados.isEmpty() -> {
                     EmptyState(
-                        title = if (uiState.hasRegistros) "Nenhum registro encontrado" else "Sem registros",
-                        message = if (uiState.hasRegistros)
-                            "Não há registros com o filtro selecionado"
+                        title = if (uiState.filtroAtivo != FiltroHistorico.TODOS)
+                            "Nenhum resultado"
+                        else if (uiState.hasRegistros)
+                            "Nenhum registro encontrado"
                         else
-                            "Nenhum ponto registrado neste período",
+                            "Sem registros",
+                        message = when {
+                            uiState.filtroAtivo != FiltroHistorico.TODOS ->
+                                "Não há dias com \"${uiState.filtroAtivo.descricao}\" neste período"
+
+                            uiState.hasRegistros ->
+                                "Não há registros com o filtro selecionado"
+
+                            else ->
+                                "Nenhum ponto registrado neste período"
+                        },
                         icon = Icons.Outlined.CalendarMonth
                     )
                 }
+
                 else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
@@ -155,13 +190,13 @@ fun HistoryScreen(
                         items(
                             items = uiState.registrosFiltrados,
                             key = { it.data.toString() }
-                        ) { resumo ->
+                        ) { infoDia ->
                             DiaCard(
-                                resumo = resumo,
-                                isExpandido = uiState.diaExpandido == resumo.data,
-                                saldoBancoAcumulado = uiState.saldoAcumuladoAte(resumo.data),
-                                onToggleExpansao = { viewModel.toggleDiaExpandido(resumo.data) },
-                                onNavigateToDay = { onNavigateToDay(resumo.data) }
+                                infoDia = infoDia,
+                                isExpandido = uiState.diaExpandido == infoDia.data,
+                                saldoBancoAcumulado = uiState.saldoAcumuladoAte(infoDia.data),
+                                onToggleExpansao = { viewModel.toggleDiaExpandido(infoDia.data) },
+                                onNavigateToDay = { onNavigateToDay(infoDia.data) }
                             )
                         }
                     }
@@ -171,10 +206,68 @@ fun HistoryScreen(
     }
 }
 
-/**
- * Navegador de período com setas e descrição.
- * Suporta tanto mês calendário quanto período RH customizado.
- */
+// ============================================================================
+// INDICADOR DE FILTRO ATIVO
+// ============================================================================
+
+@Composable
+private fun FiltroAtivoIndicator(
+    filtro: FiltroHistorico,
+    quantidadeResultados: Int,
+    onLimparFiltro: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                filtro.emoji?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(
+                    text = "Filtrando: ${filtro.descricao}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(Modifier.width(8.dp))
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondary
+                ) {
+                    Text(
+                        text = "$quantidadeResultados",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            IconButton(onClick = onLimparFiltro, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Limpar filtro",
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// NAVEGADOR DE PERÍODO
+// ============================================================================
+
 @Composable
 private fun MonthNavigator(
     periodoSelecionado: PeriodoHistorico,
@@ -189,139 +282,384 @@ private fun MonthNavigator(
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            IconButton(onClick = onPeriodoAnterior) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Período anterior")
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .weight(1f)
+                    .then(if (!isPeriodoAtual) Modifier.clickable { onIrParaAtual() } else Modifier)
             ) {
-                IconButton(onClick = onPeriodoAnterior) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                        contentDescription = "Período anterior"
-                    )
-                }
-
-                // Área central clicável para voltar ao período atual
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .weight(1f)
-                        .then(
-                            if (!isPeriodoAtual) {
-                                Modifier.clickable { onIrParaAtual() }
-                            } else Modifier
-                        )
-                ) {
+                Text(
+                    text = periodoSelecionado.descricaoFormatada,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
+                periodoSubtitulo?.let {
                     Text(
-                        text = periodoSelecionado.descricaoFormatada,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    // Subtítulo com info do período RH (se customizado)
-                    periodoSubtitulo?.let { subtitulo ->
+                }
+                if (!isPeriodoAtual) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Today, null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = subtitulo,
+                            "Toque para ir ao atual",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
-
-                    // Indicador para voltar ao período atual
-                    if (!isPeriodoAtual) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Today,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Toque para ir ao atual",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
                 }
+            }
 
-                IconButton(
-                    onClick = onProximoPeriodo,
-                    enabled = podeIrProximo
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "Próximo período",
-                        tint = if (podeIrProximo)
-                            MaterialTheme.colorScheme.onSurface
-                        else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    )
-                }
+            IconButton(onClick = onProximoPeriodo, enabled = podeIrProximo) {
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight, "Próximo período",
+                    tint = if (podeIrProximo) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                )
             }
         }
     }
 }
 
-/**
- * Card de resumo do mês.
- */
+// ============================================================================
+// RESUMO DO MÊS - NOVO LAYOUT
+// ============================================================================
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResumoMes(
-    totalMinutos: Int,
-    saldoMinutos: Int,
-    diasCompletos: Int,
-    diasComProblemas: Int
+    resumoPeriodo: ResumoPeriodo,
+    totalDiasPeriodo: Int,
+    saldoInicialPeriodo: Int,
+    saldoAcumuladoTotal: Int,
+    filtroAtivo: FiltroHistorico,
+    onFiltroClick: (FiltroHistorico) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            ResumoItem(
-                label = "Trabalhado",
-                valor = totalMinutos.minutosParaDuracaoCompacta(),
-                icon = Icons.Default.Schedule,
-                cor = MaterialTheme.colorScheme.primary
+        Column(modifier = Modifier.padding(16.dp)) {
+            // ================================================================
+            // RESUMO PRINCIPAL - Grid 3x2
+            // ================================================================
+            Text(
+                text = "Resumo do Período",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
-            ResumoItem(
-                label = "Saldo",
-                valor = saldoMinutos.toLong().minutosParaSaldoFormatado(),
-                icon = if (saldoMinutos >= 0) Icons.Default.CheckCircle else Icons.Default.Warning,
-                cor = if (saldoMinutos >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
-            )
-            ResumoItem(
-                label = "Completos",
-                valor = "$diasCompletos dias",
-                icon = Icons.Default.CheckCircle,
-                cor = Color(0xFF4CAF50)
-            )
-            if (diasComProblemas > 0) {
-                ResumoItem(
-                    label = "Problemas",
-                    valor = "$diasComProblemas dias",
-                    icon = Icons.Default.Error,
-                    cor = Color(0xFFF44336)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Linha 1: Dias do mês | Trabalhado | Tolerância
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                ResumoPrincipalItem(
+                    label = "Dias",
+                    valor = "$totalDiasPeriodo",
+                    sublabel = "no período",
+                    icon = Icons.Default.CalendarMonth,
+                    cor = MaterialTheme.colorScheme.tertiary
+                )
+                ResumoPrincipalItem(
+                    label = "Trabalhado",
+                    valor = resumoPeriodo.totalMinutosTrabalhados.minutosParaDuracaoCompacta(),
+                    sublabel = null,
+                    icon = Icons.Default.Schedule,
+                    cor = MaterialTheme.colorScheme.primary
+                )
+                ResumoPrincipalItem(
+                    label = "Tolerância",
+                    valor = if (resumoPeriodo.temToleranciaAplicada)
+                        resumoPeriodo.totalMinutosTolerancia.minutosParaDuracaoCompacta()
+                    else "—",
+                    sublabel = if (resumoPeriodo.temToleranciaAplicada) "aplicada" else null,
+                    icon = Icons.Default.Schedule,
+                    cor = if (resumoPeriodo.temToleranciaAplicada)
+                        Color(0xFF9C27B0) else MaterialTheme.colorScheme.outline
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Linha 2: Declarações | Saldo Período | Completos
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                ResumoPrincipalItem(
+                    label = "Declarações",
+                    valor = if (resumoPeriodo.temDeclaracoes)
+                        resumoPeriodo.totalMinutosDeclaracoes.minutosParaDuracaoCompacta()
+                    else "—",
+                    sublabel = if (resumoPeriodo.temDeclaracoes)
+                        "${resumoPeriodo.quantidadeDeclaracoes} decl." else null,
+                    icon = null,
+                    emoji = "📄",
+                    cor = if (resumoPeriodo.temDeclaracoes)
+                        Color(0xFF2196F3) else MaterialTheme.colorScheme.outline
+                )
+                ResumoPrincipalItem(
+                    label = "Saldo",
+                    valor = resumoPeriodo.saldoPeriodoMinutos.toLong().minutosParaSaldoFormatado(),
+                    sublabel = "do período",
+                    icon = if (resumoPeriodo.saldoPeriodoMinutos >= 0)
+                        Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+                    cor = if (resumoPeriodo.saldoPeriodoMinutos >= 0) Color(0xFF4CAF50) else Color(
+                        0xFFF44336
+                    )
+                )
+                ResumoPrincipalItem(
+                    label = "Completos",
+                    valor = "${resumoPeriodo.diasCompletos}",
+                    sublabel = "dias",
+                    icon = Icons.Default.CheckCircle,
+                    cor = Color(0xFF4CAF50)
+                )
+            }
+
+            // ================================================================
+            // RESUMO SECUNDÁRIO - Filtros clicáveis
+            // ================================================================
+            val temItensSecundarios = resumoPeriodo.diasDescanso > 0 ||
+                    resumoPeriodo.diasFeriado > 0 ||
+                    resumoPeriodo.diasFerias > 0 ||
+                    resumoPeriodo.diasFolgaDayOff > 0 ||
+                    resumoPeriodo.diasFolgaCompensacao > 0 ||
+                    resumoPeriodo.temAtestados ||
+                    resumoPeriodo.totalDiasFaltas > 0
+
+            if (temItensSecundarios) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Detalhes (toque para filtrar)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (resumoPeriodo.diasDescanso > 0) {
+                        ResumoSecundarioChip(
+                            emoji = "🛋️",
+                            label = "Descanso",
+                            valor = resumoPeriodo.diasDescanso,
+                            isSelected = filtroAtivo == FiltroHistorico.DESCANSO,
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.DESCANSO)
+                                        FiltroHistorico.TODOS else FiltroHistorico.DESCANSO
+                                )
+                            }
+                        )
+                    }
+                    if (resumoPeriodo.diasFeriado > 0) {
+                        ResumoSecundarioChip(
+                            emoji = "🎉",
+                            label = "Feriados",
+                            valor = resumoPeriodo.diasFeriado,
+                            isSelected = filtroAtivo == FiltroHistorico.FERIADOS,
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.FERIADOS)
+                                        FiltroHistorico.TODOS else FiltroHistorico.FERIADOS
+                                )
+                            }
+                        )
+                    }
+                    if (resumoPeriodo.diasFerias > 0) {
+                        ResumoSecundarioChip(
+                            emoji = "🏖️",
+                            label = "Férias",
+                            valor = resumoPeriodo.diasFerias,
+                            isSelected = filtroAtivo == FiltroHistorico.FERIAS,
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.FERIAS)
+                                        FiltroHistorico.TODOS else FiltroHistorico.FERIAS
+                                )
+                            }
+                        )
+                    }
+                    if (resumoPeriodo.diasFolgaDayOff > 0) {
+                        ResumoSecundarioChip(
+                            emoji = "🎁",
+                            label = "Day-off",
+                            valor = resumoPeriodo.diasFolgaDayOff,
+                            isSelected = filtroAtivo == FiltroHistorico.DAY_OFF,
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.DAY_OFF)
+                                        FiltroHistorico.TODOS else FiltroHistorico.DAY_OFF
+                                )
+                            }
+                        )
+                    }
+                    if (resumoPeriodo.diasFolgaCompensacao > 0) {
+                        ResumoSecundarioChip(
+                            emoji = "😴",
+                            label = "Folgas",
+                            valor = resumoPeriodo.diasFolgaCompensacao,
+                            isSelected = filtroAtivo == FiltroHistorico.FOLGAS,
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.FOLGAS)
+                                        FiltroHistorico.TODOS else FiltroHistorico.FOLGAS
+                                )
+                            }
+                        )
+                    }
+                    if (resumoPeriodo.temAtestados) {
+                        ResumoSecundarioChip(
+                            emoji = "🏥",
+                            label = "Atestados",
+                            valor = resumoPeriodo.quantidadeAtestados,
+                            isSelected = filtroAtivo == FiltroHistorico.ATESTADOS,
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.ATESTADOS)
+                                        FiltroHistorico.TODOS else FiltroHistorico.ATESTADOS
+                                )
+                            }
+                        )
+                    }
+                    if (resumoPeriodo.temDeclaracoes) {
+                        ResumoSecundarioChip(
+                            emoji = "📄",
+                            label = "Declarações",
+                            valor = resumoPeriodo.quantidadeDeclaracoes,
+                            isSelected = filtroAtivo == FiltroHistorico.DECLARACOES,
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.DECLARACOES)
+                                        FiltroHistorico.TODOS else FiltroHistorico.DECLARACOES
+                                )
+                            }
+                        )
+                    }
+                    if (resumoPeriodo.totalDiasFaltas > 0) {
+                        ResumoSecundarioChip(
+                            emoji = "❌",
+                            label = "Faltas",
+                            valor = resumoPeriodo.totalDiasFaltas,
+                            isSelected = filtroAtivo == FiltroHistorico.FALTAS,
+                            corFundo = Color(0xFFF44336).copy(alpha = 0.1f),
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.FALTAS)
+                                        FiltroHistorico.TODOS else FiltroHistorico.FALTAS
+                                )
+                            }
+                        )
+                    }
+                    if (resumoPeriodo.diasComProblemas > 0) {
+                        ResumoSecundarioChip(
+                            emoji = "⚠️",
+                            label = "Problemas",
+                            valor = resumoPeriodo.diasComProblemas,
+                            isSelected = filtroAtivo == FiltroHistorico.COM_PROBLEMAS,
+                            corFundo = Color(0xFFFF9800).copy(alpha = 0.1f),
+                            onClick = {
+                                onFiltroClick(
+                                    if (filtroAtivo == FiltroHistorico.COM_PROBLEMAS)
+                                        FiltroHistorico.TODOS else FiltroHistorico.COM_PROBLEMAS
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            // ================================================================
+            // SALDO ACUMULADO
+            // ================================================================
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Saldo anterior (se houver)
+//            if (saldoInicialPeriodo != 0) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("📊", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Saldo anterior",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = if (saldoInicialPeriodo == 0) {
+                        Color(0xFFDFE1DF)
+                    } else
+                        if (saldoInicialPeriodo >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+//            }
+
+            // Saldo acumulado total
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🏦", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Saldo acumulado",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Text(
+                    saldoAcumuladoTotal.toLong().minutosParaSaldoFormatado(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (saldoAcumuladoTotal >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
                 )
             }
         }
@@ -329,37 +667,96 @@ private fun ResumoMes(
 }
 
 @Composable
-private fun ResumoItem(
+private fun ResumoPrincipalItem(
     label: String,
     valor: String,
-    icon: ImageVector,
+    sublabel: String?,
+    icon: ImageVector?,
+    emoji: String? = null,
     cor: Color
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = cor,
-            modifier = Modifier.size(24.dp)
-        )
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(100.dp)
+    ) {
+        if (icon != null) {
+            Icon(icon, null, tint = cor, modifier = Modifier.size(20.dp))
+        } else if (emoji != null) {
+            Text(emoji, fontSize = 18.sp)
+        }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = valor,
-            style = MaterialTheme.typography.titleSmall,
+            valor,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = cor,
+            maxLines = 1
         )
         Text(
-            text = label,
+            label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
         )
+        sublabel?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontSize = 10.sp,
+                maxLines = 1
+            )
+        }
     }
 }
 
-/**
- * Chips de filtro horizontal.
- */
+@Composable
+private fun ResumoSecundarioChip(
+    emoji: String,
+    label: String,
+    valor: Int,
+    isSelected: Boolean,
+    corFundo: Color = MaterialTheme.colorScheme.surfaceVariant,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else corFundo,
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(
+            1.dp, MaterialTheme.colorScheme.primary
+        ) else null
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+        ) {
+            Text(emoji, fontSize = 14.sp)
+            Spacer(Modifier.width(4.dp))
+            Text(
+                "$valor",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.width(2.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+// ============================================================================
+// FILTROS (apenas principais)
+// ============================================================================
+
 @Composable
 private fun FiltrosChips(
     filtroAtivo: FiltroHistorico,
@@ -370,7 +767,7 @@ private fun FiltrosChips(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.padding(vertical = 8.dp)
     ) {
-        items(FiltroHistorico.entries) { filtro ->
+        items(FiltroHistorico.principais) { filtro ->
             FilterChip(
                 selected = filtro == filtroAtivo,
                 onClick = { onFiltroSelecionado(filtro) },
@@ -384,25 +781,23 @@ private fun FiltrosChips(
     }
 }
 
-/**
- * Card de um dia - Layout compacto com turnos.
- */
+// ============================================================================
+// CARD DO DIA (permanece igual)
+// ============================================================================
+
 @Composable
 private fun DiaCard(
-    resumo: ResumoDia,
+    infoDia: InfoDiaHistorico,
     isExpandido: Boolean,
-    saldoBancoAcumulado: Int?, // NOVO PARÂMETRO
+    saldoBancoAcumulado: Int?,
     onToggleExpansao: () -> Unit,
     onNavigateToDay: () -> Unit
 ) {
-    val status = resumo.statusDia
-    val statusIcon = getStatusIcon(status)
-    val statusColor = getStatusColor(status)
+    val resumo = infoDia.resumoDia
+    val statusColor = getStatusColor(resumo.statusDia)
 
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
@@ -410,71 +805,97 @@ private fun DiaCard(
             .clickable { onToggleExpansao() }
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // ================================================================
-            // HEADER: Ícone + Data + Horas trabalhadas
-            // ================================================================
+            // HEADER
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Lado esquerdo: Ícone + Data + Dia da semana
-                Row(verticalAlignment = Alignment.Top) {
-                    Text(
-                        text = statusIcon,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                Row(verticalAlignment = Alignment.Top, modifier = Modifier.weight(1f)) {
+                    Text(infoDia.emoji, style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        // Linha 1: Data + Horas trabalhadas
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            resumo.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            buildString {
+                                append(
+                                    resumo.data.dayOfWeek.getDisplayName(
+                                        TextStyle.FULL,
+                                        Locale("pt", "BR")
+                                    )
+                                        .replaceFirstChar { it.uppercase() })
+                                if (!infoDia.isSemJornada) append(" (${resumo.cargaHorariaDiariaFormatada})")
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        infoDia.descricaoCurta?.let {
                             Text(
-                                text = resumo.data.format(
-                                    DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                                ),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = statusColor
                             )
                         }
-                        // Linha 2: Dia da semana + (carga horária) + pontos
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = buildString {
-                                    append(
-                                        resumo.data.dayOfWeek.getDisplayName(
-                                            TextStyle.FULL,
-                                            Locale("pt", "BR")
-                                        ).replaceFirstChar { it.uppercase() }
-                                    )
-                                    append(" (${resumo.cargaHorariaDiariaFormatada})")
-                                },
+                        if (infoDia.declaracoes.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("📄", style = MaterialTheme.typography.labelSmall)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "${infoDia.declaracoes.size} declaração(ões) - ${infoDia.totalMinutosDeclaracoes.minutosParaDuracaoCompacta()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        when {
+                            resumo.jornadaCompleta -> {
+                                Text(
+                                    resumo.horasTrabalhadasFormatadas,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = statusColor
+                                )
+                                Text(
+                                    "${resumo.quantidadePontos} pontos",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            resumo.pontos.isNotEmpty() -> {
+                                Text(
+                                    resumo.horasTrabalhadasFormatadas,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = statusColor
+                                )
+                                Text(
+                                    "${resumo.quantidadePontos} ponto(s)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            else -> Text(
+                                "Sem registro",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                }
-
-                // Lado direito: Horas trabalhadas + Pontos + Seta
-                Row(verticalAlignment = Alignment.Top) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        if (resumo.jornadaCompleta || resumo.horasTrabalhadasMinutos > 0) {
-                            Text(
-                                text = resumo.horasTrabalhadasFormatadas,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = statusColor
-                            )
-                        }
-                        Text(
-                            text = "${resumo.quantidadePontos} ponto${if (resumo.quantidadePontos != 1) "s" else ""}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        imageVector = if (isExpandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        if (isExpandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = if (isExpandido) "Colapsar" else "Expandir",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
@@ -482,44 +903,34 @@ private fun DiaCard(
                 }
             }
 
-            // ================================================================
             // CONTEÚDO EXPANDIDO
-            // ================================================================
             AnimatedVisibility(
                 visible = isExpandido,
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    // --------------------------------------------------------
-                    // SEÇÃO: TURNOS
-                    // --------------------------------------------------------
-                    if (resumo.intervalos.isNotEmpty()) {
-                        TurnosSection(intervalos = resumo.intervalos)
+                    infoDia.feriado?.let {
+                        FeriadoInfoSection(it)
+                        Spacer(Modifier.height(8.dp))
                     }
-
-                    // --------------------------------------------------------
-                    // SEÇÃO: INTERVALO (se houver)
-                    // --------------------------------------------------------
+                    infoDia.ausenciaPrincipal?.let {
+                        AusenciaInfoSection(it)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    if (infoDia.declaracoes.isNotEmpty()) {
+                        DeclaracoesSection(infoDia.declaracoes)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    if (resumo.intervalos.isNotEmpty()) TurnosSection(resumo.intervalos)
                     if (resumo.temIntervalo) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        IntervaloSection(resumo = resumo)
+                        Spacer(Modifier.height(8.dp))
+                        IntervaloSection(resumo)
                     }
-
-                    // --------------------------------------------------------
-                    // SEÇÃO: SALDOS
-                    // --------------------------------------------------------
-                    if (resumo.jornadaCompleta) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        SaldosSection(
-                            resumo = resumo,
-                            saldoBancoAcumulado = saldoBancoAcumulado
-                        )
+                    if (resumo.jornadaCompleta || resumo.isJornadaZerada || infoDia.isSemJornada) {
+                        Spacer(Modifier.height(8.dp))
+                        SaldosSection(resumo, saldoBancoAcumulado, infoDia.isSemJornada)
                     }
-
-                    // --------------------------------------------------------
-                    // BOTÃO: VER DETALHES
-                    // --------------------------------------------------------
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
                         onClick = onNavigateToDay,
@@ -528,7 +939,7 @@ private fun DiaCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Ver detalhes do dia",
+                            "Ver detalhes do dia",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             textAlign = TextAlign.Center,
@@ -541,16 +952,164 @@ private fun DiaCard(
     }
 }
 
-/**
- * Seção que exibe os turnos de trabalho.
- * Mostra hora real vs hora considerada quando houver tolerância aplicada.
- *
- * @updated 4.0.0 - Exibe hora considerada quando diferente da hora real
- */
+// ============================================================================
+// SEÇÕES DO DIA EXPANDIDO (permanecem iguais)
+// ============================================================================
+
+@Composable
+private fun FeriadoInfoSection(feriado: Feriado) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFF9C27B0).copy(alpha = 0.1f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp)) {
+            Text("🎉", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(
+                    feriado.nome,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF9C27B0)
+                )
+                Text(
+                    feriado.tipo.descricao,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AusenciaInfoSection(ausencia: Ausencia) {
+    val corFundo = when (ausencia.tipo) {
+        TipoAusencia.FERIAS -> Color(0xFF00BCD4).copy(alpha = 0.1f)
+        TipoAusencia.ATESTADO -> Color(0xFFE91E63).copy(alpha = 0.1f)
+        TipoAusencia.FALTA_JUSTIFICADA -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+        TipoAusencia.FOLGA -> Color(0xFFFF9800).copy(alpha = 0.1f)
+        TipoAusencia.FALTA_INJUSTIFICADA -> Color(0xFFF44336).copy(alpha = 0.1f)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    val emoji = when (ausencia.tipo) {
+        TipoAusencia.FERIAS -> "🏖️"
+        TipoAusencia.ATESTADO -> "🏥"
+        TipoAusencia.FALTA_JUSTIFICADA -> "📝"
+        TipoAusencia.FOLGA -> if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
+        TipoAusencia.FALTA_INJUSTIFICADA -> "❌"
+        else -> "📄"
+    }
+
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = corFundo,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp)) {
+            Text(emoji, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    ausencia.tipoDescricaoCompleta,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                ausencia.observacao?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (ausencia.tipo == TipoAusencia.FOLGA && ausencia.tipoFolga == TipoFolga.COMPENSACAO) {
+                    Text(
+                        "⚠️ Desconta do banco de horas",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFFF9800)
+                    )
+                }
+            }
+            Text(ausencia.tipo.impactoResumido, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun DeclaracoesSection(declaracoes: List<Ausencia>) {
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("📄", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "Declarações (${declaracoes.size})",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            declaracoes.forEachIndexed { index, declaracao ->
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        declaracao.observacao?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        declaracao.horaInicio?.let { inicio ->
+                            Text(
+                                "⏰ ${inicio.format(timeFormatter)} - ${
+                                    declaracao.horaFimDeclaracao?.format(
+                                        timeFormatter
+                                    ) ?: ""
+                                }",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "+${declaracao.duracaoAbonoMinutos?.minutosParaDuracaoCompacta() ?: "0min"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)
+                        )
+                        Text(
+                            "abono",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (index < declaracoes.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun TurnosSection(intervalos: List<IntervaloPonto>) {
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
-
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -559,27 +1118,18 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
         Column(modifier = Modifier.padding(10.dp)) {
             intervalos.forEachIndexed { index, intervalo ->
                 val turnoNum = index + 1
-
-                // Horas reais (batidas)
                 val horaEntradaReal = intervalo.entrada.dataHora.toLocalTime().format(timeFormatter)
-                val horaSaidaReal = intervalo.saida?.dataHora?.toLocalTime()?.format(timeFormatter) ?: "..."
-
-                // Horas consideradas (com tolerância)
+                val horaSaidaReal =
+                    intervalo.saida?.dataHora?.toLocalTime()?.format(timeFormatter) ?: "..."
                 val horaEntradaConsiderada = intervalo.entrada.horaConsiderada.format(timeFormatter)
-                val horaSaidaConsiderada = intervalo.saida?.horaConsiderada?.format(timeFormatter) ?: "..."
-
-                // Verifica se há tolerância aplicada na entrada ou saída
+                val horaSaidaConsiderada =
+                    intervalo.saida?.horaConsiderada?.format(timeFormatter) ?: "..."
                 val temToleranciaEntrada = intervalo.entrada.temAjusteTolerancia
                 val temToleranciaSaida = intervalo.saida?.temAjusteTolerancia == true
                 val temAlgumaTolerancia = temToleranciaEntrada || temToleranciaSaida
-
-                // Duração do turno
                 val duracao = intervalo.formatarDuracaoCompacta()
 
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // ============================================================
-                    // Linha principal: Turno X: HH:mm - HH:mm → duração
-                    // ============================================================
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
@@ -587,93 +1137,69 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Turno $turnoNum:",
+                                "Turno $turnoNum:",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-
-                            // Mostra hora considerada (principal) ou hora real se não houver tolerância
+                            Spacer(Modifier.width(4.dp))
                             if (temAlgumaTolerancia) {
                                 Text(
-                                    text = "$horaEntradaConsiderada - $horaSaidaConsiderada",
+                                    "$horaEntradaConsiderada - $horaSaidaConsiderada",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                            } else {
-                                Text(
-                                    text = "$horaEntradaReal - $horaSaidaReal",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-
-                            // Indicador de tolerância aplicada
-                            if (temAlgumaTolerancia) {
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(Modifier.width(4.dp))
                                 Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = "Tolerância aplicada",
+                                    Icons.Default.Schedule, "Tolerância",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(12.dp)
                                 )
+                            } else {
+                                Text(
+                                    "$horaEntradaReal - $horaSaidaReal",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
-
-                        // Duração
                         Text(
-                            text = "→ $duracao",
+                            "→ $duracao",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (intervalo.aberto)
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            else
-                                MaterialTheme.colorScheme.primary
+                            color = if (intervalo.aberto) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.primary
                         )
                     }
-
-                    // ============================================================
-                    // Linha secundária: Hora real (se diferente da considerada)
-                    // ============================================================
                     if (temAlgumaTolerancia) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(Modifier.height(2.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 48.dp) // Alinha com o horário acima
+                            modifier = Modifier.padding(start = 48.dp)
                         ) {
+                            Text("⏱️", style = MaterialTheme.typography.labelSmall)
+                            Spacer(Modifier.width(4.dp))
                             Text(
-                                text = "⏱️",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Real: $horaEntradaReal - $horaSaidaReal",
+                                "Real: $horaEntradaReal - $horaSaidaReal",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-
-                // Espaço entre turnos (exceto último)
-                if (index < intervalos.size - 1) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                if (index < intervalos.lastIndex) {
+                    Spacer(Modifier.height(8.dp))
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         thickness = 0.5.dp
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
             }
         }
     }
 }
 
-/**
- * Seção que exibe o intervalo real vs considerado.
- */
 @Composable
 private fun IntervaloSection(resumo: ResumoDia) {
     val temTolerancia = resumo.temToleranciaIntervaloAplicada
@@ -685,67 +1211,57 @@ private fun IntervaloSection(resumo: ResumoDia) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            // Título
             Text(
-                text = "Intervalo",
+                "Intervalo",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Intervalo Real
+            Spacer(Modifier.height(4.dp))
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "⏱️", style = MaterialTheme.typography.bodySmall)
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("⏱️", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "Real",
+                        "Real",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Text(
-                    text = resumo.minutosIntervaloReal.minutosParaDuracaoCompacta(),
+                    resumo.minutosIntervaloReal.minutosParaDuracaoCompacta(),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = if (temTolerancia) FontWeight.Normal else FontWeight.SemiBold,
-                    color = if (temTolerancia)
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    else
-                        MaterialTheme.colorScheme.onSurface
+                    color = if (temTolerancia) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface
                 )
             }
-
-            // Intervalo Considerado (se diferente)
             if (temTolerancia) {
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(Modifier.height(2.dp))
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "✅", style = MaterialTheme.typography.bodySmall)
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("✅", style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "Considerado",
+                            "Considerado",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                     Text(
-                        text = resumo.minutosIntervaloTotal.minutosParaDuracaoCompacta(),
+                        resumo.minutosIntervaloTotal.minutosParaDuracaoCompacta(),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-
-                // Badge de tolerância
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(Modifier.height(6.dp))
                 Surface(
                     shape = RoundedCornerShape(4.dp),
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
@@ -755,14 +1271,13 @@ private fun IntervaloSection(resumo: ResumoDia) {
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
+                            Icons.Default.Schedule, null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(12.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "Tolerância: ${diferencaMinutos}min desconsiderados",
+                            "Tolerância: ${diferencaMinutos}min desconsiderados",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -773,25 +1288,19 @@ private fun IntervaloSection(resumo: ResumoDia) {
     }
 }
 
-/**
- * Seção que exibe os saldos do dia e do banco de horas.
- *
- * @param resumo Resumo do dia
- * @param saldoBancoAcumulado Saldo acumulado do banco de horas até este dia (em minutos)
- *
- * @updated 4.0.0 - Adicionado saldo do banco de horas acumulado
- */
 @Composable
 private fun SaldosSection(
     resumo: ResumoDia,
-    saldoBancoAcumulado: Int? = null
+    saldoBancoAcumulado: Int? = null,
+    isSemJornada: Boolean = false
 ) {
-    val saldoDiaColor = if (resumo.temSaldoPositivo || !resumo.temSaldoNegativo)
-        Color(0xFF4CAF50) else Color(0xFFF44336)
-
-    val saldoBancoColor = saldoBancoAcumulado?.let { saldo ->
-        if (saldo >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val saldoDiaColor = when {
+        isSemJornada -> MaterialTheme.colorScheme.onSurfaceVariant
+        resumo.temSaldoPositivo || !resumo.temSaldoNegativo -> Color(0xFF4CAF50)
+        else -> Color(0xFFF44336)
     }
+    val saldoBancoColor =
+        saldoBancoAcumulado?.let { if (it >= 0) Color(0xFF4CAF50) else Color(0xFFF44336) }
 
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -799,56 +1308,49 @@ private fun SaldosSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            // ================================================================
-            // Saldo do dia
-            // ================================================================
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Saldo do dia",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = resumo.saldoDiaFormatado,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = saldoDiaColor
-                )
+            if (!isSemJornada || resumo.pontos.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (resumo.isJornadaZerada && resumo.pontos.isNotEmpty()) "Horas extras" else "Saldo do dia",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        resumo.saldoDiaFormatado,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = saldoDiaColor
+                    )
+                }
             }
-
-            // ================================================================
-            // Saldo do banco de horas (acumulado)
-            // ================================================================
             if (saldoBancoAcumulado != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    thickness = 0.5.dp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-
+                if (!isSemJornada || resumo.pontos.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        thickness = 0.5.dp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🏦", style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "🏦",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Banco de horas",
+                            "Banco de horas",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Text(
-                        text = saldoBancoAcumulado.minutosParaSaldoFormatado(),
+                        saldoBancoAcumulado.minutosParaSaldoFormatado(),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = saldoBancoColor ?: MaterialTheme.colorScheme.onSurface
@@ -859,34 +1361,21 @@ private fun SaldosSection(
     }
 }
 
-/**
- * Retorna o ícone emoji do status.
- */
-private fun getStatusIcon(status: StatusDiaResumo): String {
-    return when (status) {
-        StatusDiaResumo.COMPLETO -> "✅"
-        StatusDiaResumo.EM_ANDAMENTO -> "🔄"
-        StatusDiaResumo.INCOMPLETO -> "⚠️"
-        StatusDiaResumo.COM_PROBLEMAS -> "❌"
-        StatusDiaResumo.SEM_REGISTRO -> "⬜"
-        StatusDiaResumo.FERIADO -> "🎉"
-        StatusDiaResumo.FERIADO_TRABALHADO -> "⭐"
-        StatusDiaResumo.FUTURO -> "🔮"
-    }
-}
+// ============================================================================
+// UTILITÁRIOS
+// ============================================================================
 
-/**
- * Retorna a cor principal do status.
- */
+private fun Int.minutosParaSaldoFormatado(): String = this.toLong().minutosParaSaldoFormatado()
+
 private fun getStatusColor(status: StatusDiaResumo): Color {
     return when (status) {
-        StatusDiaResumo.COMPLETO -> Color(0xFF4CAF50)           // Verde
-        StatusDiaResumo.EM_ANDAMENTO -> Color(0xFF2196F3)       // Azul
-        StatusDiaResumo.INCOMPLETO -> Color(0xFFFF9800)         // Laranja
-        StatusDiaResumo.COM_PROBLEMAS -> Color(0xFFF44336)      // Vermelho
-        StatusDiaResumo.SEM_REGISTRO -> Color(0xFF9E9E9E)       // Cinza
-        StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)            // Roxo
-        StatusDiaResumo.FERIADO_TRABALHADO -> Color(0xFFFF9800) // Laranja (hora extra)
-        StatusDiaResumo.FUTURO -> Color(0xFF78909C)             // Cinza azulado
+        StatusDiaResumo.COMPLETO -> Color(0xFF4CAF50)
+        StatusDiaResumo.EM_ANDAMENTO -> Color(0xFF2196F3)
+        StatusDiaResumo.INCOMPLETO -> Color(0xFFFF9800)
+        StatusDiaResumo.COM_PROBLEMAS -> Color(0xFFF44336)
+        StatusDiaResumo.SEM_REGISTRO -> Color(0xFF9E9E9E)
+        StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)
+        StatusDiaResumo.FERIADO_TRABALHADO -> Color(0xFFFF9800)
+        StatusDiaResumo.FUTURO -> Color(0xFF78909C)
     }
 }

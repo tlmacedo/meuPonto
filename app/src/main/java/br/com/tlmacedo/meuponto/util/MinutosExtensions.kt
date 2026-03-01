@@ -87,7 +87,7 @@ fun Long.minutosParaHoraMinuto(): String {
  * Converte minutos (Long) para o formato "+00h 00min" ou "-00h 00min".
  */
 fun Long.minutosParaSaldoFormatado(): String {
-    val sinal = if (this >= 0) "+" else "-"
+    val sinal = if (this > 0) "+" else { if (this <0) "-" else ""}
     val horas = abs(this) / 60
     val minutos = abs(this) % 60
     return String.format("%s%02dh %02dmin", sinal, horas, minutos)
