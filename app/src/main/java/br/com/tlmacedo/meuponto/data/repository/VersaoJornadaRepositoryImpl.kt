@@ -20,11 +20,16 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 2.7.0
+ * @updated 4.0.0 - Adicionados métodos de consulta para UseCases
  */
 class VersaoJornadaRepositoryImpl @Inject constructor(
     private val versaoJornadaDao: VersaoJornadaDao,
     private val horarioDiaSemanaDao: HorarioDiaSemanaDao
 ) : VersaoJornadaRepository {
+
+    // ========================================================================
+    // Operações de Escrita (CRUD)
+    // ========================================================================
 
     override suspend fun inserir(versao: VersaoJornada): Long {
         return versaoJornadaDao.inserir(versao.toEntity())
@@ -42,6 +47,10 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
         versaoJornadaDao.excluirPorId(id)
     }
 
+    // ========================================================================
+    // Operações de Leitura por ID
+    // ========================================================================
+
     override suspend fun buscarPorId(id: Long): VersaoJornada? {
         return versaoJornadaDao.buscarPorId(id)?.toDomain()
     }
@@ -50,8 +59,17 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
         return versaoJornadaDao.observarPorId(id).map { it?.toDomain() }
     }
 
+    // ========================================================================
+    // Operações de Leitura por Emprego
+    // ========================================================================
+
     override suspend fun buscarPorEmprego(empregoId: Long): List<VersaoJornada> {
         return versaoJornadaDao.buscarPorEmprego(empregoId).map { it.toDomain() }
+    }
+
+    override suspend fun listarPorEmprego(empregoId: Long): List<VersaoJornada> {
+        // Alias para buscarPorEmprego - mantém compatibilidade
+        return buscarPorEmprego(empregoId)
     }
 
     override fun observarPorEmprego(empregoId: Long): Flow<List<VersaoJornada>> {
@@ -68,13 +86,30 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
         return versaoJornadaDao.observarVigente(empregoId).map { it?.toDomain() }
     }
 
-    override suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): VersaoJornada? {
+    override suspend fun existeParaEmprego(empregoId: Long): Boolean {
+        return versaoJornadaDao.contarPorEmprego(empregoId) > 0
+    }
+
+    // ========================================================================
+    // Consultas por Data
+    // ========================================================================
+
+    override suspend fun buscarPorData(empregoId: Long, data: LocalDate): VersaoJornada? {
         return versaoJornadaDao.buscarPorEmpregoEData(empregoId, data)?.toDomain()
+    }
+
+    override suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): VersaoJornada? {
+        // Alias para buscarPorData - mantém compatibilidade
+        return buscarPorData(empregoId, data)
     }
 
     override fun observarPorEmpregoEData(empregoId: Long, data: LocalDate): Flow<VersaoJornada?> {
         return versaoJornadaDao.observarPorEmpregoEData(empregoId, data).map { it?.toDomain() }
     }
+
+    // ========================================================================
+    // Operações de Versionamento
+    // ========================================================================
 
     override suspend fun criarNovaVersao(
         empregoId: Long,
@@ -156,6 +191,10 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
     override suspend fun buscarProximaVersao(empregoId: Long, data: LocalDate): VersaoJornada? {
         return versaoJornadaDao.buscarProximaVersao(empregoId, data)?.toDomain()
     }
+
+    // ========================================================================
+    // Contagens
+    // ========================================================================
 
     override suspend fun contarPorEmprego(empregoId: Long): Int {
         return versaoJornadaDao.contarPorEmprego(empregoId)

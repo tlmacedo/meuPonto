@@ -19,7 +19,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 2.7.0 - Corrigido para passar DiaSemana diretamente ao DAO
+ * @updated 4.0.0 - Adicionado suporte a versões de jornada
  */
 @Singleton
 class HorarioDiaSemanaRepositoryImpl @Inject constructor(
@@ -48,6 +48,10 @@ class HorarioDiaSemanaRepositoryImpl @Inject constructor(
 
     override suspend fun excluirPorEmprego(empregoId: Long) {
         horarioDiaSemanaDao.excluirPorEmprego(empregoId)
+    }
+
+    override suspend fun excluirPorVersaoJornada(versaoJornadaId: Long) {
+        horarioDiaSemanaDao.excluirPorVersaoJornada(versaoJornadaId)
     }
 
     // ========================================================================
@@ -114,4 +118,9 @@ class HorarioDiaSemanaRepositoryImpl @Inject constructor(
         return horarioDiaSemanaDao.buscarPorVersaoEDia(versaoJornadaId, diaSemana)?.toDomain()
     }
 
+    override fun observarPorVersaoJornada(versaoJornadaId: Long): Flow<List<HorarioDiaSemana>> {
+        return horarioDiaSemanaDao.observarPorVersaoJornada(versaoJornadaId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
 }

@@ -57,6 +57,13 @@ interface HorarioDiaSemanaRepository {
      */
     suspend fun excluirPorEmprego(empregoId: Long)
 
+    /**
+     * Remove todos os horários de uma versão de jornada.
+     *
+     * @param versaoJornadaId Identificador da versão de jornada
+     */
+    suspend fun excluirPorVersaoJornada(versaoJornadaId: Long)
+
     // ========================================================================
     // Operações de Leitura
     // ========================================================================
@@ -148,8 +155,6 @@ interface HorarioDiaSemanaRepository {
      */
     fun observarDiasAtivos(empregoId: Long): Flow<List<HorarioDiaSemana>>
 
-    // Adicionar ao final da interface, antes do fechamento }
-
     // ========================================================================
     // Operações por Versão de Jornada
     // ========================================================================
@@ -171,5 +176,11 @@ interface HorarioDiaSemanaRepository {
      */
     suspend fun buscarPorVersaoEDia(versaoJornadaId: Long, diaSemana: DiaSemana): HorarioDiaSemana?
 
-
+    /**
+     * Observa os horários de uma versão de jornada de forma reativa.
+     *
+     * @param versaoJornadaId Identificador da versão de jornada
+     * @return Flow que emite a lista sempre que houver mudanças
+     */
+    fun observarPorVersaoJornada(versaoJornadaId: Long): Flow<List<HorarioDiaSemana>>
 }

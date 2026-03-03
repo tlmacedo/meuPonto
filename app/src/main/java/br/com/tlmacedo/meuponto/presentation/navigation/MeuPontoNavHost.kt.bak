@@ -30,8 +30,6 @@ import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.SettingsScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
@@ -218,37 +216,9 @@ fun MeuPontoNavHost(
 
             // Adicionar novas rotas placeholder:
             composable(MeuPontoDestinations.VERSOES_JORNADA) {
-                VersoesJornadaScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditar = { versaoId ->
-                        navController.navigate(
-                            MeuPontoDestinations.EDITAR_VERSAO.replace(
-                                "{${MeuPontoDestinations.ARG_VERSAO_ID}}",
-                                versaoId.toString()
-                            )
-                        )
-                    }
-                )
-            }
-
-            composable(
-                route = MeuPontoDestinations.EDITAR_VERSAO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_VERSAO_ID) {
-                        type = NavType.LongType
-                    }
-                )
-            ) {
-                EditarVersaoScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToHorarios = { versaoId ->
-                        navController.navigate(
-                            MeuPontoDestinations.HORARIOS_TRABALHO.replace(
-                                "{${MeuPontoDestinations.ARG_VERSAO_ID}}",
-                                versaoId.toString()
-                            )
-                        )
-                    }
+                PlaceholderScreen(
+                    titulo = "Versões de Jornada",
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 

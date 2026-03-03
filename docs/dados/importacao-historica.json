@@ -1,0 +1,396 @@
+{
+  "versao": "1.0",
+  "emprego": {
+    "nome": "SIDIA INSTITUTO DE CIENCIA E TECNOLOGIA",
+    "descricao": "DESENVOLVEDOR DE SW III",
+    "dataInicioTrabalho": "2025-08-11"
+  },
+  "versoesJornada": [
+    {
+      "descricao": "Jornada 2025",
+      "dataInicio": "2025-08-11",
+      "dataFim": "2025-12-31",
+      "cargaHorariaDiariaMinutos": 490,
+      "cargaHorariaSemanalMinutos": 2450,
+      "intervaloMinimoInterjornadaMinutos": 660,
+      "toleranciaIntervaloMaisMinutos": 20,
+      "toleranciaSaidaMinutos": 20,
+      "jornadaMaximaDiariaMinutos": 600,
+      "horariosDiasSemana": [
+        {
+          "diaSemana": "SEGUNDA",
+          "cargaHorariaMinutos": 490,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:10",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "TERCA",
+          "cargaHorariaMinutos": 490,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:10",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "QUARTA",
+          "cargaHorariaMinutos": 490,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:10",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "QUINTA",
+          "cargaHorariaMinutos": 490,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:10",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "SEXTA",
+          "cargaHorariaMinutos": 490,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:10",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "SABADO",
+          "cargaHorariaMinutos": 0,
+          "entradaIdeal": "08:00",
+          "saidaIdeal": "17:10",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "DOMINGO",
+          "cargaHorariaMinutos": 0,
+          "entradaIdeal": "08:00",
+          "saidaIdeal": "17:10",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        }
+      ]
+    },
+    {
+      "descricao": "Jornada 2026",
+      "dataInicio": "2026-01-01",
+      "dataFim": null,
+      "cargaHorariaDiariaMinutos": 492,
+      "cargaHorariaSemanalMinutos": 2450,
+      "intervaloMinimoInterjornadaMinutos": 660,
+      "toleranciaIntervaloMaisMinutos": 20,
+      "toleranciaSaidaMinutos": 20,
+      "jornadaMaximaDiariaMinutos": 600,
+      "horariosDiasSemana": [
+        {
+          "diaSemana": "SEGUNDA",
+          "cargaHorariaMinutos": 492,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:12",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "TERCA",
+          "cargaHorariaMinutos": 492,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:12",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "QUARTA",
+          "cargaHorariaMinutos": 492,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:12",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "QUINTA",
+          "cargaHorariaMinutos": 492,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:12",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "SEXTA",
+          "cargaHorariaMinutos": 492,
+          "entradaIdeal": "08:00",
+          "saidaIntervaloIdeal": "12:30",
+          "voltaIntervaloIdeal": "13:30",
+          "saidaIdeal": "17:12",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "SABADO",
+          "cargaHorariaMinutos": 0,
+          "entradaIdeal": "08:00",
+          "saidaIdeal": "17:12",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        },
+        {
+          "diaSemana": "DOMINGO",
+          "cargaHorariaMinutos": 0,
+          "entradaIdeal": "08:00",
+          "saidaIdeal": "17:12",
+          "intervaloMinimoMinutos": 60,
+          "toleranciaSaidaMinutos": 20
+        }
+      ]
+    }
+  ],
+  "pontos": [
+    {"data": "2025-08-11", "horarios": ["08:55", "12:31", "13:46", "18:08"]},
+    {"data": "2025-08-12", "horarios": ["08:40", "12:32", "13:50", "14:54", "16:54", "18:00"]},
+    {"data": "2025-08-13", "horarios": ["08:43", "12:13", "13:32", "17:36"]},
+    {"data": "2025-08-14", "horarios": ["08:22", "12:28", "13:37", "17:34"]},
+    {"data": "2025-08-15", "horarios": ["08:21", "12:44", "13:57", "16:53"]},
+    {"data": "2025-08-18", "horarios": ["07:54", "12:30", "13:42", "17:28"]},
+    {"data": "2025-08-19", "horarios": ["08:16", "12:29", "13:45", "18:11"]},
+    {"data": "2025-08-20", "horarios": ["09:00", "12:30", "13:47", "17:42"]},
+    {"data": "2025-08-21", "horarios": ["08:16", "12:40", "13:58", "18:10"]},
+    {"data": "2025-08-22", "horarios": ["08:22", "12:16", "13:31", "17:12"]},
+    {"data": "2025-08-25", "horarios": ["08:10", "12:37", "13:49", "18:03"]},
+    {"data": "2025-08-26", "horarios": ["08:26", "12:31", "13:48", "17:43"]},
+    {"data": "2025-08-27", "horarios": ["08:35", "12:32", "13:48", "18:36"]},
+    {"data": "2025-08-28", "horarios": ["08:44", "12:38", "13:54", "18:01"]},
+    {"data": "2025-08-29", "horarios": ["08:40", "12:39", "13:58", "18:20"]},
+    {"data": "2025-09-01", "horarios": ["08:14", "12:43", "13:58", "18:17"]},
+    {"data": "2025-09-02", "horarios": ["08:19", "12:37", "13:55", "18:05"]},
+    {"data": "2025-09-03", "horarios": ["08:37", "12:50", "14:02", "17:49"]},
+    {"data": "2025-09-04", "horarios": ["08:55", "12:30", "13:48", "18:54"]},
+    {"data": "2025-09-08", "horarios": ["08:27", "12:32", "13:52", "14:25", "15:11", "18:20"]},
+    {"data": "2025-09-09", "horarios": ["08:32", "12:40", "13:59", "18:21"]},
+    {"data": "2025-09-10", "horarios": ["08:32", "12:39", "13:51", "18:23"]},
+    {"data": "2025-09-11", "horarios": ["08:41", "12:27", "13:39", "18:15"]},
+    {"data": "2025-09-12", "horarios": ["08:11", "12:23", "13:43", "14:05", "15:27", "18:16"]},
+    {"data": "2025-09-15", "horarios": ["08:20", "12:36", "13:55", "14:08", "15:04", "18:43"]},
+    {"data": "2025-09-16", "horarios": ["08:19", "12:23", "13:38", "17:43"]},
+    {"data": "2025-09-17", "horarios": ["08:13", "12:39", "13:54", "17:55"]},
+    {"data": "2025-09-18", "horarios": ["08:12", "12:30", "13:49", "16:26"]},
+    {"data": "2025-09-19", "horarios": ["07:58", "12:27", "13:45", "16:35"]},
+    {"data": "2025-09-29", "horarios": ["07:37", "12:38", "13:55", "16:40"]},
+    {"data": "2025-09-30", "horarios": ["07:36", "12:39", "13:57", "16:38"]},
+    {"data": "2025-10-01", "horarios": ["07:25", "12:31", "13:48", "16:43"]},
+    {"data": "2025-10-02", "horarios": ["08:06", "12:45", "13:56", "18:12"]},
+    {"data": "2025-10-03", "horarios": ["07:47", "10:45", "11:52", "12:32", "13:45", "16:34"]},
+    {"data": "2025-10-06", "horarios": ["07:32", "09:59", "11:35", "12:24", "13:36", "16:30"]},
+    {"data": "2025-10-07", "horarios": ["07:15", "12:29", "13:45", "16:37"]},
+    {"data": "2025-10-08", "horarios": ["07:42", "12:45", "14:13", "18:06"]},
+    {"data": "2025-10-09", "horarios": ["08:30", "12:39", "13:53", "17:47"]},
+    {"data": "2025-10-10", "horarios": ["07:38", "12:32", "13:47", "17:04"]},
+    {"data": "2025-10-13", "horarios": ["07:42", "12:35", "13:52", "17:17"]},
+    {"data": "2025-10-14", "horarios": ["07:31", "12:30", "13:46", "16:38"]},
+    {"data": "2025-10-15", "horarios": ["07:40", "13:01", "14:18", "16:36"]},
+    {"data": "2025-10-16", "horarios": ["07:37", "12:42", "13:53", "16:45"]},
+    {"data": "2025-10-17", "horarios": ["07:38", "12:42", "13:59", "16:46"]},
+    {"data": "2025-10-20", "horarios": ["07:52", "12:53", "14:07", "16:41"]},
+    {"data": "2025-10-21", "horarios": ["07:42", "12:49", "14:16", "18:08"]},
+    {"data": "2025-10-22", "horarios": ["07:46", "13:05", "14:18", "14:35"]},
+    {"data": "2025-10-23", "horarios": ["06:29", "12:28", "13:45", "15:46"]},
+    {"data": "2025-10-27", "horarios": ["07:29", "12:33", "13:47", "16:41"]},
+    {"data": "2025-10-28", "horarios": ["07:38", "12:48", "14:00", "16:52"]},
+    {"data": "2025-10-29", "horarios": ["07:23", "08:52", "10:07", "12:32", "13:40", "16:52"]},
+    {"data": "2025-10-30", "horarios": ["07:31", "12:50", "14:08", "16:47"]},
+    {"data": "2025-10-31", "horarios": ["07:36", "12:32", "13:47", "16:47"]},
+    {"data": "2025-11-03", "horarios": ["07:47", "12:42", "13:58", "16:06"]},
+    {"data": "2025-11-04", "horarios": ["07:32", "12:43", "14:01", "16:43"]},
+    {"data": "2025-11-05", "horarios": ["07:34", "12:41", "13:59", "16:51"]},
+    {"data": "2025-11-06", "horarios": ["06:55", "12:23", "13:41", "16:08"]},
+    {"data": "2025-11-07", "horarios": ["06:39", "08:40", "10:18", "11:56", "13:13", "15:24"]},
+    {"data": "2025-11-10", "horarios": ["06:28", "12:28", "13:42", "15:47"]},
+    {"data": "2025-11-11", "horarios": ["07:00", "12:37", "13:54", "16:34"]},
+    {"data": "2025-11-12", "horarios": ["06:39", "12:39", "13:54", "15:53"]},
+    {"data": "2025-11-13", "horarios": ["06:53", "12:35", "13:49", "16:06"]},
+    {"data": "2025-11-14", "horarios": ["06:36", "12:02", "13:18", "14:33"]},
+    {"data": "2025-11-17", "horarios": ["07:04", "12:36", "13:52", "16:31"]},
+    {"data": "2025-11-18", "horarios": ["08:02", "12:34", "13:54", "16:37"]},
+    {"data": "2025-11-19", "horarios": ["13:15", "17:28"]},
+    {"data": "2025-11-20", "horarios": ["06:33", "12:31", "13:46", "16:27"]},
+    {"data": "2025-11-24", "horarios": ["07:01", "12:37", "13:54", "16:45"]},
+    {"data": "2025-11-25", "horarios": ["07:29", "12:38", "13:53", "14:50"]},
+    {"data": "2025-11-26", "horarios": ["07:24", "12:23", "13:39", "16:41"]},
+    {"data": "2025-11-27", "horarios": ["07:21", "12:43", "13:59", "16:43"]},
+    {"data": "2025-11-28", "horarios": ["07:23", "12:09", "13:28", "16:42"]},
+    {"data": "2025-12-01", "horarios": ["07:17", "12:35", "13:55", "15:59"]},
+    {"data": "2025-12-02", "horarios": ["07:37", "12:48", "14:06", "17:01"]},
+    {"data": "2025-12-03", "horarios": ["07:36", "12:35", "13:55", "17:06"]},
+    {"data": "2025-12-04", "horarios": ["07:23", "12:42", "13:58", "16:26"]},
+    {"data": "2025-12-05", "horarios": ["07:04", "12:41", "13:57", "16:33"]},
+    {"data": "2025-12-09", "horarios": ["07:14", "12:44", "14:00", "17:02"]},
+    {"data": "2025-12-10", "horarios": ["07:21", "12:39", "13:58", "16:56"]},
+    {"data": "2025-12-11", "horarios": ["07:23", "12:36", "13:55", "16:50"]},
+    {"data": "2025-12-12", "horarios": ["07:39", "12:30", "13:47", "16:09"]},
+    {"data": "2025-12-15", "horarios": ["07:14", "12:40", "13:56", "16:34"]},
+    {"data": "2025-12-16", "horarios": ["07:28", "11:50", "13:03", "15:23"]},
+    {"data": "2025-12-17", "horarios": ["07:31", "12:57", "14:16", "16:54"]},
+    {"data": "2025-12-18", "horarios": ["06:14", "12:10", "13:28", "15:57"]},
+    {"data": "2025-12-19", "horarios": ["07:33", "12:47", "14:10", "17:19"]},
+    {"data": "2025-12-22", "horarios": ["07:42", "12:41", "14:03", "17:27"]},
+    {"data": "2025-12-23", "horarios": ["07:23", "12:08", "13:34", "16:48"]},
+    {"data": "2025-12-29", "horarios": ["07:11", "12:50", "13:59", "16:49"]},
+    {"data": "2025-12-30", "horarios": ["07:15", "12:33", "13:51", "18:15"]},
+    {"data": "2026-01-05", "horarios": ["06:45", "12:37", "13:54", "17:46"]},
+    {"data": "2026-01-06", "horarios": ["06:56", "12:42", "14:10", "18:21"]},
+    {"data": "2026-01-07", "horarios": ["07:50", "12:54", "14:11", "17:56"]},
+    {"data": "2026-01-08", "horarios": ["12:40", "13:11", "14:32", "20:08"]},
+    {"data": "2026-01-09", "horarios": ["07:24", "13:09", "14:24", "17:34"]},
+    {"data": "2026-01-12", "horarios": ["08:22", "13:01", "14:19", "17:51"]},
+    {"data": "2026-01-13", "horarios": ["08:23", "12:49", "14:07", "18:08"]},
+    {"data": "2026-01-14", "horarios": ["08:21", "12:55", "14:12", "18:57"]},
+    {"data": "2026-01-15", "horarios": ["08:00", "12:44", "14:03", "17:20"]},
+    {"data": "2026-01-16", "horarios": ["08:29", "12:47", "14:02", "16:34"]},
+    {"data": "2026-01-19", "horarios": ["09:01", "12:38", "13:55", "18:03"]},
+    {"data": "2026-01-20", "horarios": ["08:35", "12:43", "14:01", "17:48", "18:26", "19:16"]},
+    {"data": "2026-01-21", "horarios": ["08:34", "12:51", "14:09", "16:48"]},
+    {"data": "2026-01-22", "horarios": ["08:55", "12:43", "14:00", "17:53"]},
+    {"data": "2026-01-23", "horarios": ["08:23", "12:52", "14:10", "17:36"]},
+    {"data": "2026-01-26", "horarios": ["08:37", "12:50", "14:07", "17:23"]},
+    {"data": "2026-01-27", "horarios": ["09:06", "12:48", "14:06", "17:16"]},
+    {"data": "2026-01-28", "horarios": ["08:07", "12:51", "14:08", "17:02"]},
+    {"data": "2026-01-29", "horarios": ["08:09", "12:35", "13:46", "16:15"]},
+    {"data": "2026-01-30", "horarios": ["07:53", "12:43", "14:01", "17:00"]},
+    {"data": "2026-02-02", "horarios": ["08:34", "12:38", "13:54", "17:32"]},
+    {"data": "2026-02-03", "horarios": ["07:47", "12:51", "14:08", "16:45"]},
+    {"data": "2026-02-04", "horarios": ["08:05", "12:39", "13:54", "17:18"]},
+    {"data": "2026-02-05", "horarios": ["07:41", "12:46", "14:00", "16:52"]},
+    {"data": "2026-02-08", "horarios": ["08:12"]},
+    {"data": "2026-02-19", "horarios": ["08:02", "12:32", "13:52", "17:17"]},
+    {"data": "2026-02-20", "horarios": ["08:09", "12:31", "13:45", "17:26"]},
+    {"data": "2026-02-23", "horarios": ["08:39", "12:27", "13:45", "17:57"]},
+    {"data": "2026-02-24", "horarios": ["09:26", "13:05", "14:23", "17:35"]},
+    {"data": "2026-02-25", "horarios": ["07:49", "12:05", "13:24", "17:22"]},
+    {"data": "2026-02-26", "horarios": ["08:34", "12:47", "14:07", "17:24"]},
+    {"data": "2026-02-27", "horarios": ["08:14", "12:03", "13:20", "17:46"]}
+  ],
+  "feriados": [
+    {
+      "descricao": "DIA NOSSA SRA. APARECIDA",
+      "data": "2025-10-12",
+      "dataFim": "2025-10-12"
+    },
+    {
+      "descricao": "PROCLAMACAO DA REPUBLICA",
+      "data": "2025-10-15",
+      "dataFim": "2025-10-15"
+    },
+    {
+      "descricao": "ANIVERSARIO DE MANAUS",
+      "data": "2025-10-24",
+      "dataFim": "2025-10-24"
+    },
+    {
+      "descricao": "FINADOS",
+      "data": "2025-11-02",
+      "dataFim": "2025-11-02"
+    },
+    {
+      "descricao": "DIA DA CONSCIENCIA NEGRA",
+      "data": "2025-11-15",
+      "dataFim": "2025-11-15"
+    },
+    {
+      "descricao": "N. SRA CONC.",
+      "data": "2025-12-08",
+      "dataFim": "2025-12-08"
+    },
+    {
+      "descricao": "NATAL",
+      "data": "2025-12-24",
+      "dataFim": "2025-12-26"
+    },
+    {
+      "descricao": "ANO NOVO",
+      "data": "2025-12-31",
+      "dataFim": "2026-01-02"
+    }
+  ],
+  "ausencias": [
+    {
+      "tipo": "FERIAS",
+      "dataInicio": "2025-09-22",
+      "dataFim": "2025-09-26",
+      "periodoAquisitivo": "2024/2025"
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-02-11",
+      "dataFim": "2026-02-11",
+      "descricao": "D.S.R."
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-02-12",
+      "dataFim": "2026-02-12",
+      "descricao": "D.S.R."
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-02-14",
+      "dataFim": "2026-02-14",
+      "descricao": "Compensado"
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-02-15",
+      "dataFim": "2026-02-15",
+      "descricao": "D.S.R."
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-02-16",
+      "dataFim": "2026-02-18",
+      "descricao": "CARNAVAL"
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-02-21",
+      "dataFim": "2026-02-21",
+      "descricao": "Compensado"
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-02-22",
+      "dataFim": "2026-02-22",
+      "descricao": "D.S.R."
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-02-28",
+      "dataFim": "2026-02-28",
+      "descricao": "Compensado"
+    },
+    {
+      "tipo": "FOLGA",
+      "dataInicio": "2026-03-01",
+      "dataFim": "2026-03-01",
+      "descricao": "D.S.R."
+    }
+  ]
+}
