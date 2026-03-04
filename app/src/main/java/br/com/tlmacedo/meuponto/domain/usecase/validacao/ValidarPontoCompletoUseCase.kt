@@ -1,13 +1,13 @@
-// Arquivo: ValidarPontoCompletoUseCase.kt
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/validacao/ValidarPontoCompletoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.validacao
 
-import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Inconsistencia
 import br.com.tlmacedo.meuponto.domain.model.InconsistenciaDetectada
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.PontoConstants
 import br.com.tlmacedo.meuponto.domain.model.ResultadoValidacao
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -18,26 +18,22 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 2.1.0 - Adaptado para tipo calculado por posição
+ * @updated 8.0.0 - Migrado para usar VersaoJornada
  */
 class ValidarPontoCompletoUseCase @Inject constructor(
     private val validarHorario: ValidarHorarioPontoUseCase,
     private val validarJornada: ValidarJornadaDiariaUseCase,
     private val pontoRepository: PontoRepository
 ) {
-    /**
-     * Executa todas as validações para um novo registro de ponto.
-     */
     suspend operator fun invoke(
         empregoId: Long,
         ponto: Ponto,
-        configuracao: ConfiguracaoEmprego,
+        versaoJornada: VersaoJornada,
         horarioEsperado: HorarioDiaSemana? = null,
         dataHoraAtual: LocalDateTime = LocalDateTime.now()
     ): ResultadoValidacao {
         val todasInconsistencias = mutableListOf<InconsistenciaDetectada>()
 
-        // Buscar pontos existentes para validação
         val data = ponto.dataHora.toLocalDate()
         val pontosExistentes = pontoRepository.buscarPorEmpregoEData(empregoId, data)
         val indiceNovoPonto = pontosExistentes.size
@@ -59,7 +55,7 @@ class ValidarPontoCompletoUseCase @Inject constructor(
         val resultadoHorario = validarHorario(
             ponto = ponto,
             horarioEsperado = horarioEsperado,
-            configuracao = configuracao,
+            versaoJornada = versaoJornada,
             dataHoraAtual = dataHoraAtual
         )
         todasInconsistencias.addAll(resultadoHorario.inconsistencias)
@@ -77,16 +73,12 @@ class ValidarPontoCompletoUseCase @Inject constructor(
             val todosPontos = pontosExistentes + ponto
             val resultadoJornada = validarJornada(
                 pontos = todosPontos,
-                jornadaMaximaMinutos = configuracao.jornadaMaximaDiariaMinutos.toLong(),
+                jornadaMaximaMinutos = versaoJornada.jornadaMaximaDiariaMinutos.toLong(),
                 intervaloMinimoMinutos = horarioEsperado?.intervaloMinimoMinutos?.toLong() ?: 60L
             )
-            // Converter resultado de jornada em inconsistências
-            converterResultadoJornada(resultadoJornada)?.let {
-                todasInconsistencias.add(it)
-            }
+            converterResultadoJornada(resultadoJornada)?.let { todasInconsistencias.add(it) }
         }
 
-        // Consolidar resultado
         val temBloqueantes = todasInconsistencias.any { it.isBloqueante }
 
         return if (temBloqueantes) {
@@ -108,28 +100,22 @@ class ValidarPontoCompletoUseCase @Inject constructor(
         }
     }
 
-    /**
-     * Valida um dia completo.
-     */
     suspend fun validarDiaCompleto(
         empregoId: Long,
         data: LocalDate,
-        configuracao: ConfiguracaoEmprego,
+        versaoJornada: VersaoJornada,
         horarioEsperado: HorarioDiaSemana? = null
     ): ResultadoValidacao {
         val pontos = pontoRepository.buscarPorEmpregoEData(empregoId, data)
         val todasInconsistencias = mutableListOf<InconsistenciaDetectada>()
 
-        // Validar jornada do dia (se houver pontos)
         if (pontos.size >= 2) {
             val resultadoJornada = validarJornada(
                 pontos = pontos,
-                jornadaMaximaMinutos = configuracao.jornadaMaximaDiariaMinutos.toLong(),
+                jornadaMaximaMinutos = versaoJornada.jornadaMaximaDiariaMinutos.toLong(),
                 intervaloMinimoMinutos = horarioEsperado?.intervaloMinimoMinutos?.toLong() ?: 60L
             )
-            converterResultadoJornada(resultadoJornada)?.let {
-                todasInconsistencias.add(it)
-            }
+            converterResultadoJornada(resultadoJornada)?.let { todasInconsistencias.add(it) }
         }
 
         val temBloqueantes = todasInconsistencias.any { it.isBloqueante }
@@ -147,9 +133,6 @@ class ValidarPontoCompletoUseCase @Inject constructor(
         )
     }
 
-    /**
-     * Converte ResultadoValidacaoJornada em InconsistenciaDetectada.
-     */
     private fun converterResultadoJornada(
         resultado: ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada
     ): InconsistenciaDetectada? {

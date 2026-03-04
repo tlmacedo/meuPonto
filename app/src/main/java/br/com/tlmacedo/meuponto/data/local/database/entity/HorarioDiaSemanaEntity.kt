@@ -14,6 +14,7 @@ import java.time.LocalTime
  *
  * @since 2.0.0
  * @updated 2.7.0 - Adicionado versaoJornadaId para versionamento
+ * @updated 7.2.0 - Removidos toleranciaEntradaMinutos e toleranciaSaidaMinutos
  */
 @Entity(
     tableName = "horarios_dia_semana",
@@ -51,8 +52,6 @@ data class HorarioDiaSemanaEntity(
     val saidaIdeal: LocalTime? = null,
     val intervaloMinimoMinutos: Int = 60,
     val toleranciaIntervaloMaisMinutos: Int = 0,
-    val toleranciaEntradaMinutos: Int? = null,
-    val toleranciaSaidaMinutos: Int? = null,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 )
@@ -71,8 +70,6 @@ fun HorarioDiaSemanaEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.Hor
         saidaIdeal = saidaIdeal,
         intervaloMinimoMinutos = intervaloMinimoMinutos,
         toleranciaIntervaloMaisMinutos = toleranciaIntervaloMaisMinutos,
-        toleranciaEntradaMinutos = toleranciaEntradaMinutos,
-        toleranciaSaidaMinutos = toleranciaSaidaMinutos,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )
@@ -91,8 +88,6 @@ fun br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana.toEntity(): HorarioDi
         saidaIdeal = saidaIdeal,
         intervaloMinimoMinutos = intervaloMinimoMinutos,
         toleranciaIntervaloMaisMinutos = toleranciaIntervaloMaisMinutos,
-        toleranciaEntradaMinutos = toleranciaEntradaMinutos,
-        toleranciaSaidaMinutos = toleranciaSaidaMinutos,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )

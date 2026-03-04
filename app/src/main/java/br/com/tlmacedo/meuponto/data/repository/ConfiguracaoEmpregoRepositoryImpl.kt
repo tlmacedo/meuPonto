@@ -8,17 +8,18 @@ import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.LocalDate
-import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Implementação concreta do repositório de configurações de emprego.
+ * Implementação do repositório de configurações de emprego.
+ *
+ * SIMPLIFICADO: Apenas configurações de exibição/comportamento.
+ * Configurações de jornada/banco de horas foram migradas para VersaoJornadaRepository.
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 3.0.0 - Atualizado para nova estrutura de ciclos
+ * @updated 8.0.0 - Simplificado após migração de campos para VersaoJornada
  */
 @Singleton
 class ConfiguracaoEmpregoRepositoryImpl @Inject constructor(
@@ -45,31 +46,19 @@ class ConfiguracaoEmpregoRepositoryImpl @Inject constructor(
         return configuracaoEmpregoDao.buscarPorEmpregoId(empregoId)?.toDomain()
     }
 
-    override suspend fun existeParaEmprego(empregoId: Long): Boolean {
-        return configuracaoEmpregoDao.existeParaEmprego(empregoId)
-    }
-
-    override suspend fun isNsrHabilitado(empregoId: Long): Boolean {
-        return configuracaoEmpregoDao.isNsrHabilitado(empregoId) ?: false
-    }
-
-    override suspend fun isLocalizacaoHabilitada(empregoId: Long): Boolean {
-        return configuracaoEmpregoDao.isLocalizacaoHabilitada(empregoId) ?: false
-    }
-
-    override suspend fun buscarPeriodoBancoHoras(empregoId: Long): Int {
-        return configuracaoEmpregoDao.buscarPeriodoBancoMeses(empregoId) ?: 0
-    }
-
     override fun observarPorEmpregoId(empregoId: Long): Flow<ConfiguracaoEmprego?> {
         return configuracaoEmpregoDao.observarPorEmpregoId(empregoId).map { it?.toDomain() }
     }
 
-    override suspend fun atualizarUltimoFechamentoBanco(empregoId: Long, data: LocalDate) {
-        configuracaoEmpregoDao.atualizarDataInicioCicloBanco(
-            empregoId = empregoId,
-            data = data.toString(),
-            atualizadoEm = LocalDateTime.now().toString()
-        )
+    override suspend fun listarTodas(): List<ConfiguracaoEmprego> {
+        return configuracaoEmpregoDao.listarTodas().map { it.toDomain() }
+    }
+
+    override fun observarTodas(): Flow<List<ConfiguracaoEmprego>> {
+        return configuracaoEmpregoDao.observarTodas().map { list -> list.map { it.toDomain() } }
+    }
+
+    override suspend fun existeParaEmprego(empregoId: Long): Boolean {
+        return configuracaoEmpregoDao.existeParaEmprego(empregoId)
     }
 }

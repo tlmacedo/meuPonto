@@ -249,7 +249,7 @@ class HomeViewModel @Inject constructor(
                     }
                 }
 
-                is VerificarCicloPendenteUseCase.Resultado.SemConfiguracao,
+                is VerificarCicloPendenteUseCase.Resultado.SemVersaoJornada,
                 is VerificarCicloPendenteUseCase.Resultado.BancoNaoHabilitado,
                 is VerificarCicloPendenteUseCase.Resultado.CicloNaoConfigurado -> {
                     _uiState.update { it.copy(estadoCiclo = EstadoCiclo.Nenhum) }

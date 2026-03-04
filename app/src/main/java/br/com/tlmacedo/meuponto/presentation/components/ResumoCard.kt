@@ -360,7 +360,7 @@ private fun ResumoItemPrincipal(
         TipoDiaEspecial.FERIADO -> Triple("Feriado", Icons.Outlined.WorkOff, Color(0xFF4CAF50))
         TipoDiaEspecial.PONTE -> Triple("Ponte", Icons.Outlined.WorkOff, Color(0xFF9C27B0))
         TipoDiaEspecial.FACULTATIVO -> Triple("Facultativo", Icons.Outlined.WorkOff, Color(0xFFE91E63))
-        TipoDiaEspecial.NORMAL -> Triple("Trabalhado no dia", Icons.Default.AccessTime, null)
+        TipoDiaEspecial.NORMAL -> Triple("Trabalhado no dias", Icons.Default.AccessTime, null)
     }
 
     val isDiaEspecialNaoTrabalhado = tipoDiaEspecial != TipoDiaEspecial.NORMAL

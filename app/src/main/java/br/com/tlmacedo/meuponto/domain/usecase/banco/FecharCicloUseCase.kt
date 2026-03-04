@@ -3,12 +3,12 @@ package br.com.tlmacedo.meuponto.domain.usecase.banco
 
 import br.com.tlmacedo.meuponto.domain.model.AjusteSaldo
 import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
-import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.AjusteSaldoRepository
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -23,17 +23,17 @@ import kotlin.math.abs
  * 1. Busca o saldo acumulado DO PERÍODO do ciclo (dataInicio ~ dataFim)
  * 2. Cria um FechamentoPeriodo com o registro histórico
  * 3. Se houver saldo != 0, cria um AjusteSaldo para zerar A PARTIR do próximo ciclo
- * 4. Atualiza a dataInicioCicloBancoAtual para o próximo ciclo
+ * 4. Atualiza a dataInicioCicloBancoAtual na VersaoJornada para o próximo ciclo
  *
  * IMPORTANTE: O fechamento NÃO altera saldos de dias anteriores.
  * O ajuste de zeramento é aplicado na data de INÍCIO do novo ciclo.
  *
  * @author Thiago
  * @since 6.2.0
- * @updated 6.3.0 - Usa calcularParaPeriodo para cálculo preciso do ciclo
+ * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository
  */
 class FecharCicloUseCase @Inject constructor(
-    private val configuracaoRepository: ConfiguracaoEmpregoRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val fechamentoRepository: FechamentoPeriodoRepository,
     private val ajusteSaldoRepository: AjusteSaldoRepository,
     private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase
@@ -52,20 +52,20 @@ class FecharCicloUseCase @Inject constructor(
         empregoId: Long,
         observacao: String? = null
     ): Resultado {
-        val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-            ?: return Resultado.Erro("Configuração não encontrada")
+        val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
+            ?: return Resultado.Erro("Versão de jornada não encontrada")
 
-        if (!configuracao.temBancoHoras) {
+        if (!versaoJornada.temBancoHoras) {
             return Resultado.Erro("Banco de horas não habilitado")
         }
 
-        val dataInicioCiclo = configuracao.dataInicioCicloBancoAtual
+        val dataInicioCiclo = versaoJornada.dataInicioCicloBancoAtual
             ?: return Resultado.Erro("Data de início do ciclo não configurada")
 
-        val dataFimCiclo = configuracao.calcularDataFimCicloAtual()
+        val dataFimCiclo = versaoJornada.calcularDataFimCicloAtual()
             ?: return Resultado.Erro("Não foi possível calcular fim do ciclo")
 
-        val dataInicioProximoCiclo = configuracao.calcularDataInicioProximoCiclo()
+        val dataInicioProximoCiclo = versaoJornada.calcularDataInicioProximoCiclo()
             ?: return Resultado.Erro("Não foi possível calcular próximo ciclo")
 
         android.util.Log.d("FECHAR_CICLO", "═══════════════════════════════════════════════")
@@ -74,7 +74,6 @@ class FecharCicloUseCase @Inject constructor(
 
         // ═══════════════════════════════════════════════════════════════════
         // IMPORTANTE: Calcular o saldo EXATAMENTE do período do ciclo!
-        // Usamos calcularParaPeriodo que NÃO considera fechamentos anteriores
         // ═══════════════════════════════════════════════════════════════════
         val resultadoBanco = calcularBancoHorasUseCase.calcularParaPeriodo(
             empregoId = empregoId,
@@ -106,10 +105,9 @@ class FecharCicloUseCase @Inject constructor(
         android.util.Log.d("FECHAR_CICLO", "Fechamento criado com ID: $fechamentoId")
 
         // 2. Criar ajuste de zeramento (SEMPRE, mesmo que saldo seja zero)
-        // O ajuste é aplicado na DATA DE INÍCIO DO NOVO CICLO
         val ajusteZeramento = AjusteSaldo(
             empregoId = empregoId,
-            data = dataInicioProximoCiclo, // Ajuste no INÍCIO do novo ciclo!
+            data = dataInicioProximoCiclo,
             minutos = -saldoMinutos,
             justificativa = buildString {
                 append("Zeramento de ciclo anterior")
@@ -125,13 +123,13 @@ class FecharCicloUseCase @Inject constructor(
         val ajusteId = ajusteSaldoRepository.inserir(ajusteZeramento)
         android.util.Log.d("FECHAR_CICLO", "Ajuste criado com ID: $ajusteId, valor: ${-saldoMinutos} min")
 
-        // 3. Atualizar configuração para próximo ciclo
-        val novaConfiguracao = configuracao.copy(
+        // 3. Atualizar VersaoJornada para próximo ciclo
+        val novaVersaoJornada = versaoJornada.copy(
             dataInicioCicloBancoAtual = dataInicioProximoCiclo,
             atualizadoEm = agora
         )
-        configuracaoRepository.atualizar(novaConfiguracao)
-        android.util.Log.d("FECHAR_CICLO", "Configuração atualizada: novo ciclo inicia em $dataInicioProximoCiclo")
+        versaoJornadaRepository.atualizar(novaVersaoJornada)
+        android.util.Log.d("FECHAR_CICLO", "VersaoJornada atualizada: novo ciclo inicia em $dataInicioProximoCiclo")
 
         // Montar ciclo para retorno
         val cicloFechado = CicloBancoHoras(
@@ -144,7 +142,7 @@ class FecharCicloUseCase @Inject constructor(
 
         val novoCiclo = CicloBancoHoras(
             dataInicio = dataInicioProximoCiclo,
-            dataFim = calcularDataFimCiclo(dataInicioProximoCiclo, configuracao),
+            dataFim = calcularDataFimCiclo(dataInicioProximoCiclo, versaoJornada),
             saldoInicialMinutos = 0,
             saldoAtualMinutos = 0,
             isCicloAtual = true
@@ -161,7 +159,6 @@ class FecharCicloUseCase @Inject constructor(
 
     /**
      * Fecha múltiplos ciclos pendentes de uma vez.
-     * Útil quando o usuário ficou muito tempo sem abrir o app.
      */
     suspend fun fecharCiclosPendentes(
         empregoId: Long,
@@ -170,15 +167,13 @@ class FecharCicloUseCase @Inject constructor(
         val ciclosFechados = mutableListOf<CicloBancoHoras>()
         var ultimoResultado: Resultado? = null
 
-        // Loop para fechar todos os ciclos pendentes
         repeat(20) { iteracao ->
-            val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-                ?: return ResultadoMultiplo.Erro("Configuração não encontrada")
+            val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
+                ?: return ResultadoMultiplo.Erro("Versão de jornada não encontrada")
 
-            val dataFimCiclo = configuracao.calcularDataFimCicloAtual()
+            val dataFimCiclo = versaoJornada.calcularDataFimCicloAtual()
                 ?: return ResultadoMultiplo.Erro("Ciclo não configurado")
 
-            // Se o ciclo atual ainda não terminou, paramos
             if (!dataAtual.isAfter(dataFimCiclo)) {
                 android.util.Log.d("CICLO_DEBUG", "Ciclo atual ($dataFimCiclo) ainda não terminou. Parando.")
                 return@repeat
@@ -187,7 +182,6 @@ class FecharCicloUseCase @Inject constructor(
             android.util.Log.d("CICLO_DEBUG", "═══════════════════════════════════════════════")
             android.util.Log.d("CICLO_DEBUG", "Fechando ciclo pendente #${iteracao + 1}")
 
-            // Fechar ciclo
             when (val resultado = invoke(empregoId)) {
                 is Resultado.Sucesso -> {
                     ciclosFechados.add(resultado.cicloFechado)
@@ -213,12 +207,12 @@ class FecharCicloUseCase @Inject constructor(
 
     private fun calcularDataFimCiclo(
         dataInicio: LocalDate,
-        configuracao: ConfiguracaoEmprego
+        versaoJornada: VersaoJornada
     ): LocalDate = when {
-        configuracao.periodoBancoSemanas > 0 ->
-            dataInicio.plusWeeks(configuracao.periodoBancoSemanas.toLong()).minusDays(1)
-        configuracao.periodoBancoMeses > 0 ->
-            dataInicio.plusMonths(configuracao.periodoBancoMeses.toLong()).minusDays(1)
+        versaoJornada.periodoBancoSemanas > 0 ->
+            dataInicio.plusWeeks(versaoJornada.periodoBancoSemanas.toLong()).minusDays(1)
+        versaoJornada.periodoBancoMeses > 0 ->
+            dataInicio.plusMonths(versaoJornada.periodoBancoMeses.toLong()).minusDays(1)
         else -> dataInicio
     }
 

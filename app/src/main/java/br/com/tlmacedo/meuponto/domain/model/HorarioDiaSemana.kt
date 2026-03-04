@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter
  * @author Thiago
  * @since 2.0.0
  * @updated 2.7.0 - Adicionado versaoJornadaId para versionamento
+ * @updated 7.2.0 - Removidos toleranciaEntradaMinutos e toleranciaSaidaMinutos
  */
 data class HorarioDiaSemana(
     val id: Long = 0,
@@ -26,13 +27,14 @@ data class HorarioDiaSemana(
     val saidaIdeal: LocalTime? = null,
     val intervaloMinimoMinutos: Int = 60,
     val toleranciaIntervaloMaisMinutos: Int = 0,
-    val toleranciaEntradaMinutos: Int? = null,
-    val toleranciaSaidaMinutos: Int? = null,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 ) {
     companion object {
         private val FORMATTER_HORA = DateTimeFormatter.ofPattern("HH:mm")
+
+        /** Tolerância padrão de entrada em minutos */
+        const val TOLERANCIA_ENTRADA_PADRAO = 10
 
         fun criarPadrao(empregoId: Long, diaSemana: DiaSemana, versaoJornadaId: Long? = null): HorarioDiaSemana {
             val ehDiaUtil = diaSemana.isDiaUtil
@@ -54,9 +56,6 @@ data class HorarioDiaSemana(
     val temHorariosIdeais: Boolean get() = entradaIdeal != null || saidaIntervaloIdeal != null || voltaIntervaloIdeal != null || saidaIdeal != null
     val temHorariosCompletos: Boolean get() = entradaIdeal != null && saidaIntervaloIdeal != null && voltaIntervaloIdeal != null && saidaIdeal != null
     val isDiaUtil: Boolean get() = ativo
-    val temToleranciaEntradaCustomizada: Boolean get() = toleranciaEntradaMinutos != null
-    val temToleranciaSaidaCustomizada: Boolean get() = toleranciaSaidaMinutos != null
-    val temToleranciasCustomizadas: Boolean get() = temToleranciaEntradaCustomizada || temToleranciaSaidaCustomizada
 
     val cargaHorariaFormatada: String
         get() {

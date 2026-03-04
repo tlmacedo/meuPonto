@@ -1,32 +1,32 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/banco/ReverterFechamentoIncorretoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.banco
 
-import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
 import br.com.tlmacedo.meuponto.domain.repository.AjusteSaldoRepository
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
  * UseCase para reverter fechamentos de ciclo incorretos.
- * 
+ *
  * Remove fechamentos e ajustes criados erroneamente,
  * restaurando a configuração do ciclo.
  *
  * @author Thiago
  * @since 6.3.0
+ * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository
  */
 class ReverterFechamentoIncorretoUseCase @Inject constructor(
     private val fechamentoRepository: FechamentoPeriodoRepository,
     private val ajusteSaldoRepository: AjusteSaldoRepository,
-    private val configuracaoRepository: ConfiguracaoEmpregoRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository
 ) {
 
     /**
      * Reverte todos os fechamentos de ciclo de banco de horas de um emprego.
-     * 
+     *
      * @param empregoId ID do emprego
      * @param dataInicioCicloCorreta Data correta de início do ciclo atual
      * @return Resultado da operação
@@ -62,15 +62,15 @@ class ReverterFechamentoIncorretoUseCase @Inject constructor(
                 fechamentoRepository.excluir(fechamento)
             }
 
-            // 5. Restaurar configuração do ciclo
-            val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-            if (configuracao != null) {
-                val novaConfiguracao = configuracao.copy(
+            // 5. Restaurar configuração do ciclo na VersaoJornada
+            val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
+            if (versaoJornada != null) {
+                val novaVersaoJornada = versaoJornada.copy(
                     dataInicioCicloBancoAtual = dataInicioCicloCorreta,
                     atualizadoEm = LocalDateTime.now()
                 )
-                configuracaoRepository.atualizar(novaConfiguracao)
-                android.util.Log.d("REVERTER_DEBUG", "Configuração atualizada: dataInicioCiclo = $dataInicioCicloCorreta")
+                versaoJornadaRepository.atualizar(novaVersaoJornada)
+                android.util.Log.d("REVERTER_DEBUG", "VersaoJornada atualizada: dataInicioCiclo = $dataInicioCicloCorreta")
             }
 
             Resultado.Sucesso(

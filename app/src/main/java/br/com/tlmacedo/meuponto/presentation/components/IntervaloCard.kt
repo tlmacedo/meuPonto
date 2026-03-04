@@ -260,7 +260,7 @@ fun IntervaloCard(
 
                             if (intervalo.aberto && mostrarContadorTempoReal) {
                                 LiveCounterCompact(
-                                    dataHoraInicio = intervalo.entrada.dataHora
+                                    dataHoraInicio = intervalo.entrada.dataHoraEfetiva
                                 )
                             } else {
                                 Text(

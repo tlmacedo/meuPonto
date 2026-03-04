@@ -2,7 +2,7 @@
 package br.com.tlmacedo.meuponto.domain.usecase.banco
 
 import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -17,10 +17,10 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 6.2.0
- * @updated 6.3.0 - Usa CalcularBancoHorasUseCase.calcularParaPeriodo para cálculo consistente
+ * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository
  */
 class VerificarCicloPendenteUseCase @Inject constructor(
-    private val configuracaoRepository: ConfiguracaoEmpregoRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase
 ) {
 
@@ -35,26 +35,24 @@ class VerificarCicloPendenteUseCase @Inject constructor(
         empregoId: Long,
         dataAtual: LocalDate = LocalDate.now()
     ): Resultado {
-        val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-            ?: return Resultado.SemConfiguracao
+        val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
+            ?: return Resultado.SemVersaoJornada
 
-        if (!configuracao.temBancoHoras) {
+        if (!versaoJornada.temBancoHoras) {
             return Resultado.BancoNaoHabilitado
         }
 
-        val dataInicioCiclo = configuracao.dataInicioCicloBancoAtual
+        val dataInicioCiclo = versaoJornada.dataInicioCicloBancoAtual
             ?: return Resultado.CicloNaoConfigurado
 
-        val dataFimCiclo = configuracao.calcularDataFimCicloAtual()
+        val dataFimCiclo = versaoJornada.calcularDataFimCicloAtual()
             ?: return Resultado.CicloNaoConfigurado
 
-        // Calcular dias restantes ou passados
         val diasParaFim = ChronoUnit.DAYS.between(dataAtual, dataFimCiclo).toInt()
 
         return when {
             // Ciclo já encerrou - precisa fechar
             dataAtual.isAfter(dataFimCiclo) -> {
-                // IMPORTANTE: Calcula o saldo EXATAMENTE do período do ciclo!
                 val resultado = calcularBancoHorasUseCase.calcularParaPeriodo(
                     empregoId = empregoId,
                     dataInicio = dataInicioCiclo,
@@ -73,8 +71,7 @@ class VerificarCicloPendenteUseCase @Inject constructor(
             }
 
             // Ciclo próximo do fim - aviso
-            diasParaFim <= configuracao.diasUteisLembreteFechamento -> {
-                // Para ciclo em andamento, calcula até a data atual
+            diasParaFim <= versaoJornada.diasUteisLembreteFechamento -> {
                 val resultado = calcularBancoHorasUseCase.calcularParaPeriodo(
                     empregoId = empregoId,
                     dataInicio = dataInicioCiclo,
@@ -94,7 +91,6 @@ class VerificarCicloPendenteUseCase @Inject constructor(
 
             // Ciclo normal - sem pendências
             else -> {
-                // Para ciclo em andamento, calcula até a data atual
                 val resultado = calcularBancoHorasUseCase.calcularParaPeriodo(
                     empregoId = empregoId,
                     dataInicio = dataInicioCiclo,
@@ -115,9 +111,6 @@ class VerificarCicloPendenteUseCase @Inject constructor(
     }
 
     sealed class Resultado {
-        /**
-         * Ciclo encerrado, pendente de fechamento.
-         */
         data class CicloPendente(
             val ciclo: CicloBancoHoras,
             val diasAposVencimento: Int
@@ -130,9 +123,6 @@ class VerificarCicloPendenteUseCase @Inject constructor(
                 }
         }
 
-        /**
-         * Ciclo próximo do fim, aviso preventivo.
-         */
         data class CicloProximoDoFim(
             val ciclo: CicloBancoHoras,
             val diasRestantes: Int
@@ -145,15 +135,12 @@ class VerificarCicloPendenteUseCase @Inject constructor(
                 }
         }
 
-        /**
-         * Ciclo em andamento normal.
-         */
         data class CicloEmAndamento(
             val ciclo: CicloBancoHoras,
             val diasRestantes: Int
         ) : Resultado()
 
-        data object SemConfiguracao : Resultado()
+        data object SemVersaoJornada : Resultado()
         data object BancoNaoHabilitado : Resultado()
         data object CicloNaoConfigurado : Resultado()
     }

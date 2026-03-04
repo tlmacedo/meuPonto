@@ -1,12 +1,12 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/banco/InicializarCiclosRetroativosUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.banco
 
-import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.saldo.CalcularSaldoPeriodoUseCase
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -18,19 +18,13 @@ import javax.inject.Inject
  * Baseado na dataInicioCicloBancoAtual informada pelo usuário, calcula ciclos
  * anteriores retroativamente até encontrar o primeiro registro de ponto.
  *
- * Exemplo:
- * - dataInicioCicloBancoAtual = 11/02/2026, período = 6 meses
- * - Primeiro ponto = 15/03/2025
- * - Ciclos a criar:
- *   - 11/02/2025 ~ 10/08/2025 (contém primeiro ponto)
- *   - 11/08/2025 ~ 10/02/2026 (ciclo anterior ao atual)
- *
  * @author Thiago
  * @since 6.2.0
+ * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository
  */
 class InicializarCiclosRetroativosUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
-    private val configuracaoRepository: ConfiguracaoEmpregoRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val fechamentoRepository: FechamentoPeriodoRepository,
     private val calcularSaldoPeriodoUseCase: CalcularSaldoPeriodoUseCase
 ) {
@@ -46,14 +40,14 @@ class InicializarCiclosRetroativosUseCase @Inject constructor(
         empregoId: Long,
         forcarRecriacao: Boolean = false
     ): Resultado {
-        val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-            ?: return Resultado.Erro("Configuração não encontrada")
+        val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
+            ?: return Resultado.Erro("Versão de jornada não encontrada")
 
-        if (!configuracao.temBancoHoras) {
+        if (!versaoJornada.temBancoHoras) {
             return Resultado.BancoNaoHabilitado
         }
 
-        val dataInicioCicloAtual = configuracao.dataInicioCicloBancoAtual
+        val dataInicioCicloAtual = versaoJornada.dataInicioCicloBancoAtual
             ?: return Resultado.Erro("Data de início do ciclo não configurada")
 
         // Verificar se já existem fechamentos (evita reprocessar)
@@ -70,7 +64,7 @@ class InicializarCiclosRetroativosUseCase @Inject constructor(
 
         // Calcular ciclos retroativos
         val ciclosRetroativos = calcularCiclosRetroativos(
-            configuracao = configuracao,
+            versaoJornada = versaoJornada,
             dataInicioCicloAtual = dataInicioCicloAtual,
             dataPrimeiroPonto = primeiroPonto
         )
@@ -126,7 +120,7 @@ class InicializarCiclosRetroativosUseCase @Inject constructor(
      * Calcula os ciclos retroativos necessários.
      */
     private fun calcularCiclosRetroativos(
-        configuracao: ConfiguracaoEmprego,
+        versaoJornada: VersaoJornada,
         dataInicioCicloAtual: LocalDate,
         dataPrimeiroPonto: LocalDate
     ): List<CicloInfo> {
@@ -135,7 +129,7 @@ class InicializarCiclosRetroativosUseCase @Inject constructor(
 
         // Retroceder ciclo por ciclo até antes do primeiro ponto
         while (true) {
-            val dataInicioCicloAnterior = calcularInicioCicloAnterior(dataInicioCiclo, configuracao)
+            val dataInicioCicloAnterior = calcularInicioCicloAnterior(dataInicioCiclo, versaoJornada)
             val dataFimCicloAnterior = dataInicioCiclo.minusDays(1)
 
             // Se o início do ciclo anterior é posterior ao primeiro ponto,
@@ -171,12 +165,12 @@ class InicializarCiclosRetroativosUseCase @Inject constructor(
 
     private fun calcularInicioCicloAnterior(
         dataInicioCicloAtual: LocalDate,
-        configuracao: ConfiguracaoEmprego
+        versaoJornada: VersaoJornada
     ): LocalDate = when {
-        configuracao.periodoBancoSemanas > 0 ->
-            dataInicioCicloAtual.minusWeeks(configuracao.periodoBancoSemanas.toLong())
-        configuracao.periodoBancoMeses > 0 ->
-            dataInicioCicloAtual.minusMonths(configuracao.periodoBancoMeses.toLong())
+        versaoJornada.periodoBancoSemanas > 0 ->
+            dataInicioCicloAtual.minusWeeks(versaoJornada.periodoBancoSemanas.toLong())
+        versaoJornada.periodoBancoMeses > 0 ->
+            dataInicioCicloAtual.minusMonths(versaoJornada.periodoBancoMeses.toLong())
         else -> dataInicioCicloAtual
     }
 

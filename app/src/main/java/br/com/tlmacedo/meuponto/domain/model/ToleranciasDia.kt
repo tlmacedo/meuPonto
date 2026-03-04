@@ -4,66 +4,63 @@ package br.com.tlmacedo.meuponto.domain.model
 /**
  * Modelo que representa as tolerâncias efetivas para um dia específico.
  *
- * As tolerâncias de entrada/saída são configuradas por dia da semana
- * em HorarioDiaSemana. A tolerância de intervalo pode vir do global
- * ou do dia específico.
+ * SIMPLIFICAÇÃO (v7.2.0):
+ * - Tolerância de entrada: fixa em 10 minutos (aplicada quando chega antes do horário ideal)
+ * - Tolerância de saída: não aplicada (saídas são registradas no horário real)
+ * - Tolerância de intervalo: configurável por dia ou via VersaoJornada
  *
- * @property entradaMinutos Tolerância de entrada em minutos
- * @property saidaMinutos Tolerância de saída em minutos
  * @property intervaloMaisMinutos Tolerância para mais no intervalo
  *
  * @author Thiago
  * @since 2.1.0
- * @updated 2.5.0 - Tolerâncias de entrada/saída agora vêm apenas de HorarioDiaSemana
+ * @updated 8.0.0 - Atualizado para usar VersaoJornada em vez de ConfiguracaoEmprego
  */
 data class ToleranciasDia(
-    val entradaMinutos: Int,
-    val saidaMinutos: Int,
     val intervaloMaisMinutos: Int
 ) {
     companion object {
+        /** Tolerância de entrada padrão (fixa) */
+        const val TOLERANCIA_ENTRADA_PADRAO = 10
+
         /**
          * Cria ToleranciasDia a partir das configurações do dia específico.
          *
-         * @param configuracao Configurações globais do emprego (para tolerância de intervalo)
+         * @param versaoJornada Versão de jornada (para tolerância de intervalo global)
          * @param horarioDia Configurações específicas do dia
          * @return Tolerâncias efetivas para o dia
          */
         fun criar(
-            configuracao: ConfiguracaoEmprego,
+            versaoJornada: VersaoJornada?,
             horarioDia: HorarioDiaSemana?
         ): ToleranciasDia {
             return ToleranciasDia(
-                entradaMinutos = horarioDia?.toleranciaEntradaMinutos ?: PADRAO.entradaMinutos,
-                saidaMinutos = horarioDia?.toleranciaSaidaMinutos ?: PADRAO.saidaMinutos,
                 intervaloMaisMinutos = horarioDia?.toleranciaIntervaloMaisMinutos
-                    ?: configuracao.toleranciaIntervaloMaisMinutos
+                    ?: versaoJornada?.toleranciaIntervaloMaisMinutos
+                    ?: 0
             )
         }
 
         /**
-         * Tolerâncias padrão quando não há configuração.
+         * Cria ToleranciasDia a partir de HorarioDiaSemana apenas.
          */
-        val PADRAO = ToleranciasDia(
-            entradaMinutos = 10,
-            saidaMinutos = 10,
-            intervaloMaisMinutos = 0
-        )
+        fun criar(horarioDia: HorarioDiaSemana?): ToleranciasDia {
+            return ToleranciasDia(
+                intervaloMaisMinutos = horarioDia?.toleranciaIntervaloMaisMinutos ?: 0
+            )
+        }
+
+        /** Tolerâncias padrão quando não há configuração */
+        val PADRAO = ToleranciasDia(intervaloMaisMinutos = 0)
     }
 
-    /**
-     * Verifica se há alguma tolerância configurada.
-     */
-    val temTolerancia: Boolean
-        get() = entradaMinutos > 0 || saidaMinutos > 0 || intervaloMaisMinutos > 0
+    /** Verifica se há tolerância de intervalo configurada */
+    val temToleranciaIntervalo: Boolean
+        get() = intervaloMaisMinutos > 0
 
-    /**
-     * Descrição resumida das tolerâncias.
-     */
+    /** Descrição resumida das tolerâncias */
     val descricao: String
         get() = buildString {
-            append("Entrada: ${entradaMinutos}min")
-            append(" | Saída: ${saidaMinutos}min")
+            append("Entrada: ${TOLERANCIA_ENTRADA_PADRAO}min (padrão)")
             if (intervaloMaisMinutos > 0) {
                 append(" | Intervalo (+): ${intervaloMaisMinutos}min")
             }

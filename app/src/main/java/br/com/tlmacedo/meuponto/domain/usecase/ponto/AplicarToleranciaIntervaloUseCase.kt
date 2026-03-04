@@ -3,8 +3,8 @@ package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import java.time.Duration
 import java.time.LocalTime
 import javax.inject.Inject
@@ -12,23 +12,15 @@ import javax.inject.Inject
 /**
  * Caso de uso para aplicar tolerância de intervalo aos pontos de retorno.
  *
- * A tolerância é aplicada APENAS na volta do intervalo:
- * - Se o tempo de intervalo real estiver dentro do limite (intervaloMinimo + tolerancia),
- *   a horaConsiderada será ajustada para saidaIntervalo + intervaloMinimo.
- * - Se exceder o limite, mantém a hora real registrada.
- *
  * @author Thiago
  * @since 2.6.0
- * @updated 7.0.0 - horaConsiderada agora é LocalTime
+ * @updated 8.0.0 - Migrado para usar VersaoJornada
  */
 class AplicarToleranciaIntervaloUseCase @Inject constructor(
-    private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository
 ) {
 
-    /**
-     * Resultado da aplicação de tolerância para um ponto.
-     */
     data class ResultadoTolerancia(
         val pontoOriginal: Ponto,
         val horaConsiderada: LocalTime?,
@@ -46,36 +38,30 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         }
     }
 
-    /**
-     * Aplica tolerância de intervalo a uma lista de pontos do dia.
-     */
-    suspend operator fun invoke(
-        pontos: List<Ponto>,
-        empregoId: Long
-    ): List<Ponto> {
+    suspend operator fun invoke(pontos: List<Ponto>, empregoId: Long): List<Ponto> {
         if (pontos.size < 4) return pontos
 
         val pontosOrdenados = pontos.sortedBy { it.dataHora }
         val data = pontosOrdenados.first().data
         val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
 
-        val configGlobal = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
-        val configDia = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+        val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+
+        val configDia = versaoJornada?.let {
+            horarioDiaSemanaRepository.buscarPorVersaoEDia(it.id, diaSemana)
+        } ?: horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
 
         val intervaloMinimoMinutos = configDia?.intervaloMinimoMinutos
-            ?: configGlobal?.intervaloMinimoMinutos
+            ?: versaoJornada?.intervaloMinimoInterjornadaMinutos?.let { 60 }
             ?: 60
 
         val toleranciaMinutos = configDia?.toleranciaIntervaloMaisMinutos
-            ?: configGlobal?.toleranciaIntervaloMaisMinutos
+            ?: versaoJornada?.toleranciaIntervaloMaisMinutos
             ?: 0
 
         return aplicarTolerancia(pontosOrdenados, intervaloMinimoMinutos, toleranciaMinutos)
     }
 
-    /**
-     * Aplica tolerância usando configurações já conhecidas.
-     */
     fun invokeComConfiguracao(
         pontos: List<Ponto>,
         intervaloMinimoMinutos: Int,
@@ -86,52 +72,31 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         return aplicarTolerancia(pontosOrdenados, intervaloMinimoMinutos, toleranciaMinutos)
     }
 
-    /**
-     * Calcula tolerância e retorna resultados detalhados.
-     */
-    suspend fun calcularDetalhado(
-        pontos: List<Ponto>,
-        empregoId: Long
-    ): List<ResultadoTolerancia> {
+    suspend fun calcularDetalhado(pontos: List<Ponto>, empregoId: Long): List<ResultadoTolerancia> {
         val pontosOrdenados = pontos.sortedBy { it.dataHora }
 
         if (pontosOrdenados.size < 4) {
             return pontosOrdenados.map { ponto ->
-                ResultadoTolerancia(
-                    pontoOriginal = ponto,
-                    horaConsiderada = null,
-                    foiAjustado = false,
-                    intervaloRealMinutos = 0,
-                    intervaloConsideradoMinutos = 0,
-                    motivoAjuste = null
-                )
+                ResultadoTolerancia(ponto, null, false, 0, 0, null)
             }
         }
 
         val data = pontosOrdenados.first().data
         val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
 
-        val configGlobal = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
-        val configDia = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+        val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+        val configDia = versaoJornada?.let {
+            horarioDiaSemanaRepository.buscarPorVersaoEDia(it.id, diaSemana)
+        } ?: horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
 
-        val intervaloMinimoMinutos = configDia?.intervaloMinimoMinutos
-            ?: configGlobal?.intervaloMinimoMinutos
-            ?: 60
-
+        val intervaloMinimoMinutos = configDia?.intervaloMinimoMinutos ?: 60
         val toleranciaMinutos = configDia?.toleranciaIntervaloMaisMinutos
-            ?: configGlobal?.toleranciaIntervaloMaisMinutos
-            ?: 0
+            ?: versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0
 
         val limiteMaximoMinutos = intervaloMinimoMinutos + toleranciaMinutos
 
         return pontosOrdenados.mapIndexed { indice, ponto ->
-            calcularToleranciaParaPonto(
-                ponto = ponto,
-                indice = indice,
-                pontosOrdenados = pontosOrdenados,
-                intervaloMinimoMinutos = intervaloMinimoMinutos,
-                limiteMaximoMinutos = limiteMaximoMinutos
-            )
+            calcularToleranciaParaPonto(ponto, indice, pontosOrdenados, intervaloMinimoMinutos, limiteMaximoMinutos)
         }
     }
 
@@ -143,14 +108,7 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         val limiteMaximoMinutos = intervaloMinimoMinutos + toleranciaMinutos
 
         return pontosOrdenados.mapIndexed { indice, ponto ->
-            val resultado = calcularToleranciaParaPonto(
-                ponto = ponto,
-                indice = indice,
-                pontosOrdenados = pontosOrdenados,
-                intervaloMinimoMinutos = intervaloMinimoMinutos,
-                limiteMaximoMinutos = limiteMaximoMinutos
-            )
-            resultado.pontoAtualizado()
+            calcularToleranciaParaPonto(ponto, indice, pontosOrdenados, intervaloMinimoMinutos, limiteMaximoMinutos).pontoAtualizado()
         }
     }
 
@@ -161,64 +119,30 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         intervaloMinimoMinutos: Int,
         limiteMaximoMinutos: Int
     ): ResultadoTolerancia {
-        // Tolerância só se aplica a pontos de "entrada após intervalo"
-        // Índices pares >= 2: são voltas de intervalo (2 = volta do 1º intervalo, 4 = volta do 2º, etc.)
         val isVoltaIntervalo = indice >= 2 && indice % 2 == 0
 
         if (!isVoltaIntervalo) {
-            return ResultadoTolerancia(
-                pontoOriginal = ponto,
-                horaConsiderada = null,
-                foiAjustado = false,
-                intervaloRealMinutos = 0,
-                intervaloConsideradoMinutos = 0,
-                motivoAjuste = null
-            )
+            return ResultadoTolerancia(ponto, null, false, 0, 0, null)
         }
 
         val saidaIntervalo = pontosOrdenados[indice - 1]
-        val retornoReal = ponto.dataHora
-
-        val intervaloRealMinutos = Duration.between(
-            saidaIntervalo.dataHora,
-            retornoReal
-        ).toMinutes()
-
+        val intervaloRealMinutos = Duration.between(saidaIntervalo.dataHora, ponto.dataHora).toMinutes()
         val dentroTolerancia = intervaloRealMinutos <= limiteMaximoMinutos
 
         return if (dentroTolerancia && intervaloRealMinutos > intervaloMinimoMinutos) {
-            // Calcula hora considerada: saída + intervalo mínimo
-            val horaConsiderada = saidaIntervalo.dataHora
-                .plusMinutes(intervaloMinimoMinutos.toLong())
-                .toLocalTime()
-
+            val horaConsiderada = saidaIntervalo.dataHora.plusMinutes(intervaloMinimoMinutos.toLong()).toLocalTime()
             ResultadoTolerancia(
-                pontoOriginal = ponto,
-                horaConsiderada = horaConsiderada,
-                foiAjustado = true,
-                intervaloRealMinutos = intervaloRealMinutos,
-                intervaloConsideradoMinutos = intervaloMinimoMinutos.toLong(),
-                motivoAjuste = "Intervalo de ${intervaloRealMinutos}min ajustado para ${intervaloMinimoMinutos}min (tolerância: ${limiteMaximoMinutos - intervaloMinimoMinutos}min)"
+                ponto, horaConsiderada, true, intervaloRealMinutos, intervaloMinimoMinutos.toLong(),
+                "Intervalo de ${intervaloRealMinutos}min ajustado para ${intervaloMinimoMinutos}min"
             )
         } else {
             ResultadoTolerancia(
-                pontoOriginal = ponto,
-                horaConsiderada = null,
-                foiAjustado = false,
-                intervaloRealMinutos = intervaloRealMinutos,
-                intervaloConsideradoMinutos = intervaloRealMinutos,
-                motivoAjuste = if (intervaloRealMinutos > limiteMaximoMinutos) {
-                    "Intervalo de ${intervaloRealMinutos}min excedeu tolerância (limite: ${limiteMaximoMinutos}min)"
-                } else {
-                    null
-                }
+                ponto, null, false, intervaloRealMinutos, intervaloRealMinutos,
+                if (intervaloRealMinutos > limiteMaximoMinutos) "Intervalo excedeu tolerância" else null
             )
         }
     }
 
-    /**
-     * Calcula a tolerância para um único par saída/volta de intervalo.
-     */
     fun calcularParaPonto(
         saidaIntervalo: Ponto,
         voltaIntervalo: Ponto,
@@ -226,39 +150,19 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         toleranciaMinutos: Int
     ): ResultadoTolerancia {
         val limiteMaximoMinutos = intervaloMinimoMinutos + toleranciaMinutos
-
-        val intervaloRealMinutos = Duration.between(
-            saidaIntervalo.dataHora,
-            voltaIntervalo.dataHora
-        ).toMinutes()
-
+        val intervaloRealMinutos = Duration.between(saidaIntervalo.dataHora, voltaIntervalo.dataHora).toMinutes()
         val dentroTolerancia = intervaloRealMinutos <= limiteMaximoMinutos
 
         return if (dentroTolerancia && intervaloRealMinutos > intervaloMinimoMinutos) {
-            val horaConsiderada = saidaIntervalo.dataHora
-                .plusMinutes(intervaloMinimoMinutos.toLong())
-                .toLocalTime()
-
+            val horaConsiderada = saidaIntervalo.dataHora.plusMinutes(intervaloMinimoMinutos.toLong()).toLocalTime()
             ResultadoTolerancia(
-                pontoOriginal = voltaIntervalo,
-                horaConsiderada = horaConsiderada,
-                foiAjustado = true,
-                intervaloRealMinutos = intervaloRealMinutos,
-                intervaloConsideradoMinutos = intervaloMinimoMinutos.toLong(),
-                motivoAjuste = "Intervalo ajustado de ${intervaloRealMinutos}min para ${intervaloMinimoMinutos}min"
+                voltaIntervalo, horaConsiderada, true, intervaloRealMinutos, intervaloMinimoMinutos.toLong(),
+                "Intervalo ajustado de ${intervaloRealMinutos}min para ${intervaloMinimoMinutos}min"
             )
         } else {
             ResultadoTolerancia(
-                pontoOriginal = voltaIntervalo,
-                horaConsiderada = null,
-                foiAjustado = false,
-                intervaloRealMinutos = intervaloRealMinutos,
-                intervaloConsideradoMinutos = intervaloRealMinutos,
-                motivoAjuste = if (intervaloRealMinutos > limiteMaximoMinutos) {
-                    "Intervalo excedeu tolerância"
-                } else {
-                    null
-                }
+                voltaIntervalo, null, false, intervaloRealMinutos, intervaloRealMinutos,
+                if (intervaloRealMinutos > limiteMaximoMinutos) "Intervalo excedeu tolerância" else null
             )
         }
     }

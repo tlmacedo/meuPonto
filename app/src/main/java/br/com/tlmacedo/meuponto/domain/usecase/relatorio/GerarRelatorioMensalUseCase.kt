@@ -2,9 +2,9 @@
 package br.com.tlmacedo.meuponto.domain.usecase.relatorio
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioPadraoRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -17,11 +17,11 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 3.0.0 - Atualizado para usar diaInicioFechamentoRH
+ * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository
  */
 class GerarRelatorioMensalUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
-    private val configuracaoRepository: ConfiguracaoEmpregoRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val horarioPadraoRepository: HorarioPadraoRepository
 ) {
     data class RelatorioMensal(
@@ -50,8 +50,8 @@ class GerarRelatorioMensalUseCase @Inject constructor(
     )
 
     suspend operator fun invoke(empregoId: Long, mes: YearMonth): RelatorioMensal {
-        val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-        val diaInicio = configuracao?.diaInicioFechamentoRH ?: 1
+        val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
+        val diaInicio = versaoJornada?.diaInicioFechamentoRH ?: 1
 
         val dataInicio = if (diaInicio == 1) {
             mes.atDay(1)

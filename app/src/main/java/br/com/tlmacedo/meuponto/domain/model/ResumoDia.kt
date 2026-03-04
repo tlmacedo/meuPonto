@@ -185,7 +185,7 @@ data class ResumoDia(
      */
     val horarioInicioTurnoAberto: LocalDateTime?
         get() = if (temTurnoAberto) {
-            pontos.sortedBy { it.dataHora }.lastOrNull()?.dataHora
+            pontos.sortedBy { it.dataHoraEfetiva }.lastOrNull()?.dataHoraEfetiva
         } else null
 
     /**

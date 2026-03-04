@@ -2,11 +2,11 @@
 package br.com.tlmacedo.meuponto.domain.usecase.banco
 
 import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
-import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.saldo.CalcularSaldoPeriodoUseCase
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -17,9 +17,10 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 3.0.0
+ * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository
  */
 class GerenciarCicloBancoHorasUseCase @Inject constructor(
-    private val configuracaoRepository: ConfiguracaoEmpregoRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val fechamentoRepository: FechamentoPeriodoRepository,
     private val calcularSaldoPeriodoUseCase: CalcularSaldoPeriodoUseCase
 ) {
@@ -30,36 +31,36 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
         empregoId: Long,
         dataAtual: LocalDate = LocalDate.now()
     ): Resultado {
-        val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-            ?: return Resultado.Erro("Configuração não encontrada")
+        val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
+            ?: return Resultado.Erro("Versão de jornada não encontrada")
 
-        if (!configuracao.temBancoHoras) {
+        if (!versaoJornada.temBancoHoras) {
             return Resultado.BancoNaoHabilitado
         }
 
-        val dataInicioCiclo = configuracao.dataInicioCicloBancoAtual
+        val dataInicioCiclo = versaoJornada.dataInicioCicloBancoAtual
             ?: return Resultado.Erro("Data de início do ciclo não configurada")
 
-        val dataInicioProximoCiclo = configuracao.calcularDataInicioProximoCiclo()
+        val dataInicioProximoCiclo = versaoJornada.calcularDataInicioProximoCiclo()
             ?: return Resultado.Erro("Não foi possível calcular próximo ciclo")
 
         return if (!dataAtual.isBefore(dataInicioProximoCiclo)) {
             processarTransicaoCiclo(
                 empregoId = empregoId,
-                configuracao = configuracao,
+                versaoJornada = versaoJornada,
                 dataInicioCicloAnterior = dataInicioCiclo,
                 dataInicioNovoCiclo = dataInicioProximoCiclo,
                 dataAtual = dataAtual
             )
         } else {
-            val cicloAtual = obterCicloAtual(empregoId, configuracao, dataAtual)
+            val cicloAtual = obterCicloAtual(empregoId, versaoJornada, dataAtual)
             Resultado.CicloAtualValido(cicloAtual)
         }
     }
 
     private suspend fun processarTransicaoCiclo(
         empregoId: Long,
-        configuracao: ConfiguracaoEmprego,
+        versaoJornada: VersaoJornada,
         dataInicioCicloAnterior: LocalDate,
         dataInicioNovoCiclo: LocalDate,
         dataAtual: LocalDate
@@ -67,6 +68,7 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
         var cicloInicio = dataInicioCicloAnterior
         var proximoCicloInicio = dataInicioNovoCiclo
         val ciclosFechados = mutableListOf<FechamentoPeriodo>()
+        var versaoAtual = versaoJornada
 
         while (!dataAtual.isBefore(proximoCicloInicio)) {
             val dataFimCiclo = proximoCicloInicio.minusDays(1)
@@ -91,15 +93,15 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
             ciclosFechados.add(fechamento)
 
             cicloInicio = proximoCicloInicio
-            proximoCicloInicio = calcularProximoCiclo(cicloInicio, configuracao)
+            proximoCicloInicio = calcularProximoCiclo(cicloInicio, versaoAtual)
         }
 
-        // Atualiza a configuração com a nova data de início do ciclo
-        val novaConfiguracao = configuracao.copy(
+        // Atualizar VersaoJornada com a nova data de início do ciclo
+        val novaVersaoJornada = versaoAtual.copy(
             dataInicioCicloBancoAtual = cicloInicio,
             atualizadoEm = LocalDateTime.now()
         )
-        configuracaoRepository.atualizar(novaConfiguracao)
+        versaoJornadaRepository.atualizar(novaVersaoJornada)
 
         val cicloAtual = CicloBancoHoras(
             dataInicio = cicloInicio,
@@ -121,11 +123,11 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
 
     private suspend fun obterCicloAtual(
         empregoId: Long,
-        configuracao: ConfiguracaoEmprego,
+        versaoJornada: VersaoJornada,
         dataAtual: LocalDate
     ): CicloBancoHoras {
-        val dataInicio = configuracao.dataInicioCicloBancoAtual!!
-        val dataFim = configuracao.calcularDataFimCicloAtual()!!
+        val dataInicio = versaoJornada.dataInicioCicloBancoAtual!!
+        val dataFim = versaoJornada.calcularDataFimCicloAtual()!!
 
         val saldoAtual = calcularSaldoPeriodoUseCase(
             empregoId = empregoId,
@@ -144,12 +146,12 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
 
     private fun calcularProximoCiclo(
         dataInicio: LocalDate,
-        configuracao: ConfiguracaoEmprego
+        versaoJornada: VersaoJornada
     ): LocalDate = when {
-        configuracao.periodoBancoSemanas > 0 ->
-            dataInicio.plusWeeks(configuracao.periodoBancoSemanas.toLong())
-        configuracao.periodoBancoMeses > 0 ->
-            dataInicio.plusMonths(configuracao.periodoBancoMeses.toLong())
+        versaoJornada.periodoBancoSemanas > 0 ->
+            dataInicio.plusWeeks(versaoJornada.periodoBancoSemanas.toLong())
+        versaoJornada.periodoBancoMeses > 0 ->
+            dataInicio.plusMonths(versaoJornada.periodoBancoMeses.toLong())
         else -> dataInicio
     }
 
@@ -157,12 +159,12 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
         empregoId: Long,
         data: LocalDate
     ): CicloBancoHoras? {
-        val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
+        val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
             ?: return null
 
-        if (!configuracao.temBancoHoras) return null
+        if (!versaoJornada.temBancoHoras) return null
 
-        val dataInicioCicloAtual = configuracao.dataInicioCicloBancoAtual
+        val dataInicioCicloAtual = versaoJornada.dataInicioCicloBancoAtual
             ?: return null
 
         if (data.isBefore(dataInicioCicloAtual)) {
@@ -179,7 +181,7 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
             }
         }
 
-        return obterCicloAtual(empregoId, configuracao, data)
+        return obterCicloAtual(empregoId, versaoJornada, data)
     }
 
     sealed class Resultado {

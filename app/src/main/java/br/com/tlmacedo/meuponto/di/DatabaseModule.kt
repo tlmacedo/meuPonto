@@ -21,7 +21,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 7.0.0 - Adicionadas migrações 16->17 e 17->18 para campos horaConsiderada, data e hora
+ * @updated 8.0.0 - Migração 19->20: campos de jornada/banco movidos para VersaoJornada
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -54,7 +54,9 @@ object DatabaseModule {
                 MIGRATION_14_15,
                 MIGRATION_15_16,
                 MIGRATION_16_17,
-                MIGRATION_17_18  // ADICIONADO
+                MIGRATION_17_18,
+                MIGRATION_18_19,
+                MIGRATION_19_20  // NOVA MIGRATION
             )
             .addCallback(createDatabaseCallback())
             .build()
@@ -71,6 +73,7 @@ object DatabaseModule {
 
     /**
      * Insere dados iniciais de teste para desenvolvimento.
+     * ATUALIZADO: ConfiguracaoEmprego simplificado, VersaoJornada com campos de jornada/banco
      */
     private fun inserirDadosIniciais(db: SupportSQLiteDatabase) {
         val now = LocalDateTime.now().toString()
@@ -98,18 +101,12 @@ object DatabaseModule {
         )
 
         // ========================================================================
-        // 2. CONFIGURAÇÃO DO EMPREGO
+        // 2. CONFIGURAÇÃO DO EMPREGO (SIMPLIFICADA - apenas exibição/comportamento)
         // ========================================================================
         db.execSQL(
             """
             INSERT INTO configuracoes_emprego (
                 empregoId,
-                cargaHorariaDiariaMinutos,
-                jornadaMaximaDiariaMinutos,
-                intervaloMinimoInterjornadaMinutos,
-                intervaloMinimoMinutos,
-                toleranciaIntervaloMaisMinutos,
-                exigeJustificativaInconsistencia,
                 habilitarNsr,
                 tipoNsr,
                 habilitarLocalizacao,
@@ -117,6 +114,42 @@ object DatabaseModule {
                 exibirLocalizacaoDetalhes,
                 exibirDuracaoTurno,
                 exibirDuracaoIntervalo,
+                criadoEm,
+                atualizadoEm
+            ) VALUES (
+                1,
+                0,
+                'NUMERICO',
+                0,
+                0,
+                1,
+                1,
+                1,
+                '$now',
+                '$now'
+            )
+            """.trimIndent()
+        )
+
+        // ========================================================================
+        // 3. VERSÃO DE JORNADA (AGORA COM CAMPOS DE JORNADA E BANCO DE HORAS)
+        // ========================================================================
+        db.execSQL(
+            """
+            INSERT INTO versoes_jornada (
+                empregoId,
+                dataInicio,
+                dataFim,
+                descricao,
+                numeroVersao,
+                vigente,
+                jornadaMaximaDiariaMinutos,
+                intervaloMinimoInterjornadaMinutos,
+                toleranciaIntervaloMaisMinutos,
+                turnoMaximoMinutos,
+                cargaHorariaDiariaMinutos,
+                acrescimoMinutosDiasPontes,
+                cargaHorariaSemanalMinutos,
                 primeiroDiaSemana,
                 diaInicioFechamentoRH,
                 zerarSaldoSemanal,
@@ -129,23 +162,23 @@ object DatabaseModule {
                 diasUteisLembreteFechamento,
                 habilitarSugestaoAjuste,
                 zerarBancoAntesPeriodo,
+                exigeJustificativaInconsistencia,
                 criadoEm,
                 atualizadoEm
             ) VALUES (
                 1,
-                492,
+                '$dataAdmissao',
+                NULL,
+                'Configuração inicial',
+                1,
+                1,
                 600,
                 660,
-                60,
                 20,
-                0,
-                0,
-                'NUMERICO',
-                0,
-                0,
-                1,
-                1,
-                1,
+                360,
+                480,
+                12,
+                2460,
                 'SEGUNDA',
                 1,
                 0,
@@ -158,6 +191,7 @@ object DatabaseModule {
                 3,
                 0,
                 0,
+                0,
                 '$now',
                 '$now'
             )
@@ -165,7 +199,7 @@ object DatabaseModule {
         )
 
         // ========================================================================
-        // 3. HORÁRIOS POR DIA DA SEMANA
+        // 4. HORÁRIOS POR DIA DA SEMANA (vinculados à versão de jornada)
         // ========================================================================
         val diasUteis = listOf("SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA")
         diasUteis.forEach { dia ->
@@ -173,6 +207,7 @@ object DatabaseModule {
                 """
                 INSERT INTO horarios_dia_semana (
                     empregoId,
+                    versaoJornadaId,
                     diaSemana,
                     ativo,
                     cargaHorariaMinutos,
@@ -182,11 +217,10 @@ object DatabaseModule {
                     saidaIdeal,
                     intervaloMinimoMinutos,
                     toleranciaIntervaloMaisMinutos,
-                    toleranciaEntradaMinutos,
-                    toleranciaSaidaMinutos,
                     criadoEm,
                     atualizadoEm
                 ) VALUES (
+                    1,
                     1,
                     '$dia',
                     1,
@@ -197,8 +231,6 @@ object DatabaseModule {
                     '17:12',
                     60,
                     20,
-                    NULL,
-                    NULL,
                     '$now',
                     '$now'
                 )
@@ -212,6 +244,7 @@ object DatabaseModule {
                 """
                 INSERT INTO horarios_dia_semana (
                     empregoId,
+                    versaoJornadaId,
                     diaSemana,
                     ativo,
                     cargaHorariaMinutos,
@@ -221,11 +254,10 @@ object DatabaseModule {
                     saidaIdeal,
                     intervaloMinimoMinutos,
                     toleranciaIntervaloMaisMinutos,
-                    toleranciaEntradaMinutos,
-                    toleranciaSaidaMinutos,
                     criadoEm,
                     atualizadoEm
                 ) VALUES (
+                    1,
                     1,
                     '$dia',
                     0,
@@ -236,8 +268,6 @@ object DatabaseModule {
                     NULL,
                     60,
                     0,
-                    NULL,
-                    NULL,
                     '$now',
                     '$now'
                 )

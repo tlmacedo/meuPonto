@@ -5,14 +5,19 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
  * Entidade Room que representa uma versão de jornada de trabalho.
  *
+ * Agora contém também configurações de banco de horas e período RH,
+ * permitindo versionamento temporal completo.
+ *
  * @author Thiago
  * @since 2.7.0
+ * @updated 8.0.0 - Migração de campos de ConfiguracaoEmprego para versionamento
  */
 @Entity(
     tableName = "versoes_jornada",
@@ -39,9 +44,70 @@ data class VersaoJornadaEntity(
     val descricao: String? = null,
     val numeroVersao: Int = 1,
     val vigente: Boolean = true,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // JORNADA (campos existentes)
+    // ════════════════════════════════════════════════════════════════════════
+    /** Jornada máxima diária total (soma de todos os turnos). Default: 600min (10h) */
     val jornadaMaximaDiariaMinutos: Int = 600,
+    /** Intervalo mínimo entre jornadas (interjornada). Default: 660min (11h) */
     val intervaloMinimoInterjornadaMinutos: Int = 660,
+    /** Tolerância para mais no intervalo de almoço. Default: 0min */
     val toleranciaIntervaloMaisMinutos: Int = 0,
+    /** Turno máximo (tempo entre entrada e saída de um turno). Default: 360min (6h) */
+    val turnoMaximoMinutos: Int = 360,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CARGA HORÁRIA (migrados de ConfiguracaoEmprego)
+    // ════════════════════════════════════════════════════════════════════════
+    /** Carga horária base diária. Default: 480min (8h) */
+    val cargaHorariaDiariaMinutos: Int = 480,
+    /** Acréscimo diário para compensar dias ponte. Default: 12min (2026) */
+    val acrescimoMinutosDiasPontes: Int = 12,
+    /** Carga horária semanal total. Default: 2460min (41h = 5 × 492) */
+    val cargaHorariaSemanalMinutos: Int = 2460,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PERÍODO/SALDO (migrados de ConfiguracaoEmprego)
+    // ════════════════════════════════════════════════════════════════════════
+    /** Primeiro dia da semana para cálculos. Default: SEGUNDA */
+    val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
+    /** Dia do mês para fechamento RH. Default: 1 */
+    val diaInicioFechamentoRH: Int = 1,
+    /** Zerar saldo ao fim de cada semana. Default: false */
+    val zerarSaldoSemanal: Boolean = false,
+    /** Zerar saldo ao fim do período RH. Default: false */
+    val zerarSaldoPeriodoRH: Boolean = false,
+    /** Ocultar saldo total na interface. Default: false */
+    val ocultarSaldoTotal: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // BANCO DE HORAS (migrados de ConfiguracaoEmprego)
+    // ════════════════════════════════════════════════════════════════════════
+    /** Flag que indica se banco de horas está habilitado. Default: false */
+    val bancoHorasHabilitado: Boolean = false,
+    /** Período do ciclo em semanas (1-3). Default: 0 (usa meses) */
+    val periodoBancoSemanas: Int = 0,
+    /** Período do ciclo em meses. Default: 0 (usa semanas) */
+    val periodoBancoMeses: Int = 0,
+    /** Data de início do ciclo atual. Null se não configurado */
+    val dataInicioCicloBancoAtual: LocalDate? = null,
+    /** Dias úteis antes do fim para lembrete. Default: 3 */
+    val diasUteisLembreteFechamento: Int = 3,
+    /** Habilitar sugestão de ajuste automático. Default: false */
+    val habilitarSugestaoAjuste: Boolean = false,
+    /** Ignorar registros antes do início do banco. Default: false */
+    val zerarBancoAntesPeriodo: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // VALIDAÇÃO (migrado de ConfiguracaoEmprego)
+    // ════════════════════════════════════════════════════════════════════════
+    /** Exige justificativa para inconsistências. Default: false */
+    val exigeJustificativaInconsistencia: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // AUDITORIA
+    // ════════════════════════════════════════════════════════════════════════
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 )
@@ -55,9 +121,32 @@ fun VersaoJornadaEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.Versao
         descricao = descricao,
         numeroVersao = numeroVersao,
         vigente = vigente,
+        // Jornada
         jornadaMaximaDiariaMinutos = jornadaMaximaDiariaMinutos,
         intervaloMinimoInterjornadaMinutos = intervaloMinimoInterjornadaMinutos,
         toleranciaIntervaloMaisMinutos = toleranciaIntervaloMaisMinutos,
+        turnoMaximoMinutos = turnoMaximoMinutos,
+        // Carga Horária
+        cargaHorariaDiariaMinutos = cargaHorariaDiariaMinutos,
+        acrescimoMinutosDiasPontes = acrescimoMinutosDiasPontes,
+        cargaHorariaSemanalMinutos = cargaHorariaSemanalMinutos,
+        // Período/Saldo
+        primeiroDiaSemana = primeiroDiaSemana,
+        diaInicioFechamentoRH = diaInicioFechamentoRH,
+        zerarSaldoSemanal = zerarSaldoSemanal,
+        zerarSaldoPeriodoRH = zerarSaldoPeriodoRH,
+        ocultarSaldoTotal = ocultarSaldoTotal,
+        // Banco de Horas
+        bancoHorasHabilitado = bancoHorasHabilitado,
+        periodoBancoSemanas = periodoBancoSemanas,
+        periodoBancoMeses = periodoBancoMeses,
+        dataInicioCicloBancoAtual = dataInicioCicloBancoAtual,
+        diasUteisLembreteFechamento = diasUteisLembreteFechamento,
+        habilitarSugestaoAjuste = habilitarSugestaoAjuste,
+        zerarBancoAntesPeriodo = zerarBancoAntesPeriodo,
+        // Validação
+        exigeJustificativaInconsistencia = exigeJustificativaInconsistencia,
+        // Auditoria
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )
@@ -71,9 +160,32 @@ fun br.com.tlmacedo.meuponto.domain.model.VersaoJornada.toEntity(): VersaoJornad
         descricao = descricao,
         numeroVersao = numeroVersao,
         vigente = vigente,
+        // Jornada
         jornadaMaximaDiariaMinutos = jornadaMaximaDiariaMinutos,
         intervaloMinimoInterjornadaMinutos = intervaloMinimoInterjornadaMinutos,
         toleranciaIntervaloMaisMinutos = toleranciaIntervaloMaisMinutos,
+        turnoMaximoMinutos = turnoMaximoMinutos,
+        // Carga Horária
+        cargaHorariaDiariaMinutos = cargaHorariaDiariaMinutos,
+        acrescimoMinutosDiasPontes = acrescimoMinutosDiasPontes,
+        cargaHorariaSemanalMinutos = cargaHorariaSemanalMinutos,
+        // Período/Saldo
+        primeiroDiaSemana = primeiroDiaSemana,
+        diaInicioFechamentoRH = diaInicioFechamentoRH,
+        zerarSaldoSemanal = zerarSaldoSemanal,
+        zerarSaldoPeriodoRH = zerarSaldoPeriodoRH,
+        ocultarSaldoTotal = ocultarSaldoTotal,
+        // Banco de Horas
+        bancoHorasHabilitado = bancoHorasHabilitado,
+        periodoBancoSemanas = periodoBancoSemanas,
+        periodoBancoMeses = periodoBancoMeses,
+        dataInicioCicloBancoAtual = dataInicioCicloBancoAtual,
+        diasUteisLembreteFechamento = diasUteisLembreteFechamento,
+        habilitarSugestaoAjuste = habilitarSugestaoAjuste,
+        zerarBancoAntesPeriodo = zerarBancoAntesPeriodo,
+        // Validação
+        exigeJustificativaInconsistencia = exigeJustificativaInconsistencia,
+        // Auditoria
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )

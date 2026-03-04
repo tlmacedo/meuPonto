@@ -1,7 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/saldo/CalcularSaldoMensalUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.saldo
 
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import java.time.LocalDate
@@ -9,15 +9,13 @@ import java.time.YearMonth
 import javax.inject.Inject
 
 /**
- * Caso de uso para calcular saldo mensal.
- *
  * @author Thiago
  * @since 1.0.0
- * @updated 3.0.0 - Usa diaInicioFechamentoRH
+ * @updated 8.0.0 - Migrado para usar VersaoJornada
  */
 class CalcularSaldoMensalUseCase @Inject constructor(
     private val calcularSaldoDiaUseCase: CalcularSaldoDiaUseCase,
-    private val configuracaoRepository: ConfiguracaoEmpregoRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository
 ) {
     data class SaldoMensal(
         val mes: YearMonth,
@@ -28,19 +26,14 @@ class CalcularSaldoMensalUseCase @Inject constructor(
         val diasUteis: Int,
         val saldosDiarios: List<CalcularSaldoDiaUseCase.SaldoDia>
     ) {
-        val trabalhadoFormatado: String
-            get() = trabalhadoMinutos.minutosParaHoraMinuto()
-
-        val esperadoFormatado: String
-            get() = esperadoMinutos.minutosParaHoraMinuto()
-
-        val saldoFormatado: String
-            get() = saldoMinutos.minutosParaSaldoFormatado()
+        val trabalhadoFormatado: String get() = trabalhadoMinutos.minutosParaHoraMinuto()
+        val esperadoFormatado: String get() = esperadoMinutos.minutosParaHoraMinuto()
+        val saldoFormatado: String get() = saldoMinutos.minutosParaSaldoFormatado()
     }
 
     suspend operator fun invoke(empregoId: Long, mes: YearMonth): SaldoMensal {
-        val configuracao = configuracaoRepository.buscarPorEmpregoId(empregoId)
-        val diaInicio = configuracao?.diaInicioFechamentoRH ?: 1
+        val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
+        val diaInicio = versaoVigente?.diaInicioFechamentoRH ?: 1
 
         val dataInicio = calcularDataInicio(mes, diaInicio)
         val dataFim = calcularDataFim(mes, diaInicio)
@@ -60,30 +53,12 @@ class CalcularSaldoMensalUseCase @Inject constructor(
         val diasTrabalhados = saldosDiarios.count { it.trabalhadoMinutos > 0 }
         val diasUteis = saldosDiarios.count { it.isDiaUtil }
 
-        return SaldoMensal(
-            mes = mes,
-            trabalhadoMinutos = trabalhadoMinutos,
-            esperadoMinutos = esperadoMinutos,
-            saldoMinutos = trabalhadoMinutos - esperadoMinutos,
-            diasTrabalhados = diasTrabalhados,
-            diasUteis = diasUteis,
-            saldosDiarios = saldosDiarios
-        )
+        return SaldoMensal(mes, trabalhadoMinutos, esperadoMinutos, trabalhadoMinutos - esperadoMinutos, diasTrabalhados, diasUteis, saldosDiarios)
     }
 
-    private fun calcularDataInicio(mes: YearMonth, diaInicio: Int): LocalDate {
-        return if (diaInicio == 1) {
-            mes.atDay(1)
-        } else {
-            mes.minusMonths(1).atDay(diaInicio)
-        }
-    }
+    private fun calcularDataInicio(mes: YearMonth, diaInicio: Int): LocalDate =
+        if (diaInicio == 1) mes.atDay(1) else mes.minusMonths(1).atDay(diaInicio)
 
-    private fun calcularDataFim(mes: YearMonth, diaInicio: Int): LocalDate {
-        return if (diaInicio == 1) {
-            mes.atEndOfMonth()
-        } else {
-            mes.atDay(diaInicio - 1)
-        }
-    }
+    private fun calcularDataFim(mes: YearMonth, diaInicio: Int): LocalDate =
+        if (diaInicio == 1) mes.atEndOfMonth() else mes.atDay(diaInicio - 1)
 }
