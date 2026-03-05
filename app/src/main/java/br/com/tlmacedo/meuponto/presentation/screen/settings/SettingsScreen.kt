@@ -11,20 +11,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -44,17 +46,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
-import br.com.tlmacedo.meuponto.presentation.screen.settings.components.EmpregoAtivoCard
 import br.com.tlmacedo.meuponto.presentation.screen.settings.components.EmpregoSelectorItem
 import br.com.tlmacedo.meuponto.presentation.screen.settings.components.EmptyStateNoEmpregos
 import br.com.tlmacedo.meuponto.presentation.screen.settings.components.SettingsDivider
 import br.com.tlmacedo.meuponto.presentation.screen.settings.components.SettingsMenuItem
-import br.com.tlmacedo.meuponto.presentation.screen.settings.components.SettingsMenuItemWithValue
 import br.com.tlmacedo.meuponto.presentation.screen.settings.components.SettingsSectionHeader
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -62,30 +64,24 @@ import kotlinx.coroutines.launch
 /**
  * Tela principal de configurações do aplicativo.
  *
- * Organizada em seções:
- * - Emprego ativo (card destacado com resumo)
- * - Configurações do emprego (jornada, horários, feriados, ausências)
- * - Banco de horas
- * - Aplicativo (aparência, backup, sobre)
+ * Reorganizada em 3 seções principais:
+ * - Empregos (gerenciar + configurações do emprego ativo)
+ * - Calendário (feriados globais)
+ * - Aplicativo (configurações globais)
  *
  * @author Thiago
  * @since 3.0.0
+ * @updated 8.2.0 - Reorganização: Jornada e Ajustes movidos para dentro de Empregos
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEmpregos: () -> Unit,
-    onNavigateToEditarEmprego: (Long) -> Unit,
+    onNavigateToEmpregoSettings: (Long) -> Unit,
     onNavigateToNovoEmprego: () -> Unit,
-    onNavigateToJornada: () -> Unit,
-    onNavigateToHorarios: () -> Unit,
-    onNavigateToVersoes: () -> Unit,
-    onNavigateToAjustesBancoHoras: () -> Unit,
     onNavigateToFeriados: () -> Unit,
-    onNavigateToAusencias: () -> Unit,
-    onNavigateToAparencia: () -> Unit = {},
-    onNavigateToBackup: () -> Unit = {},
+    onNavigateToConfiguracoesGlobais: () -> Unit,
     onNavigateToSobre: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -103,7 +99,7 @@ fun SettingsScreen(
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
                 is SettingsEvent.NavegarParaEmprego -> {
-                    onNavigateToEditarEmprego(evento.empregoId)
+                    onNavigateToEmpregoSettings(evento.empregoId)
                 }
                 is SettingsEvent.NavegarParaNovoEmprego -> {
                     onNavigateToNovoEmprego()
@@ -144,7 +140,6 @@ fun SettingsScreen(
             }
 
             uiState.isPrimeiroAcesso -> {
-                // Primeiro acesso - sem empregos
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -158,22 +153,15 @@ fun SettingsScreen(
             }
 
             else -> {
-                // Tela normal com emprego(s)
                 SettingsContent(
                     uiState = uiState,
                     onTrocarEmprego = { viewModel.onAction(SettingsAction.AbrirSeletorEmprego) },
-                    onEditarEmprego = {
-                        uiState.empregoAtivo?.let { onNavigateToEditarEmprego(it.emprego.id) }
+                    onNavigateToEmpregoSettings = {
+                        uiState.empregoAtivo?.let { onNavigateToEmpregoSettings(it.emprego.id) }
                     },
                     onNavigateToEmpregos = onNavigateToEmpregos,
-                    onNavigateToJornada = onNavigateToJornada,
-                    onNavigateToHorarios = onNavigateToHorarios,
-                    onNavigateToVersoes = onNavigateToVersoes,
                     onNavigateToFeriados = onNavigateToFeriados,
-                    onNavigateToAusencias = onNavigateToAusencias,
-                    onNavigateToAjustesBancoHoras = onNavigateToAjustesBancoHoras,
-                    onNavigateToAparencia = onNavigateToAparencia,
-                    onNavigateToBackup = onNavigateToBackup,
+                    onNavigateToConfiguracoesGlobais = onNavigateToConfiguracoesGlobais,
                     onNavigateToSobre = onNavigateToSobre,
                     modifier = Modifier.padding(paddingValues)
                 )
@@ -210,194 +198,283 @@ fun SettingsScreen(
 private fun SettingsContent(
     uiState: SettingsUiState,
     onTrocarEmprego: () -> Unit,
-    onEditarEmprego: () -> Unit,
+    onNavigateToEmpregoSettings: () -> Unit,
     onNavigateToEmpregos: () -> Unit,
-    onNavigateToJornada: () -> Unit,
-    onNavigateToHorarios: () -> Unit,
-    onNavigateToVersoes: () -> Unit,
     onNavigateToFeriados: () -> Unit,
-    onNavigateToAusencias: () -> Unit,
-    onNavigateToAjustesBancoHoras: () -> Unit,
-    onNavigateToAparencia: () -> Unit,
-    onNavigateToBackup: () -> Unit,
+    onNavigateToConfiguracoesGlobais: () -> Unit,
     onNavigateToSobre: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 24.dp)
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // ═══════════════════════════════════════════════════════════════
-        // SEÇÃO: EMPREGO ATIVO
+        // SEÇÃO: EMPREGOS
         // ═══════════════════════════════════════════════════════════════
-        uiState.empregoAtivo?.let { resumo ->
-            item(key = "emprego_ativo") {
-                EmpregoAtivoCard(
-                    resumo = resumo,
-                    totalOutrosEmpregos = uiState.outrosEmpregos.size,
-                    onTrocarEmprego = onTrocarEmprego,
-                    onEditarEmprego = onEditarEmprego
+        item(key = "section_empregos") {
+            SettingsSectionCard(
+                titulo = "Empregos",
+                icon = Icons.Default.Business
+            ) {
+                // Card do Emprego Ativo
+                uiState.empregoAtivo?.let { resumo ->
+                    EmpregoAtivoCardCompact(
+                        resumo = resumo,
+                        totalOutrosEmpregos = uiState.outrosEmpregos.size,
+                        onTrocarEmprego = onTrocarEmprego,
+                        onAbrirConfiguracoes = onNavigateToEmpregoSettings
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Gerenciar Empregos
+                SettingsItemClickable(
+                    icon = Icons.Default.Business,
+                    titulo = "Gerenciar Empregos",
+                    subtitulo = "Adicionar, editar ou arquivar",
+                    badge = uiState.empregosArquivados.size.takeIf { it > 0 }
+                        ?.let { "$it arquivados" },
+                    onClick = onNavigateToEmpregos
                 )
             }
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // SEÇÃO: EMPREGOS
-        // ═══════════════════════════════════════════════════════════════
-        item(key = "section_empregos") {
-            SettingsSectionHeader(
-                title = "Empregos",
-                action = {
-                    if (uiState.totalEmpregosAtivos > 1) {
-                        Text(
-                            text = "${uiState.totalEmpregosAtivos} ativos",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            )
-        }
-
-        item(key = "menu_gerenciar_empregos") {
-            SettingsMenuItem(
-                icon = Icons.Default.Business,
-                title = "Gerenciar Empregos",
-                subtitle = "Adicionar, editar ou arquivar empregos",
-                badge = if (uiState.empregosArquivados.isNotEmpty())
-                    "${uiState.empregosArquivados.size} arquivados" else null,
-                onClick = onNavigateToEmpregos
-            )
-        }
-
-        item(key = "divider_1") { SettingsDivider() }
-
-        // ═══════════════════════════════════════════════════════════════
-        // SEÇÃO: JORNADA DE TRABALHO (do emprego ativo)
-        // ═══════════════════════════════════════════════════════════════
-        item(key = "section_jornada") {
-            SettingsSectionHeader(title = "Jornada de Trabalho")
-        }
-
-        item(key = "menu_jornada") {
-            SettingsMenuItemWithValue(
-                icon = Icons.Default.Schedule,
-                title = "Configuração de Jornada",
-                value = uiState.empregoAtivo?.cargaHorariaFormatada ?: "08:12",
-                onClick = onNavigateToJornada
-            )
-        }
-
-        item(key = "menu_horarios") {
-            SettingsMenuItem(
-                icon = Icons.Default.CalendarMonth,
-                title = "Horários por Dia",
-                subtitle = "Definir horários para cada dia da semana",
-                onClick = onNavigateToHorarios
-            )
-        }
-
-        item(key = "menu_versoes") {
-            SettingsMenuItem(
-                icon = Icons.Default.History,
-                title = "Versões de Jornada",
-                subtitle = "Histórico de alterações na jornada",
-                badge = uiState.empregoAtivo?.totalVersoes?.let {
-                    if (it > 0) "$it versões" else null
-                },
-                onClick = onNavigateToVersoes
-            )
-        }
-
-        item(key = "divider_2") { SettingsDivider() }
-
-        // ═══════════════════════════════════════════════════════════════
         // SEÇÃO: CALENDÁRIO
         // ═══════════════════════════════════════════════════════════════
         item(key = "section_calendario") {
-            SettingsSectionHeader(title = "Calendário")
+            SettingsSectionCard(
+                titulo = "Calendário",
+                icon = Icons.Default.Event
+            ) {
+                SettingsItemClickable(
+                    icon = Icons.Default.Event,
+                    titulo = "Feriados",
+                    subtitulo = "Gerenciar feriados e pontes facultativas",
+                    badge = uiState.totalFeriadosGlobais.takeIf { it > 0 }?.let { "$it" },
+                    onClick = onNavigateToFeriados
+                )
+            }
         }
-
-        item(key = "menu_feriados") {
-            SettingsMenuItem(
-                icon = Icons.Default.Event,
-                title = "Feriados",
-                subtitle = "Gerenciar feriados e pontes facultativas",
-                badge = if (uiState.totalFeriadosGlobais > 0)
-                    "${uiState.totalFeriadosGlobais}" else null,
-                onClick = onNavigateToFeriados
-            )
-        }
-
-        item(key = "menu_ausencias") {
-            SettingsMenuItem(
-                icon = Icons.Default.BeachAccess,
-                title = "Ausências",
-                subtitle = "Férias, folgas, faltas e licenças",
-                badge = uiState.empregoAtivo?.totalAusencias?.let {
-                    if (it > 0) "$it" else null
-                },
-                onClick = onNavigateToAusencias
-            )
-        }
-
-        item(key = "divider_3") { SettingsDivider() }
-
-        // ═══════════════════════════════════════════════════════════════
-        // SEÇÃO: BANCO DE HORAS
-        // ═══════════════════════════════════════════════════════════════
-        item(key = "section_banco") {
-            SettingsSectionHeader(title = "Banco de Horas")
-        }
-
-        item(key = "menu_ajustes") {
-            SettingsMenuItem(
-                icon = Icons.Default.AccountBalance,
-                title = "Ajustes de Saldo",
-                subtitle = "Adicionar ou remover horas manualmente",
-                badge = uiState.empregoAtivo?.totalAjustes?.let {
-                    if (it > 0) "$it" else null
-                },
-                onClick = onNavigateToAjustesBancoHoras
-            )
-        }
-
-        item(key = "divider_4") { SettingsDivider() }
 
         // ═══════════════════════════════════════════════════════════════
         // SEÇÃO: APLICATIVO
         // ═══════════════════════════════════════════════════════════════
         item(key = "section_app") {
-            SettingsSectionHeader(title = "Aplicativo")
+            SettingsSectionCard(
+                titulo = "Aplicativo",
+                icon = Icons.Default.Settings
+            ) {
+                SettingsItemClickable(
+                    icon = Icons.Default.Palette,
+                    titulo = "Configurações Globais",
+                    subtitulo = "Aparência, formatos, notificações e backup",
+                    onClick = onNavigateToConfiguracoesGlobais
+                )
+
+                SettingsItemClickable(
+                    icon = Icons.Default.Info,
+                    titulo = "Sobre",
+                    subtitulo = "Versão ${uiState.versaoFormatada}",
+                    onClick = onNavigateToSobre
+                )
+            }
         }
 
-        item(key = "menu_aparencia") {
-            SettingsMenuItem(
-                icon = Icons.Default.Palette,
-                title = "Aparência",
-                subtitle = "Tema e personalização visual",
-                onClick = onNavigateToAparencia
-            )
-        }
+        // Espaço final
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+    }
+}
 
-        item(key = "menu_backup") {
-            SettingsMenuItem(
-                icon = Icons.Default.Storage,
-                title = "Backup & Dados",
-                subtitle = "Exportar, importar e gerenciar dados",
-                onClick = onNavigateToBackup
-            )
-        }
+// ============================================================================
+// Componentes
+// ============================================================================
 
-        item(key = "menu_sobre") {
-            SettingsMenuItem(
-                icon = Icons.Default.Info,
-                title = "Sobre",
-                subtitle = "Versão ${uiState.versaoFormatada}",
-                onClick = onNavigateToSobre
+@Composable
+private fun SettingsSectionCard(
+    titulo: String,
+    icon: ImageVector,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun EmpregoAtivoCardCompact(
+    resumo: EmpregoResumo,
+    totalOutrosEmpregos: Int,
+    onTrocarEmprego: () -> Unit,
+    onAbrirConfiguracoes: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onAbrirConfiguracoes,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = resumo.emprego.nome,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+
+                    if (totalOutrosEmpregos > 0) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            onClick = onTrocarEmprego,
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.secondary
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SwapHoriz,
+                                    contentDescription = "Trocar emprego",
+                                    tint = MaterialTheme.colorScheme.onSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "+$totalOutrosEmpregos",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Jornada: ${resumo.cargaHorariaFormatada}/dia • ${resumo.totalVersoes} versões",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Configurações do emprego",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }
+}
+
+@Composable
+private fun SettingsItemClickable(
+    icon: ImageVector,
+    titulo: String,
+    subtitulo: String? = null,
+    badge: String? = null,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = titulo,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                subtitulo?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            badge?.let {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
 }
 
 /**

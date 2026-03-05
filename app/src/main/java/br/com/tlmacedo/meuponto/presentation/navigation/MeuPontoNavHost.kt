@@ -30,13 +30,15 @@ import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.SettingsScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista.FeriadosListScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.global.GlobalSettingsScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
 
 /**
  * NavHost principal da aplicação MeuPonto.
@@ -50,6 +52,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
  * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
  * @updated 3.4.0 - Adicionado módulo de Feriados
  * @updated 4.0.0 - Adicionado módulo de Ausências
+ * @updated 8.2.0 - Reorganização das configurações com EmpregoSettings
  */
 @Composable
 fun MeuPontoNavHost(
@@ -180,35 +183,17 @@ fun MeuPontoNavHost(
                     onNavigateToEmpregos = {
                         navController.navigate(MeuPontoDestinations.GERENCIAR_EMPREGOS)
                     },
-                    onNavigateToEditarEmprego = { empregoId ->
-                        navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
+                    onNavigateToEmpregoSettings = { empregoId ->
+                        navController.navigate(MeuPontoDestinations.empregoSettings(empregoId))
                     },
                     onNavigateToNovoEmprego = {
                         navController.navigate(MeuPontoDestinations.NOVO_EMPREGO)
                     },
-                    onNavigateToJornada = {
-                        navController.navigate(MeuPontoDestinations.CONFIGURACAO_JORNADA)
-                    },
-                    onNavigateToHorarios = {
-                        navController.navigate(MeuPontoDestinations.HORARIOS_TRABALHO)
-                    },
-                    onNavigateToVersoes = {
-                        navController.navigate(MeuPontoDestinations.VERSOES_JORNADA)
-                    },
-                    onNavigateToAjustesBancoHoras = {
-                        navController.navigate(MeuPontoDestinations.AJUSTES_BANCO_HORAS)
-                    },
                     onNavigateToFeriados = {
                         navController.navigate(MeuPontoDestinations.FERIADOS)
                     },
-                    onNavigateToAusencias = {
-                        navController.navigate(MeuPontoDestinations.AUSENCIAS)
-                    },
-                    onNavigateToAparencia = {
-                        navController.navigate(MeuPontoDestinations.APARENCIA)
-                    },
-                    onNavigateToBackup = {
-                        navController.navigate(MeuPontoDestinations.BACKUP)
+                    onNavigateToConfiguracoesGlobais = {
+                        navController.navigate(MeuPontoDestinations.CONFIGURACOES_GLOBAIS)
                     },
                     onNavigateToSobre = {
                         navController.navigate(MeuPontoDestinations.SOBRE)
@@ -216,21 +201,93 @@ fun MeuPontoNavHost(
                 )
             }
 
-            // Adicionar novas rotas placeholder:
-            composable(MeuPontoDestinations.VERSOES_JORNADA) {
-                VersoesJornadaScreen(
+            // ===== CONFIGURAÇÕES DO EMPREGO =====
+
+            composable(
+                route = MeuPontoDestinations.EMPREGO_SETTINGS,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val empregoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_EMPREGO_ID)
+                    ?: return@composable
+
+                EmpregoSettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditar = { versaoId ->
-                        navController.navigate(
-                            MeuPontoDestinations.EDITAR_VERSAO.replace(
-                                "{${MeuPontoDestinations.ARG_VERSAO_ID}}",
-                                versaoId.toString()
-                            )
-                        )
+                    onNavigateToEditarEmprego = { id ->
+                        navController.navigate(MeuPontoDestinations.editarEmprego(id))
+                    },
+                    onNavigateToVersoes = { id ->
+                        navController.navigate(MeuPontoDestinations.versoesJornada(id))
+                    },
+                    onNavigateToEditarVersao = { versaoId ->
+                        navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
+                    },
+                    onNavigateToAjustesSaldo = { id ->
+                        navController.navigate(MeuPontoDestinations.ajustesSaldo(id))
+                    },
+                    onNavigateToAusencias = { id ->
+                        navController.navigate(MeuPontoDestinations.ausenciasEmprego(id))
                     }
                 )
             }
 
+            // ===== VERSÕES DE JORNADA =====
+
+            // Lista de versões (por emprego)
+            composable(
+                route = MeuPontoDestinations.VERSOES_JORNADA_EMPREGO,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val empregoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_EMPREGO_ID)
+                    ?: return@composable
+
+                VersoesJornadaScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditar = { versaoId ->
+                        navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
+                    }
+                )
+            }
+
+            // Editar versão (com emprego)
+            composable(
+                route = MeuPontoDestinations.EDITAR_VERSAO_EMPREGO,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                        type = NavType.LongType
+                    },
+                    navArgument(MeuPontoDestinations.ARG_VERSAO_ID) {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) {
+                EditarVersaoScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToHorarios = { _ ->
+                        // TODO: Implementar navegação para horários
+                    }
+                )
+            }
+
+            // Lista de versões (legacy - sem emprego específico)
+            composable(MeuPontoDestinations.VERSOES_JORNADA) {
+                VersoesJornadaScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEditar = { versaoId ->
+                        navController.navigate(MeuPontoDestinations.editarVersao(versaoId))
+                    }
+                )
+            }
+
+            // Editar versão (legacy)
             composable(
                 route = MeuPontoDestinations.EDITAR_VERSAO,
                 arguments = listOf(
@@ -241,16 +298,21 @@ fun MeuPontoNavHost(
             ) {
                 EditarVersaoScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToHorarios = { versaoId ->
-                        navController.navigate(
-                            MeuPontoDestinations.HORARIOS_TRABALHO.replace(
-                                "{${MeuPontoDestinations.ARG_VERSAO_ID}}",
-                                versaoId.toString()
-                            )
-                        )
+                    onNavigateToHorarios = { _ ->
+                        // TODO: Implementar navegação para horários
                     }
                 )
             }
+
+            // ===== CONFIGURAÇÕES GLOBAIS =====
+
+            composable(MeuPontoDestinations.CONFIGURACOES_GLOBAIS) {
+                GlobalSettingsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // ===== APARÊNCIA E BACKUP =====
 
             composable(MeuPontoDestinations.APARENCIA) {
                 PlaceholderScreen(
@@ -265,6 +327,8 @@ fun MeuPontoNavHost(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+
+            // ===== EMPREGOS =====
 
             composable(MeuPontoDestinations.GERENCIAR_EMPREGOS) {
                 GerenciarEmpregosScreen(
@@ -289,6 +353,51 @@ fun MeuPontoNavHost(
             ) {
                 EditarEmpregoScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // ===== AJUSTES DE SALDO =====
+
+            composable(
+                route = MeuPontoDestinations.AJUSTES_SALDO_EMPREGO,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                        type = NavType.LongType
+                    }
+                )
+            ) {
+                PlaceholderScreen(
+                    titulo = "Ajustes de Saldo",
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(MeuPontoDestinations.AJUSTES_BANCO_HORAS) {
+                PlaceholderScreen(
+                    titulo = "Ajustes de Saldo",
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // ===== AUSÊNCIAS POR EMPREGO =====
+
+            composable(
+                route = MeuPontoDestinations.AUSENCIAS_EMPREGO,
+                arguments = listOf(
+                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                        type = NavType.LongType
+                    }
+                )
+            ) {
+                // TODO: Filtrar ausências por emprego
+                AusenciasScreen(
+                    onVoltar = { navController.popBackStack() },
+                    onNovaAusencia = {
+                        navController.navigate(MeuPontoDestinations.NOVA_AUSENCIA_BASE)
+                    },
+                    onEditarAusencia = { ausenciaId ->
+                        navController.navigate(MeuPontoDestinations.editarAusencia(ausenciaId))
+                    }
                 )
             }
 
@@ -330,7 +439,7 @@ fun MeuPontoNavHost(
                 )
             }
 
-            // ===== OUTRAS CONFIGURAÇÕES =====
+            // ===== OUTRAS CONFIGURAÇÕES (Legacy/Placeholder) =====
 
             composable(MeuPontoDestinations.CONFIGURACAO_JORNADA) {
                 PlaceholderScreen(
@@ -342,13 +451,6 @@ fun MeuPontoNavHost(
             composable(MeuPontoDestinations.HORARIOS_TRABALHO) {
                 PlaceholderScreen(
                     titulo = "Horários por Dia",
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(MeuPontoDestinations.AJUSTES_BANCO_HORAS) {
-                PlaceholderScreen(
-                    titulo = "Ajustes de Saldo",
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
