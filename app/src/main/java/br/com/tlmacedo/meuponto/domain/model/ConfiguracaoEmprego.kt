@@ -12,6 +12,7 @@ import java.time.LocalDateTime
  * @author Thiago
  * @since 2.0.0
  * @updated 8.0.0 - Simplificado: campos de jornada/banco migrados para VersaoJornada
+ * @updated 9.0.0 - Adicionado fotoObrigatoria
  */
 data class ConfiguracaoEmprego(
     val id: Long = 0,
@@ -29,6 +30,11 @@ data class ConfiguracaoEmprego(
     val habilitarLocalizacao: Boolean = false,
     val localizacaoAutomatica: Boolean = false,
     val exibirLocalizacaoDetalhes: Boolean = true,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // FOTO
+    // ════════════════════════════════════════════════════════════════════════
+    val fotoObrigatoria: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════
     // EXIBIÇÃO

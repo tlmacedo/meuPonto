@@ -6,10 +6,10 @@ package br.com.tlmacedo.meuponto.domain.model
  * 
  * Define se o campo NSR aceita apenas números ou também letras.
  */
-enum class TipoNsr {
+enum class TipoNsr(val descricao: String) {
     /** Aceita apenas caracteres numéricos (0-9) */
-    NUMERICO,
-    
+    NUMERICO("Apenas números (0-9)"),
+
     /** Aceita caracteres alfanuméricos (A-Z, 0-9) */
-    ALFANUMERICO
+    ALFANUMERICO("Alfanumérico (letras e números)")
 }

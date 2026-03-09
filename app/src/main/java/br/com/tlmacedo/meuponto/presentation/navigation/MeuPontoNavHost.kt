@@ -30,7 +30,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.SettingsScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsDetailScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
@@ -49,9 +49,6 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJorn
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 3.3.0 - Adicionado suporte a navegação com data para Home
- * @updated 3.4.0 - Adicionado módulo de Feriados
- * @updated 4.0.0 - Adicionado módulo de Ausências
  * @updated 8.2.0 - Reorganização das configurações com EmpregoSettings
  */
 @Composable
@@ -211,25 +208,10 @@ fun MeuPontoNavHost(
                     }
                 )
             ) { backStackEntry ->
-                val empregoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_EMPREGO_ID)
-                    ?: return@composable
-
-                EmpregoSettingsScreen(
+                EmpregoSettingsDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditarEmprego = { id ->
-                        navController.navigate(MeuPontoDestinations.editarEmprego(id))
-                    },
                     onNavigateToVersoes = { id ->
                         navController.navigate(MeuPontoDestinations.versoesJornada(id))
-                    },
-                    onNavigateToEditarVersao = { versaoId ->
-                        navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
-                    },
-                    onNavigateToAjustesSaldo = { id ->
-                        navController.navigate(MeuPontoDestinations.ajustesSaldo(id))
-                    },
-                    onNavigateToAusencias = { id ->
-                        navController.navigate(MeuPontoDestinations.ausenciasEmprego(id))
                     }
                 )
             }
@@ -250,8 +232,8 @@ fun MeuPontoNavHost(
 
                 VersoesJornadaScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditar = { versaoId ->
-                        navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
+                    onNavigateToEditar = { empId, versaoId ->
+                        navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empId, versaoId))
                     }
                 )
             }
@@ -281,8 +263,8 @@ fun MeuPontoNavHost(
             composable(MeuPontoDestinations.VERSOES_JORNADA) {
                 VersoesJornadaScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditar = { versaoId ->
-                        navController.navigate(MeuPontoDestinations.editarVersao(versaoId))
+                    onNavigateToEditar = { empregoId, versaoId ->
+                        navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
                     }
                 )
             }

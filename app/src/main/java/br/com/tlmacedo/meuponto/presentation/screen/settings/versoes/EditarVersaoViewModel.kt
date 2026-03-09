@@ -1,4 +1,3 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/versoes/EditarVersaoViewModel.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.versoes
 
 import androidx.lifecycle.SavedStateHandle
@@ -18,12 +17,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
  * ViewModel da tela de edição de versão de jornada.
+ *
+ * Recebe tanto empregoId quanto versaoId via navegação para garantir
+ * consistência e permitir criação de novas versões diretamente.
  *
  * @author Thiago
  * @since 4.0.0
@@ -35,7 +36,11 @@ class EditarVersaoViewModel @Inject constructor(
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository
 ) : ViewModel() {
 
-    private val versaoId: Long = savedStateHandle.get<Long>(MeuPontoDestinations.ARG_VERSAO_ID) ?: -1L
+    private val empregoId: Long =
+        savedStateHandle.get<Long>(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
+
+    private val versaoId: Long =
+        savedStateHandle.get<Long>(MeuPontoDestinations.ARG_VERSAO_ID) ?: -1L
 
     private val _uiState = MutableStateFlow(EditarVersaoUiState())
     val uiState: StateFlow<EditarVersaoUiState> = _uiState.asStateFlow()
@@ -44,10 +49,31 @@ class EditarVersaoViewModel @Inject constructor(
     val eventos: SharedFlow<EditarVersaoEvent> = _eventos.asSharedFlow()
 
     init {
-        if (versaoId > 0) {
-            carregarVersao(versaoId)
-        } else {
-            _uiState.update { it.copy(isLoading = false, isNovaVersao = true) }
+        validarArgumentosECarregar()
+    }
+
+    private fun validarArgumentosECarregar() {
+        when {
+            empregoId <= 0L -> {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Emprego inválido"
+                    )
+                }
+            }
+            versaoId > 0L -> {
+                carregarVersao(versaoId)
+            }
+            else -> {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isNovaVersao = true,
+                        empregoId = empregoId
+                    )
+                }
+            }
         }
     }
 
@@ -75,13 +101,29 @@ class EditarVersaoViewModel @Inject constructor(
 
             try {
                 val versao = versaoJornadaRepository.buscarPorId(id)
+
                 if (versao != null) {
+                    if (versao.empregoId != empregoId) {
+                        Timber.w(
+                            "Versão %d pertence ao emprego %d, mas foi solicitada para emprego %d",
+                            id, versao.empregoId, empregoId
+                        )
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Versão não pertence a este emprego"
+                            )
+                        }
+                        return@launch
+                    }
+
                     val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(id)
-                    
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isNovaVersao = false,
+                            empregoId = versao.empregoId,
                             versaoId = versao.id,
                             descricao = versao.descricao ?: "",
                             dataInicio = versao.dataInicio,
@@ -100,8 +142,13 @@ class EditarVersaoViewModel @Inject constructor(
                     _eventos.emit(EditarVersaoEvent.Voltar)
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Erro ao carregar versão")
-                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                Timber.e(e, "Erro ao carregar versão %d", id)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Erro ao carregar versão"
+                    )
+                }
             }
         }
     }
@@ -110,11 +157,11 @@ class EditarVersaoViewModel @Inject constructor(
         _uiState.update { it.copy(descricao = descricao) }
     }
 
-    private fun alterarDataInicio(data: LocalDate) {
+    private fun alterarDataInicio(data: java.time.LocalDate) {
         _uiState.update { it.copy(dataInicio = data, showDataInicioPicker = false) }
     }
 
-    private fun alterarDataFim(data: LocalDate?) {
+    private fun alterarDataFim(data: java.time.LocalDate?) {
         _uiState.update { it.copy(dataFim = data, showDataFimPicker = false) }
     }
 
@@ -149,43 +196,50 @@ class EditarVersaoViewModel @Inject constructor(
     private fun salvar() {
         val state = _uiState.value
 
+        if (state.empregoId <= 0L) {
+            viewModelScope.launch {
+                _eventos.emit(EditarVersaoEvent.MostrarMensagem("Emprego inválido"))
+            }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
 
             try {
-                val versaoAtualizada = VersaoJornada(
-                    id = state.versaoId ?: 0,
-                    empregoId = 0, // Será preenchido pelo repositório
+                if (state.isNovaVersao) {
+                    _eventos.emit(
+                        EditarVersaoEvent.MostrarMensagem(
+                            "Use a lista de versões para criar nova versão"
+                        )
+                    )
+                    return@launch
+                }
+
+                val versaoOriginal = versaoJornadaRepository.buscarPorId(state.versaoId!!)
+                if (versaoOriginal == null) {
+                    _eventos.emit(EditarVersaoEvent.MostrarMensagem("Versão não encontrada"))
+                    return@launch
+                }
+
+                val versaoAtualizada = versaoOriginal.copy(
+                    descricao = state.descricao.ifBlank { null },
                     dataInicio = state.dataInicio,
                     dataFim = state.dataFim,
-                    descricao = state.descricao.ifBlank { null },
-                    numeroVersao = state.numeroVersao,
-                    vigente = state.vigente,
                     jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,
                     intervaloMinimoInterjornadaMinutos = state.intervaloMinimoInterjornadaMinutos,
                     toleranciaIntervaloMaisMinutos = state.toleranciaIntervaloMaisMinutos,
                     atualizadoEm = LocalDateTime.now()
                 )
 
-                if (state.isNovaVersao) {
-                    // Nova versão - não deveria chegar aqui pela tela de edição
-                    _eventos.emit(EditarVersaoEvent.MostrarMensagem("Use a lista para criar nova versão"))
-                } else {
-                    // Buscar versão original para manter empregoId
-                    val versaoOriginal = versaoJornadaRepository.buscarPorId(state.versaoId!!)
-                    if (versaoOriginal != null) {
-                        val versaoFinal = versaoAtualizada.copy(
-                            empregoId = versaoOriginal.empregoId,
-                            criadoEm = versaoOriginal.criadoEm
-                        )
-                        versaoJornadaRepository.atualizar(versaoFinal)
-                        _eventos.emit(EditarVersaoEvent.MostrarMensagem("Versão atualizada com sucesso"))
-                        _eventos.emit(EditarVersaoEvent.SalvoComSucesso)
-                    }
-                }
+                versaoJornadaRepository.atualizar(versaoAtualizada)
+                _eventos.emit(EditarVersaoEvent.MostrarMensagem("Versão atualizada com sucesso"))
+                _eventos.emit(EditarVersaoEvent.SalvoComSucesso)
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao salvar versão")
-                _eventos.emit(EditarVersaoEvent.MostrarMensagem("Erro ao salvar: ${e.message}"))
+                _eventos.emit(
+                    EditarVersaoEvent.MostrarMensagem("Erro ao salvar: ${e.message}")
+                )
             } finally {
                 _uiState.update { it.copy(isSaving = false) }
             }
@@ -204,6 +258,7 @@ class EditarVersaoViewModel @Inject constructor(
 
     private fun configurarHorarios() {
         val versaoId = _uiState.value.versaoId ?: return
+
         viewModelScope.launch {
             _eventos.emit(EditarVersaoEvent.NavegarParaHorarios(versaoId))
         }

@@ -2,6 +2,11 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.semantics.Role
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
@@ -25,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
@@ -48,6 +54,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -86,6 +93,7 @@ import java.time.Duration
 @Composable
 fun EditarEmpregoScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToVersoes: (() -> Unit)? = null,  // ← Adicionar
     modifier: Modifier = Modifier,
     viewModel: EditarEmpregoViewModel = hiltViewModel()
 ) {
@@ -135,6 +143,7 @@ fun EditarEmpregoScreen(
                 onAction = viewModel::onAction,
                 onSetShowInicioTrabalhoPicker = viewModel::setShowInicioTrabalhoPicker,
                 onSetShowDataInicioCicloPicker = viewModel::setShowDataInicioCicloPicker,
+                onNavigateToVersoes = onNavigateToVersoes,  // ← Adicionar
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -148,6 +157,7 @@ private fun EditarEmpregoContent(
     onAction: (EditarEmpregoAction) -> Unit,
     onSetShowInicioTrabalhoPicker: (Boolean) -> Unit,
     onSetShowDataInicioCicloPicker: (Boolean) -> Unit,
+    onNavigateToVersoes: (() -> Unit)? = null,  // ← Adicionar
     modifier: Modifier = Modifier
 ) {
     // DATE PICKER - Data Início Trabalho
@@ -438,6 +448,84 @@ private fun EditarEmpregoContent(
                             description = "Reiniciar saldo a cada fechamento de período do RH",
                             checked = uiState.zerarSaldoPeriodoRH,
                             onCheckedChange = { onAction(EditarEmpregoAction.AlterarZerarSaldoPeriodoRH(it)) }
+                        )
+                    }
+                }
+            }
+        }
+
+        // NSR E LOCALIZAÇÃO
+        item {
+            FormSection(
+                title = "NSR e Localização",
+                icon = Icons.Default.LocationOn,
+                isExpanded = uiState.secaoExpandida == SecaoFormulario.NSR_LOCALIZACAO,
+                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.NSR_LOCALIZACAO)) }
+            ) {
+                // Habilitar NSR
+                SwitchOption(
+                    title = "Habilitar NSR",
+                    description = "Ativar registro conforme Portaria 671 (Número Sequencial de Registro)",
+                    checked = uiState.habilitarNsr,
+                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarNsr(it)) }
+                )
+
+                // Tipo de NSR (só aparece se NSR habilitado)
+                AnimatedVisibility(visible = uiState.habilitarNsr) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Tipo de NSR",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        TipoNsr.entries.forEach { tipo ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = uiState.tipoNsr == tipo,
+                                        onClick = { onAction(EditarEmpregoAction.AlterarTipoNsr(tipo)) },
+                                        role = Role.RadioButton
+                                    )
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = uiState.tipoNsr == tipo,
+                                    onClick = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = tipo.descricao,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // Habilitar Localização
+                SwitchOption(
+                    title = "Registrar Localização",
+                    description = "Capturar coordenadas GPS no momento do registro",
+                    checked = uiState.habilitarLocalizacao,
+                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarLocalizacao(it)) }
+                )
+
+                // Localização Automática (só aparece se localização habilitada)
+                AnimatedVisibility(visible = uiState.habilitarLocalizacao) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SwitchOption(
+                            title = "Captura Automática",
+                            description = "Obter localização automaticamente ao registrar ponto",
+                            checked = uiState.localizacaoAutomatica,
+                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarLocalizacaoAutomatica(it)) }
                         )
                     }
                 }
