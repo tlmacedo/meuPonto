@@ -19,14 +19,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -39,21 +37,27 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
+import androidx.lifecycle.repeatOnLifecycle
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
 import br.com.tlmacedo.meuponto.presentation.components.DateNavigator
-import br.com.tlmacedo.meuponto.presentation.components.EdicaoInlineForm
+import br.com.tlmacedo.meuponto.presentation.components.EdicaoPontoModal
 import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorBottomSheet
 import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorChip
+import br.com.tlmacedo.meuponto.presentation.components.ExcluirPontoDialog
 import br.com.tlmacedo.meuponto.presentation.components.FechamentoCicloBanner
 import br.com.tlmacedo.meuponto.presentation.components.FeriadoBanner
+import br.com.tlmacedo.meuponto.presentation.components.FotoPontoModal
 import br.com.tlmacedo.meuponto.presentation.components.IntervaloCard
+import br.com.tlmacedo.meuponto.presentation.components.LocalizacaoModal
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.NsrInputDialog
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoButton
@@ -65,7 +69,6 @@ import br.com.tlmacedo.meuponto.presentation.screen.home.components.FechamentoCi
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 
 /**
  * Tela principal do aplicativo Meu Ponto.
@@ -73,22 +76,33 @@ import java.time.format.DateTimeFormatter
  * @author Thiago
  * @since 2.0.0
  * @updated 6.2.0 - Adicionado suporte a ciclos de banco de horas
- * @updated 7.0.0 - Adicionado suporte a edição inline de pontos
+ * @updated 7.2.0 - Substituída edição inline por modais + swipe
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     dataSelecionadaInicial: String? = null,
-    onNavigateToHistory: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {},
-    onNavigateToEditPonto: (Long) -> Unit = {},
+    onNavigateToHistorico: () -> Unit = {},
+    onNavigateToConfiguracoes: () -> Unit = {},
+    onNavigateToEditarPonto: (Long) -> Unit = {},
     onNavigateToNovoEmprego: () -> Unit = {},
     onNavigateToEditarEmprego: (Long) -> Unit = {},
     onNavigateToHistoricoCiclos: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+
+    // ══════════════════════════════════════════════════════════════════════
+    // RECARREGAR CONFIGURAÇÃO QUANDO A TELA VOLTA AO FOCO
+    // ══════════════════════════════════════════════════════════════════════
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner.lifecycle) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.onAction(HomeAction.RecarregarConfiguracaoEmprego)
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -102,15 +116,15 @@ fun HomeScreen(
                 }
 
                 is HomeUiEvent.NavegarParaHistorico -> {
-                    onNavigateToHistory()
+                    onNavigateToHistorico()
                 }
 
                 is HomeUiEvent.NavegarParaConfiguracoes -> {
-                    onNavigateToSettings()
+                    onNavigateToConfiguracoes()
                 }
 
                 is HomeUiEvent.NavegarParaEditarPonto -> {
-                    onNavigateToEditPonto(event.pontoId)
+                    onNavigateToEditarPonto(event.pontoId)
                 }
 
                 is HomeUiEvent.EmpregoTrocado -> {
@@ -143,6 +157,10 @@ fun HomeScreen(
         }
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // DIALOGS
+    // ══════════════════════════════════════════════════════════════════════
+
     // TimePicker para registro de ponto
     if (uiState.showTimePickerDialog) {
         TimePickerDialog(
@@ -157,21 +175,7 @@ fun HomeScreen(
         )
     }
 
-    // TimePicker para edição inline
-    if (uiState.edicaoInline?.showTimePicker == true) {
-        TimePickerDialog(
-            titulo = "Alterar horário",
-            horaInicial = uiState.edicaoInline?.hora ?: uiState.horaAtual,
-            onConfirm = { hora ->
-                viewModel.onAction(HomeAction.AtualizarHoraInline(hora))
-                viewModel.onAction(HomeAction.FecharTimePickerInline)
-            },
-            onDismiss = {
-                viewModel.onAction(HomeAction.FecharTimePickerInline)
-            }
-        )
-    }
-
+    // DatePicker
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = uiState.dataSelecionada
@@ -206,17 +210,7 @@ fun HomeScreen(
         }
     }
 
-    if (uiState.showDeleteConfirmDialog && uiState.pontoParaExcluir != null) {
-        DeletePontoConfirmDialog(
-            ponto = uiState.pontoParaExcluir!!,
-            pontosHoje = uiState.pontosHoje,
-            motivo = uiState.motivoExclusao,
-            onMotivoChange = { viewModel.onAction(HomeAction.AtualizarMotivoExclusao(it)) },
-            onConfirm = { viewModel.onAction(HomeAction.ConfirmarExclusao) },
-            onDismiss = { viewModel.onAction(HomeAction.CancelarExclusao) }
-        )
-    }
-
+    // NSR Dialog
     if (uiState.showNsrDialog) {
         NsrInputDialog(
             tipoNsr = uiState.tipoNsr,
@@ -228,6 +222,7 @@ fun HomeScreen(
         )
     }
 
+    // Emprego Selector
     if (uiState.showEmpregoSelector) {
         EmpregoSelectorBottomSheet(
             empregos = uiState.empregosDisponiveis,
@@ -241,6 +236,7 @@ fun HomeScreen(
         )
     }
 
+    // Fechamento de Ciclo Dialog
     if (uiState.showFechamentoCicloDialog && uiState.estadoCiclo is EstadoCiclo.Pendente) {
         FechamentoCicloDialog(
             estadoCiclo = uiState.estadoCiclo as EstadoCiclo.Pendente,
@@ -249,6 +245,71 @@ fun HomeScreen(
         )
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // MODAIS DE PONTO
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Modal de Edição
+    uiState.edicaoModal?.let { modalState ->
+        EdicaoPontoModal(
+            ponto = modalState.ponto,
+            tipoDescricao = modalState.tipoDescricao,
+            onDismiss = { viewModel.onAction(HomeAction.FecharEdicaoModal) },
+            onSalvar = { hora, nsr, motivo, detalhes ->
+                viewModel.onAction(
+                    HomeAction.SalvarEdicaoModal(
+                        pontoId = modalState.ponto.id,
+                        hora = hora,
+                        nsr = nsr,
+                        motivo = motivo,
+                        detalhes = detalhes
+                    )
+                )
+            },
+            mostrarNsr = uiState.nsrHabilitado
+        )
+    }
+
+    // Modal de Exclusão
+    uiState.exclusaoModal?.let { modalState ->
+        ExcluirPontoDialog(
+            ponto = modalState.ponto,
+            tipoDescricao = modalState.tipoDescricao,
+            onDismiss = { viewModel.onAction(HomeAction.FecharExclusaoModal) },
+            onConfirmar = { motivo ->
+                viewModel.onAction(
+                    HomeAction.ConfirmarExclusaoModal(
+                        pontoId = modalState.ponto.id,
+                        motivo = motivo
+                    )
+                )
+            },
+            isLoading = modalState.isDeleting
+        )
+    }
+
+    // Modal de Localização
+    uiState.localizacaoModal?.let { modalState ->
+        LocalizacaoModal(
+            ponto = modalState.ponto,
+            tipoDescricao = modalState.tipoDescricao,
+            onDismiss = { viewModel.onAction(HomeAction.FecharLocalizacaoModal) }
+        )
+    }
+
+    // Modal de Foto
+    uiState.fotoModal?.let { modalState ->
+        FotoPontoModal(
+            ponto = modalState.ponto,
+            tipoDescricao = modalState.tipoDescricao,
+            fotoPath = modalState.fotoPath,
+            onDismiss = { viewModel.onAction(HomeAction.FecharFotoModal) }
+        )
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SCAFFOLD
+    // ══════════════════════════════════════════════════════════════════════
 
     Scaffold(
         topBar = {
@@ -399,7 +460,6 @@ internal fun HomeContent(
                 )
             }
 
-
             if (uiState.isFeriado) {
                 FeriadoBanner(feriados = uiState.feriadosDoDia)
             }
@@ -439,77 +499,28 @@ internal fun HomeContent(
                     items = uiState.resumoDia.intervalos,
                     key = { "intervalo_${it.entrada.id}" }
                 ) { intervalo ->
-                    Column {
-                        // Card do intervalo
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn() + slideInVertically(),
-                            exit = fadeOut() + slideOutVertically()
-                        ) {
-                            IntervaloCard(
-                                intervalo = intervalo,
-                                mostrarContadorTempoReal = uiState.isHoje && !uiState.temEdicaoInlineAtiva,
-                                mostrarNsr = uiState.nsrHabilitado,
-                                onEditarEntrada = { pontoId ->
-                                    val ponto = uiState.pontosHoje.find { it.id == pontoId }
-                                    ponto?.let { onAction(HomeAction.IniciarEdicaoInline(it)) }
-                                },
-                                onEditarSaida = { pontoId ->
-                                    val ponto = uiState.pontosHoje.find { it.id == pontoId }
-                                    ponto?.let { onAction(HomeAction.IniciarEdicaoInline(it)) }
-                                }
-                            )
-                        }
-
-                        // Formulário de edição inline da ENTRADA
-                        val edicaoEntrada = uiState.getEdicaoParaPonto(intervalo.entrada.id)
-                        AnimatedVisibility(
-                            visible = edicaoEntrada != null,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            edicaoEntrada?.let { state ->
-                                EdicaoInlineForm(
-                                    ponto = intervalo.entrada,
-                                    state = state,
-                                    descricaoTipoPonto = "Entrada",
-                                    habilitarNsr = uiState.nsrHabilitado,
-                                    tipoNsr = uiState.tipoNsr,
-                                    onHoraClick = { onAction(HomeAction.AbrirTimePickerInline) },
-                                    onNsrChange = { onAction(HomeAction.AtualizarNsrInline(it)) },
-                                    onMotivoChange = { onAction(HomeAction.SelecionarMotivoInline(it)) },
-                                    onMotivoDetalhesChange = { onAction(HomeAction.AtualizarMotivoDetalhesInline(it)) },
-                                    onSalvar = { onAction(HomeAction.SalvarEdicaoInline) },
-                                    onCancelar = { onAction(HomeAction.CancelarEdicaoInline) }
-                                )
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn() + slideInVertically(),
+                        exit = fadeOut() + slideOutVertically()
+                    ) {
+                        IntervaloCard(
+                            intervalo = intervalo,
+                            mostrarContadorTempoReal = uiState.isHoje && !uiState.temModalAberto,
+                            mostrarNsr = uiState.nsrHabilitado,
+                            onEditar = { ponto ->
+                                onAction(HomeAction.AbrirEdicaoModal(ponto))
+                            },
+                            onExcluir = { ponto ->
+                                onAction(HomeAction.AbrirExclusaoModal(ponto))
+                            },
+                            onVerFoto = { ponto ->
+                                onAction(HomeAction.AbrirFotoModal(ponto))
+                            },
+                            onVerLocalizacao = { ponto ->
+                                onAction(HomeAction.AbrirLocalizacaoModal(ponto))
                             }
-                        }
-
-                        // Formulário de edição inline da SAÍDA (se existir)
-                        intervalo.saida?.let { saida ->
-                            val edicaoSaida = uiState.getEdicaoParaPonto(saida.id)
-                            AnimatedVisibility(
-                                visible = edicaoSaida != null,
-                                enter = expandVertically() + fadeIn(),
-                                exit = shrinkVertically() + fadeOut()
-                            ) {
-                                edicaoSaida?.let { state ->
-                                    EdicaoInlineForm(
-                                        ponto = saida,
-                                        state = state,
-                                        descricaoTipoPonto = "Saída",
-                                        habilitarNsr = uiState.nsrHabilitado,
-                                        tipoNsr = uiState.tipoNsr,
-                                        onHoraClick = { onAction(HomeAction.AbrirTimePickerInline) },
-                                        onNsrChange = { onAction(HomeAction.AtualizarNsrInline(it)) },
-                                        onMotivoChange = { onAction(HomeAction.SelecionarMotivoInline(it)) },
-                                        onMotivoDetalhesChange = { onAction(HomeAction.AtualizarMotivoDetalhesInline(it)) },
-                                        onSalvar = { onAction(HomeAction.SalvarEdicaoInline) },
-                                        onCancelar = { onAction(HomeAction.CancelarEdicaoInline) }
-                                    )
-                                }
-                            }
-                        }
+                        )
                     }
                 }
             } else if (uiState.temEmpregoAtivo && !uiState.isFuturo) {
@@ -519,80 +530,6 @@ internal fun HomeContent(
             }
         }
     }
-}
-
-@Composable
-private fun DeletePontoConfirmDialog(
-    ponto: br.com.tlmacedo.meuponto.domain.model.Ponto,
-    pontosHoje: List<br.com.tlmacedo.meuponto.domain.model.Ponto>,
-    motivo: String,
-    onMotivoChange: (String) -> Unit,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    val pontosOrdenados = pontosHoje.sortedBy { it.dataHora }
-    val indice = pontosOrdenados.indexOfFirst { it.id == ponto.id }
-    val tipoDescricao = if (indice >= 0) {
-        TipoPonto.getTipoPorIndice(indice).descricao
-    } else {
-        "ponto"
-    }
-
-    val motivoValido = motivo.trim().length >= 5
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Excluir Ponto") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "Deseja realmente excluir o registro de $tipoDescricao às ${
-                        ponto.hora.format(DateTimeFormatter.ofPattern("HH:mm"))
-                    }?"
-                )
-
-                OutlinedTextField(
-                    value = motivo,
-                    onValueChange = onMotivoChange,
-                    label = { Text("Motivo da exclusão *") },
-                    placeholder = { Text("Ex: Registro duplicado") },
-                    supportingText = {
-                        if (motivo.isNotEmpty() && !motivoValido) {
-                            Text(
-                                "Mínimo 5 caracteres",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    isError = motivo.isNotEmpty() && !motivoValido,
-                    singleLine = false,
-                    maxLines = 3,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                enabled = motivoValido
-            ) {
-                Text(
-                    "Excluir",
-                    color = if (motivoValido)
-                        MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
 }
 
 @Composable

@@ -27,6 +27,7 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciaFormScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciasScreen
 import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.historicociclos.HistoricoCiclosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsDetailScreen
@@ -78,13 +79,13 @@ fun MeuPontoNavHost(
 
                 HomeScreen(
                     dataSelecionadaInicial = dataString,
-                    onNavigateToHistory = {
+                    onNavigateToHistorico = {
                         navController.navigate(MeuPontoDestinations.HISTORY)
                     },
-                    onNavigateToSettings = {
+                    onNavigateToConfiguracoes = {
                         navController.navigate(MeuPontoDestinations.SETTINGS)
                     },
-                    onNavigateToEditPonto = { pontoId ->
+                    onNavigateToEditarPonto = { pontoId ->
                         navController.navigate(MeuPontoDestinations.editPonto(pontoId))
                     },
                     onNavigateToNovoEmprego = {
@@ -92,6 +93,9 @@ fun MeuPontoNavHost(
                     },
                     onNavigateToEditarEmprego = { empregoId ->
                         navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
+                    },
+                    onNavigateToHistoricoCiclos = {
+                        navController.navigate(MeuPontoDestinations.HISTORICO_CICLOS)
                     }
                 )
             }
@@ -108,6 +112,14 @@ fun MeuPontoNavHost(
                     }
                 )
             }
+
+            // ===== HISTÓRICO DE CICLOS ===== (ADICIONAR AQUI)
+            composable(MeuPontoDestinations.HISTORICO_CICLOS) {
+                HistoricoCiclosScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
 
             composable(
                 route = MeuPontoDestinations.EDIT_PONTO,

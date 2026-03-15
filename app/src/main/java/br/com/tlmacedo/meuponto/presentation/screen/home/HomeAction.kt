@@ -13,7 +13,7 @@ import java.time.LocalTime
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 7.0.0 - Adicionadas ações de edição inline
+ * @updated 7.2.0 - Substituídas ações de edição inline por modais
  * @updated 9.0.0 - Adicionadas ações para foto de comprovante
  */
 sealed interface HomeAction {
@@ -39,54 +39,58 @@ sealed interface HomeAction {
     // AÇÕES DE FOTO DE COMPROVANTE
     // ══════════════════════════════════════════════════════════════════════
 
-    /** Abre o diálogo de seleção de fonte (câmera/galeria) */
     data object AbrirFotoSourceDialog : HomeAction
-
-    /** Fecha o diálogo de seleção de fonte */
     data object FecharFotoSourceDialog : HomeAction
-
-    /** Confirma que a foto foi capturada pela câmera (usa cameraUri do estado) */
     data object ConfirmarFotoCamera : HomeAction
-
-    /** Seleciona uma imagem de comprovante (da galeria) */
     data class SelecionarFotoComprovante(val uri: Uri) : HomeAction
-
-    /** Remove a foto de comprovante selecionada */
     data object RemoverFotoComprovante : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
-    // AÇÕES DE EDIÇÃO INLINE
+    // MODAIS DE PONTO (Nova implementação 7.2.0)
     // ══════════════════════════════════════════════════════════════════════
 
-    /** Inicia edição inline de um ponto */
-    data class IniciarEdicaoInline(val ponto: Ponto) : HomeAction
+    // ── EDIÇÃO ──────────────────────────────────────────────────────────────
+    /** Abre o modal de edição para um ponto */
+    data class AbrirEdicaoModal(val ponto: Ponto) : HomeAction
 
-    /** Cancela edição inline */
-    data object CancelarEdicaoInline : HomeAction
+    /** Fecha o modal de edição */
+    data object FecharEdicaoModal : HomeAction
 
-    /** Atualiza hora na edição inline */
-    data class AtualizarHoraInline(val hora: LocalTime) : HomeAction
+    /** Salva as alterações do modal de edição */
+    data class SalvarEdicaoModal(
+        val pontoId: Long,
+        val hora: LocalTime,
+        val nsr: String?,
+        val motivo: MotivoEdicao,
+        val detalhes: String?
+    ) : HomeAction
 
-    /** Atualiza NSR na edição inline */
-    data class AtualizarNsrInline(val nsr: String) : HomeAction
+    // ── EXCLUSÃO ────────────────────────────────────────────────────────────
+    /** Abre o modal de confirmação de exclusão */
+    data class AbrirExclusaoModal(val ponto: Ponto) : HomeAction
 
-    /** Seleciona motivo na edição inline */
-    data class SelecionarMotivoInline(val motivo: MotivoEdicao) : HomeAction
+    /** Fecha o modal de exclusão */
+    data object FecharExclusaoModal : HomeAction
 
-    /** Atualiza detalhes do motivo na edição inline */
-    data class AtualizarMotivoDetalhesInline(val detalhes: String) : HomeAction
+    /** Confirma a exclusão do ponto */
+    data class ConfirmarExclusaoModal(val pontoId: Long, val motivo: String) : HomeAction
 
-    /** Abre TimePicker na edição inline */
-    data object AbrirTimePickerInline : HomeAction
+    // ── LOCALIZAÇÃO ─────────────────────────────────────────────────────────
+    /** Abre o modal de visualização de localização */
+    data class AbrirLocalizacaoModal(val ponto: Ponto) : HomeAction
 
-    /** Fecha TimePicker na edição inline */
-    data object FecharTimePickerInline : HomeAction
+    /** Fecha o modal de localização */
+    data object FecharLocalizacaoModal : HomeAction
 
-    /** Salva alterações da edição inline */
-    data object SalvarEdicaoInline : HomeAction
+    // ── FOTO ────────────────────────────────────────────────────────────────
+    /** Abre o modal de visualização de foto */
+    data class AbrirFotoModal(val ponto: Ponto) : HomeAction
+
+    /** Fecha o modal de foto */
+    data object FecharFotoModal : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
-    // AÇÕES DE EXCLUSÃO DE PONTO
+    // AÇÕES DE EXCLUSÃO DE PONTO (legado - manter por compatibilidade)
     // ══════════════════════════════════════════════════════════════════════
 
     data class SolicitarExclusao(val ponto: Ponto) : HomeAction
@@ -116,6 +120,7 @@ sealed interface HomeAction {
     data object NavegarParaEditarEmprego : HomeAction
     data object AbrirMenuEmprego : HomeAction
     data object FecharMenuEmprego : HomeAction
+    data object RecarregarConfiguracaoEmprego : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
     // AÇÕES DE NAVEGAÇÃO

@@ -13,6 +13,7 @@ import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
+import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
@@ -66,46 +67,75 @@ sealed class EstadoCiclo {
 }
 
 /**
- * Estado de edição inline de um ponto.
+ * Estado do modal de edição de ponto.
  *
  * @author Thiago
- * @since 7.0.0
+ * @since 7.2.0
  */
-data class EdicaoInlineState(
-    val pontoId: Long = 0,
-    val hora: LocalTime = LocalTime.now(),
-    val nsr: String = "",
-    val motivoSelecionado: MotivoEdicao = MotivoEdicao.NENHUM,
-    val motivoDetalhes: String = "",
-    val showTimePicker: Boolean = false,
-    val isSaving: Boolean = false,
-    val erro: String? = null
+data class EdicaoModalState(
+    val ponto: Ponto,
+    val indicePonto: Int = 0,
+    val isSaving: Boolean = false
 ) {
-    companion object {
-        private val formatterHora = DateTimeFormatter.ofPattern("HH:mm")
-    }
+    /** Determina o tipo do ponto baseado no índice (ímpar = entrada, par = saída) */
+    val tipoPonto: TipoPonto
+        get() = TipoPonto.getTipoPorIndice(indicePonto)
 
-    val horaFormatada: String
-        get() = hora.format(formatterHora)
+    val tipoDescricao: String
+        get() = tipoPonto.descricao
+}
 
-    val motivoValido: Boolean
-        get() = when {
-            motivoSelecionado == MotivoEdicao.NENHUM -> false
-            motivoSelecionado == MotivoEdicao.OUTRO -> motivoDetalhes.trim().length >= 5
-            motivoSelecionado.requerDetalhes -> motivoDetalhes.trim().length >= 5
-            else -> true
-        }
+/**
+ * Estado do modal de exclusão de ponto.
+ *
+ * @author Thiago
+ * @since 7.2.0
+ */
+data class ExclusaoModalState(
+    val ponto: Ponto,
+    val indicePonto: Int = 0,
+    val isDeleting: Boolean = false
+) {
+    val tipoPonto: TipoPonto
+        get() = TipoPonto.getTipoPorIndice(indicePonto)
 
-    val podeSalvar: Boolean
-        get() = motivoValido && !isSaving
+    val tipoDescricao: String
+        get() = tipoPonto.descricao
+}
 
-    val motivoCompleto: String
-        get() = when {
-            motivoSelecionado == MotivoEdicao.OUTRO -> motivoDetalhes.trim()
-            motivoSelecionado.requerDetalhes && motivoDetalhes.isNotBlank() ->
-                "${motivoSelecionado.descricao}: ${motivoDetalhes.trim()}"
-            else -> motivoSelecionado.descricao
-        }
+/**
+ * Estado do modal de visualização de localização.
+ *
+ * @author Thiago
+ * @since 7.2.0
+ */
+data class LocalizacaoModalState(
+    val ponto: Ponto,
+    val indicePonto: Int = 0
+) {
+    val tipoPonto: TipoPonto
+        get() = TipoPonto.getTipoPorIndice(indicePonto)
+
+    val tipoDescricao: String
+        get() = tipoPonto.descricao
+}
+
+/**
+ * Estado do modal de visualização de foto.
+ *
+ * @author Thiago
+ * @since 7.2.0
+ */
+data class FotoModalState(
+    val ponto: Ponto,
+    val indicePonto: Int = 0,
+    val fotoPath: String? = null
+) {
+    val tipoPonto: TipoPonto
+        get() = TipoPonto.getTipoPorIndice(indicePonto)
+
+    val tipoDescricao: String
+        get() = tipoPonto.descricao
 }
 
 /**
@@ -117,7 +147,7 @@ data class EdicaoInlineState(
  * @updated 6.0.0 - Adicionado campo motivoExclusao para auditoria obrigatória
  * @updated 6.2.0 - Adicionado suporte a ciclos de banco de horas
  * @updated 6.4.0 - Adicionado fechamentoCicloAnterior para exibir marco de início de ciclo
- * @updated 7.0.0 - Adicionado suporte a edição inline de pontos
+ * @updated 7.2.0 - Substituída edição inline por modais
  */
 data class HomeUiState(
     val dataSelecionada: LocalDate = LocalDate.now(),
@@ -150,7 +180,7 @@ data class HomeUiState(
     val showFotoSourceDialog: Boolean = false,
     val cameraUri: Uri? = null,
     val horaPendenteParaRegistro: LocalTime? = null,
-    // Exclusão de ponto
+    // Exclusão de ponto (dialog legado - manter por compatibilidade)
     val pontoParaExcluir: Ponto? = null,
     val motivoExclusao: String = "",
     val erro: String? = null,
@@ -160,10 +190,12 @@ data class HomeUiState(
     // Fechamento de ciclo anterior (para exibir marco de início de novo ciclo)
     val fechamentoCicloAnterior: FechamentoPeriodo? = null,
     // ════════════════════════════════════════════════════════════════════
-    // EDIÇÃO INLINE
+    // MODAIS DE PONTO (Nova implementação 7.2.0)
     // ════════════════════════════════════════════════════════════════════
-    val edicaoInline: EdicaoInlineState? = null,
-    val pontoEmEdicaoId: Long? = null
+    val edicaoModal: EdicaoModalState? = null,
+    val exclusaoModal: ExclusaoModalState? = null,
+    val localizacaoModal: LocalizacaoModalState? = null,
+    val fotoModal: FotoModalState? = null
 ) {
     companion object {
         private val localeBR = Locale("pt", "BR")
@@ -202,19 +234,15 @@ data class HomeUiState(
     // FOTO DE COMPROVANTE
     // ========================================================================
 
-    /** Verifica se foto está habilitada para o emprego */
     val fotoHabilitada: Boolean
         get() = configuracaoEmprego?.fotoObrigatoria == true
 
-    /** Verifica se foto é obrigatória (sinônimo de fotoHabilitada por enquanto) */
     val fotoObrigatoria: Boolean
         get() = configuracaoEmprego?.fotoObrigatoria == true
 
-    /** Verifica se há uma foto pendente selecionada */
     val temFotoPendente: Boolean
         get() = fotoComprovanteUri != null
 
-    /** Verifica se pode prosseguir com registro (considerando foto obrigatória) */
     val fotoValidaParaRegistro: Boolean
         get() = !fotoObrigatoria || temFotoPendente
 
@@ -294,36 +322,39 @@ data class HomeUiState(
     // FECHAMENTO DE CICLO ANTERIOR (MARCO DE INÍCIO DE NOVO CICLO)
     // ========================================================================
 
-    /**
-     * Verifica se a data selecionada é o primeiro dia de um novo ciclo
-     * (dia seguinte ao fechamento de um ciclo anterior).
-     */
     val isInicioDeCiclo: Boolean
         get() = fechamentoCicloAnterior?.let { fechamento ->
             dataSelecionada == fechamento.dataFimPeriodo.plusDays(1)
         } ?: false
 
-    /**
-     * Verifica se deve exibir o banner de fechamento de ciclo anterior.
-     * Exibe quando a data selecionada é o primeiro dia do novo ciclo.
-     */
     val deveExibirBannerFechamentoCiclo: Boolean
         get() = isInicioDeCiclo && fechamentoCicloAnterior != null
 
     // ========================================================================
-    // EDIÇÃO INLINE - PROPRIEDADES COMPUTADAS
+    // MODAIS - PROPRIEDADES COMPUTADAS
     // ========================================================================
 
-    /** Verifica se há edição inline ativa */
-    val temEdicaoInlineAtiva: Boolean
-        get() = edicaoInline != null && pontoEmEdicaoId != null
+    /** Verifica se há algum modal aberto */
+    val temModalAberto: Boolean
+        get() = edicaoModal != null || exclusaoModal != null ||
+                localizacaoModal != null || fotoModal != null
 
-    /** Verifica se um ponto específico está em edição */
-    fun isPontoEmEdicao(pontoId: Long): Boolean = pontoEmEdicaoId == pontoId
+    /** Obtém o índice de um ponto na lista ordenada */
+    fun getIndicePonto(pontoId: Long): Int {
+        val pontosOrdenados = pontosHoje.sortedBy { it.dataHora }
+        return pontosOrdenados.indexOfFirst { it.id == pontoId }
+    }
 
-    /** Obtém o estado de edição para um ponto específico (ou null se não estiver editando) */
-    fun getEdicaoParaPonto(pontoId: Long): EdicaoInlineState? =
-        if (pontoEmEdicaoId == pontoId) edicaoInline else null
+    /** Obtém o tipo do ponto (entrada/saída) baseado no índice */
+    fun getTipoPonto(pontoId: Long): TipoPonto {
+        val indice = getIndicePonto(pontoId)
+        return if (indice >= 0) TipoPonto.getTipoPorIndice(indice) else TipoPonto.ENTRADA
+    }
+
+    /** Obtém a descrição do tipo do ponto */
+    fun getTipoPontoDescricao(pontoId: Long): String {
+        return getTipoPonto(pontoId).descricao
+    }
 
     // ========================================================================
     // FORMATAÇÃO DE DATA

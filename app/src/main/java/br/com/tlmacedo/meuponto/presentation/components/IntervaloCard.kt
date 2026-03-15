@@ -1,9 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/components/IntervaloCard.kt
 package br.com.tlmacedo.meuponto.presentation.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,28 +26,22 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
+import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoPausa
+import br.com.tlmacedo.meuponto.presentation.components.swipe.SwipeablePontoRow
 import br.com.tlmacedo.meuponto.presentation.theme.EntradaBg
 import br.com.tlmacedo.meuponto.presentation.theme.EntradaColor
 import br.com.tlmacedo.meuponto.presentation.theme.SaidaBg
@@ -59,37 +51,37 @@ import br.com.tlmacedo.meuponto.presentation.theme.WarningLight
 import java.time.format.DateTimeFormatter
 
 /**
- * Card que exibe um intervalo de trabalho (entrada -> saída).
+ * Card que exibe um intervalo de trabalho (entrada -> saída) com suporte a swipe.
+ *
+ * Cada registro de ponto (entrada e saída) possui swipe individual:
+ * - Swipe para ESQUERDA: revela botão Excluir
+ * - Swipe para DIREITA: revela Editar, Ver Foto, Ver Localização
  *
  * @param intervalo Intervalo a ser exibido
  * @param mostrarContadorTempoReal Se deve exibir contador em tempo real
  * @param mostrarNsr Se deve exibir o NSR (quando habilitado no emprego)
- * @param onEditarEntrada Callback para editar entrada (long press)
- * @param onEditarSaida Callback para editar saída (long press)
+ * @param onEditar Callback para editar um ponto
+ * @param onExcluir Callback para excluir um ponto
+ * @param onVerFoto Callback para ver foto de um ponto
+ * @param onVerLocalizacao Callback para ver localização de um ponto
  * @param modifier Modificador opcional
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 3.6.0 - Novo layout diagonal com suporte a edição via long press
- * @updated 3.7.0 - Adicionada exibição do NSR
- * @updated 3.8.0 - Melhorias visuais: alinhamento centralizado e maior contraste
- * @updated 4.2.0 - Classificação correta de pausas (Café, Saída Rápida, Almoço)
+ * @updated 7.2.0 - Swipe individual para cada registro de ponto
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun IntervaloCard(
     intervalo: IntervaloPonto,
     mostrarContadorTempoReal: Boolean = true,
     mostrarNsr: Boolean = false,
-    onEditarEntrada: ((Long) -> Unit)? = null,
-    onEditarSaida: ((Long) -> Unit)? = null,
+    onEditar: (Ponto) -> Unit = {},
+    onExcluir: (Ponto) -> Unit = {},
+    onVerFoto: (Ponto) -> Unit = {},
+    onVerLocalizacao: (Ponto) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val formatadorHora = DateTimeFormatter.ofPattern("HH:mm")
-    val haptic = LocalHapticFeedback.current
-
-    var showMenuEntrada by remember { mutableStateOf(false) }
-    var showMenuSaida by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Pausa antes do turno (se houver)
@@ -117,105 +109,32 @@ fun IntervaloCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min)
-                    .padding(16.dp),
+                    .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // ══════════════════════════════════════════════════════════
-                // COLUNA ESQUERDA - ENTRADA (centralizada verticalmente)
+                // COLUNA ESQUERDA - ENTRADA (com swipe)
                 // ══════════════════════════════════════════════════════════
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .combinedClickable(
-                                onClick = { },
-                                onLongClick = {
-                                    if (onEditarEntrada != null) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        showMenuEntrada = true
-                                    }
-                                }
-                            )
-                            .padding(8.dp)
+                    SwipeablePontoRow(
+                        ponto = intervalo.entrada,
+                        onEditar = onEditar,
+                        onExcluir = onExcluir,
+                        onVerFoto = onVerFoto,
+                        onVerLocalizacao = onVerLocalizacao
                     ) {
-                        // Ícone de entrada
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(EntradaBg)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Login,
-                                contentDescription = "Entrada",
-                                tint = EntradaColor,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = "Entrada",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = EntradaColor
+                        PontoContent(
+                            tipo = TipoRegistro.ENTRADA,
+                            horaReal = intervalo.entrada.hora.format(formatadorHora),
+                            horaConsiderada = if (intervalo.temHoraEntradaConsiderada) {
+                                intervalo.horaEntradaConsiderada!!.toLocalTime().format(formatadorHora)
+                            } else null,
+                            nsr = if (mostrarNsr) intervalo.entrada.nsr else null,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
                         )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        // Hora (com tolerância se aplicável)
-                        if (intervalo.temHoraEntradaConsiderada) {
-                            Text(
-                                text = intervalo.entrada.hora.format(formatadorHora),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                textDecoration = TextDecoration.LineThrough
-                            )
-                            Text(
-                                text = intervalo.horaEntradaConsiderada!!.toLocalTime().format(formatadorHora),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = EntradaColor
-                            )
-                        } else {
-                            Text(
-                                text = intervalo.entrada.hora.format(formatadorHora),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        // NSR da entrada (se habilitado e tiver valor)
-                        if (mostrarNsr && !intervalo.entrada.nsr.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "# ${intervalo.entrada.nsr}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-
-                        // Menu de contexto
-                        DropdownMenu(
-                            expanded = showMenuEntrada,
-                            onDismissRequest = { showMenuEntrada = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Editar entrada") },
-                                onClick = {
-                                    showMenuEntrada = false
-                                    onEditarEntrada?.invoke(intervalo.entrada.id)
-                                }
-                            )
-                        }
                     }
                 }
 
@@ -227,7 +146,7 @@ fun IntervaloCard(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .fillMaxHeight()
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = 4.dp)
                 ) {
                     // Linha vertical superior
                     Box(
@@ -245,17 +164,17 @@ fun IntervaloCard(
                                 color = if (intervalo.aberto) WarningLight else MaterialTheme.colorScheme.primaryContainer,
                                 shape = RoundedCornerShape(20.dp)
                             )
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Timer,
                                 contentDescription = null,
                                 tint = if (intervalo.aberto) Warning else MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(12.dp)
                             )
 
                             if (intervalo.aberto && mostrarContadorTempoReal) {
@@ -265,7 +184,7 @@ fun IntervaloCard(
                             } else {
                                 Text(
                                     text = intervalo.formatarDuracao(),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = if (intervalo.aberto) Warning else MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -283,135 +202,33 @@ fun IntervaloCard(
                 }
 
                 // ══════════════════════════════════════════════════════════
-                // COLUNA DIREITA - SAÍDA (centralizada verticalmente)
+                // COLUNA DIREITA - SAÍDA (com swipe)
                 // ══════════════════════════════════════════════════════════
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     if (intervalo.saida != null) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .combinedClickable(
-                                    onClick = { },
-                                    onLongClick = {
-                                        if (onEditarSaida != null) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            showMenuSaida = true
-                                        }
-                                    }
-                                )
-                                .padding(8.dp)
+                        SwipeablePontoRow(
+                            ponto = intervalo.saida,
+                            onEditar = onEditar,
+                            onExcluir = onExcluir,
+                            onVerFoto = onVerFoto,
+                            onVerLocalizacao = onVerLocalizacao
                         ) {
-                            // Ícone de saída
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(SaidaBg)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Logout,
-                                    contentDescription = "Saída",
-                                    tint = SaidaColor,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = "Saída",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = SaidaColor
+                            PontoContent(
+                                tipo = TipoRegistro.SAIDA,
+                                horaReal = intervalo.saida.hora.format(formatadorHora),
+                                horaConsiderada = null, // Saída não tem tolerância
+                                nsr = if (mostrarNsr) intervalo.saida.nsr else null,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
                             )
-
-                            Spacer(modifier = Modifier.height(2.dp))
-
-                            Text(
-                                text = intervalo.saida.hora.format(formatadorHora),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            // NSR da saída (se habilitado e tiver valor)
-                            if (mostrarNsr && !intervalo.saida.nsr.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "# ${intervalo.saida.nsr}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                )
-                            }
-
-                            // Menu de contexto
-                            DropdownMenu(
-                                expanded = showMenuSaida,
-                                onDismissRequest = { showMenuSaida = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Editar saída") },
-                                    onClick = {
-                                        showMenuSaida = false
-                                        onEditarSaida?.invoke(intervalo.saida.id)
-                                    }
-                                )
-                            }
                         }
                     } else {
-                        // Aguardando saída
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(8.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(WarningLight)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = "Aguardando saída",
-                                    tint = Warning,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = "Saída",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = Warning
-                            )
-
-                            Spacer(modifier = Modifier.height(2.dp))
-
-                            Text(
-                                text = "--:--",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Warning
-                            )
-
-                            Spacer(modifier = Modifier.height(2.dp))
-
-                            Text(
-                                text = "Aguardando",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = Warning.copy(alpha = 0.8f)
-                            )
-                        }
+                        // Aguardando saída (sem swipe)
+                        PontoAguardando(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
                     }
                 }
             }
@@ -420,13 +237,153 @@ fun IntervaloCard(
 }
 
 /**
+ * Tipo de registro de ponto.
+ */
+private enum class TipoRegistro {
+    ENTRADA, SAIDA
+}
+
+/**
+ * Conteúdo visual de um registro de ponto (entrada ou saída).
+ */
+@Composable
+private fun PontoContent(
+    tipo: TipoRegistro,
+    horaReal: String,
+    horaConsiderada: String?,
+    nsr: String?,
+    modifier: Modifier = Modifier
+) {
+    val isEntrada = tipo == TipoRegistro.ENTRADA
+    val corPrimaria = if (isEntrada) EntradaColor else SaidaColor
+    val corFundo = if (isEntrada) EntradaBg else SaidaBg
+    val icone = if (isEntrada) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
+    val label = if (isEntrada) "Entrada" else "Saída"
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        // Ícone
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(corFundo)
+        ) {
+            Icon(
+                imageVector = icone,
+                contentDescription = label,
+                tint = corPrimaria,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = corPrimaria
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // Hora (com tolerância se aplicável)
+        if (horaConsiderada != null) {
+            Text(
+                text = horaReal,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                textDecoration = TextDecoration.LineThrough
+            )
+            Text(
+                text = horaConsiderada,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = corPrimaria
+            )
+        } else {
+            Text(
+                text = horaReal,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        // NSR (se disponível)
+        if (!nsr.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "# $nsr",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+/**
+ * Placeholder visual para saída ainda não registrada.
+ */
+@Composable
+private fun PontoAguardando(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(WarningLight)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Schedule,
+                contentDescription = "Aguardando saída",
+                tint = Warning,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "Saída",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = Warning
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = "--:--",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = Warning
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = "Aguardando",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = Warning.copy(alpha = 0.8f)
+        )
+    }
+}
+
+/**
  * Componente que exibe o tempo de pausa/intervalo entre turnos.
- *
- * @param textoReal Tempo real da pausa formatado
- * @param textoConsiderado Tempo considerado (com tolerância) formatado, ou null se não aplicável
- * @param tipoPausa Tipo da pausa (Café, Saída Rápida ou Almoço)
- *
- * @updated 4.2.0 - Agora usa TipoPausa para classificação correta
  */
 @Composable
 private fun PausaEntreIntervalos(

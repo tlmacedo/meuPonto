@@ -11,6 +11,7 @@ object MeuPontoDestinations {
     const val HOME_BASE = "home"
     const val HOME = "home?data={data}"
     const val HISTORY = "history"
+    const val HISTORICO_CICLOS = "historico_ciclos"
     const val SETTINGS = "settings"
 
     // Argumentos

@@ -60,7 +60,7 @@ import kotlin.math.abs
  * @since 2.0.0
  * @updated 6.2.0 - Adicionado suporte a ciclos de banco de horas
  * @updated 6.3.0 - Adicionado suporte a reversão de fechamentos incorretos
- * @updated 7.0.0 - Adicionado suporte a edição inline de pontos
+ * @updated 7.2.0 - Substituída edição inline por modais
  * @updated 9.0.0 - Adicionado suporte a foto de comprovante
  * @updated 10.0.0 - Corrigido fluxo de registro com foto obrigatória
  */
@@ -109,6 +109,7 @@ class HomeViewModel @Inject constructor(
 
     fun onAction(action: HomeAction) {
         when (action) {
+            is HomeAction.RecarregarConfiguracaoEmprego -> recarregarConfiguracaoEmprego()
             is HomeAction.RegistrarPontoAgora -> iniciarRegistroPonto(LocalTime.now())
             is HomeAction.AbrirTimePickerDialog -> abrirTimePicker()
             is HomeAction.FecharTimePickerDialog -> fecharTimePicker()
@@ -121,26 +122,37 @@ class HomeViewModel @Inject constructor(
             is HomeAction.ConfirmarFotoCamera -> confirmarFotoCamera()
             is HomeAction.SelecionarFotoComprovante -> selecionarFotoComprovante(action.uri)
             is HomeAction.RemoverFotoComprovante -> removerFotoComprovante()
-            // Edição inline
-            is HomeAction.IniciarEdicaoInline -> iniciarEdicaoInline(action.ponto)
-            is HomeAction.CancelarEdicaoInline -> cancelarEdicaoInline()
-            is HomeAction.AtualizarHoraInline -> atualizarHoraInline(action.hora)
-            is HomeAction.AtualizarNsrInline -> atualizarNsrInline(action.nsr)
-            is HomeAction.SelecionarMotivoInline -> selecionarMotivoInline(action.motivo)
-            is HomeAction.AtualizarMotivoDetalhesInline -> atualizarMotivoDetalhesInline(action.detalhes)
-            is HomeAction.AbrirTimePickerInline -> abrirTimePickerInline()
-            is HomeAction.FecharTimePickerInline -> fecharTimePickerInline()
-            is HomeAction.SalvarEdicaoInline -> salvarEdicaoInline()
+
+            // ══════════════════════════════════════════════════════════════════════
+            // MODAIS DE PONTO
+            // ══════════════════════════════════════════════════════════════════════
+            is HomeAction.AbrirEdicaoModal -> abrirEdicaoModal(action.ponto)
+            is HomeAction.FecharEdicaoModal -> fecharEdicaoModal()
+            is HomeAction.SalvarEdicaoModal -> salvarEdicaoModal(
+                action.pontoId, action.hora, action.nsr, action.motivo, action.detalhes
+            )
+            is HomeAction.AbrirExclusaoModal -> abrirExclusaoModal(action.ponto)
+            is HomeAction.FecharExclusaoModal -> fecharExclusaoModal()
+            is HomeAction.ConfirmarExclusaoModal -> confirmarExclusaoModal(action.pontoId, action.motivo)
+            is HomeAction.AbrirLocalizacaoModal -> abrirLocalizacaoModal(action.ponto)
+            is HomeAction.FecharLocalizacaoModal -> fecharLocalizacaoModal()
+            is HomeAction.AbrirFotoModal -> abrirFotoModal(action.ponto)
+            is HomeAction.FecharFotoModal -> fecharFotoModal()
+
             // Editar ponto (navegação para tela completa)
             is HomeAction.EditarPonto -> {
                 viewModelScope.launch {
                     _uiEvent.emit(HomeUiEvent.NavegarParaEditarPonto(action.pontoId))
                 }
             }
+
+            // Exclusão legado (manter por compatibilidade)
             is HomeAction.SolicitarExclusao -> solicitarExclusao(action.ponto)
             is HomeAction.CancelarExclusao -> cancelarExclusao()
             is HomeAction.AtualizarMotivoExclusao -> atualizarMotivoExclusao(action.motivo)
             is HomeAction.ConfirmarExclusao -> confirmarExclusao()
+
+            // Navegação por data
             is HomeAction.DiaAnterior -> navegarDiaAnterior()
             is HomeAction.ProximoDia -> navegarProximoDia()
             is HomeAction.IrParaHoje -> irParaHoje()
@@ -167,166 +179,217 @@ class HomeViewModel @Inject constructor(
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // EDIÇÃO INLINE DE PONTOS
+    // MODAIS DE PONTO
     // ══════════════════════════════════════════════════════════════════════
 
-    private fun iniciarEdicaoInline(ponto: Ponto) {
-        // Cancelar qualquer edição anterior
-        if (_uiState.value.temEdicaoInlineAtiva) {
-            cancelarEdicaoInline()
-        }
-
-        _uiState.update {
-            it.copy(
-                pontoEmEdicaoId = ponto.id,
-                edicaoInline = EdicaoInlineState(
-                    pontoId = ponto.id,
-                    hora = ponto.hora,
-                    nsr = ponto.nsr ?: "",
-                    motivoSelecionado = MotivoEdicao.NENHUM,
-                    motivoDetalhes = ""
-                )
-            )
-        }
-    }
-
-    private fun cancelarEdicaoInline() {
-        _uiState.update {
-            it.copy(
-                pontoEmEdicaoId = null,
-                edicaoInline = null
-            )
-        }
-    }
-
-    private fun atualizarHoraInline(hora: LocalTime) {
-        _uiState.update { state ->
-            state.copy(
-                edicaoInline = state.edicaoInline?.copy(hora = hora)
-            )
-        }
-    }
-
-    private fun atualizarNsrInline(nsr: String) {
-        _uiState.update { state ->
-            state.copy(
-                edicaoInline = state.edicaoInline?.copy(nsr = nsr)
-            )
-        }
-    }
-
-    private fun selecionarMotivoInline(motivo: MotivoEdicao) {
-        _uiState.update { state ->
-            state.copy(
-                edicaoInline = state.edicaoInline?.copy(
-                    motivoSelecionado = motivo,
-                    // Limpar detalhes se novo motivo não requer
-                    motivoDetalhes = if (!motivo.requerDetalhes) "" else state.edicaoInline.motivoDetalhes
-                )
-            )
-        }
-    }
-
-    private fun atualizarMotivoDetalhesInline(detalhes: String) {
-        _uiState.update { state ->
-            state.copy(
-                edicaoInline = state.edicaoInline?.copy(motivoDetalhes = detalhes)
-            )
-        }
-    }
-
-    private fun abrirTimePickerInline() {
-        _uiState.update { state ->
-            state.copy(
-                edicaoInline = state.edicaoInline?.copy(showTimePicker = true)
-            )
-        }
-    }
-
-    private fun fecharTimePickerInline() {
-        _uiState.update { state ->
-            state.copy(
-                edicaoInline = state.edicaoInline?.copy(showTimePicker = false)
-            )
-        }
-    }
-
-    // No HomeViewModel.kt, substituir o método salvarEdicaoInline:
-
-    private fun salvarEdicaoInline() {
-        val state = _uiState.value
-        val edicao = state.edicaoInline ?: return
-        val pontoId = state.pontoEmEdicaoId ?: return
-
-        // Validar motivo
-        if (!edicao.motivoValido) {
-            _uiState.update { s ->
-                s.copy(
-                    edicaoInline = s.edicaoInline?.copy(erro = "Selecione um motivo válido")
-                )
-            }
-            return
-        }
-
-        // Buscar ponto original
-        val pontoOriginal = state.pontosHoje.find { it.id == pontoId }
-        if (pontoOriginal == null) {
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("Ponto não encontrado"))
-            }
-            cancelarEdicaoInline()
-            return
-        }
-
+    // ══════════════════════════════════════════════════════════════════════
+    // RECARREGAR CONFIGURAÇÃO (quando volta de outras telas)
+    // ══════════════════════════════════════════════════════════════════════
+    private fun recarregarConfiguracaoEmprego() {
+        val empregoId = _uiState.value.empregoAtivo?.id ?: return
         viewModelScope.launch {
-            // Marcar como salvando
-            _uiState.update { s ->
-                s.copy(
-                    edicaoInline = s.edicaoInline?.copy(isSaving = true, erro = null)
+            val configuracao = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
+            _uiState.update { it.copy(configuracaoEmprego = configuracao) }
+            android.util.Log.d("HomeViewModel", "Configuração recarregada: fotoObrigatoria=${configuracao?.fotoObrigatoria}")
+        }
+    }
+
+    // ── EDIÇÃO ──────────────────────────────────────────────────────────────
+
+    private fun abrirEdicaoModal(ponto: Ponto) {
+        val indice = _uiState.value.getIndicePonto(ponto.id)
+        _uiState.update {
+            it.copy(
+                edicaoModal = EdicaoModalState(
+                    ponto = ponto,
+                    indicePonto = indice
+                )
+            )
+        }
+    }
+
+    private fun fecharEdicaoModal() {
+        _uiState.update { it.copy(edicaoModal = null) }
+    }
+
+    private fun salvarEdicaoModal(
+        pontoId: Long,
+        hora: LocalTime,
+        nsr: String?,
+        motivo: MotivoEdicao,
+        detalhes: String?
+    ) {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    edicaoModal = state.edicaoModal?.copy(isSaving = true)
                 )
             }
 
             try {
-                // Montar ponto atualizado
-                // NOTA: O modelo Ponto não tem motivoAlteracao/dataHoraAlteracao
-                // Esses campos podem ser adicionados ao modelo ou usar observacao
-                val pontoAtualizado = pontoOriginal.copy(
-                    dataHora = LocalDateTime.of(pontoOriginal.data, edicao.hora),
-                    horaConsiderada = edicao.hora, // Atualizar também a hora considerada
-                    nsr = edicao.nsr.ifBlank { null },
-                    isEditadoManualmente = true,
-                    observacao = buildString {
-                        pontoOriginal.observacao?.let { append(it).append(" | ") }
-                        append("[Editado: ${edicao.motivoCompleto}]")
-                    }.take(500), // Limitar tamanho
-                    atualizadoEm = LocalDateTime.now()
-                )
+                val motivoCompleto = when {
+                    motivo == MotivoEdicao.OUTRO -> detalhes ?: ""
+                    motivo.requerDetalhes && !detalhes.isNullOrBlank() ->
+                        "${motivo.descricao}: $detalhes"
+                    else -> motivo.descricao
+                }
 
-                // Salvar via repository
-                pontoRepository.atualizar(pontoAtualizado)
+                // Buscar o ponto atual
+                val pontoAtual = _uiState.value.pontosHoje.find { it.id == pontoId }
 
-                // Fechar edição
-                cancelarEdicaoInline()
+                if (pontoAtual != null) {
+                    val pontoAtualizado = pontoAtual.copy(
+                        dataHora = LocalDateTime.of(pontoAtual.data, hora),
+                        horaConsiderada = hora,
+                        nsr = nsr,
+                        isEditadoManualmente = true,
+                        observacao = buildString {
+                            pontoAtual.observacao?.let { append(it).append(" | ") }
+                            append("[Editado: $motivoCompleto]")
+                        }.take(500),
+                        atualizadoEm = LocalDateTime.now()
+                    )
 
-                // Recarregar dados para refletir alterações
+                    pontoRepository.atualizar(pontoAtualizado)
+                }
+
+                _uiState.update { it.copy(edicaoModal = null) }
+                _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ponto atualizado com sucesso"))
                 carregarPontosDoDia()
                 carregarBancoHoras()
 
-                // Notificar sucesso
-                _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ponto atualizado com sucesso"))
-
             } catch (e: Exception) {
-                android.util.Log.e("HomeViewModel", "Erro ao salvar edição inline: ${e.message}")
-                _uiState.update { s ->
-                    s.copy(
-                        edicaoInline = s.edicaoInline?.copy(
-                            isSaving = false,
-                            erro = e.message ?: "Erro ao salvar alterações"
-                        )
+                android.util.Log.e("HomeViewModel", "Erro ao salvar edição: ${e.message}")
+                _uiState.update { state ->
+                    state.copy(
+                        edicaoModal = state.edicaoModal?.copy(isSaving = false)
                     )
                 }
+                _uiEvent.emit(HomeUiEvent.MostrarErro("Erro ao atualizar: ${e.message}"))
             }
         }
+    }
+
+    // ── EXCLUSÃO ────────────────────────────────────────────────────────────
+
+    private fun abrirExclusaoModal(ponto: Ponto) {
+        val indice = _uiState.value.getIndicePonto(ponto.id)
+        _uiState.update {
+            it.copy(
+                exclusaoModal = ExclusaoModalState(
+                    ponto = ponto,
+                    indicePonto = indice
+                )
+            )
+        }
+    }
+
+    private fun fecharExclusaoModal() {
+        _uiState.update { it.copy(exclusaoModal = null) }
+    }
+
+    private fun confirmarExclusaoModal(pontoId: Long, motivo: String) {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    exclusaoModal = state.exclusaoModal?.copy(isDeleting = true)
+                )
+            }
+
+            try {
+                val parametros = ExcluirPontoUseCase.Parametros(
+                    pontoId = pontoId,
+                    motivo = motivo
+                )
+
+                when (val resultado = excluirPontoUseCase(parametros)) {
+                    is ExcluirPontoUseCase.Resultado.Sucesso -> {
+                        _uiState.update { it.copy(exclusaoModal = null) }
+                        _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ponto excluído com sucesso"))
+                        carregarPontosDoDia()
+                        carregarBancoHoras()
+                    }
+                    is ExcluirPontoUseCase.Resultado.Erro -> {
+                        _uiState.update { state ->
+                            state.copy(
+                                exclusaoModal = state.exclusaoModal?.copy(isDeleting = false)
+                            )
+                        }
+                        _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.mensagem))
+                    }
+                    is ExcluirPontoUseCase.Resultado.NaoEncontrado -> {
+                        _uiState.update { it.copy(exclusaoModal = null) }
+                        _uiEvent.emit(HomeUiEvent.MostrarErro("Ponto não encontrado"))
+                    }
+                    is ExcluirPontoUseCase.Resultado.Validacao -> {
+                        _uiState.update { state ->
+                            state.copy(
+                                exclusaoModal = state.exclusaoModal?.copy(isDeleting = false)
+                            )
+                        }
+                        _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.erros.joinToString("\n")))
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { state ->
+                    state.copy(
+                        exclusaoModal = state.exclusaoModal?.copy(isDeleting = false)
+                    )
+                }
+                _uiEvent.emit(HomeUiEvent.MostrarErro("Erro ao excluir: ${e.message}"))
+            }
+        }
+    }
+
+    // ── LOCALIZAÇÃO ─────────────────────────────────────────────────────────
+
+    private fun abrirLocalizacaoModal(ponto: Ponto) {
+        val indice = _uiState.value.getIndicePonto(ponto.id)
+        _uiState.update {
+            it.copy(
+                localizacaoModal = LocalizacaoModalState(
+                    ponto = ponto,
+                    indicePonto = indice
+                )
+            )
+        }
+    }
+
+    private fun fecharLocalizacaoModal() {
+        _uiState.update { it.copy(localizacaoModal = null) }
+    }
+
+    // ── FOTO ────────────────────────────────────────────────────────────────
+
+    private fun abrirFotoModal(ponto: Ponto) {
+        val indice = _uiState.value.getIndicePonto(ponto.id)
+
+        // Usar o caminho da foto armazenado no próprio ponto
+        val fotoPath = ponto.fotoComprovantePath?.let { relativePath ->
+            // Se for caminho absoluto, usar diretamente
+            if (relativePath.startsWith("/")) {
+                relativePath
+            } else {
+                // Construir caminho completo a partir do diretório base
+                comprovanteImageStorage.getComprovantesDirectory()
+                    ?.resolve(relativePath)
+                    ?.absolutePath
+            }
+        }
+
+        _uiState.update {
+            it.copy(
+                fotoModal = FotoModalState(
+                    ponto = ponto,
+                    indicePonto = indice,
+                    fotoPath = fotoPath
+                )
+            )
+        }
+    }
+
+    private fun fecharFotoModal() {
+        _uiState.update { it.copy(fotoModal = null) }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -604,13 +667,11 @@ class HomeViewModel @Inject constructor(
             val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
             val dataSelecionada = _uiState.value.dataSelecionada
 
-            // Buscar fechamento cujo dataFimPeriodo seja o dia anterior à data selecionada
             val fechamento = fechamentoPeriodoRepository.buscarUltimoFechamentoBancoAteData(
                 empregoId = empregoId,
-                ateData = dataSelecionada.plusDays(1) // +1 para incluir o fechamento do dia anterior
+                ateData = dataSelecionada.plusDays(1)
             )
 
-            // Verificar se a data selecionada é o dia seguinte ao fechamento
             val fechamentoRelevante = fechamento?.takeIf {
                 it.dataFimPeriodo.plusDays(1) == dataSelecionada
             }
@@ -664,9 +725,16 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun selecionarData(data: LocalDate) {
-        // Cancelar edição inline ao trocar de data
-        if (_uiState.value.temEdicaoInlineAtiva) {
-            cancelarEdicaoInline()
+        // Fechar modais ao trocar de data
+        if (_uiState.value.temModalAberto) {
+            _uiState.update {
+                it.copy(
+                    edicaoModal = null,
+                    exclusaoModal = null,
+                    localizacaoModal = null,
+                    fotoModal = null
+                )
+            }
         }
 
         _uiState.update { it.copy(dataSelecionada = data) }
@@ -689,9 +757,16 @@ class HomeViewModel @Inject constructor(
 
     private fun selecionarEmprego(emprego: Emprego) {
         viewModelScope.launch {
-            // Cancelar edição inline ao trocar de emprego
-            if (_uiState.value.temEdicaoInlineAtiva) {
-                cancelarEdicaoInline()
+            // Fechar modais ao trocar de emprego
+            if (_uiState.value.temModalAberto) {
+                _uiState.update {
+                    it.copy(
+                        edicaoModal = null,
+                        exclusaoModal = null,
+                        localizacaoModal = null,
+                        fotoModal = null
+                    )
+                }
             }
 
             when (val resultado = trocarEmpregoAtivoUseCase(emprego)) {
@@ -739,7 +814,6 @@ class HomeViewModel @Inject constructor(
 
         android.util.Log.d("HomeViewModel", "iniciarRegistroPonto: hora=$hora, fotoObrigatoria=${_uiState.value.fotoObrigatoria}, fotoUri=${_uiState.value.fotoComprovanteUri}")
 
-        // Se foto é obrigatória e não tem foto selecionada, abrir diálogo de foto primeiro
         if (_uiState.value.fotoObrigatoria && _uiState.value.fotoComprovanteUri == null) {
             val uri = criarCameraUri()
             android.util.Log.d("HomeViewModel", "Abrindo diálogo de foto. cameraUri=$uri")
@@ -753,15 +827,9 @@ class HomeViewModel @Inject constructor(
             return
         }
 
-        // Continuar com fluxo normal (sem foto obrigatória ou já tem foto)
         continuarFluxoRegistro(hora)
     }
 
-    /**
-     * Continua o fluxo de registro após verificar foto.
-     * Se NSR habilitado, abre diálogo de NSR.
-     * Caso contrário, registra direto.
-     */
     private fun continuarFluxoRegistro(hora: LocalTime) {
         android.util.Log.d("HomeViewModel", "continuarFluxoRegistro: hora=$hora, nsrHabilitado=${_uiState.value.nsrHabilitado}")
 
@@ -827,7 +895,7 @@ class HomeViewModel @Inject constructor(
                 showNsrDialog = false,
                 nsrPendente = "",
                 horaPendenteParaRegistro = null,
-                fotoComprovanteUri = null // Limpar foto também ao cancelar
+                fotoComprovanteUri = null
             )
         }
     }
@@ -841,7 +909,6 @@ class HomeViewModel @Inject constructor(
             return
         }
 
-        // Validar foto obrigatória
         if (_uiState.value.fotoObrigatoria && _uiState.value.fotoComprovanteUri == null) {
             viewModelScope.launch {
                 _uiEvent.emit(HomeUiEvent.MostrarErro("Foto do comprovante é obrigatória"))
@@ -864,12 +931,10 @@ class HomeViewModel @Inject constructor(
 
             when (val resultado = registrarPontoUseCase(parametros)) {
                 is RegistrarPontoUseCase.Resultado.Sucesso -> {
-                    // Salvar foto se existir
                     fotoUri?.let { uri ->
                         salvarFotoComprovante(uri, resultado.pontoId, empregoId, dataHora)
                     }
 
-                    // Limpar foto pendente
                     _uiState.update { it.copy(fotoComprovanteUri = null) }
 
                     val horaFormatada = hora.format(DateTimeFormatter.ofPattern("HH:mm"))
@@ -913,9 +978,6 @@ class HomeViewModel @Inject constructor(
     // FOTO DE COMPROVANTE
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Cria URI temporário para captura de foto com a câmera.
-     */
     fun criarCameraUri(): Uri? {
         return try {
             val empregoId = _uiState.value.empregoAtivo?.id ?: return null
@@ -933,9 +995,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Obtém o diretório base para imagens de comprovantes.
-     */
     fun getComprovantesDirectory(): File? {
         return try {
             comprovanteImageStorage.getComprovantesDirectory()
@@ -970,7 +1029,6 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun abrirFotoSourceDialog() {
-        // Criar o cameraUri ANTES de abrir o diálogo
         val uri = criarCameraUri()
         _uiState.update {
             it.copy(
@@ -984,8 +1042,7 @@ class HomeViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 showFotoSourceDialog = false,
-                cameraUri = null,
-                // NÃO limpar horaPendenteParaRegistro aqui - apenas se cancelar completamente
+                cameraUri = null
             )
         }
     }
@@ -1010,7 +1067,6 @@ class HomeViewModel @Inject constructor(
             return
         }
 
-        // Atualizar estado com a foto capturada
         _uiState.update {
             it.copy(
                 fotoComprovanteUri = cameraUri,
@@ -1019,7 +1075,6 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        // Continuar o fluxo de registro
         continuarRegistroAposFoto()
     }
 
@@ -1033,7 +1088,6 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        // Continuar o fluxo de registro
         continuarRegistroAposFoto()
     }
 
@@ -1041,9 +1095,6 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(fotoComprovanteUri = null) }
     }
 
-    /**
-     * Continua o fluxo de registro após seleção de foto.
-     */
     private fun continuarRegistroAposFoto() {
         val hora = _uiState.value.horaPendenteParaRegistro
 
@@ -1059,24 +1110,29 @@ class HomeViewModel @Inject constructor(
                 it.copy(
                     showNsrDialog = true,
                     nsrPendente = ""
-                    // Manter horaPendenteParaRegistro!
                 )
             }
         } else {
-            // Limpar hora pendente antes de registrar
             _uiState.update { it.copy(horaPendenteParaRegistro = null) }
             registrarPonto(hora, null)
         }
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // EXCLUSÃO DE PONTO
+    // EXCLUSÃO DE PONTO (Legado - manter por compatibilidade)
     // ══════════════════════════════════════════════════════════════════════
 
     private fun solicitarExclusao(ponto: Ponto) {
-        // Cancelar edição inline se estiver ativa
-        if (_uiState.value.temEdicaoInlineAtiva) {
-            cancelarEdicaoInline()
+        // Fechar modais se houver algum aberto
+        if (_uiState.value.temModalAberto) {
+            _uiState.update {
+                it.copy(
+                    edicaoModal = null,
+                    exclusaoModal = null,
+                    localizacaoModal = null,
+                    fotoModal = null
+                )
+            }
         }
 
         _uiState.update {
