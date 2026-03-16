@@ -7,13 +7,11 @@ import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
 /**
- * Interface do repositório de logs de auditoria.
- *
- * Define o contrato para operações de persistência dos registros de auditoria,
- * permitindo rastreabilidade completa das alterações no sistema.
+ * Interface do repositório de Audit Logs.
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 11.0.0 - Padronização de nomenclatura
  */
 interface AuditLogRepository {
 
@@ -23,17 +21,11 @@ interface AuditLogRepository {
 
     /**
      * Insere um novo log de auditoria.
-     *
-     * @param log Log a ser inserido
-     * @return ID gerado para o novo registro
      */
     suspend fun inserir(log: AuditLog): Long
 
     /**
-     * Insere múltiplos logs de uma vez.
-     *
-     * @param logs Lista de logs a serem inseridos
-     * @return Lista de IDs gerados
+     * Insere múltiplos logs de auditoria.
      */
     suspend fun inserirTodos(logs: List<AuditLog>): List<Long>
 
@@ -42,35 +34,22 @@ interface AuditLogRepository {
     // ========================================================================
 
     /**
-     * Busca os logs de uma entidade específica.
-     *
-     * @param entidade Nome da entidade (ex: "pontos", "empregos")
-     * @param entidadeId ID do registro
-     * @return Lista de logs ordenada por data decrescente
+     * Busca logs por entidade e ID.
      */
     suspend fun buscarPorEntidade(entidade: String, entidadeId: Long): List<AuditLog>
 
     /**
-     * Conta o total de logs no sistema.
-     *
-     * @return Quantidade total de logs
+     * Conta total de logs.
      */
     suspend fun contarTodos(): Int
 
     /**
-     * Conta os logs de uma entidade.
-     *
-     * @param entidade Nome da entidade
-     * @return Quantidade de logs da entidade
+     * Conta logs por tipo de entidade.
      */
     suspend fun contarPorEntidade(entidade: String): Int
 
     /**
-     * Conta os logs de um registro específico.
-     *
-     * @param entidade Nome da entidade
-     * @param entidadeId ID do registro
-     * @return Quantidade de logs do registro
+     * Conta logs por entidade e ID específico.
      */
     suspend fun contarPorEntidadeEId(entidade: String, entidadeId: Long): Int
 
@@ -79,18 +58,12 @@ interface AuditLogRepository {
     // ========================================================================
 
     /**
-     * Exclui logs anteriores a uma data limite.
-     *
-     * @param dataLimite Data limite para exclusão
-     * @return Quantidade de registros excluídos
+     * Exclui logs anteriores à data limite.
      */
     suspend fun excluirAnterioresA(dataLimite: LocalDateTime): Int
 
     /**
-     * Exclui todos os logs de uma entidade específica.
-     *
-     * @param entidade Nome da entidade
-     * @param entidadeId ID do registro
+     * Exclui logs de uma entidade específica.
      */
     suspend fun excluirPorEntidade(entidade: String, entidadeId: Long)
 
@@ -99,45 +72,27 @@ interface AuditLogRepository {
     // ========================================================================
 
     /**
-     * Observa os logs de uma entidade de forma reativa.
-     *
-     * @param entidade Nome da entidade
-     * @param entidadeId ID do registro
-     * @return Flow que emite a lista sempre que houver mudanças
+     * Observa logs de uma entidade específica.
      */
     fun observarPorEntidade(entidade: String, entidadeId: Long): Flow<List<AuditLog>>
 
     /**
-     * Observa os logs de um período de forma reativa.
-     *
-     * @param dataInicio Data inicial (inclusive)
-     * @param dataFim Data final (inclusive)
-     * @return Flow que emite a lista do período
+     * Observa logs por período.
      */
     fun observarPorPeriodo(dataInicio: LocalDateTime, dataFim: LocalDateTime): Flow<List<AuditLog>>
 
     /**
-     * Observa os logs de uma ação específica de forma reativa.
-     *
-     * @param acao Tipo de ação (INSERT, UPDATE, DELETE)
-     * @return Flow que emite a lista da ação
+     * Observa logs por tipo de ação.
      */
     fun observarPorAcao(acao: AcaoAuditoria): Flow<List<AuditLog>>
 
     /**
-     * Observa os últimos logs do sistema.
-     *
-     * @param limite Quantidade máxima de logs
-     * @return Flow que emite os últimos logs
+     * Observa os últimos N logs.
      */
     fun observarUltimos(limite: Int): Flow<List<AuditLog>>
 
     /**
-     * Observa os últimos logs de uma entidade.
-     *
-     * @param entidade Nome da entidade
-     * @param limite Quantidade máxima de logs
-     * @return Flow que emite os últimos logs da entidade
+     * Observa os últimos N logs de uma entidade.
      */
     fun observarUltimosPorEntidade(entidade: String, limite: Int): Flow<List<AuditLog>>
 }

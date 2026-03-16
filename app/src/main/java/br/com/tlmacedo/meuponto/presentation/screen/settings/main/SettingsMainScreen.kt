@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/main/SettingsMainScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.main
 
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -82,6 +83,7 @@ fun SettingsMainScreen(
     onNavigateToPrivacidade: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToSobre: () -> Unit,
+    onNavigateToLixeira: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsMainViewModel = hiltViewModel()
 ) {
@@ -251,6 +253,12 @@ fun SettingsMainScreen(
                     subtitle = "Exportação, importação e manutenção",
                     icon = Icons.Outlined.Storage,
                     onClick = onNavigateToBackup
+                )
+                SettingsItem(
+                    icon = Icons.Outlined.Delete,
+                    title = "Lixeira",
+                    subtitle = "Itens excluídos recentemente",
+                    onClick = onNavigateToLixeira
                 )
             }
 

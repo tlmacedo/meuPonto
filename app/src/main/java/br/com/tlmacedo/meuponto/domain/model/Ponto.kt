@@ -31,10 +31,14 @@ import java.time.format.DateTimeFormatter
  * @property fotoComprovantePath Caminho da foto do comprovante (opcional)
  * @property criadoEm Timestamp de criação
  * @property atualizadoEm Timestamp da última atualização
+ * @property isDeleted Flag de soft delete (true = na lixeira)
+ * @property deletedAt Timestamp de quando foi excluído (null = não excluído)
+ * @property updatedAt Timestamp de atualização em milissegundos
  *
  * @author Thiago
  * @since 1.0.0
  * @updated 9.0.0 - Adicionado campo fotoComprovantePath para foto do comprovante
+ * @updated 11.0.0 - Adicionado suporte a soft delete (isDeleted, deletedAt, updatedAt)
  */
 data class Ponto(
     val id: Long = 0,
@@ -51,7 +55,11 @@ data class Ponto(
     val justificativaInconsistencia: String? = null,
     val fotoComprovantePath: String? = null,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
-    val atualizadoEm: LocalDateTime = LocalDateTime.now()
+    val atualizadoEm: LocalDateTime = LocalDateTime.now(),
+    // === Soft Delete ===
+    val isDeleted: Boolean = false,
+    val deletedAt: Long? = null,
+    val updatedAt: Long = System.currentTimeMillis()
 ) {
     // ========================================================================
     // PROPRIEDADES DERIVADAS
@@ -80,7 +88,7 @@ data class Ponto(
      * Verifica se houve ajuste de tolerância (hora considerada diferente da hora real).
      */
     val temAjusteTolerancia: Boolean
-        get() = dataHora != horaConsiderada
+        get() = hora != horaConsiderada
 
     /**
      * Diferença em minutos entre hora real e hora considerada.
@@ -88,7 +96,7 @@ data class Ponto(
      * Negativo = entrada atrasada (ex: chegou 07:55, considerado 08:00 = +5min)
      */
     val diferencaToleranciaMinutos: Int
-        get() = java.time.Duration.between(horaConsiderada, dataHora).toMinutes().toInt()
+        get() = java.time.Duration.between(horaConsiderada, hora).toMinutes().toInt()
 
     /** Verifica se tem localização registrada */
     val temLocalizacao: Boolean
@@ -113,6 +121,10 @@ data class Ponto(
     /** Verifica se tem foto do comprovante */
     val temFotoComprovante: Boolean
         get() = !fotoComprovantePath.isNullOrBlank()
+
+    /** Verifica se está na lixeira */
+    val estaNaLixeira: Boolean
+        get() = isDeleted
 
     // ========================================================================
     // FORMATADORES
@@ -158,7 +170,8 @@ data class Ponto(
     fun comHoraConsiderada(novaHoraConsiderada: LocalTime): Ponto {
         return copy(
             horaConsiderada = novaHoraConsiderada,
-            atualizadoEm = LocalDateTime.now()
+            atualizadoEm = LocalDateTime.now(),
+            updatedAt = System.currentTimeMillis()
         )
     }
 
@@ -168,7 +181,8 @@ data class Ponto(
     fun marcarComoEditado(): Ponto {
         return copy(
             isEditadoManualmente = true,
-            atualizadoEm = LocalDateTime.now()
+            atualizadoEm = LocalDateTime.now(),
+            updatedAt = System.currentTimeMillis()
         )
     }
 
@@ -178,7 +192,31 @@ data class Ponto(
     fun comFotoComprovante(path: String?): Ponto {
         return copy(
             fotoComprovantePath = path,
-            atualizadoEm = LocalDateTime.now()
+            atualizadoEm = LocalDateTime.now(),
+            updatedAt = System.currentTimeMillis()
+        )
+    }
+
+    /**
+     * Marca o ponto como excluído (soft delete).
+     */
+    fun marcarComoExcluido(): Ponto {
+        val agora = System.currentTimeMillis()
+        return copy(
+            isDeleted = true,
+            deletedAt = agora,
+            updatedAt = agora
+        )
+    }
+
+    /**
+     * Restaura o ponto da lixeira.
+     */
+    fun restaurar(): Ponto {
+        return copy(
+            isDeleted = false,
+            deletedAt = null,
+            updatedAt = System.currentTimeMillis()
         )
     }
 

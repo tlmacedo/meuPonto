@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/navigation/MeuPontoNavHost.kt
 package br.com.tlmacedo.meuponto.presentation.navigation
 
+import br.com.tlmacedo.meuponto.presentation.screen.lixeira.LixeiraScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -212,8 +213,9 @@ fun MeuPontoNavHost(
                     },
                     onNavigateToSobre = {
                         navController.navigate(MeuPontoDestinations.SOBRE)
-                    }
-                )
+                    },
+                    onNavigateToLixeira = { navController.navigate(MeuPontoDestinations.LIXEIRA) }
+                    )
             }
 
             // ===== CONFIGURAÇÕES DO EMPREGO =====
@@ -475,6 +477,12 @@ fun MeuPontoNavHost(
             composable(MeuPontoDestinations.SOBRE) {
                 SobreScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(MeuPontoDestinations.LIXEIRA) {
+                LixeiraScreen(
+                    onVoltar = { navController.popBackStack() }
                 )
             }
         }

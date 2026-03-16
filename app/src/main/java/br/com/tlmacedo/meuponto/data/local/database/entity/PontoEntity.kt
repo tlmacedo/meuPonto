@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/entity/PontoEntity.kt
 package br.com.tlmacedo.meuponto.data.local.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -30,10 +31,14 @@ import java.time.LocalTime
  * @property fotoComprovantePath Caminho da foto do comprovante (opcional)
  * @property criadoEm Timestamp de criação do registro
  * @property atualizadoEm Timestamp da última atualização
+ * @property isDeleted Flag de soft delete
+ * @property deletedAt Timestamp de quando foi excluído
+ * @property updatedAt Timestamp de atualização em milissegundos
  *
  * @author Thiago
  * @since 1.0.0
  * @updated 9.0.0 - Adicionado campo fotoComprovantePath para foto do comprovante
+ * @updated 11.0.0 - Adicionado suporte a soft delete (isDeleted, deletedAt, updatedAt)
  */
 @Entity(
     tableName = "pontos",
@@ -59,7 +64,8 @@ import java.time.LocalTime
         Index(value = ["dataHora"]),
         Index(value = ["data"]),
         Index(value = ["empregoId", "data"]),
-        Index(value = ["empregoId", "dataHora"])
+        Index(value = ["empregoId", "dataHora"]),
+        Index(value = ["is_deleted"])
     ]
 )
 data class PontoEntity(
@@ -80,7 +86,17 @@ data class PontoEntity(
     val justificativaInconsistencia: String? = null,
     val fotoComprovantePath: String? = null,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
-    val atualizadoEm: LocalDateTime = LocalDateTime.now()
+    val atualizadoEm: LocalDateTime = LocalDateTime.now(),
+
+    // === Soft Delete ===
+    @ColumnInfo(name = "is_deleted", defaultValue = "0")
+    val isDeleted: Boolean = false,
+
+    @ColumnInfo(name = "deleted_at")
+    val deletedAt: Long? = null,
+
+    @ColumnInfo(name = "updated_at", defaultValue = "0")
+    val updatedAt: Long = System.currentTimeMillis()
 )
 
 // ============================================================================
@@ -105,7 +121,10 @@ fun PontoEntity.toDomain(): Ponto = Ponto(
     justificativaInconsistencia = justificativaInconsistencia,
     fotoComprovantePath = fotoComprovantePath,
     criadoEm = criadoEm,
-    atualizadoEm = atualizadoEm
+    atualizadoEm = atualizadoEm,
+    isDeleted = isDeleted,
+    deletedAt = deletedAt,
+    updatedAt = updatedAt
 )
 
 /**
@@ -128,5 +147,8 @@ fun Ponto.toEntity(): PontoEntity = PontoEntity(
     justificativaInconsistencia = justificativaInconsistencia,
     fotoComprovantePath = fotoComprovantePath,
     criadoEm = criadoEm,
-    atualizadoEm = atualizadoEm
+    atualizadoEm = atualizadoEm,
+    isDeleted = isDeleted,
+    deletedAt = deletedAt,
+    updatedAt = updatedAt
 )

@@ -9,6 +9,7 @@ import br.com.tlmacedo.meuponto.data.repository.EmpregoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.FechamentoPeriodoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.HorarioDiaSemanaRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.HorarioPadraoRepositoryImpl
+import br.com.tlmacedo.meuponto.data.repository.LixeiraRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.MarcadorRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.PontoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.VersaoJornadaRepositoryImpl
@@ -20,6 +21,7 @@ import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioPadraoRepository
+import br.com.tlmacedo.meuponto.domain.repository.LixeiraRepository
 import br.com.tlmacedo.meuponto.domain.repository.MarcadorRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
@@ -35,6 +37,7 @@ import javax.inject.Singleton
  * @author Thiago
  * @since 1.0.0
  * @updated 4.0.0 - Adicionado AusenciaRepository
+ * @updated 11.0.0 - Adicionado LixeiraRepository para Soft Delete
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -87,4 +90,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAusenciaRepository(impl: AusenciaRepositoryImpl): AusenciaRepository
+
+    // ========================================================================
+    // LIXEIRA (SOFT DELETE)
+    // ========================================================================
+
+    @Binds
+    @Singleton
+    abstract fun bindLixeiraRepository(impl: LixeiraRepositoryImpl): LixeiraRepository
 }

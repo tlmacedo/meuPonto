@@ -2,7 +2,10 @@
 package br.com.tlmacedo.meuponto
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import br.com.tlmacedo.meuponto.domain.service.MigracaoManager
+import br.com.tlmacedo.meuponto.worker.TrashCleanupWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,15 +22,28 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 7.1.0 - Adicionado suporte a migrações automáticas
+ * @updated 11.0.0 - Adicionado suporte a WorkManager com Hilt
  */
 @HiltAndroidApp
-class MeuPontoApplication : Application() {
+class MeuPontoApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var migracaoManager: MigracaoManager
 
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Configuração do WorkManager com HiltWorkerFactory
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .setMinimumLoggingLevel(
+                if (BuildConfig.DEBUG) android.util.Log.DEBUG
+                else android.util.Log.INFO
+            )
+            .build()
 
     override fun onCreate() {
         super.onCreate()
@@ -37,6 +53,9 @@ class MeuPontoApplication : Application() {
         }
 
         Timber.d("MeuPonto Application iniciada")
+
+        // Agendar limpeza da lixeira (executa após o WorkManager estar configurado)
+        TrashCleanupWorker.schedule(this)
 
         // Executa migrações pendentes em background
         executarMigracoes()

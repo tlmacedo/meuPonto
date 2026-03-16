@@ -39,6 +39,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
  * @since 1.0.0
  * @updated 8.0.0 - Versão 20: Migração de campos de ConfiguracaoEmprego para VersaoJornada
  * @updated 10.0.0 - Versão 23: Sistema completo de foto de comprovante com metadados
+ * @updated 11.0.0 - Versão 24: Suporte a Soft Delete (Lixeira) na tabela pontos
  */
 @Database(
     entities = [
@@ -56,7 +57,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         AusenciaEntity::class,
         FotoComprovanteEntity::class
     ],
-    version = 23,
+    version = 24,
     exportSchema = true
 )
 @TypeConverters(Converters::class, FeriadoConverters::class)

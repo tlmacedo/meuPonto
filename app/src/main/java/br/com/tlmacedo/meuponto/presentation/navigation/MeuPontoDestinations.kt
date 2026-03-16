@@ -5,6 +5,7 @@ package br.com.tlmacedo.meuponto.presentation.navigation
  * Destinos de navegação do aplicativo.
  *
  * @updated 8.3.0 - Adicionadas rotas para Notificações e Privacidade
+ * @updated 9.2.0 - Adicionada rota para Lixeira
  */
 object MeuPontoDestinations {
     // Telas principais
@@ -68,6 +69,9 @@ object MeuPontoDestinations {
     const val NOTIFICACOES = "notificacoes"
     const val PRIVACIDADE = "privacidade"
     const val BACKUP = "backup"
+
+    // Lixeira (Soft Delete)
+    const val LIXEIRA = "lixeira"
 
     // Configurações globais
     const val CONFIGURACOES_GLOBAIS = "configuracoes_globais"

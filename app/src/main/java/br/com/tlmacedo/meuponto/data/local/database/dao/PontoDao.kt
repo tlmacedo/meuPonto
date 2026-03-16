@@ -12,24 +12,19 @@ import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 /**
- * DAO para operações de banco de dados relacionadas aos Pontos.
+ * DAO para operações com a tabela de Pontos.
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.0.0 - Adicionado suporte a múltiplos empregos
+ * @updated 11.0.0 - Adicionado suporte a soft delete
  */
 @Dao
 interface PontoDao {
 
-    // ========================================================================
-    // Operações CRUD básicas
-    // ========================================================================
+    // === Operações básicas ===
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inserir(ponto: PontoEntity): Long
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun inserirTodos(pontos: List<PontoEntity>): List<Long>
 
     @Update
     suspend fun atualizar(ponto: PontoEntity)
@@ -37,116 +32,61 @@ interface PontoDao {
     @Delete
     suspend fun excluir(ponto: PontoEntity)
 
-    @Query("DELETE FROM pontos WHERE id = :id")
-    suspend fun excluirPorId(id: Long)
+    // === Consultas (excluem deletados por padrão) ===
 
-    // ========================================================================
-    // Consultas por ID
-    // ========================================================================
-
-    @Query("SELECT * FROM pontos WHERE id = :id")
+    @Query("SELECT * FROM pontos WHERE id = :id AND is_deleted = 0")
     suspend fun buscarPorId(id: Long): PontoEntity?
 
-    @Query("SELECT * FROM pontos WHERE id = :id")
-    fun observarPorId(id: Long): Flow<PontoEntity?>
-
-    // ========================================================================
-    // Listagens legadas (sem filtro de emprego - retrocompatibilidade)
-    // ========================================================================
-
-    @Query("SELECT * FROM pontos WHERE data = :data ORDER BY dataHora ASC")
-    fun listarPorData(data: LocalDate): Flow<List<PontoEntity>>
-
-    @Query("SELECT * FROM pontos ORDER BY dataHora DESC")
+    @Query("SELECT * FROM pontos WHERE is_deleted = 0 ORDER BY data DESC, hora DESC")
     fun listarTodos(): Flow<List<PontoEntity>>
 
-    @Query("SELECT * FROM pontos WHERE data BETWEEN :dataInicio AND :dataFim ORDER BY dataHora ASC")
-    fun listarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): Flow<List<PontoEntity>>
-
-    // ========================================================================
-    // Listagens por emprego (novas)
-    // ========================================================================
-
-    @Query("SELECT * FROM pontos WHERE empregoId = :empregoId ORDER BY dataHora DESC")
+    @Query("SELECT * FROM pontos WHERE empregoId = :empregoId AND is_deleted = 0 ORDER BY data DESC, hora DESC")
     fun listarPorEmprego(empregoId: Long): Flow<List<PontoEntity>>
 
-    @Query("SELECT * FROM pontos WHERE empregoId = :empregoId AND data = :data ORDER BY dataHora ASC")
-    fun listarPorEmpregoEData(empregoId: Long, data: LocalDate): Flow<List<PontoEntity>>
+    @Query("SELECT * FROM pontos WHERE data = :data AND is_deleted = 0 ORDER BY hora ASC")
+    fun listarPorData(data: LocalDate): Flow<List<PontoEntity>>
 
-    @Query("SELECT * FROM pontos WHERE empregoId = :empregoId AND data = :data ORDER BY dataHora ASC")
-    suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): List<PontoEntity>
+    @Query("""
+        SELECT * FROM pontos 
+        WHERE data BETWEEN :dataInicio AND :dataFim 
+        AND is_deleted = 0 
+        ORDER BY data DESC, hora DESC
+    """)
+    fun listarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): Flow<List<PontoEntity>>
 
     @Query("""
         SELECT * FROM pontos 
         WHERE empregoId = :empregoId 
         AND data BETWEEN :dataInicio AND :dataFim 
-        ORDER BY data ASC, dataHora ASC
+        AND is_deleted = 0 
+        ORDER BY data DESC, hora DESC
     """)
-    fun listarPorEmpregoEPeriodo(empregoId: Long, dataInicio: LocalDate, dataFim: LocalDate): Flow<List<PontoEntity>>
+    fun listarPorEmpregoEPeriodo(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): Flow<List<PontoEntity>>
 
-    @Query("""
-        SELECT * FROM pontos 
-        WHERE empregoId = :empregoId 
-        AND data BETWEEN :dataInicio AND :dataFim 
-        ORDER BY data ASC, dataHora ASC
-    """)
-    suspend fun buscarPorEmpregoEPeriodo(empregoId: Long, dataInicio: LocalDate, dataFim: LocalDate): List<PontoEntity>
+    // === Soft Delete e Lixeira ===
 
-    // ========================================================================
-    // Listagens por marcador
-    // ========================================================================
+    @Query("SELECT * FROM pontos WHERE id = :id")
+    suspend fun buscarPorIdIncluindoDeletados(id: Long): PontoEntity?
 
-    @Query("SELECT * FROM pontos WHERE marcadorId = :marcadorId ORDER BY dataHora DESC")
-    fun listarPorMarcador(marcadorId: Long): Flow<List<PontoEntity>>
+    @Query("SELECT * FROM pontos WHERE is_deleted = 1 ORDER BY deleted_at DESC")
+    suspend fun listarDeletados(): List<PontoEntity>
 
-    // ========================================================================
-    // Contagens
-    // ========================================================================
+    @Query("SELECT * FROM pontos WHERE is_deleted = 1 ORDER BY deleted_at DESC")
+    fun observarDeletados(): Flow<List<PontoEntity>>
 
-    @Query("SELECT COUNT(*) FROM pontos WHERE empregoId = :empregoId")
-    suspend fun contarPorEmprego(empregoId: Long): Int
+    @Query("UPDATE pontos SET is_deleted = 1, deleted_at = :deletedAt, updated_at = :deletedAt WHERE id = :pontoId")
+    suspend fun softDelete(pontoId: Long, deletedAt: Long)
 
-    @Query("SELECT COUNT(*) FROM pontos WHERE empregoId = :empregoId AND data = :data")
-    suspend fun contarPorEmpregoEData(empregoId: Long, data: LocalDate): Int
+    @Query("DELETE FROM pontos WHERE id = :pontoId")
+    suspend fun excluirPermanente(pontoId: Long)
 
-    @Query("""
-        SELECT COUNT(*) FROM pontos 
-        WHERE empregoId = :empregoId 
-        AND data BETWEEN :dataInicio AND :dataFim
-    """)
-    suspend fun contarPorEmpregoEPeriodo(empregoId: Long, dataInicio: LocalDate, dataFim: LocalDate): Int
+    @Query("SELECT COUNT(*) FROM pontos WHERE is_deleted = 1")
+    suspend fun contarDeletados(): Int
 
-    // ========================================================================
-    // Consultas auxiliares
-    // ========================================================================
-
-    @Query("SELECT DISTINCT data FROM pontos WHERE empregoId = :empregoId ORDER BY data DESC")
-    fun listarDatasComRegistro(empregoId: Long): Flow<List<LocalDate>>
-
-    @Query("SELECT * FROM pontos WHERE empregoId = :empregoId ORDER BY dataHora DESC LIMIT 1")
-    suspend fun buscarUltimoPonto(empregoId: Long): PontoEntity?
-
-    @Query("SELECT MIN(data) FROM pontos WHERE empregoId = :empregoId")
-    suspend fun buscarPrimeiraData(empregoId: Long): LocalDate?
-
-    @Query("SELECT * FROM pontos WHERE empregoId = :empregoId ORDER BY dataHora DESC LIMIT 1")
-    fun observarUltimoPonto(empregoId: Long): Flow<PontoEntity?>
-
-    // ========================================================================
-    // Operações de migração/atualização em lote
-    // ========================================================================
-
-    @Query("UPDATE pontos SET empregoId = :empregoId WHERE empregoId = :empregoIdAntigo")
-    suspend fun migrarParaEmprego(empregoIdAntigo: Long, empregoId: Long): Int
-
-    // ========================================================================
-    // Atualização de foto de comprovante
-    // ========================================================================
-
-    @Query("""
-        UPDATE pontos 
-        SET fotoComprovantePath = :fotoPath 
-        WHERE id = :pontoId
-    """)
-    suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?)
+    @Query("UPDATE pontos SET is_deleted = 0, deleted_at = NULL, updated_at = :updatedAt WHERE id = :pontoId")
+    suspend fun restaurar(pontoId: Long, updatedAt: Long)
 }
