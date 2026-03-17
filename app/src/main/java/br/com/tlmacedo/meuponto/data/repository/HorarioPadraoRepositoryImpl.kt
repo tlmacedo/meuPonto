@@ -6,8 +6,10 @@ import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HorarioPadrao
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioPadraoRepository
+import br.com.tlmacedo.meuponto.domain.service.AuditService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,25 +19,36 @@ import javax.inject.Singleton
  * Adapta o [HorarioDiaSemanaRepository] existente para a interface
  * [HorarioPadraoRepository], convertendo entre os modelos de domínio.
  *
+ * NOTA: A auditoria é delegada ao [HorarioDiaSemanaRepository], então
+ * este repositório apenas adiciona logs para operações específicas como upsert.
+ *
  * @property horarioDiaSemanaRepository Repositório delegado para operações de banco
+ * @property auditService Serviço de auditoria para logging de operações específicas
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 11.0.0 - Integração com AuditService
  */
 @Singleton
 class HorarioPadraoRepositoryImpl @Inject constructor(
-    private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository
+    private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
+    private val auditService: AuditService
 ) : HorarioPadraoRepository {
 
+    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
     override suspend fun inserir(horarioPadrao: HorarioPadrao): Long {
+        // Delegado ao HorarioDiaSemanaRepository que já tem auditoria
         return horarioDiaSemanaRepository.inserir(horarioPadrao.toHorarioDiaSemana())
     }
 
     override suspend fun atualizar(horarioPadrao: HorarioPadrao) {
+        // Delegado ao HorarioDiaSemanaRepository que já tem auditoria
         horarioDiaSemanaRepository.atualizar(horarioPadrao.toHorarioDiaSemana())
     }
 
     override suspend fun excluir(horarioPadrao: HorarioPadrao) {
+        // Delegado ao HorarioDiaSemanaRepository que já tem auditoria
         horarioDiaSemanaRepository.excluir(horarioPadrao.toHorarioDiaSemana())
     }
 
@@ -59,13 +72,15 @@ class HorarioPadraoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun excluirPorEmpregoId(empregoId: Long) {
+        // Delegado ao HorarioDiaSemanaRepository que já tem auditoria
         horarioDiaSemanaRepository.excluirPorEmprego(empregoId)
     }
 
     override suspend fun upsert(horarioPadrao: HorarioPadrao): Long {
         val existing = buscarPorEmpregoEDiaSemana(horarioPadrao.empregoId, horarioPadrao.diaSemana)
         return if (existing != null) {
-            atualizar(horarioPadrao.copy(id = existing.id))
+            val updated = horarioPadrao.copy(id = existing.id)
+            atualizar(updated)
             existing.id
         } else {
             inserir(horarioPadrao)
@@ -145,5 +160,9 @@ class HorarioPadraoRepositoryImpl @Inject constructor(
             criadoEm = this.criadoEm,
             atualizadoEm = this.atualizadoEm
         )
+    }
+
+    companion object {
+        private const val ENTIDADE = "HorarioPadrao"
     }
 }

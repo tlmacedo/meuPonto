@@ -28,14 +28,13 @@ import javax.inject.Inject
 class MeuPontoApplication : Application(), Configuration.Provider {
 
     @Inject
-    lateinit var migracaoManager: MigracaoManager
+    lateinit var workerFactory: HiltWorkerFactory
 
     @Inject
-    lateinit var workerFactory: HiltWorkerFactory
+    lateinit var migracaoManager: MigracaoManager
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // Configuração do WorkManager com HiltWorkerFactory
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -54,11 +53,15 @@ class MeuPontoApplication : Application(), Configuration.Provider {
 
         Timber.d("MeuPonto Application iniciada")
 
-        // Agendar limpeza da lixeira (executa após o WorkManager estar configurado)
-        TrashCleanupWorker.schedule(this)
-
         // Executa migrações pendentes em background
         executarMigracoes()
+
+        // Agendar limpeza da lixeira COM DELAY para garantir que WorkManager está pronto
+        applicationScope.launch {
+            // Pequeno delay para garantir inicialização completa
+            kotlinx.coroutines.delay(1000)
+            TrashCleanupWorker.schedule(this@MeuPontoApplication)
+        }
     }
 
     private fun executarMigracoes() {

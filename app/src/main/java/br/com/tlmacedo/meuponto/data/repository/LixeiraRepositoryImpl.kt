@@ -5,8 +5,10 @@ import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
 import br.com.tlmacedo.meuponto.data.local.database.entity.toDomain
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.LixeiraRepository
+import br.com.tlmacedo.meuponto.domain.service.AuditService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,11 +21,16 @@ import javax.inject.Singleton
  */
 @Singleton
 class LixeiraRepositoryImpl @Inject constructor(
-    private val pontoDao: PontoDao
+    private val pontoDao: PontoDao,
+    private val auditService: AuditService
 ) : LixeiraRepository {
+
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     companion object {
         private const val TAG = "LixeiraRepository"
+        private const val ENTIDADE = "Ponto"
 
         /** Dias padrão de retenção na lixeira */
         const val DIAS_RETENCAO_PADRAO = 30
@@ -35,8 +42,18 @@ class LixeiraRepositoryImpl @Inject constructor(
 
     override suspend fun moverParaLixeira(pontoId: Long): Result<Unit> {
         return runCatching {
+            val ponto = pontoDao.buscarPorId(pontoId)?.toDomain()
             val agora = System.currentTimeMillis()
             pontoDao.softDelete(pontoId, agora)
+
+            auditService.logDelete(
+                entidade = ENTIDADE,
+                entidadeId = pontoId,
+                motivo = ponto?.let {
+                    "Ponto movido para lixeira: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                } ?: "Ponto movido para lixeira",
+                dadosAnteriores = ponto?.let { auditService.toJson(it.toAuditMap()) }
+            )
         }
     }
 
@@ -48,6 +65,13 @@ class LixeiraRepositoryImpl @Inject constructor(
                 pontoDao.softDelete(id, agora)
                 count++
             }
+
+            auditService.logDelete(
+                entidade = ENTIDADE,
+                entidadeId = 0L,
+                motivo = "Lote de $count pontos movidos para lixeira"
+            )
+
             count
         }
     }
@@ -58,8 +82,17 @@ class LixeiraRepositoryImpl @Inject constructor(
 
     override suspend fun restaurar(pontoId: Long): Result<Unit> {
         return runCatching {
+            val ponto = pontoDao.buscarPorIdIncluindoDeletados(pontoId)?.toDomain()
             val agora = System.currentTimeMillis()
             pontoDao.restaurar(pontoId, agora)
+
+            auditService.logRestore(
+                entidade = ENTIDADE,
+                entidadeId = pontoId,
+                motivo = ponto?.let {
+                    "Ponto restaurado: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                } ?: "Ponto restaurado da lixeira"
+            )
         }
     }
 
@@ -71,6 +104,13 @@ class LixeiraRepositoryImpl @Inject constructor(
                 pontoDao.restaurar(id, agora)
                 count++
             }
+
+            auditService.logRestore(
+                entidade = ENTIDADE,
+                entidadeId = 0L,
+                motivo = "Lote de $count pontos restaurados da lixeira"
+            )
+
             count
         }
     }
@@ -81,6 +121,16 @@ class LixeiraRepositoryImpl @Inject constructor(
 
     override suspend fun excluirPermanente(pontoId: Long): Result<Unit> {
         return runCatching {
+            val ponto = pontoDao.buscarPorIdIncluindoDeletados(pontoId)?.toDomain()
+
+            auditService.logPermanentDelete(
+                entidade = ENTIDADE,
+                entidadeId = pontoId,
+                motivo = ponto?.let {
+                    "Ponto excluído permanentemente: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                } ?: "Ponto excluído permanentemente"
+            )
+
             pontoDao.excluirPermanente(pontoId)
         }
     }
@@ -92,6 +142,13 @@ class LixeiraRepositoryImpl @Inject constructor(
                 pontoDao.excluirPermanente(id)
                 count++
             }
+
+            auditService.logPermanentDelete(
+                entidade = ENTIDADE,
+                entidadeId = 0L,
+                motivo = "Lote de $count pontos excluídos permanentemente"
+            )
+
             count
         }
     }
@@ -102,6 +159,13 @@ class LixeiraRepositoryImpl @Inject constructor(
             deletados.forEach { ponto ->
                 pontoDao.excluirPermanente(ponto.id)
             }
+
+            auditService.logPermanentDelete(
+                entidade = ENTIDADE,
+                entidadeId = 0L,
+                motivo = "Lixeira esvaziada: ${deletados.size} pontos excluídos permanentemente"
+            )
+
             deletados.size
         }
     }
@@ -148,6 +212,14 @@ class LixeiraRepositoryImpl @Inject constructor(
                 }
             }
 
+            if (count > 0) {
+                auditService.logPermanentDelete(
+                    entidade = ENTIDADE,
+                    entidadeId = 0L,
+                    motivo = "Limpeza automática: $count pontos expirados excluídos (retenção: $diasRetencao dias)"
+                )
+            }
+
             count
         }
     }
@@ -165,4 +237,18 @@ class LixeiraRepositoryImpl @Inject constructor(
             }
             .map { it.toDomain() }
     }
+
+    // ========================================================================
+    // Helpers
+    // ========================================================================
+
+    private fun Ponto.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "data" to data.format(dateFormatter),
+        "hora" to hora.format(timeFormatter),
+        "horaConsiderada" to horaConsideradaFormatada,
+        "observacao" to observacao,
+        "fotoComprovantePath" to fotoComprovantePath
+    )
 }

@@ -25,6 +25,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.screen.auditoria.AuditoriaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciaFormScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciasScreen
 import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
@@ -214,8 +215,13 @@ fun MeuPontoNavHost(
                     onNavigateToSobre = {
                         navController.navigate(MeuPontoDestinations.SOBRE)
                     },
-                    onNavigateToLixeira = { navController.navigate(MeuPontoDestinations.LIXEIRA) }
-                    )
+                    onNavigateToLixeira = {
+                        navController.navigate(MeuPontoDestinations.LIXEIRA)
+                    },
+                    onNavigateToAuditoria = {
+                        navController.navigate(MeuPontoDestinations.AUDITORIA)
+                    }
+                )
             }
 
             // ===== CONFIGURAÇÕES DO EMPREGO =====
@@ -482,6 +488,12 @@ fun MeuPontoNavHost(
 
             composable(MeuPontoDestinations.LIXEIRA) {
                 LixeiraScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(MeuPontoDestinations.AUDITORIA) {
+                AuditoriaScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

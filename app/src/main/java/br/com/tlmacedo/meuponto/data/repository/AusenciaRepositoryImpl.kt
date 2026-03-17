@@ -7,10 +7,12 @@ import br.com.tlmacedo.meuponto.data.mapper.toEntity
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+import br.com.tlmacedo.meuponto.domain.service.AuditService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,33 +21,85 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 4.0.0
+ * @updated 11.0.0 - Integração com AuditService
  */
 @Singleton
 class AusenciaRepositoryImpl @Inject constructor(
-    private val ausenciaDao: AusenciaDao
+    private val ausenciaDao: AusenciaDao,
+    private val auditService: AuditService
 ) : AusenciaRepository {
+
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
     // ========================================================================
     // CRUD
     // ========================================================================
 
     override suspend fun inserir(ausencia: Ausencia): Long {
-        return ausenciaDao.inserir(ausencia.toEntity())
+        val id = ausenciaDao.inserir(ausencia.toEntity())
+
+        auditService.logCreate(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = "Ausência criada: ${ausencia.tipo.descricao} de ${ausencia.dataInicio.format(dateFormatter)} a ${ausencia.dataFim.format(dateFormatter)}",
+            novoValor = ausencia,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
+
+        return id
     }
 
     override suspend fun inserirTodas(ausencias: List<Ausencia>): List<Long> {
-        return ausenciaDao.inserirTodas(ausencias.map { it.toEntity() })
+        val ids = ausenciaDao.inserirTodas(ausencias.map { it.toEntity() })
+
+        ausencias.forEachIndexed { index, ausencia ->
+            auditService.logCreate(
+                entidade = ENTIDADE,
+                entidadeId = ids[index],
+                motivo = "Ausência criada em lote: ${ausencia.tipo.descricao}",
+                novoValor = ausencia,
+                serializer = { auditService.toJson(it.toAuditMap()) }
+            )
+        }
+
+        return ids
     }
 
     override suspend fun atualizar(ausencia: Ausencia) {
+        val anterior = ausenciaDao.buscarPorId(ausencia.id)?.toDomain()
         ausenciaDao.atualizar(ausencia.toEntity())
+
+        auditService.logUpdate(
+            entidade = ENTIDADE,
+            entidadeId = ausencia.id,
+            motivo = "Ausência atualizada: ${ausencia.tipo.descricao}",
+            valorAntigo = anterior,
+            valorNovo = ausencia,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
     }
 
     override suspend fun excluir(ausencia: Ausencia) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = ausencia.id,
+            motivo = "Ausência excluída: ${ausencia.tipo.descricao} de ${ausencia.dataInicio.format(dateFormatter)} a ${ausencia.dataFim.format(dateFormatter)}"
+        )
+
         ausenciaDao.excluir(ausencia.toEntity())
     }
 
     override suspend fun excluirPorId(id: Long) {
+        val ausencia = ausenciaDao.buscarPorId(id)?.toDomain()
+
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = ausencia?.let {
+                "Ausência excluída: ${it.tipo.descricao} de ${it.dataInicio.format(dateFormatter)} a ${it.dataFim.format(dateFormatter)}"
+            } ?: "Ausência excluída"
+        )
+
         ausenciaDao.excluirPorId(id)
     }
 
@@ -210,10 +264,44 @@ class AusenciaRepositoryImpl @Inject constructor(
     // ========================================================================
 
     override suspend fun desativarPorEmprego(empregoId: Long) {
+        auditService.logUpdate(
+            entidade = ENTIDADE,
+            entidadeId = empregoId,
+            motivo = "Todas as ausências do emprego $empregoId foram desativadas",
+            valorAntigo = "ativo=true",
+            valorNovo = "ativo=false",
+            serializer = { it }
+        )
+
         ausenciaDao.desativarPorEmprego(empregoId)
     }
 
     override suspend fun limparAusenciasAntigas(dataLimite: LocalDate) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = 0L,
+            motivo = "Ausências anteriores a ${dataLimite.format(dateFormatter)} foram limpas"
+        )
+
         ausenciaDao.limparAusenciasAntigas(dataLimite)
+    }
+
+    // ========================================================================
+    // Helpers
+    // ========================================================================
+
+    private fun Ausencia.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "tipo" to tipo.name,
+        "tipoDescricao" to tipo.descricao,
+        "dataInicio" to dataInicio.format(dateFormatter),
+        "dataFim" to dataFim.format(dateFormatter),
+        "observacao" to observacao,
+        "ativa" to ativo
+    )
+
+    companion object {
+        private const val ENTIDADE = "Ausencia"
     }
 }

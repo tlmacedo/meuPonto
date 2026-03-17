@@ -6,6 +6,7 @@ package br.com.tlmacedo.meuponto.presentation.navigation
  *
  * @updated 8.3.0 - Adicionadas rotas para Notificações e Privacidade
  * @updated 9.2.0 - Adicionada rota para Lixeira
+ * @updated 11.0.0 - Adicionada rota para Auditoria
  */
 object MeuPontoDestinations {
     // Telas principais
@@ -72,6 +73,9 @@ object MeuPontoDestinations {
 
     // Lixeira (Soft Delete)
     const val LIXEIRA = "lixeira"
+
+    // Auditoria
+    const val AUDITORIA = "auditoria"
 
     // Configurações globais
     const val CONFIGURACOES_GLOBAIS = "configuracoes_globais"

@@ -57,7 +57,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         AusenciaEntity::class,
         FotoComprovanteEntity::class
     ],
-    version = 24,
+    version = 26,
     exportSchema = true
 )
 @TypeConverters(Converters::class, FeriadoConverters::class)

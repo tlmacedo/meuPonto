@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
@@ -84,6 +85,7 @@ fun SettingsMainScreen(
     onNavigateToBackup: () -> Unit,
     onNavigateToSobre: () -> Unit,
     onNavigateToLixeira: () -> Unit,
+    onNavigateToAuditoria: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsMainViewModel = hiltViewModel()
 ) {
@@ -254,11 +256,23 @@ fun SettingsMainScreen(
                     icon = Icons.Outlined.Storage,
                     onClick = onNavigateToBackup
                 )
+            }
+
+            item {
                 SettingsNavigationItem(
                     icon = Icons.Outlined.Delete,
                     title = "Lixeira",
                     subtitle = "Itens excluídos recentemente",
                     onClick = onNavigateToLixeira
+                )
+            }
+
+            item {
+                SettingsNavigationItem(
+                    icon = Icons.Outlined.History,
+                    title = "Auditoria",
+                    subtitle = "Histórico de alterações no sistema",
+                    onClick = onNavigateToAuditoria
                 )
             }
 

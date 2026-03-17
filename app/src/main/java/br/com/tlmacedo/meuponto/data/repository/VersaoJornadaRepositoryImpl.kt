@@ -9,11 +9,14 @@ import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.domain.service.AuditService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Implementação do repositório de versões de jornada.
@@ -21,29 +24,69 @@ import javax.inject.Inject
  * @author Thiago
  * @since 2.7.0
  * @updated 4.0.0 - Adicionados métodos de consulta para UseCases
+ * @updated 11.0.0 - Integração com AuditService
  */
+@Singleton
 class VersaoJornadaRepositoryImpl @Inject constructor(
     private val versaoJornadaDao: VersaoJornadaDao,
-    private val horarioDiaSemanaDao: HorarioDiaSemanaDao
+    private val horarioDiaSemanaDao: HorarioDiaSemanaDao,
+    private val auditService: AuditService
 ) : VersaoJornadaRepository {
+
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
     // ========================================================================
     // Operações de Escrita (CRUD)
     // ========================================================================
 
     override suspend fun inserir(versao: VersaoJornada): Long {
-        return versaoJornadaDao.inserir(versao.toEntity())
+        val id = versaoJornadaDao.inserir(versao.toEntity())
+
+        auditService.logCreate(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = "Versão de jornada v${versao.numeroVersao} criada (início: ${versao.dataInicio.format(dateFormatter)})",
+            novoValor = versao,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
+
+        return id
     }
 
     override suspend fun atualizar(versao: VersaoJornada) {
+        val anterior = versaoJornadaDao.buscarPorId(versao.id)?.toDomain()
         versaoJornadaDao.atualizar(versao.toEntity())
+
+        auditService.logUpdate(
+            entidade = ENTIDADE,
+            entidadeId = versao.id,
+            motivo = "Versão de jornada v${versao.numeroVersao} atualizada",
+            valorAntigo = anterior,
+            valorNovo = versao,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
     }
 
     override suspend fun excluir(versao: VersaoJornada) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = versao.id,
+            motivo = "Versão de jornada v${versao.numeroVersao} excluída"
+        )
+
         versaoJornadaDao.excluir(versao.toEntity())
     }
 
     override suspend fun excluirPorId(id: Long) {
+        val versao = versaoJornadaDao.buscarPorId(id)?.toDomain()
+
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = versao?.let { "Versão de jornada v${it.numeroVersao} excluída" }
+                ?: "Versão de jornada excluída"
+        )
+
         versaoJornadaDao.excluirPorId(id)
     }
 
@@ -68,7 +111,6 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
     }
 
     override suspend fun listarPorEmprego(empregoId: Long): List<VersaoJornada> {
-        // Alias para buscarPorEmprego - mantém compatibilidade
         return buscarPorEmprego(empregoId)
     }
 
@@ -99,7 +141,6 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
     }
 
     override suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): VersaoJornada? {
-        // Alias para buscarPorData - mantém compatibilidade
         return buscarPorData(empregoId, data)
     }
 
@@ -123,10 +164,19 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
         val versaoAnterior = versaoJornadaDao.buscarVersaoAnterior(empregoId, dataInicio)
             ?: versaoJornadaDao.buscarVigente(empregoId)
 
-        // 2. Fechar versão anterior (definir dataFim como dia anterior ao novo início)
+        // 2. Fechar versão anterior
         versaoAnterior?.let {
             val dataFimAnterior = dataInicio.minusDays(1)
             versaoJornadaDao.definirDataFim(it.id, dataFimAnterior, agora)
+
+            auditService.logUpdate(
+                entidade = ENTIDADE,
+                entidadeId = it.id,
+                motivo = "Versão v${it.numeroVersao} encerrada em ${dataFimAnterior.format(dateFormatter)}",
+                valorAntigo = "dataFim=null",
+                valorNovo = "dataFim=${dataFimAnterior.format(dateFormatter)}",
+                serializer = { s -> s }
+            )
         }
 
         // 3. Remover flag vigente de todas
@@ -152,7 +202,15 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
 
         val novaVersaoId = versaoJornadaDao.inserir(novaVersao.toEntity())
 
-        // 6. Copiar horários da versão anterior (se solicitado)
+        auditService.logCreate(
+            entidade = ENTIDADE,
+            entidadeId = novaVersaoId,
+            motivo = "Nova versão v$proximoNumero criada (início: ${dataInicio.format(dateFormatter)})${if (copiarDaVersaoAnterior && versaoAnterior != null) " - Copiada da v${versaoAnterior.numeroVersao}" else ""}",
+            novoValor = novaVersao.copy(id = novaVersaoId),
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
+
+        // 6. Copiar ou criar horários
         if (copiarDaVersaoAnterior && versaoAnterior != null) {
             val horariosAnteriores = horarioDiaSemanaDao.buscarPorVersaoJornada(versaoAnterior.id)
             horariosAnteriores.forEach { horarioEntity ->
@@ -165,7 +223,6 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
                 horarioDiaSemanaDao.inserir(novoHorario)
             }
         } else {
-            // Criar horários padrão para a nova versão
             DiaSemana.entries.forEach { diaSemana ->
                 val horarioPadrao = HorarioDiaSemana.criarPadrao(empregoId, diaSemana, novaVersaoId)
                 horarioDiaSemanaDao.inserir(horarioPadrao.toEntity())
@@ -198,5 +255,25 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
 
     override suspend fun contarPorEmprego(empregoId: Long): Int {
         return versaoJornadaDao.contarPorEmprego(empregoId)
+    }
+
+    // ========================================================================
+    // Helpers
+    // ========================================================================
+
+    private fun VersaoJornada.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "numeroVersao" to numeroVersao,
+        "dataInicio" to dataInicio.format(dateFormatter),
+        "dataFim" to dataFim?.format(dateFormatter),
+        "vigente" to vigente,
+        "descricao" to descricao,
+        "jornadaMaximaDiariaMinutos" to jornadaMaximaDiariaMinutos,
+        "intervaloMinimoInterjornadaMinutos" to intervaloMinimoInterjornadaMinutos
+    )
+
+    companion object {
+        private const val ENTIDADE = "VersaoJornada"
     }
 }

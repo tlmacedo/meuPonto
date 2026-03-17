@@ -6,9 +6,11 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.toDomain
 import br.com.tlmacedo.meuponto.data.local.database.entity.toEntity
 import br.com.tlmacedo.meuponto.domain.model.AjusteSaldo
 import br.com.tlmacedo.meuponto.domain.repository.AjusteSaldoRepository
+import br.com.tlmacedo.meuponto.domain.service.AuditService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,13 +18,16 @@ import javax.inject.Singleton
  * Implementação concreta do repositório de ajustes de saldo.
  *
  * @property ajusteSaldoDao DAO do Room para operações de banco de dados
+ * @property auditService Serviço de auditoria para logging de operações
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 11.0.0 - Integração com AuditService e suporte a TipoAjusteSaldo
  */
 @Singleton
 class AjusteSaldoRepositoryImpl @Inject constructor(
-    private val ajusteSaldoDao: AjusteSaldoDao
+    private val ajusteSaldoDao: AjusteSaldoDao,
+    private val auditService: AuditService
 ) : AjusteSaldoRepository {
 
     // ========================================================================
@@ -30,18 +35,56 @@ class AjusteSaldoRepositoryImpl @Inject constructor(
     // ========================================================================
 
     override suspend fun inserir(ajuste: AjusteSaldo): Long {
-        return ajusteSaldoDao.inserir(ajuste.toEntity())
+        val id = ajusteSaldoDao.inserir(ajuste.toEntity())
+
+        auditService.logCreate(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = "Ajuste de saldo criado: ${ajuste.descricaoResumida} em ${ajuste.dataFormatada}",
+            novoValor = ajuste,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
+
+        return id
     }
 
     override suspend fun atualizar(ajuste: AjusteSaldo) {
-        ajusteSaldoDao.atualizar(ajuste.toEntity())
+        val anterior = ajusteSaldoDao.buscarPorId(ajuste.id)?.toDomain()
+        val ajusteAtualizado = ajuste.copy(atualizadoEm = LocalDateTime.now())
+
+        ajusteSaldoDao.atualizar(ajusteAtualizado.toEntity())
+
+        auditService.logUpdate(
+            entidade = ENTIDADE,
+            entidadeId = ajuste.id,
+            motivo = "Ajuste de saldo atualizado: ${ajusteAtualizado.descricaoResumida}",
+            valorAntigo = anterior,
+            valorNovo = ajusteAtualizado,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
     }
 
     override suspend fun excluir(ajuste: AjusteSaldo) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = ajuste.id,
+            motivo = "Ajuste de saldo excluído: ${ajuste.descricaoResumida} em ${ajuste.dataFormatada}"
+        )
+
         ajusteSaldoDao.excluir(ajuste.toEntity())
     }
 
     override suspend fun excluirPorId(id: Long) {
+        val ajuste = ajusteSaldoDao.buscarPorId(id)?.toDomain()
+
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = ajuste?.let {
+                "Ajuste de saldo excluído: ${it.descricaoResumida} em ${it.dataFormatada}"
+            } ?: "Ajuste de saldo excluído (id: $id)"
+        )
+
         ajusteSaldoDao.excluirPorId(id)
     }
 
@@ -125,5 +168,9 @@ class AjusteSaldoRepositoryImpl @Inject constructor(
         return ajusteSaldoDao.listarUltimosPorEmprego(empregoId, limite).map { entities ->
             entities.map { it.toDomain() }
         }
+    }
+
+    companion object {
+        private const val ENTIDADE = "AjusteSaldo"
     }
 }

@@ -9,10 +9,12 @@ import br.com.tlmacedo.meuponto.domain.model.feriado.ConfiguracaoPontesAno
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
+import br.com.tlmacedo.meuponto.domain.service.AuditService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.MonthDay
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,34 +23,83 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 3.0.0
+ * @updated 11.0.0 - Integração com AuditService
  */
 @Singleton
 class FeriadoRepositoryImpl @Inject constructor(
     private val feriadoDao: FeriadoDao,
-    private val configuracaoPontesAnoDao: ConfiguracaoPontesAnoDao
+    private val configuracaoPontesAnoDao: ConfiguracaoPontesAnoDao,
+    private val auditService: AuditService
 ) : FeriadoRepository {
+
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
     // ========================================================================
     // CRUD de Feriados
     // ========================================================================
 
     override suspend fun inserir(feriado: Feriado): Long {
-        return feriadoDao.inserir(feriado.toEntity())
+        val id = feriadoDao.inserir(feriado.toEntity())
+
+        auditService.logCreate(
+            entidade = ENTIDADE_FERIADO,
+            entidadeId = id,
+            motivo = "Feriado criado: ${feriado.nome}",
+            novoValor = feriado,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
+
+        return id
     }
 
     override suspend fun inserirTodos(feriados: List<Feriado>): List<Long> {
-        return feriadoDao.inserirTodos(feriados.map { it.toEntity() })
+        val ids = feriadoDao.inserirTodos(feriados.map { it.toEntity() })
+
+        // Log apenas o resumo para inserções em lote
+        auditService.logCreate(
+            entidade = ENTIDADE_FERIADO,
+            entidadeId = 0L,
+            motivo = "Importação em lote: ${feriados.size} feriados inseridos",
+            novoValor = feriados.map { it.nome },
+            serializer = { auditService.toJson(it) }
+        )
+
+        return ids
     }
 
     override suspend fun atualizar(feriado: Feriado) {
+        val anterior = feriadoDao.buscarPorId(feriado.id)?.toDomain()
         feriadoDao.atualizar(feriado.toEntity())
+
+        auditService.logUpdate(
+            entidade = ENTIDADE_FERIADO,
+            entidadeId = feriado.id,
+            motivo = "Feriado atualizado: ${feriado.nome}",
+            valorAntigo = anterior,
+            valorNovo = feriado,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
     }
 
     override suspend fun excluir(feriado: Feriado) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE_FERIADO,
+            entidadeId = feriado.id,
+            motivo = "Feriado excluído: ${feriado.nome}"
+        )
+
         feriadoDao.excluir(feriado.toEntity())
     }
 
     override suspend fun excluirPorId(id: Long) {
+        val feriado = feriadoDao.buscarPorId(id)?.toDomain()
+
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE_FERIADO,
+            entidadeId = id,
+            motivo = feriado?.let { "Feriado excluído: ${it.nome}" } ?: "Feriado excluído"
+        )
+
         feriadoDao.excluirPorId(id)
     }
 
@@ -161,10 +212,25 @@ class FeriadoRepositoryImpl @Inject constructor(
     // ========================================================================
 
     override suspend fun limparFeriadosAntigos(anoAtual: Int) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE_FERIADO,
+            entidadeId = 0L,
+            motivo = "Feriados anteriores ao ano $anoAtual foram limpos"
+        )
+
         feriadoDao.limparFeriadosAntigos(anoAtual)
     }
 
     override suspend fun desativarPorEmprego(empregoId: Long) {
+        auditService.logUpdate(
+            entidade = ENTIDADE_FERIADO,
+            entidadeId = empregoId,
+            motivo = "Feriados do emprego $empregoId foram desativados",
+            valorAntigo = "ativo=true",
+            valorNovo = "ativo=false",
+            serializer = { it }
+        )
+
         feriadoDao.desativarPorEmprego(empregoId)
     }
 
@@ -173,14 +239,40 @@ class FeriadoRepositoryImpl @Inject constructor(
     // ========================================================================
 
     override suspend fun inserirConfiguracaoPontes(config: ConfiguracaoPontesAno): Long {
-        return configuracaoPontesAnoDao.inserir(config.toEntity())
+        val id = configuracaoPontesAnoDao.inserir(config.toEntity())
+
+        auditService.logCreate(
+            entidade = ENTIDADE_CONFIG_PONTES,
+            entidadeId = id,
+            motivo = "Configuração de pontes criada para ${config.ano}",
+            novoValor = config,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
+
+        return id
     }
 
     override suspend fun atualizarConfiguracaoPontes(config: ConfiguracaoPontesAno) {
+        val anterior = configuracaoPontesAnoDao.buscarPorEmpregoEAno(config.empregoId, config.ano)?.toDomain()
         configuracaoPontesAnoDao.atualizar(config.toEntity())
+
+        auditService.logUpdate(
+            entidade = ENTIDADE_CONFIG_PONTES,
+            entidadeId = config.id,
+            motivo = "Configuração de pontes atualizada para ${config.ano}",
+            valorAntigo = anterior,
+            valorNovo = config,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
     }
 
     override suspend fun excluirConfiguracaoPontes(config: ConfiguracaoPontesAno) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE_CONFIG_PONTES,
+            entidadeId = config.id,
+            motivo = "Configuração de pontes excluída: ano ${config.ano}"
+        )
+
         configuracaoPontesAnoDao.excluir(config.toEntity())
     }
 
@@ -208,5 +300,35 @@ class FeriadoRepositoryImpl @Inject constructor(
 
     override suspend fun buscarAdicionalDiarioPontes(empregoId: Long, data: LocalDate): Int {
         return configuracaoPontesAnoDao.buscarAdicionalDiario(empregoId, data.year) ?: 0
+    }
+
+    // ========================================================================
+    // Helpers
+    // ========================================================================
+
+    private fun Feriado.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "nome" to nome,
+        "tipo" to tipo.name,
+        "recorrencia" to recorrencia.name,
+        "diaMes" to diaMes?.let { String.format("%02d/%02d", it.dayOfMonth, it.monthValue) },
+        "dataEspecifica" to dataEspecifica?.format(dateFormatter),
+        "empregoId" to empregoId,
+        "ativo" to ativo
+    )
+
+    private fun ConfiguracaoPontesAno.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "ano" to ano,
+        "diasPonte" to diasPonte,
+        "adicionalDiarioMinutos" to adicionalDiarioMinutos,
+        "diasUteisAno" to diasUteisAno,
+        "cargaHorariaPonteMinutos" to cargaHorariaPonteMinutos
+    )
+
+    companion object {
+        private const val ENTIDADE_FERIADO = "Feriado"
+        private const val ENTIDADE_CONFIG_PONTES = "ConfiguracaoPontesAno"
     }
 }

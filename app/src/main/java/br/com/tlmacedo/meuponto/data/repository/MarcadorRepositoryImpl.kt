@@ -6,6 +6,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.toDomain
 import br.com.tlmacedo.meuponto.data.local.database.entity.toEntity
 import br.com.tlmacedo.meuponto.domain.model.Marcador
 import br.com.tlmacedo.meuponto.domain.repository.MarcadorRepository
+import br.com.tlmacedo.meuponto.domain.service.AuditService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
@@ -16,13 +17,16 @@ import javax.inject.Singleton
  * Implementação concreta do repositório de marcadores.
  *
  * @property marcadorDao DAO do Room para operações de banco de dados
+ * @property auditService Serviço de auditoria para logging de operações
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 11.0.0 - Integração com AuditService
  */
 @Singleton
 class MarcadorRepositoryImpl @Inject constructor(
-    private val marcadorDao: MarcadorDao
+    private val marcadorDao: MarcadorDao,
+    private val auditService: AuditService
 ) : MarcadorRepository {
 
     // ========================================================================
@@ -30,22 +34,66 @@ class MarcadorRepositoryImpl @Inject constructor(
     // ========================================================================
 
     override suspend fun inserir(marcador: Marcador): Long {
-        return marcadorDao.inserir(marcador.toEntity())
+        val id = marcadorDao.inserir(marcador.toEntity())
+
+        auditService.logCreate(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = "Marcador criado: ${marcador.nome}",
+            novoValor = marcador,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
+
+        return id
     }
 
     override suspend fun inserirTodos(marcadores: List<Marcador>): List<Long> {
-        return marcadorDao.inserirTodos(marcadores.map { it.toEntity() })
+        val ids = marcadorDao.inserirTodos(marcadores.map { it.toEntity() })
+
+        auditService.logCreate(
+            entidade = ENTIDADE,
+            entidadeId = 0L,
+            motivo = "Marcadores criados em lote: ${marcadores.size} itens",
+            novoValor = marcadores.map { it.nome },
+            serializer = { auditService.toJson(it) }
+        )
+
+        return ids
     }
 
     override suspend fun atualizar(marcador: Marcador) {
+        val anterior = marcadorDao.buscarPorId(marcador.id)?.toDomain()
         marcadorDao.atualizar(marcador.toEntity())
+
+        auditService.logUpdate(
+            entidade = ENTIDADE,
+            entidadeId = marcador.id,
+            motivo = "Marcador atualizado: ${marcador.nome}",
+            valorAntigo = anterior,
+            valorNovo = marcador,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
     }
 
     override suspend fun excluir(marcador: Marcador) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = marcador.id,
+            motivo = "Marcador excluído: ${marcador.nome}"
+        )
+
         marcadorDao.excluir(marcador.toEntity())
     }
 
     override suspend fun excluirPorId(id: Long) {
+        val marcador = marcadorDao.buscarPorId(id)?.toDomain()
+
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = marcador?.let { "Marcador excluído: ${it.nome}" } ?: "Marcador excluído"
+        )
+
         marcadorDao.excluirPorId(id)
     }
 
@@ -90,6 +138,33 @@ class MarcadorRepositoryImpl @Inject constructor(
     // ========================================================================
 
     override suspend fun atualizarStatus(id: Long, ativo: Boolean) {
+        val marcador = marcadorDao.buscarPorId(id)?.toDomain()
         marcadorDao.atualizarStatus(id, ativo, LocalDateTime.now().toString())
+
+        auditService.logUpdate(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = "${marcador?.nome ?: "Marcador"} ${if (ativo) "ativado" else "desativado"}",
+            valorAntigo = !ativo,
+            valorNovo = ativo,
+            serializer = { "ativo=$it" }
+        )
+    }
+
+    // ========================================================================
+    // Helpers
+    // ========================================================================
+
+    private fun Marcador.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "nome" to nome,
+        "cor" to cor,
+        "icone" to icone,
+        "ativo" to ativo
+    )
+
+    companion object {
+        private const val ENTIDADE = "Marcador"
     }
 }

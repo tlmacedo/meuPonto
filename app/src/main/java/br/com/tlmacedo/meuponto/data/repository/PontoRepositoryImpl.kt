@@ -6,9 +6,11 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.toDomain
 import br.com.tlmacedo.meuponto.data.local.database.entity.toEntity
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.service.AuditService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,24 +19,54 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 11.0.0 - Adicionado suporte completo a soft delete e lixeira
+ * @updated 11.0.0 - Adicionado suporte completo a soft delete, lixeira e auditoria
  */
 @Singleton
 class PontoRepositoryImpl @Inject constructor(
-    private val pontoDao: PontoDao
+    private val pontoDao: PontoDao,
+    private val auditService: AuditService
 ) : PontoRepository {
+
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     // === Operações básicas ===
 
     override suspend fun inserir(ponto: Ponto): Long {
-        return pontoDao.inserir(ponto.toEntity())
+        val id = pontoDao.inserir(ponto.toEntity())
+
+        auditService.logCreate(
+            entidade = ENTIDADE,
+            entidadeId = id,
+            motivo = "Ponto registrado em ${ponto.data.format(dateFormatter)} às ${ponto.hora.format(timeFormatter)}",
+            novoValor = ponto,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
+
+        return id
     }
 
     override suspend fun atualizar(ponto: Ponto) {
+        val anterior = pontoDao.buscarPorId(ponto.id)?.toDomain()
         pontoDao.atualizar(ponto.toEntity())
+
+        auditService.logUpdate(
+            entidade = ENTIDADE,
+            entidadeId = ponto.id,
+            motivo = "Ponto atualizado em ${ponto.data.format(dateFormatter)}",
+            valorAntigo = anterior,
+            valorNovo = ponto,
+            serializer = { auditService.toJson(it.toAuditMap()) }
+        )
     }
 
     override suspend fun excluir(ponto: Ponto) {
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = ponto.id,
+            motivo = "Ponto excluído permanentemente: ${ponto.data.format(dateFormatter)} às ${ponto.hora.format(timeFormatter)}"
+        )
+
         pontoDao.excluir(ponto.toEntity())
     }
 
@@ -141,7 +173,17 @@ class PontoRepositoryImpl @Inject constructor(
     // === Atualização de foto ===
 
     override suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?) {
+        val anterior = pontoDao.buscarPorId(pontoId)?.toDomain()
         pontoDao.atualizarFotoComprovante(pontoId, fotoPath)
+
+        auditService.logUpdate(
+            entidade = ENTIDADE,
+            entidadeId = pontoId,
+            motivo = if (fotoPath != null) "Foto comprovante adicionada" else "Foto comprovante removida",
+            valorAntigo = anterior?.fotoComprovantePath,
+            valorNovo = fotoPath ?: "",
+            serializer = { it }
+        )
     }
 
     // === Soft Delete e Lixeira ===
@@ -161,10 +203,30 @@ class PontoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun softDelete(pontoId: Long) {
+        val ponto = pontoDao.buscarPorId(pontoId)?.toDomain()
         pontoDao.softDelete(pontoId, System.currentTimeMillis())
+
+        auditService.logDelete(
+            entidade = ENTIDADE,
+            entidadeId = pontoId,
+            motivo = ponto?.let {
+                "Ponto movido para lixeira: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+            } ?: "Ponto movido para lixeira",
+            dadosAnteriores = ponto?.let { auditService.toJson(it.toAuditMap()) }
+        )
     }
 
     override suspend fun excluirPermanente(pontoId: Long) {
+        val ponto = pontoDao.buscarPorIdIncluindoDeletados(pontoId)?.toDomain()
+
+        auditService.logPermanentDelete(
+            entidade = ENTIDADE,
+            entidadeId = pontoId,
+            motivo = ponto?.let {
+                "Ponto excluído permanentemente: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+            } ?: "Ponto excluído permanentemente"
+        )
+
         pontoDao.excluirPermanente(pontoId)
     }
 
@@ -173,6 +235,34 @@ class PontoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun restaurar(pontoId: Long) {
+        val ponto = pontoDao.buscarPorIdIncluindoDeletados(pontoId)?.toDomain()
         pontoDao.restaurar(pontoId, System.currentTimeMillis())
+
+        auditService.logRestore(
+            entidade = ENTIDADE,
+            entidadeId = pontoId,
+            motivo = ponto?.let {
+                "Ponto restaurado: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+            } ?: "Ponto restaurado da lixeira"
+        )
+    }
+
+    // === Helpers ===
+
+    private fun Ponto.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "data" to data.format(dateFormatter),
+        "horaReal" to horaFormatada,
+        "horaConsiderada" to horaConsideradaFormatada,
+        "nsr" to nsr,
+        "observacao" to observacao,
+        "fotoComprovantePath" to fotoComprovantePath,
+        "isEditadoManualmente" to isEditadoManualmente,
+        "isDeleted" to isDeleted
+    )
+
+    companion object {
+        private const val ENTIDADE = "Ponto"
     }
 }
