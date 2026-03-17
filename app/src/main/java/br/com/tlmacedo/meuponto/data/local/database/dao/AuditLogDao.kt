@@ -9,8 +9,19 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.AuditLogEntity
 import br.com.tlmacedo.meuponto.domain.model.AcaoAuditoria
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * DAO para operações de logs de auditoria no banco de dados.
+ *
+ * @author Thiago
+ * @since 2.0.0
+ * @updated 11.0.0 - Adicionado listarTodos()
+ */
 @Dao
 interface AuditLogDao {
+
+    // ========================================================================
+    // Operações de Escrita
+    // ========================================================================
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inserir(log: AuditLogEntity): Long
@@ -18,11 +29,15 @@ interface AuditLogDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inserirTodos(logs: List<AuditLogEntity>): List<Long>
 
-    @Query("SELECT * FROM audit_logs WHERE entidade = :entidade AND entidade_id = :entidadeId ORDER BY criado_em DESC")
-    fun listarPorEntidade(entidade: String, entidadeId: Long): Flow<List<AuditLogEntity>>
+    // ========================================================================
+    // Operações de Leitura Reativas (Flow)
+    // ========================================================================
+
+    @Query("SELECT * FROM audit_logs ORDER BY criado_em DESC")
+    fun listarTodos(): Flow<List<AuditLogEntity>>
 
     @Query("SELECT * FROM audit_logs WHERE entidade = :entidade AND entidade_id = :entidadeId ORDER BY criado_em DESC")
-    suspend fun buscarPorEntidade(entidade: String, entidadeId: Long): List<AuditLogEntity>
+    fun listarPorEntidade(entidade: String, entidadeId: Long): Flow<List<AuditLogEntity>>
 
     @Query("SELECT * FROM audit_logs WHERE entidade = :entidade ORDER BY criado_em DESC LIMIT :limite")
     fun listarUltimosPorEntidade(entidade: String, limite: Int): Flow<List<AuditLogEntity>>
@@ -42,11 +57,16 @@ interface AuditLogDao {
     @Query("SELECT * FROM audit_logs WHERE entidade = :entidade AND acao = :acao ORDER BY criado_em DESC")
     fun listarPorEntidadeEAcao(entidade: String, acao: AcaoAuditoria): Flow<List<AuditLogEntity>>
 
-    @Query("DELETE FROM audit_logs WHERE criado_em < :dataLimite")
-    suspend fun excluirAnterioresA(dataLimite: String): Int
+    // ========================================================================
+    // Operações de Leitura Suspensas
+    // ========================================================================
 
-    @Query("DELETE FROM audit_logs WHERE entidade = :entidade AND entidade_id = :entidadeId")
-    suspend fun excluirPorEntidade(entidade: String, entidadeId: Long)
+    @Query("SELECT * FROM audit_logs WHERE entidade = :entidade AND entidade_id = :entidadeId ORDER BY criado_em DESC")
+    suspend fun buscarPorEntidade(entidade: String, entidadeId: Long): List<AuditLogEntity>
+
+    // ========================================================================
+    // Operações de Contagem
+    // ========================================================================
 
     @Query("SELECT COUNT(*) FROM audit_logs")
     suspend fun contarTodos(): Int
@@ -56,4 +76,14 @@ interface AuditLogDao {
 
     @Query("SELECT COUNT(*) FROM audit_logs WHERE entidade = :entidade AND entidade_id = :entidadeId")
     suspend fun contarPorEntidadeEId(entidade: String, entidadeId: Long): Int
+
+    // ========================================================================
+    // Operações de Exclusão
+    // ========================================================================
+
+    @Query("DELETE FROM audit_logs WHERE criado_em < :dataLimite")
+    suspend fun excluirAnterioresA(dataLimite: String): Int
+
+    @Query("DELETE FROM audit_logs WHERE entidade = :entidade AND entidade_id = :entidadeId")
+    suspend fun excluirPorEntidade(entidade: String, entidadeId: Long)
 }

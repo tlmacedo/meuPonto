@@ -7,11 +7,11 @@ import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
 /**
- * Interface do repositório de Audit Logs.
+ * Interface do repositório de logs de auditoria.
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 11.0.0 - Padronização de nomenclatura
+ * @updated 11.0.0 - Adicionados métodos de observação
  */
 interface AuditLogRepository {
 
@@ -39,7 +39,7 @@ interface AuditLogRepository {
     suspend fun buscarPorEntidade(entidade: String, entidadeId: Long): List<AuditLog>
 
     /**
-     * Conta total de logs.
+     * Conta o total de logs.
      */
     suspend fun contarTodos(): Int
 
@@ -58,12 +58,12 @@ interface AuditLogRepository {
     // ========================================================================
 
     /**
-     * Exclui logs anteriores à data limite.
+     * Remove logs mais antigos que a data especificada.
      */
     suspend fun excluirAnterioresA(dataLimite: LocalDateTime): Int
 
     /**
-     * Exclui logs de uma entidade específica.
+     * Remove logs de uma entidade específica.
      */
     suspend fun excluirPorEntidade(entidade: String, entidadeId: Long)
 
@@ -72,17 +72,22 @@ interface AuditLogRepository {
     // ========================================================================
 
     /**
+     * Observa todos os logs ordenados por data (mais recentes primeiro).
+     */
+    fun observarTodos(): Flow<List<AuditLog>>
+
+    /**
      * Observa logs de uma entidade específica.
      */
     fun observarPorEntidade(entidade: String, entidadeId: Long): Flow<List<AuditLog>>
 
     /**
-     * Observa logs por período.
+     * Observa logs em um período.
      */
     fun observarPorPeriodo(dataInicio: LocalDateTime, dataFim: LocalDateTime): Flow<List<AuditLog>>
 
     /**
-     * Observa logs por tipo de ação.
+     * Observa logs por ação.
      */
     fun observarPorAcao(acao: AcaoAuditoria): Flow<List<AuditLog>>
 

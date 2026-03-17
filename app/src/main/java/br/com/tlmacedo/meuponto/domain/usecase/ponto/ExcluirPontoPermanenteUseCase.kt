@@ -1,11 +1,14 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/ExcluirPontoPermanenteUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
-import br.com.tlmacedo.meuponto.domain.model.AuditAction
+import br.com.tlmacedo.meuponto.domain.model.AcaoAuditoria
+import br.com.tlmacedo.meuponto.domain.model.AuditLog
 import br.com.tlmacedo.meuponto.domain.repository.AuditLogRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.util.foto.ImageTrashManager
+import com.google.gson.Gson
 import timber.log.Timber
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
@@ -19,7 +22,8 @@ import javax.inject.Inject
 class ExcluirPontoPermanenteUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val auditLogRepository: AuditLogRepository,
-    private val imageTrashManager: ImageTrashManager
+    private val imageTrashManager: ImageTrashManager,
+    private val gson: Gson
 ) {
     /**
      * Exclui permanentemente um ponto.
@@ -35,7 +39,7 @@ class ExcluirPontoPermanenteUseCase @Inject constructor(
                 ?: return Result.failure(IllegalArgumentException("Ponto não encontrado: $pontoId"))
 
             // Remove a foto permanentemente da lixeira
-            ponto.fotoPath?.let { fotoPath ->
+            ponto.fotoComprovantePath?.let { fotoPath ->
                 val removida = imageTrashManager.deletePermanently(fotoPath)
                 if (removida) {
                     Timber.d("Foto removida permanentemente: $fotoPath")
@@ -44,17 +48,20 @@ class ExcluirPontoPermanenteUseCase @Inject constructor(
                 }
             }
 
+            // Registra na auditoria ANTES de excluir (para manter os dados)
+            val auditLog = AuditLog(
+                entidade = "pontos",
+                entidadeId = pontoId,
+                acao = AcaoAuditoria.PERMANENT_DELETE,
+                motivo = "Exclusão permanente solicitada pelo usuário",
+                dadosAnteriores = gson.toJson(ponto.toAuditMap()),
+                dadosNovos = null,
+                criadoEm = LocalDateTime.now()
+            )
+            auditLogRepository.inserir(auditLog)
+
             // Remove o ponto do banco de dados
             pontoRepository.excluirPermanente(pontoId)
-
-            // Registra na auditoria
-            auditLogRepository.registrar(
-                action = AuditAction.PERMANENT_DELETE,
-                entityType = "Ponto",
-                entityId = pontoId,
-                description = "Ponto excluído permanentemente",
-                oldValue = ponto.toString()
-            )
 
             Timber.i("Ponto excluído permanentemente: $pontoId")
             Result.success(Unit)
@@ -66,18 +73,13 @@ class ExcluirPontoPermanenteUseCase @Inject constructor(
 
     /**
      * Exclui permanentemente múltiplos pontos.
-     *
-     * @param pontoIds Lista de IDs dos pontos a excluir
-     * @return Result com quantidade de pontos excluídos
      */
     suspend fun excluirMultiplos(pontoIds: List<Long>): Result<Int> {
         return try {
             var excluidos = 0
-
             pontoIds.forEach { pontoId ->
                 invoke(pontoId).onSuccess { excluidos++ }
             }
-
             Timber.i("$excluidos pontos excluídos permanentemente de ${pontoIds.size}")
             Result.success(excluidos)
         } catch (e: Exception) {
@@ -88,21 +90,15 @@ class ExcluirPontoPermanenteUseCase @Inject constructor(
 
     /**
      * Esvazia completamente a lixeira.
-     *
-     * @return Result com quantidade de pontos removidos
      */
     suspend fun esvaziarLixeira(): Result<Int> {
         return try {
             val pontosNaLixeira = pontoRepository.listarDeletados()
             var excluidos = 0
-
             pontosNaLixeira.forEach { ponto ->
                 invoke(ponto.id).onSuccess { excluidos++ }
             }
-
-            // Limpa também arquivos órfãos na lixeira
             imageTrashManager.cleanupExpiredFiles()
-
             Timber.i("Lixeira esvaziada: $excluidos pontos removidos")
             Result.success(excluidos)
         } catch (e: Exception) {

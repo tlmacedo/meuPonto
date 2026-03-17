@@ -482,7 +482,7 @@ fun MeuPontoNavHost(
 
             composable(MeuPontoDestinations.LIXEIRA) {
                 LixeiraScreen(
-                    onVoltar = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

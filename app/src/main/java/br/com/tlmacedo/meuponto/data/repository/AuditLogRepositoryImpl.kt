@@ -20,6 +20,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 11.0.0 - Adicionado observarTodos()
  */
 @Singleton
 class AuditLogRepositoryImpl @Inject constructor(
@@ -73,6 +74,12 @@ class AuditLogRepositoryImpl @Inject constructor(
     // ========================================================================
     // Operações Reativas (Flows)
     // ========================================================================
+
+    override fun observarTodos(): Flow<List<AuditLog>> {
+        return auditLogDao.listarTodos().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
 
     override fun observarPorEntidade(entidade: String, entidadeId: Long): Flow<List<AuditLog>> {
         return auditLogDao.listarPorEntidade(entidade, entidadeId).map { entities ->

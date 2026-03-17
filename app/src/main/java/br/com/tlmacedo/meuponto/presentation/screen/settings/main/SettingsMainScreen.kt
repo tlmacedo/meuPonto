@@ -254,7 +254,7 @@ fun SettingsMainScreen(
                     icon = Icons.Outlined.Storage,
                     onClick = onNavigateToBackup
                 )
-                SettingsItem(
+                SettingsNavigationItem(
                     icon = Icons.Outlined.Delete,
                     title = "Lixeira",
                     subtitle = "Itens excluídos recentemente",

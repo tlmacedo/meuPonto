@@ -12,8 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.time.Instant
-import java.time.ZoneId
 import javax.inject.Inject
 
 /**
@@ -51,7 +49,7 @@ class AuditoriaViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             try {
-                auditLogRepository.listarTodos().collect { logs ->
+                auditLogRepository.observarTodos().collect { logs ->
                     val logsFiltrados = aplicarFiltros(logs, _uiState.value.filtroAtivo)
                     val logsAgrupados = agruparPorData(logsFiltrados)
 
@@ -77,9 +75,7 @@ class AuditoriaViewModel @Inject constructor(
 
     private fun aplicarFiltros(logs: List<AuditLog>, filtro: FiltroAuditoria): List<AuditLog> {
         return logs.filter { log ->
-            val logDate = Instant.ofEpochMilli(log.timestamp)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
+            val logDate = log.data
 
             // Filtro por data início
             val passaDataInicio = filtro.dataInicio?.let { logDate >= it } ?: true
@@ -88,27 +84,24 @@ class AuditoriaViewModel @Inject constructor(
             val passaDataFim = filtro.dataFim?.let { logDate <= it } ?: true
 
             // Filtro por ações
-            val passaAcao = filtro.acoes.isEmpty() || log.action in filtro.acoes
+            val passaAcao = filtro.acoes.isEmpty() || log.acao in filtro.acoes
 
             // Filtro por tipo de entidade
-            val passaEntityType = filtro.entityTypes.isEmpty() || log.entityType in filtro.entityTypes
+            val passaEntityType = filtro.entityTypes.isEmpty() || log.entidade in filtro.entityTypes
 
             // Filtro por termo de busca
             val passaBusca = filtro.termoBusca.isBlank() ||
                     log.description.contains(filtro.termoBusca, ignoreCase = true) ||
-                    log.entityType.contains(filtro.termoBusca, ignoreCase = true) ||
-                    log.action.name.contains(filtro.termoBusca, ignoreCase = true)
+                    log.entidade.contains(filtro.termoBusca, ignoreCase = true) ||
+                    log.acao.name.contains(filtro.termoBusca, ignoreCase = true)
 
             passaDataInicio && passaDataFim && passaAcao && passaEntityType && passaBusca
         }
     }
 
     private fun agruparPorData(logs: List<AuditLog>): Map<java.time.LocalDate, List<AuditLog>> {
-        return logs.groupBy { log ->
-            Instant.ofEpochMilli(log.timestamp)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
-        }.toSortedMap(compareByDescending { it })
+        return logs.groupBy { it.data }
+            .toSortedMap(compareByDescending { it })
     }
 
     private fun toggleFiltros() {

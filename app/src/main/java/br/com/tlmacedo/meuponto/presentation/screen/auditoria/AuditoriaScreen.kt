@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FilterListOff
@@ -56,9 +57,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,7 +69,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.tlmacedo.meuponto.domain.model.AuditAction
+import br.com.tlmacedo.meuponto.domain.model.AcaoAuditoria
 import br.com.tlmacedo.meuponto.domain.model.AuditLog
 import java.time.Instant
 import java.time.LocalDate
@@ -260,21 +259,21 @@ private fun FiltrosPanel(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                AuditAction.entries.forEach { action ->
+                AcaoAuditoria.entries.forEach { acao ->
                     FilterChip(
-                        selected = action in filtro.acoes,
+                        selected = acao in filtro.acoes,
                         onClick = {
-                            val novasAcoes = if (action in filtro.acoes) {
-                                filtro.acoes - action
+                            val novasAcoes = if (acao in filtro.acoes) {
+                                filtro.acoes - acao
                             } else {
-                                filtro.acoes + action
+                                filtro.acoes + acao
                             }
                             onFiltroChanged(filtro.copy(acoes = novasAcoes))
                         },
-                        label = { Text(action.descricao) },
+                        label = { Text(acao.descricao) },
                         leadingIcon = {
                             Icon(
-                                imageVector = action.getIcon(),
+                                imageVector = acao.getIcon(),
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -415,13 +414,13 @@ private fun AuditLogItem(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(log.action.getColor().copy(alpha = 0.15f)),
+                    .background(log.acao.getColor().copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = log.action.getIcon(),
+                    imageVector = log.acao.getIcon(),
                     contentDescription = null,
-                    tint = log.action.getColor(),
+                    tint = log.acao.getColor(),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -444,7 +443,7 @@ private fun AuditLogItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = log.entityType,
+                        text = log.entidade,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -462,7 +461,7 @@ private fun AuditLogItem(
             }
 
             // Indicador de detalhes
-            if (log.oldValue != null || log.newValue != null) {
+            if (log.temDetalhes) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = "Ver detalhes",
@@ -508,13 +507,13 @@ private fun LogDetalhesBottomSheet(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(log.action.getColor().copy(alpha = 0.15f)),
+                        .background(log.acao.getColor().copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = log.action.getIcon(),
+                        imageVector = log.acao.getIcon(),
                         contentDescription = null,
-                        tint = log.action.getColor(),
+                        tint = log.acao.getColor(),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -523,12 +522,12 @@ private fun LogDetalhesBottomSheet(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = log.action.descricao,
+                        text = log.acao.descricao,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = log.entityType,
+                        text = log.entidade,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -553,11 +552,11 @@ private fun LogDetalhesBottomSheet(
             // ID da entidade
             DetailSection(
                 titulo = "ID do Registro",
-                conteudo = "#${log.entityId}"
+                conteudo = "#${log.entidadeId}"
             )
 
             // Valor anterior
-            log.oldValue?.let { oldValue ->
+            log.dadosAnteriores?.let { oldValue ->
                 Spacer(modifier = Modifier.height(16.dp))
                 DetailSection(
                     titulo = "Valor Anterior",
@@ -567,7 +566,7 @@ private fun LogDetalhesBottomSheet(
             }
 
             // Novo valor
-            log.newValue?.let { newValue ->
+            log.dadosNovos?.let { newValue ->
                 Spacer(modifier = Modifier.height(16.dp))
                 DetailSection(
                     titulo = "Novo Valor",
@@ -629,26 +628,27 @@ private fun DetailSection(
     }
 }
 
-// === Extensões para AuditAction ===
+// === Extensões para AcaoAuditoria ===
 
 @Composable
-fun AuditAction.getIcon(): ImageVector {
+fun AcaoAuditoria.getIcon(): ImageVector {
     return when (this) {
-        AuditAction.CREATE -> Icons.Default.Add
-        AuditAction.UPDATE -> Icons.Default.Edit
-        AuditAction.DELETE -> Icons.Default.Delete
-        AuditAction.RESTORE -> Icons.Default.RestoreFromTrash
-        AuditAction.PERMANENT_DELETE -> Icons.Default.DeleteForever
+        AcaoAuditoria.INSERT -> Icons.Default.Add
+        AcaoAuditoria.UPDATE -> Icons.Default.Edit
+        AcaoAuditoria.DELETE -> Icons.Default.Delete
+        AcaoAuditoria.SOFT_DELETE -> Icons.Default.DeleteOutline
+        AcaoAuditoria.RESTORE -> Icons.Default.RestoreFromTrash
+        AcaoAuditoria.PERMANENT_DELETE -> Icons.Default.DeleteForever
     }
 }
 
 @Composable
-fun AuditAction.getColor(): Color {
+fun AcaoAuditoria.getColor(): Color {
     return when (this) {
-        AuditAction.CREATE -> MaterialTheme.colorScheme.primary
-        AuditAction.UPDATE -> MaterialTheme.colorScheme.tertiary
-        AuditAction.DELETE -> MaterialTheme.colorScheme.error
-        AuditAction.RESTORE -> MaterialTheme.colorScheme.secondary
-        AuditAction.PERMANENT_DELETE -> MaterialTheme.colorScheme.error
+        AcaoAuditoria.INSERT -> MaterialTheme.colorScheme.primary
+        AcaoAuditoria.UPDATE -> MaterialTheme.colorScheme.tertiary
+        AcaoAuditoria.DELETE, AcaoAuditoria.SOFT_DELETE -> MaterialTheme.colorScheme.error
+        AcaoAuditoria.RESTORE -> MaterialTheme.colorScheme.secondary
+        AcaoAuditoria.PERMANENT_DELETE -> MaterialTheme.colorScheme.error
     }
 }

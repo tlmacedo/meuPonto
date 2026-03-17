@@ -2,7 +2,6 @@
 package br.com.tlmacedo.meuponto.data.repository
 
 import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
-import br.com.tlmacedo.meuponto.data.local.database.entity.PontoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.toDomain
 import br.com.tlmacedo.meuponto.data.local.database.entity.toEntity
 import br.com.tlmacedo.meuponto.domain.model.Ponto
@@ -18,7 +17,7 @@ import javax.inject.Singleton
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 11.0.0 - Adicionado suporte a soft delete e lixeira
+ * @updated 11.0.0 - Adicionado suporte completo a soft delete e lixeira
  */
 @Singleton
 class PontoRepositoryImpl @Inject constructor(
@@ -39,11 +38,17 @@ class PontoRepositoryImpl @Inject constructor(
         pontoDao.excluir(ponto.toEntity())
     }
 
-    // === Consultas padrão ===
+    // === Consultas por ID ===
 
     override suspend fun buscarPorId(id: Long): Ponto? {
         return pontoDao.buscarPorId(id)?.toDomain()
     }
+
+    override fun observarPorId(id: Long): Flow<Ponto?> {
+        return pontoDao.observarPorId(id).map { it?.toDomain() }
+    }
+
+    // === Consultas gerais ===
 
     override fun listarTodos(): Flow<List<Ponto>> {
         return pontoDao.listarTodos().map { entities ->
@@ -51,17 +56,53 @@ class PontoRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun observarTodos(): Flow<List<Ponto>> {
+        return pontoDao.observarTodos().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    // === Consultas por Emprego ===
+
     override fun listarPorEmprego(empregoId: Long): Flow<List<Ponto>> {
         return pontoDao.listarPorEmprego(empregoId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
+    override fun observarPorEmprego(empregoId: Long): Flow<List<Ponto>> {
+        return pontoDao.observarPorEmprego(empregoId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun contarPorEmprego(empregoId: Long): Int {
+        return pontoDao.contarPorEmprego(empregoId)
+    }
+
+    override suspend fun buscarPrimeiraData(empregoId: Long): LocalDate? {
+        return pontoDao.buscarPrimeiraData(empregoId)
+    }
+
+    // === Consultas por Data ===
+
     override fun listarPorData(data: LocalDate): Flow<List<Ponto>> {
         return pontoDao.listarPorData(data).map { entities ->
             entities.map { it.toDomain() }
         }
     }
+
+    override suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): List<Ponto> {
+        return pontoDao.buscarPorEmpregoEData(empregoId, data).map { it.toDomain() }
+    }
+
+    override fun observarPorEmpregoEData(empregoId: Long, data: LocalDate): Flow<List<Ponto>> {
+        return pontoDao.observarPorEmpregoEData(empregoId, data).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    // === Consultas por Período ===
 
     override fun listarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): Flow<List<Ponto>> {
         return pontoDao.listarPorPeriodo(dataInicio, dataFim).map { entities ->
@@ -77,6 +118,30 @@ class PontoRepositoryImpl @Inject constructor(
         return pontoDao.listarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim).map { entities ->
             entities.map { it.toDomain() }
         }
+    }
+
+    override suspend fun buscarPorEmpregoEPeriodo(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): List<Ponto> {
+        return pontoDao.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim).map { it.toDomain() }
+    }
+
+    override fun observarPorEmpregoEPeriodo(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): Flow<List<Ponto>> {
+        return pontoDao.observarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    // === Atualização de foto ===
+
+    override suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?) {
+        pontoDao.atualizarFotoComprovante(pontoId, fotoPath)
     }
 
     // === Soft Delete e Lixeira ===
@@ -105,5 +170,9 @@ class PontoRepositoryImpl @Inject constructor(
 
     override suspend fun contarDeletados(): Int {
         return pontoDao.contarDeletados()
+    }
+
+    override suspend fun restaurar(pontoId: Long) {
+        pontoDao.restaurar(pontoId, System.currentTimeMillis())
     }
 }

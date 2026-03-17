@@ -106,6 +106,10 @@ fun LixeiraScreen(
     LaunchedEffect(Unit) {
         viewModel.eventos.collect { evento ->
             when (evento) {
+                is LixeiraUiEvent.Erro -> {
+                    snackbarHostState.showSnackbar(evento.mensagem)
+                }
+
                 is LixeiraUiEvent.Voltar -> onNavigateBack()
 
                 is LixeiraUiEvent.ItemRestaurado -> {

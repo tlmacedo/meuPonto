@@ -1,5 +1,5 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/lixeira/components/LixeiraItemCard.kt
-package br.com.tlmacedo.meuponto.presentation.screen.settings.lixeira.components
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/components/LixeiraItemCard.kt
+package br.com.tlmacedo.meuponto.presentation.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -34,22 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import br.com.tlmacedo.meuponto.presentation.screen.lixeira.ItemLixeira
 import br.com.tlmacedo.meuponto.presentation.screen.lixeira.TipoItemLixeira
-import br.com.tlmacedo.meuponto.presentation.screen.settings.lixeira.ItemLixeira
-import br.com.tlmacedo.meuponto.presentation.screen.settings.lixeira.TipoItemLixeira
 
 /**
  * Card de item na lixeira.
- *
- * Exibe informações do item excluído com ações de restaurar ou excluir permanentemente.
- *
- * @param item Item da lixeira a ser exibido
- * @param isSelected Se o item está selecionado
- * @param modoSelecao Se está em modo de seleção múltipla
- * @param onRestaurar Callback ao restaurar o item
- * @param onExcluirPermanente Callback ao excluir permanentemente
- * @param onSelecionar Callback ao selecionar/desselecionar
- * @param onLongPress Callback ao pressionar longamente (ativa seleção)
  *
  * @author Thiago
  * @since 9.2.0
@@ -196,9 +185,6 @@ fun LixeiraItemCard(
     }
 }
 
-/**
- * Retorna ícone para o tipo de item.
- */
 @Composable
 private fun getIconForTipo(tipo: TipoItemLixeira): ImageVector {
     return when (tipo) {
@@ -210,9 +196,6 @@ private fun getIconForTipo(tipo: TipoItemLixeira): ImageVector {
     }
 }
 
-/**
- * Retorna cor para o tipo de item.
- */
 @Composable
 private fun getColorForTipo(tipo: TipoItemLixeira) = when (tipo) {
     TipoItemLixeira.PONTO -> MaterialTheme.colorScheme.primary
@@ -222,9 +205,6 @@ private fun getColorForTipo(tipo: TipoItemLixeira) = when (tipo) {
     TipoItemLixeira.VERSAO_JORNADA -> MaterialTheme.colorScheme.outline
 }
 
-/**
- * Retorna label para o tipo de item.
- */
 private fun getLabelForTipo(tipo: TipoItemLixeira): String = when (tipo) {
     TipoItemLixeira.PONTO -> "PONTO"
     TipoItemLixeira.EMPREGO -> "EMPREGO"

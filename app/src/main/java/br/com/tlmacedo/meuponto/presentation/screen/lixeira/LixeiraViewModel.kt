@@ -104,7 +104,7 @@ class LixeiraViewModel @Inject constructor(
     private fun carregarEmpregos() {
         viewModelScope.launch {
             try {
-                empregoRepository.listarTodos().collect { empregos ->
+                empregoRepository.observarTodos().collect { empregos ->
                     empregosCache = empregos.associate { it.id to it.nome }
                 }
             } catch (e: Exception) {
@@ -338,7 +338,7 @@ class LixeiraViewModel @Inject constructor(
             excluirPontoPermanenteUseCase.esvaziarLixeira()
                 .onSuccess { quantidade ->
                     _uiState.update { it.copy(showConfirmacaoEsvaziar = false) }
-                    emitirEvento(LixeiraUiEvent.LixeiraEsvaziada)
+                    emitirEvento(LixeiraUiEvent.LixeiraEsvaziada(quantidade))
                 }
                 .onFailure { e ->
                     _uiState.update {

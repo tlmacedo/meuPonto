@@ -220,6 +220,37 @@ data class Ponto(
         )
     }
 
+    /**
+     * Converte o ponto para um mapa de auditoria.
+     * Usado para registrar valores anteriores/novos em logs de auditoria.
+     */
+    fun toAuditMap(): Map<String, Any?> = buildMap {
+        put("id", id)
+        put("empregoId", empregoId)
+        put("data", dataFormatada)
+        put("horaReal", horaFormatada)
+        put("horaConsiderada", horaConsideradaFormatada)
+        nsr?.let { put("nsr", it) }
+        observacao?.let { put("observacao", it) }
+        if (isEditadoManualmente) put("editadoManualmente", true)
+        latitude?.let { put("latitude", it) }
+        longitude?.let { put("longitude", it) }
+        endereco?.let { put("endereco", it) }
+        marcadorId?.let { put("marcadorId", it) }
+        justificativaInconsistencia?.let { put("justificativa", it) }
+        fotoComprovantePath?.let { put("fotoComprovante", it) }
+        if (isDeleted) put("naLixeira", true)
+    }
+
+    /**
+     * Converte para string formatada para auditoria.
+     */
+    fun toAuditString(): String {
+        return toAuditMap().entries.joinToString("\n") { (key, value) ->
+            "$key: $value"
+        }
+    }
+
     companion object {
         /**
          * Cria um novo ponto com horaConsiderada igual a dataHora (sem tolerância).

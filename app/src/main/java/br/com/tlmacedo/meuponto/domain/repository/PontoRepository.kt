@@ -10,7 +10,7 @@ import java.time.LocalDate
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 11.0.0 - Adicionado suporte a soft delete e lixeira
+ * @updated 11.0.0 - Adicionado suporte completo a soft delete e lixeira
  */
 interface PontoRepository {
 
@@ -91,4 +91,6 @@ interface PontoRepository {
     suspend fun excluirPermanente(pontoId: Long)
 
     suspend fun contarDeletados(): Int
+
+    suspend fun restaurar(pontoId: Long)
 }

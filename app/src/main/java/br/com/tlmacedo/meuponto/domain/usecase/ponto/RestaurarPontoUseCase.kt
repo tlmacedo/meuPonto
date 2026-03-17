@@ -1,12 +1,16 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/RestaurarPontoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
-import br.com.tlmacedo.meuponto.domain.model.AuditAction
+import br.com.tlmacedo.meuponto.domain.model.AcaoAuditoria
+import br.com.tlmacedo.meuponto.domain.model.AuditLog
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.AuditLogRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.util.foto.ImageTrashManager
+import br.com.tlmacedo.meuponto.util.foto.RestoreResult
+import com.google.gson.Gson
 import timber.log.Timber
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
@@ -20,7 +24,8 @@ import javax.inject.Inject
 class RestaurarPontoUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val auditLogRepository: AuditLogRepository,
-    private val imageTrashManager: ImageTrashManager
+    private val imageTrashManager: ImageTrashManager,
+    private val gson: Gson
 ) {
     /**
      * Restaura um ponto específico.
@@ -41,14 +46,25 @@ class RestaurarPontoUseCase @Inject constructor(
             }
 
             // Restaura a foto da lixeira, se existir
-            val fotoRestaurada = ponto.fotoPath?.let { fotoPath ->
-                val restaurada = imageTrashManager.restoreFromTrash(fotoPath)
-                if (restaurada) {
-                    Timber.d("Foto restaurada da lixeira: $fotoPath")
-                    fotoPath
-                } else {
-                    Timber.w("Não foi possível restaurar foto da lixeira: $fotoPath")
-                    null // Foto perdida, mas restaura o ponto mesmo assim
+            var fotoRestauradaPath: String? = ponto.fotoComprovantePath
+            ponto.fotoComprovantePath?.let { fotoPath ->
+                when (val resultado = imageTrashManager.restoreFromTrash(fotoPath)) {
+                    is RestoreResult.Success -> {
+                        Timber.d("Foto restaurada da lixeira: ${resultado.originalPath}")
+                        fotoRestauradaPath = resultado.originalPath
+                    }
+                    is RestoreResult.FileNotFound -> {
+                        Timber.w("Foto não encontrada na lixeira: $fotoPath")
+                        fotoRestauradaPath = null // Foto perdida
+                    }
+                    is RestoreResult.InvalidMetadata -> {
+                        Timber.w("Metadados inválidos para foto: $fotoPath")
+                        fotoRestauradaPath = null
+                    }
+                    is RestoreResult.Error -> {
+                        Timber.w("Erro ao restaurar foto: ${resultado.message}")
+                        // Mantém o path original, pode ser que a foto ainda exista
+                    }
                 }
             }
 
@@ -56,20 +72,23 @@ class RestaurarPontoUseCase @Inject constructor(
             val pontoRestaurado = ponto.copy(
                 isDeleted = false,
                 deletedAt = null,
-                fotoPath = fotoRestaurada ?: ponto.fotoPath,
-                updatedAt = System.currentTimeMillis()
+                fotoComprovantePath = fotoRestauradaPath,
+                atualizadoEm = LocalDateTime.now()
             )
 
             pontoRepository.atualizar(pontoRestaurado)
 
             // Registra na auditoria
-            auditLogRepository.registrar(
-                action = AuditAction.RESTORE,
-                entityType = "Ponto",
-                entityId = pontoId,
-                description = "Ponto restaurado da lixeira",
-                newValue = pontoRestaurado.toString()
+            val auditLog = AuditLog(
+                entidade = "pontos",
+                entidadeId = pontoId,
+                acao = AcaoAuditoria.RESTORE,
+                motivo = "Ponto restaurado da lixeira",
+                dadosAnteriores = gson.toJson(ponto.toAuditMap()),
+                dadosNovos = gson.toJson(pontoRestaurado.toAuditMap()),
+                criadoEm = LocalDateTime.now()
             )
+            auditLogRepository.inserir(auditLog)
 
             Timber.i("Ponto restaurado com sucesso: $pontoId")
             Result.success(pontoRestaurado)
