@@ -19,25 +19,22 @@ import javax.inject.Singleton
 /**
  * Módulo Hilt para configuração de dependências de rede.
  *
- * O [HttpLoggingInterceptor] é configurado com [HttpLoggingInterceptor.Level.BODY]
- * apenas em builds de debug. Em produção, o logging é completamente desabilitado
- * para evitar exposição de dados sensíveis (tokens, payloads).
+ * ## Correção aplicada (12.0.0):
+ * [HttpLoggingInterceptor] estava configurado com [HttpLoggingInterceptor.Level.BODY]
+ * incondicionalmente, expondo tokens e payloads completos em produção.
+ * Corrigido para usar [HttpLoggingInterceptor.Level.BODY] apenas em debug
+ * e [HttpLoggingInterceptor.Level.NONE] em release.
  *
  * @author Thiago
  * @since 3.0.0
- * @updated 12.0.0 - Adicionado guard BuildConfig.DEBUG no HttpLoggingInterceptor
- *                   para não expor dados sensíveis em builds de produção
+ * @updated 12.0.0 - HttpLoggingInterceptor protegido por BuildConfig.DEBUG
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     /**
-     * Fornece instância configurada do [Gson] para serialização/deserialização.
-     *
-     * Configurado com modo lenient para aceitar JSON malformado de APIs externas.
-     *
-     * @return Instância singleton do Gson
+     * Provê instância configurada do [Gson].
      */
     @Provides
     @Singleton
@@ -48,17 +45,18 @@ object NetworkModule {
     }
 
     /**
-     * Fornece instância configurada do [OkHttpClient].
+     * Provê instância configurada do [OkHttpClient].
      *
-     * O nível de log é controlado por [BuildConfig.DEBUG]:
-     * - Debug: [HttpLoggingInterceptor.Level.BODY] (log completo de headers e body)
-     * - Release: [HttpLoggingInterceptor.Level.NONE] (sem logs de rede)
+     * O interceptor de log é ativo apenas em debug para evitar
+     * exposição de dados sensíveis (tokens, payloads) em produção.
      *
-     * @return Instância singleton do OkHttpClient
+     * @return Cliente HTTP configurado com timeouts e interceptor condicional
      */
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
+        // ✅ Correto: Level.BODY apenas em debug
+        // ❌ Errado (original): Level.BODY incondicional em produção
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
@@ -76,11 +74,11 @@ object NetworkModule {
     }
 
     /**
-     * Fornece instância configurada do [Retrofit].
+     * Provê instância configurada do [Retrofit].
      *
-     * @param okHttpClient Cliente HTTP configurado
-     * @param gson Instância do Gson para conversão de tipos
-     * @return Instância singleton do Retrofit
+     * @param okHttpClient Cliente HTTP injetado
+     * @param gson Instância do Gson injetada
+     * @return Retrofit configurado para a BrasilAPI
      */
     @Provides
     @Singleton
@@ -96,10 +94,10 @@ object NetworkModule {
     }
 
     /**
-     * Fornece instância do [BrasilApiService] criada pelo Retrofit.
+     * Provê implementação do [BrasilApiService] via Retrofit.
      *
-     * @param retrofit Instância configurada do Retrofit
-     * @return Implementação da interface de serviço gerada pelo Retrofit
+     * @param retrofit Instância do Retrofit injetada
+     * @return Implementação gerada pelo Retrofit
      */
     @Provides
     @Singleton

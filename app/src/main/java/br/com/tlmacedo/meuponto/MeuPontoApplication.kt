@@ -17,25 +17,21 @@ import javax.inject.Inject
 /**
  * Classe principal da aplicação MeuPonto.
  *
- * Responsável pela inicialização do Hilt para injeção de dependências
- * e configuração inicial do aplicativo.
+ * Implementa [Configuration.Provider] para integração entre Hilt e WorkManager,
+ * permitindo injeção de dependências nos Workers via [HiltWorkerFactory].
  *
- * ## Inicialização do WorkManager
- * O app implementa [Configuration.Provider] com [HiltWorkerFactory], o que
- * significa que o WorkManager é inicializado de forma lazy e já está disponível
- * antes mesmo de [onCreate] ser invocado. Por isso, não é necessário nenhum
- * delay artificial antes de agendar workers.
- *
- * ## Logging
- * Em debug: [Timber.DebugTree] (log no Logcat).
- * Em release: adicionar [CrashlyticsTree] na Fase 6 do plano de desenvolvimento.
+ * ## Correção aplicada (12.0.0):
+ * Removido `kotlinx.coroutines.delay(1000)` que era usado como workaround
+ * para aguardar inicialização do WorkManager. Como esta classe implementa
+ * [Configuration.Provider], o WorkManager usa [workManagerConfiguration]
+ * antes mesmo do [onCreate] ser chamado — o delay era desnecessário e frágil
+ * (poderia falhar em dispositivos lentos ou ser removido em dispositivos rápidos
+ * onde o delay seria maior que o necessário).
  *
  * @author Thiago
  * @since 1.0.0
  * @updated 11.0.0 - Adicionado suporte a WorkManager com Hilt
- * @updated 12.0.0 - Removido delay(1000) desnecessário no agendamento do
- *                   TrashCleanupWorker; o WorkManager já está disponível via
- *                   Configuration.Provider antes do onCreate
+ * @updated 12.0.0 - Removido delay desnecessário no agendamento do TrashCleanupWorker
  */
 @HiltAndroidApp
 class MeuPontoApplication : Application(), Configuration.Provider {
@@ -47,17 +43,17 @@ class MeuPontoApplication : Application(), Configuration.Provider {
     lateinit var migracaoManager: MigracaoManager
 
     /**
-     * Escopo de coroutines com ciclo de vida da aplicação.
-     * Usa [SupervisorJob] para que falhas individuais não cancelem outras coroutines.
+     * Escopo de coroutine vinculado ao ciclo de vida da aplicação.
+     * Usa [SupervisorJob] para que falhas em uma coroutine não cancelem as demais.
      */
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
-     * Configuração do WorkManager usando [HiltWorkerFactory].
+     * Configuração do WorkManager com suporte a injeção de dependências via Hilt.
      *
-     * Ao implementar [Configuration.Provider], o WorkManager é inicializado
-     * de forma lazy pelo sistema na primeira chamada, já com o factory do Hilt.
-     * Isso garante que workers com injeção de dependências funcionem corretamente.
+     * Esta propriedade é acessada pelo WorkManager antes do [onCreate],
+     * garantindo que [HiltWorkerFactory] esteja disponível quando qualquer
+     * Worker for instanciado.
      */
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -70,18 +66,14 @@ class MeuPontoApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-
         inicializarLogging()
         executarMigracoes()
         agendarWorkers()
     }
 
     /**
-     * Inicializa o Timber conforme o build type.
-     *
-     * Em debug: planta [Timber.DebugTree] com log completo no Logcat.
-     * Em release: não planta nenhuma árvore até que o Crashlytics seja
-     * configurado na Fase 6 do plano de desenvolvimento.
+     * Inicializa o Timber com DebugTree apenas em debug.
+     * Em produção nenhuma árvore é plantada até a configuração do Crashlytics (Fase 6).
      */
     private fun inicializarLogging() {
         if (BuildConfig.DEBUG) {
@@ -92,9 +84,7 @@ class MeuPontoApplication : Application(), Configuration.Provider {
 
     /**
      * Executa migrações de dados pendentes em background.
-     *
-     * Falhas são capturadas e registradas via Timber sem propagar
-     * para o escopo principal da aplicação.
+     * Falhas são capturadas e registradas sem propagar para o escopo principal.
      */
     private fun executarMigracoes() {
         applicationScope.launch {
@@ -109,11 +99,16 @@ class MeuPontoApplication : Application(), Configuration.Provider {
     /**
      * Agenda workers periódicos da aplicação.
      *
-     * O WorkManager já está disponível via [Configuration.Provider], portanto
-     * não é necessário nenhum delay antes de chamar [TrashCleanupWorker.schedule].
+     * ## Correção (12.0.0):
+     * O [kotlinx.coroutines.delay] de 1000ms foi removido. Como esta classe
+     * implementa [Configuration.Provider], o WorkManager já está configurado
+     * com [HiltWorkerFactory] antes do [onCreate] ser chamado.
+     * O delay era um workaround desnecessário e frágil.
      */
     private fun agendarWorkers() {
         applicationScope.launch {
+            // ✅ Correto: sem delay — WorkManager já está pronto via Configuration.Provider
+            // ❌ Errado (original): kotlinx.coroutines.delay(1000) antes do schedule
             TrashCleanupWorker.schedule(this@MeuPontoApplication)
         }
     }

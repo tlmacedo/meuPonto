@@ -2,36 +2,47 @@
 <!--
     Caminhos de arquivos expostos via FileProvider para compartilhamento seguro.
 
-    ATENÇÃO: O nome e path de cada entrada devem corresponder exatamente
-    ao que é usado no código.
+    ATENÇÃO: O atributo `path` deve corresponder EXATAMENTE ao diretório
+    usado no código. Divergências causam IllegalArgumentException em tempo
+    de execução ao tentar compartilhar arquivos via FileProvider.
 
-    - temp_camera: usado por PhotoCaptureManager (TEMP_DIR = "temp_camera")
-      para arquivos temporários durante captura via câmera.
-      Alterado de "temp/" para "temp_camera/" para alinhar com
-      PhotoCaptureManager.kt (corrigido em 12.0.0).
+    Mapeamento de código → XML:
+    - PhotoCaptureManager.TEMP_DIR = "temp_camera"
+      → <cache-path name="temp_camera" path="temp_camera/" />
+      CORRIGIDO: era "temp/" mas o código usa "temp_camera/"
 
-    - comprovantes: usado por ComprovanteImageStorage (ROOT_DIR = "comprovantes")
-      para fotos permanentes de comprovantes de ponto.
+    - ComprovanteImageStorage.ROOT_DIR = "comprovantes"
+      → <files-path name="comprovantes" path="comprovantes/" />
+      (correto, sem alteração)
 
-    Referências no código:
-    - PhotoCaptureManager: context.cacheDir + "temp_camera/"
-    - ComprovanteImageStorage: context.filesDir + "comprovantes/"
-    - FileProvider authority: "${applicationId}.fileprovider"
+    FileProvider authority: "${applicationId}.fileprovider"
+    Declarado em AndroidManifest.xml e usado em PhotoCaptureManager.
 -->
 <paths>
-    <!-- Diretório de cache para arquivos temporários da câmera -->
-    <!-- Corresponde a: context.cacheDir/temp_camera/ -->
+    <!--
+        Diretório de cache para arquivos temporários da câmera.
+        Corresponde a: context.cacheDir/temp_camera/
+        Usado por: PhotoCaptureManager.prepareForCameraCapture()
+        CORRIGIDO em 12.0.0: era path="temp/" — causaria IllegalArgumentException
+        pois PhotoCaptureManager usa File(context.cacheDir, "temp_camera")
+    -->
     <cache-path
         name="temp_camera"
         path="temp_camera/" />
 
-    <!-- Diretório de arquivos internos para fotos permanentes -->
-    <!-- Corresponde a: context.filesDir/comprovantes/ -->
+    <!--
+        Diretório de arquivos internos para fotos permanentes de comprovante.
+        Corresponde a: context.filesDir/comprovantes/
+        Usado por: ComprovanteImageStorage e FotoStorageManager
+    -->
     <files-path
         name="comprovantes"
         path="comprovantes/" />
 
-    <!-- Diretório externo (reservado para exportação futura de relatórios) -->
+    <!--
+        Diretório externo reservado para exportação futura de relatórios.
+        Não utilizado atualmente — reservado para Fase 4 (Relatórios).
+    -->
     <external-files-path
         name="external_comprovantes"
         path="comprovantes/" />

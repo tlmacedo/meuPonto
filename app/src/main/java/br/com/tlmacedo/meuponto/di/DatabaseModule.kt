@@ -21,13 +21,14 @@ import javax.inject.Singleton
 /**
  * Módulo Hilt para injeção de dependências relacionadas ao banco de dados.
  *
- * Os dados de seed inseridos em [inserirDadosIniciais] são exclusivos
- * para o ambiente de desenvolvimento e protegidos por [BuildConfig.DEBUG].
- * Em produção, o banco é criado vazio.
+ * ## Correção aplicada (12.0.0):
+ * [inserirDadosIniciais] era chamado incondicionalmente no callback [RoomDatabase.Callback.onCreate],
+ * inserindo o emprego fictício "SIDIA Teste" para todos os usuários em produção.
+ * Corrigido para executar apenas quando [BuildConfig.DEBUG] for verdadeiro.
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 10.0.0 - Migração 22->23: Sistema de foto de comprovante com metadados
+ * @updated 10.0.0 - Migração 22->23: Sistema de foto de comprovante
  * @updated 12.0.0 - Dados de seed protegidos por BuildConfig.DEBUG
  */
 @Module
@@ -35,13 +36,13 @@ import javax.inject.Singleton
 object DatabaseModule {
 
     /**
-     * Fornece a instância singleton do banco de dados Room.
+     * Provê a instância singleton do banco de dados Room.
      *
-     * Aplica todas as migrações incrementais e registra o callback
-     * de criação somente se em ambiente de debug.
+     * Inclui todas as migrações da versão 1 até a 26 e um callback
+     * para inserção de dados de desenvolvimento apenas em debug.
      *
      * @param context Contexto da aplicação
-     * @return Instância singleton do [MeuPontoDatabase]
+     * @return Instância configurada do [MeuPontoDatabase]
      */
     @Provides
     @Singleton
@@ -85,13 +86,13 @@ object DatabaseModule {
     }
 
     /**
-     * Fornece o gerenciador de checkpoint WAL.
+     * Provê o gerenciador de checkpoint WAL.
      *
      * Garante persistência imediata dos dados após operações de escrita,
-     * evitando perda de dados em caso de crash logo após uma transação.
+     * evitando perda de dados em crashes do processo.
      *
-     * @param database Instância do banco de dados
-     * @return Instância singleton do [DatabaseCheckpointManager]
+     * @param database Instância do banco injetada
+     * @return [DatabaseCheckpointManager] configurado
      */
     @Provides
     @Singleton
@@ -102,19 +103,20 @@ object DatabaseModule {
     }
 
     /**
-     * Cria o callback de inicialização do banco.
+     * Cria o callback do banco de dados para inserção de dados iniciais.
      *
-     * Os dados iniciais de desenvolvimento são inseridos apenas quando
-     * [BuildConfig.DEBUG] é verdadeiro, garantindo que nenhum dado fictício
-     * chegue ao ambiente de produção.
+     * ## Correção (12.0.0):
+     * A chamada a [inserirDadosIniciais] agora está protegida por [BuildConfig.DEBUG].
+     * O emprego "SIDIA Teste" não será mais inserido em builds de produção.
      *
-     * @return [RoomDatabase.Callback] configurado conforme o build type
+     * @return [RoomDatabase.Callback] configurado
      */
     private fun createDatabaseCallback(): RoomDatabase.Callback {
         return object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                // Dados de seed exclusivos para ambiente de desenvolvimento
+                // ✅ Correto: seed apenas em ambiente de desenvolvimento
+                // ❌ Errado (original): inserirDadosIniciais(db) sem guarda
                 if (BuildConfig.DEBUG) {
                     inserirDadosIniciais(db)
                 }
@@ -123,22 +125,22 @@ object DatabaseModule {
     }
 
     /**
-     * Insere dados iniciais para facilitar o desenvolvimento e testes manuais.
+     * Insere dados iniciais para desenvolvimento e testes.
      *
-     * ATENÇÃO: Este método só é chamado quando [BuildConfig.DEBUG] == true.
+     * ATENÇÃO: Este método só é chamado quando [BuildConfig.DEBUG] é true.
      * Nunca deve ser chamado em produção.
      *
      * Dados inseridos:
-     * - 1 emprego de teste ("SIDIA Teste")
-     * - Configuração de emprego com campos de foto
-     * - Versão de jornada inicial
-     * - Horários por dia da semana (dias úteis + finais de semana)
+     * - 1 emprego (SIDIA Teste)
+     * - Configuração do emprego com suporte a foto
+     * - 1 versão de jornada (carga de 492min/dia)
+     * - Horários para dias úteis (seg-sex) e folga (sáb-dom)
      *
-     * @param db Banco de dados em criação
+     * @param db Conexão com o banco durante a criação
      */
     private fun inserirDadosIniciais(db: SupportSQLiteDatabase) {
         val now = LocalDateTime.now().toString()
-        val dataAdmissao = "2021-11-10"
+        val dataAdmissao = "2025-01-01"
 
         // ════════════════════════════════════════════════════════════════════
         // 1. EMPREGO
@@ -149,7 +151,7 @@ object DatabaseModule {
                 id, nome, dataInicioTrabalho, descricao, ativo, arquivado, ordem, criadoEm, atualizadoEm
             ) VALUES (
                 1,
-                'SIDIA Teste',
+                'Emprego Teste',
                 '$dataAdmissao',
                 'Emprego para desenvolvimento',
                 1,
@@ -162,7 +164,7 @@ object DatabaseModule {
         )
 
         // ════════════════════════════════════════════════════════════════════
-        // 2. CONFIGURAÇÃO DO EMPREGO
+        // 2. CONFIGURAÇÃO DO EMPREGO (COM CAMPOS DE FOTO)
         // ════════════════════════════════════════════════════════════════════
         db.execSQL(
             """
@@ -190,8 +192,7 @@ object DatabaseModule {
                 atualizadoEm
             ) VALUES (
                 1, 0, 'NUMERICO', 0, 0, 1,
-                0, 0, 'JPEG', 85, 1920, 1024,
-                1, 0, 1, 0, 1, 1, 1,
+                0, 0, 'JPEG', 85, 1920, 1024, 1, 0, 1, 0, 1, 1, 1,
                 '$now', '$now'
             )
             """.trimIndent()
@@ -225,15 +226,13 @@ object DatabaseModule {
         // ════════════════════════════════════════════════════════════════════
         // 4. HORÁRIOS POR DIA DA SEMANA
         // ════════════════════════════════════════════════════════════════════
-        val diasUteis = listOf("SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA")
-        diasUteis.forEach { dia ->
+        listOf("SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA").forEach { dia ->
             db.execSQL(
                 """
                 INSERT INTO horarios_dia_semana (
-                    empregoId, versaoJornadaId, diaSemana, ativo,
-                    cargaHorariaMinutos, entradaIdeal, saidaIntervaloIdeal,
-                    voltaIntervaloIdeal, saidaIdeal, intervaloMinimoMinutos,
-                    toleranciaIntervaloMaisMinutos, criadoEm, atualizadoEm
+                    empregoId, versaoJornadaId, diaSemana, ativo, cargaHorariaMinutos,
+                    entradaIdeal, saidaIntervaloIdeal, voltaIntervaloIdeal, saidaIdeal,
+                    intervaloMinimoMinutos, toleranciaIntervaloMaisMinutos, criadoEm, atualizadoEm
                 ) VALUES (
                     1, 1, '$dia', 1, 492,
                     '08:00', '12:00', '13:00', '17:12',
@@ -243,15 +242,13 @@ object DatabaseModule {
             )
         }
 
-        val diasFolga = listOf("SABADO", "DOMINGO")
-        diasFolga.forEach { dia ->
+        listOf("SABADO", "DOMINGO").forEach { dia ->
             db.execSQL(
                 """
                 INSERT INTO horarios_dia_semana (
-                    empregoId, versaoJornadaId, diaSemana, ativo,
-                    cargaHorariaMinutos, entradaIdeal, saidaIntervaloIdeal,
-                    voltaIntervaloIdeal, saidaIdeal, intervaloMinimoMinutos,
-                    toleranciaIntervaloMaisMinutos, criadoEm, atualizadoEm
+                    empregoId, versaoJornadaId, diaSemana, ativo, cargaHorariaMinutos,
+                    entradaIdeal, saidaIntervaloIdeal, voltaIntervaloIdeal, saidaIdeal,
+                    intervaloMinimoMinutos, toleranciaIntervaloMaisMinutos, criadoEm, atualizadoEm
                 ) VALUES (
                     1, 1, '$dia', 0, 0,
                     NULL, NULL, NULL, NULL,
