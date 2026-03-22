@@ -2,6 +2,7 @@
 package br.com.tlmacedo.meuponto.util.foto
 
 import androidx.exifinterface.media.ExifInterface
+import timber.log.Timber
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -12,25 +13,41 @@ import kotlin.math.abs
 /**
  * Gravador de metadados EXIF em imagens JPEG.
  *
+ * Responsável por escrever informações de data/hora, localização GPS
+ * e comentários nos metadados EXIF de arquivos JPEG processados.
+ *
+ * ATENÇÃO: EXIF só é suportado em arquivos JPEG. Não usar com PNG.
+ *
  * @author Thiago
  * @since 10.0.0
+ * @updated 12.0.0 - e.printStackTrace() substituído por Timber.e/w();
+ *                   adicionado KDoc completo em todas as funções públicas
  */
 @Singleton
 class ExifDataWriter @Inject constructor() {
 
     companion object {
+        /** Tag de software gravada em todas as imagens do app */
         const val SOFTWARE_TAG = "MeuPonto App"
+
+        /** Formato de data/hora exigido pelo padrão EXIF */
         private val EXIF_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss")
     }
 
     /**
-     * Escreve metadados completos em uma imagem.
+     * Escreve metadados completos em uma imagem JPEG.
+     *
+     * Grava: data/hora, localização GPS (se disponível), comentário
+     * personalizado, descrição e tag de software.
+     *
+     * @param file Arquivo JPEG de destino
+     * @param metadata Metadados a serem gravados
+     * @return true se gravado com sucesso, false em caso de erro
      */
     fun writeMetadata(file: File, metadata: FotoExifMetadata): Boolean {
         return try {
             val exif = ExifInterface(file)
 
-            // Data e hora
             metadata.dateTime?.let { dateTime ->
                 val formattedDate = dateTime.format(EXIF_DATE_FORMAT)
                 exif.setAttribute(ExifInterface.TAG_DATETIME, formattedDate)
@@ -38,30 +55,34 @@ class ExifDataWriter @Inject constructor() {
                 exif.setAttribute(ExifInterface.TAG_DATETIME_DIGITIZED, formattedDate)
             }
 
-            // Localização GPS
             if (metadata.latitude != null && metadata.longitude != null) {
                 writeGpsData(exif, metadata.latitude, metadata.longitude, metadata.altitude)
             }
 
-            // Comentário do usuário
-            metadata.userComment?.let { exif.setAttribute(ExifInterface.TAG_USER_COMMENT, it) }
+            metadata.userComment?.let {
+                exif.setAttribute(ExifInterface.TAG_USER_COMMENT, it)
+            }
+            metadata.description?.let {
+                exif.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, it)
+            }
 
-            // Descrição
-            metadata.description?.let { exif.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, it) }
-
-            // Software
             exif.setAttribute(ExifInterface.TAG_SOFTWARE, SOFTWARE_TAG)
-
             exif.saveAttributes()
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao gravar metadados EXIF no arquivo: ${file.name}")
             false
         }
     }
 
     /**
-     * Escreve apenas dados de localização GPS.
+     * Escreve apenas dados de localização GPS em um arquivo JPEG existente.
+     *
+     * @param file Arquivo JPEG de destino
+     * @param latitude Latitude em graus decimais
+     * @param longitude Longitude em graus decimais
+     * @param altitude Altitude em metros (opcional)
+     * @return true se gravado com sucesso
      */
     fun writeGpsLocation(
         file: File,
@@ -75,34 +96,17 @@ class ExifDataWriter @Inject constructor() {
             exif.saveAttributes()
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao gravar dados GPS no arquivo: ${file.name}")
             false
         }
     }
 
-    private fun writeGpsData(
-        exif: ExifInterface,
-        latitude: Double,
-        longitude: Double,
-        altitude: Double?
-    ) {
-        // Latitude
-        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, if (latitude >= 0) "N" else "S")
-        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, decimalToDMS(abs(latitude)))
-
-        // Longitude
-        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, if (longitude >= 0) "E" else "W")
-        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, decimalToDMS(abs(longitude)))
-
-        // Altitude
-        altitude?.let { alt ->
-            exif.setAttribute(ExifInterface.TAG_GPS_ALTITUDE_REF, if (alt >= 0) "0" else "1")
-            exif.setAttribute(ExifInterface.TAG_GPS_ALTITUDE, "${abs(alt).toLong()}/1")
-        }
-    }
-
     /**
-     * Escreve apenas data/hora.
+     * Escreve apenas data e hora em um arquivo JPEG existente.
+     *
+     * @param file Arquivo JPEG de destino
+     * @param dateTime Data e hora a serem gravadas
+     * @return true se gravado com sucesso
      */
     fun writeDateTime(file: File, dateTime: LocalDateTime): Boolean {
         return try {
@@ -114,13 +118,17 @@ class ExifDataWriter @Inject constructor() {
             exif.saveAttributes()
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao gravar data/hora EXIF no arquivo: ${file.name}")
             false
         }
     }
 
     /**
-     * Escreve comentário personalizado.
+     * Escreve comentário personalizado em um arquivo JPEG existente.
+     *
+     * @param file Arquivo JPEG de destino
+     * @param comment Texto do comentário
+     * @return true se gravado com sucesso
      */
     fun writeUserComment(file: File, comment: String): Boolean {
         return try {
@@ -129,13 +137,16 @@ class ExifDataWriter @Inject constructor() {
             exif.saveAttributes()
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao gravar comentário EXIF no arquivo: ${file.name}")
             false
         }
     }
 
     /**
      * Lê metadados EXIF de uma imagem.
+     *
+     * @param file Arquivo JPEG a ser lido
+     * @return [FotoExifMetadata] com os dados lidos ou null em caso de erro
      */
     fun readMetadata(file: File): FotoExifMetadata? {
         return try {
@@ -143,7 +154,12 @@ class ExifDataWriter @Inject constructor() {
 
             val dateTimeStr = exif.getAttribute(ExifInterface.TAG_DATETIME)
             val dateTime = dateTimeStr?.let {
-                try { LocalDateTime.parse(it, EXIF_DATE_FORMAT) } catch (e: Exception) { null }
+                try {
+                    LocalDateTime.parse(it, EXIF_DATE_FORMAT)
+                } catch (e: Exception) {
+                    Timber.w("Formato de data EXIF inválido: $it")
+                    null
+                }
             }
 
             val latLong = FloatArray(2)
@@ -159,12 +175,49 @@ class ExifDataWriter @Inject constructor() {
                 software = exif.getAttribute(ExifInterface.TAG_SOFTWARE)
             )
         } catch (e: Exception) {
+            Timber.e(e, "Falha ao ler metadados EXIF do arquivo: ${file.name}")
             null
         }
     }
 
+    // ========================================================================
+    // HELPERS PRIVADOS
+    // ========================================================================
+
     /**
-     * Converte coordenada decimal para formato DMS.
+     * Grava os dados GPS no [ExifInterface] fornecido.
+     * Deve ser seguido por [ExifInterface.saveAttributes] pelo chamador.
+     *
+     * @param exif Interface EXIF já aberta para o arquivo
+     * @param latitude Latitude em graus decimais
+     * @param longitude Longitude em graus decimais
+     * @param altitude Altitude em metros (opcional)
+     */
+    private fun writeGpsData(
+        exif: ExifInterface,
+        latitude: Double,
+        longitude: Double,
+        altitude: Double?
+    ) {
+        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, if (latitude >= 0) "N" else "S")
+        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, decimalToDMS(abs(latitude)))
+
+        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, if (longitude >= 0) "E" else "W")
+        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, decimalToDMS(abs(longitude)))
+
+        altitude?.let { alt ->
+            exif.setAttribute(ExifInterface.TAG_GPS_ALTITUDE_REF, if (alt >= 0) "0" else "1")
+            exif.setAttribute(ExifInterface.TAG_GPS_ALTITUDE, "${abs(alt).toLong()}/1")
+        }
+    }
+
+    /**
+     * Converte coordenada decimal para formato DMS exigido pelo padrão EXIF.
+     *
+     * Formato: "graus/1,minutos/1,segundos*1000/1000"
+     *
+     * @param decimal Coordenada em graus decimais (valor absoluto)
+     * @return String no formato DMS para EXIF
      */
     private fun decimalToDMS(decimal: Double): String {
         val degrees = decimal.toInt()
@@ -176,7 +229,15 @@ class ExifDataWriter @Inject constructor() {
 }
 
 /**
- * Metadados EXIF para foto de comprovante.
+ * Metadados EXIF para foto de comprovante de ponto.
+ *
+ * @property dateTime Data e hora da captura
+ * @property latitude Latitude GPS em graus decimais (opcional)
+ * @property longitude Longitude GPS em graus decimais (opcional)
+ * @property altitude Altitude em metros (opcional)
+ * @property userComment Comentário com identificadores do ponto/emprego
+ * @property description Descrição legível do comprovante
+ * @property software Tag de software (preenchida automaticamente pelo [ExifDataWriter])
  */
 data class FotoExifMetadata(
     val dateTime: LocalDateTime? = null,
@@ -187,6 +248,9 @@ data class FotoExifMetadata(
     val description: String? = null,
     val software: String? = null
 ) {
+    /** true se há dados de localização GPS disponíveis */
     val hasGpsData: Boolean get() = latitude != null && longitude != null
+
+    /** true se há data/hora registrada */
     val hasDateTime: Boolean get() = dateTime != null
 }

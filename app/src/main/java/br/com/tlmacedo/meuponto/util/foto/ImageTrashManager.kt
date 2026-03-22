@@ -13,26 +13,40 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import br.com.tlmacedo.meuponto.util.formatarTamanho
 
 /**
- * Gerenciador de lixeira para imagens de comprovantes.
+ * Gerenciador de lixeira para imagens de comprovantes de ponto.
  *
- * Responsável por:
- * - Mover imagens para lixeira em vez de deletar permanentemente
- * - Restaurar imagens da lixeira
- * - Limpar automaticamente imagens com mais de 30 dias
- * - Manter metadados para rastreamento
+ * Responsável por mover imagens para lixeira em vez de deletar permanentemente,
+ * restaurar imagens, limpar arquivos expirados e consultar o estado da lixeira.
  *
- * Estrutura da lixeira:
+ * ## Estrutura da lixeira:
  * ```
  * files/
  * └── .trash/
  *     └── comprovantes/
- *         └── {timestamp}_{pontoId}_{originalFileName}
+ *         └── {timestamp}_##_{pontoId}_##_{caminhoOriginalCodificado}
  * ```
+ *
+ * ## Limitação conhecida do separador (registrada para Fase 1):
+ * O separador `_##_` e a codificação de `/` por `__` são frágeis para caminhos
+ * que já contenham essas sequências. A solução definitiva (Fase 1 do plano)
+ * é migrar para arquivos `.json` de metadados adjacentes, eliminando a
+ * dependência de parsing do nome do arquivo.
+ *
+ * ## Correções aplicadas (12.0.0):
+ * - Toda a lógica já usava Timber corretamente — nenhum e.printStackTrace()
+ *   foi encontrado neste arquivo (ImageTrashManager era o único arquivo correto)
+ * - [TrashItem.sizeFormatted] usa [Long.formatarTamanho] centralizado
+ * - [TrashStats.totalSizeFormatted] usa [Long.formatarTamanho] centralizado
+ * - Adicionado KDoc completo em todas as funções públicas
+ *
+ * @param context Contexto da aplicação
  *
  * @author Thiago
  * @since 11.0.0
+ * @updated 12.0.0 - sizeFormatted centralizado; KDoc completo adicionado
  */
 @Singleton
 class ImageTrashManager @Inject constructor(
@@ -45,17 +59,23 @@ class ImageTrashManager @Inject constructor(
         private const val METADATA_SEPARATOR = "_##_"
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
     // MOVER PARA LIXEIRA
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
 
     /**
      * Move uma imagem para a lixeira.
      *
-     * @param relativePath Caminho relativo da imagem (ex: emprego_1/2026/03/ponto_123.jpg)
-     * @param pontoId ID do ponto associado
-     * @param motivo Motivo da exclusão (para auditoria)
-     * @return Resultado da operação com caminho na lixeira
+     * O arquivo é renomeado para incluir metadados no nome (timestamp, pontoId
+     * e caminho original codificado), permitindo restauração posterior sem banco.
+     *
+     * Após a movimentação, diretórios que ficaram vazios são removidos
+     * automaticamente via [cleanupEmptyDirectories].
+     *
+     * @param relativePath Caminho relativo da imagem (ex: "emprego_1/2026/03/ponto_123.jpg")
+     * @param pontoId ID do ponto associado para rastreamento
+     * @param motivo Motivo da exclusão para auditoria
+     * @return [TrashResult.Success] com caminho na lixeira ou [TrashResult.Error]
      */
     suspend fun moveToTrash(
         relativePath: String,
@@ -72,26 +92,24 @@ class ImageTrashManager @Inject constructor(
 
             val trashDir = getOrCreateTrashDirectory()
             val timestamp = System.currentTimeMillis()
-            val originalFileName = sourceFile.name
 
-            // Nome no formato: {timestamp}_##_{pontoId}_##_{caminhoOriginal}
-            // Preserva o caminho original para restauração
             val trashFileName = buildTrashFileName(timestamp, pontoId, relativePath)
             val trashFile = File(trashDir, trashFileName)
 
-            // Move o arquivo
+            // Tenta renomear (operação atômica e eficiente no mesmo volume)
             val moved = sourceFile.renameTo(trashFile)
 
             if (!moved) {
-                // Fallback: copia e deleta
+                // Fallback: copia e deleta (volumes diferentes ou permissões)
+                Timber.w("renameTo falhou, usando fallback cópia+delete para: ${sourceFile.name}")
                 sourceFile.copyTo(trashFile, overwrite = true)
                 sourceFile.delete()
             }
 
-            // Limpa diretórios vazios
+            // Remove diretórios que ficaram vazios após a movimentação
             cleanupEmptyDirectories(sourceFile.parentFile)
 
-            Timber.d("Imagem movida para lixeira: $relativePath -> ${trashFile.name}")
+            Timber.d("Imagem movida para lixeira: $relativePath → ${trashFile.name}")
 
             TrashResult.Success(
                 originalPath = relativePath,
@@ -105,15 +123,18 @@ class ImageTrashManager @Inject constructor(
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
     // RESTAURAR DA LIXEIRA
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
 
     /**
      * Restaura uma imagem da lixeira para o local original.
      *
-     * @param trashFileName Nome do arquivo na lixeira
-     * @return Resultado da restauração com caminho restaurado
+     * O caminho original é recuperado do nome do arquivo via [parseTrashFileName].
+     * O diretório de destino é criado automaticamente se não existir.
+     *
+     * @param trashFileName Nome do arquivo na lixeira (conforme retornado por [moveToTrash])
+     * @return [RestoreResult.Success] com caminho restaurado ou erro descritivo
      */
     suspend fun restoreFromTrash(trashFileName: String): RestoreResult = withContext(Dispatchers.IO) {
         try {
@@ -127,25 +148,23 @@ class ImageTrashManager @Inject constructor(
             val metadata = parseTrashFileName(trashFileName)
                 ?: return@withContext RestoreResult.InvalidMetadata(trashFileName)
 
-            val originalPath = metadata.originalPath
-            val destinationFile = File(getComprovantesRootDir(), originalPath)
+            val destinationFile = File(getComprovantesRootDir(), metadata.originalPath)
 
-            // Garante que o diretório de destino existe
+            // Garante que o diretório de destino existe antes de restaurar
             destinationFile.parentFile?.mkdirs()
 
-            // Move de volta
             val restored = trashFile.renameTo(destinationFile)
 
             if (!restored) {
-                // Fallback: copia e deleta
+                Timber.w("renameTo falhou na restauração, usando fallback para: $trashFileName")
                 trashFile.copyTo(destinationFile, overwrite = true)
                 trashFile.delete()
             }
 
-            Timber.d("Imagem restaurada da lixeira: $trashFileName -> $originalPath")
+            Timber.d("Imagem restaurada: $trashFileName → ${metadata.originalPath}")
 
             RestoreResult.Success(
-                originalPath = originalPath,
+                originalPath = metadata.originalPath,
                 pontoId = metadata.pontoId
             )
         } catch (e: Exception) {
@@ -155,21 +174,20 @@ class ImageTrashManager @Inject constructor(
     }
 
     /**
-     * Restaura imagem da lixeira pelo ID do ponto.
+     * Restaura a imagem mais recente da lixeira pelo ID do ponto.
      *
-     * @param pontoId ID do ponto
-     * @return Resultado da restauração
+     * @param pontoId ID do ponto para busca na lixeira
+     * @return [RestoreResult.Success] ou [RestoreResult.FileNotFound]
      */
     suspend fun restoreByPontoId(pontoId: Long): RestoreResult = withContext(Dispatchers.IO) {
         try {
             val trashDir = getOrCreateTrashDirectory()
-            val trashFiles = trashDir.listFiles() ?: return@withContext RestoreResult.FileNotFound("ponto_$pontoId")
+            val trashFiles = trashDir.listFiles()
+                ?: return@withContext RestoreResult.FileNotFound("ponto_$pontoId")
 
-            // Procura o arquivo mais recente do ponto
             val trashFile = trashFiles
                 .filter { file ->
-                    val metadata = parseTrashFileName(file.name)
-                    metadata?.pontoId == pontoId
+                    parseTrashFileName(file.name)?.pontoId == pontoId
                 }
                 .maxByOrNull { it.lastModified() }
 
@@ -184,20 +202,23 @@ class ImageTrashManager @Inject constructor(
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
     // LIMPEZA AUTOMÁTICA
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
 
     /**
-     * Remove permanentemente arquivos com mais de 30 dias na lixeira.
+     * Remove permanentemente arquivos com mais de [RETENTION_DAYS] dias na lixeira.
      *
-     * @return Quantidade de arquivos removidos
+     * Chamado pelo [br.com.tlmacedo.meuponto.worker.TrashCleanupWorker] periodicamente.
+     *
+     * @return Número de arquivos expirados removidos
      */
     suspend fun cleanupExpiredFiles(): Int = withContext(Dispatchers.IO) {
         var removedCount = 0
         try {
             val trashDir = getOrCreateTrashDirectory()
-            val cutoffTime = System.currentTimeMillis() - (RETENTION_DAYS * 24 * 60 * 60 * 1000)
+            val cutoffTime = System.currentTimeMillis() -
+                    (RETENTION_DAYS * 24 * 60 * 60 * 1000)
 
             trashDir.listFiles()?.forEach { file ->
                 val metadata = parseTrashFileName(file.name)
@@ -205,23 +226,27 @@ class ImageTrashManager @Inject constructor(
                     if (file.delete()) {
                         removedCount++
                         Timber.d("Arquivo expirado removido da lixeira: ${file.name}")
+                    } else {
+                        Timber.w("Não foi possível remover arquivo expirado: ${file.name}")
                     }
                 }
             }
 
-            Timber.i("Limpeza da lixeira concluída: $removedCount arquivos removidos")
+            Timber.i("Limpeza da lixeira concluída: $removedCount arquivo(s) removido(s)")
         } catch (e: Exception) {
             Timber.e(e, "Erro na limpeza da lixeira")
         }
         removedCount
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
     // CONSULTAS
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
 
     /**
-     * Lista todos os itens na lixeira.
+     * Lista todos os itens atualmente na lixeira, ordenados por data de exclusão.
+     *
+     * @return Lista de [TrashItem] ordenada da mais recente para a mais antiga
      */
     suspend fun listTrashItems(): List<TrashItem> = withContext(Dispatchers.IO) {
         try {
@@ -239,7 +264,9 @@ class ImageTrashManager @Inject constructor(
                         ),
                         sizeBytes = file.length(),
                         expiresAt = LocalDateTime.ofInstant(
-                            Instant.ofEpochMilli(metadata.timestamp + RETENTION_DAYS * 24 * 60 * 60 * 1000),
+                            Instant.ofEpochMilli(
+                                metadata.timestamp + RETENTION_DAYS * 24 * 60 * 60 * 1000
+                            ),
                             ZoneId.systemDefault()
                         )
                     )
@@ -253,21 +280,29 @@ class ImageTrashManager @Inject constructor(
     }
 
     /**
-     * Busca item na lixeira pelo ID do ponto.
+     * Busca o primeiro item na lixeira associado ao ID do ponto.
+     *
+     * @param pontoId ID do ponto para busca
+     * @return [TrashItem] ou null se não encontrado
      */
     suspend fun findByPontoId(pontoId: Long): TrashItem? = withContext(Dispatchers.IO) {
         listTrashItems().find { it.pontoId == pontoId }
     }
 
     /**
-     * Verifica se existe imagem na lixeira para o ponto.
+     * Verifica se existe imagem na lixeira para o ponto especificado.
+     *
+     * @param pontoId ID do ponto
+     * @return true se há pelo menos um item na lixeira para este ponto
      */
     suspend fun existsForPonto(pontoId: Long): Boolean = withContext(Dispatchers.IO) {
         findByPontoId(pontoId) != null
     }
 
     /**
-     * Obtém estatísticas da lixeira.
+     * Retorna estatísticas consolidadas da lixeira.
+     *
+     * @return [TrashStats] com totais e datas extremas
      */
     suspend fun getTrashStats(): TrashStats = withContext(Dispatchers.IO) {
         try {
@@ -290,12 +325,15 @@ class ImageTrashManager @Inject constructor(
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
     // EXCLUSÃO PERMANENTE
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
 
     /**
-     * Remove permanentemente um arquivo da lixeira.
+     * Remove permanentemente um arquivo específico da lixeira.
+     *
+     * @param trashFileName Nome do arquivo na lixeira
+     * @return true se removido com sucesso ou se já não existia
      */
     suspend fun deletePermanently(trashFileName: String): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -305,7 +343,7 @@ class ImageTrashManager @Inject constructor(
                 Timber.d("Arquivo deletado permanentemente: $trashFileName = $deleted")
                 deleted
             } else {
-                true
+                true // Arquivo já não existe — operação bem-sucedida
             }
         } catch (e: Exception) {
             Timber.e(e, "Erro ao deletar permanentemente: $trashFileName")
@@ -314,42 +352,67 @@ class ImageTrashManager @Inject constructor(
     }
 
     /**
-     * Limpa toda a lixeira.
+     * Remove todos os arquivos da lixeira permanentemente.
+     *
+     * @return Número de arquivos removidos
      */
     suspend fun emptyTrash(): Int = withContext(Dispatchers.IO) {
         var count = 0
         try {
             val trashDir = getOrCreateTrashDirectory()
             trashDir.listFiles()?.forEach { file ->
-                if (file.delete()) count++
+                if (file.delete()) {
+                    count++
+                } else {
+                    Timber.w("Não foi possível remover da lixeira: ${file.name}")
+                }
             }
-            Timber.i("Lixeira esvaziada: $count arquivos removidos")
+            Timber.i("Lixeira esvaziada: $count arquivo(s) removido(s)")
         } catch (e: Exception) {
             Timber.e(e, "Erro ao esvaziar lixeira")
         }
         count
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
     // HELPERS PRIVADOS
-    // ════════════════════════════════════════════════════════════════════════
+    // ========================================================================
 
-    private fun getComprovantesRootDir(): File {
-        return File(context.filesDir, "comprovantes")
-    }
+    private fun getComprovantesRootDir(): File =
+        File(context.filesDir, "comprovantes")
 
-    private fun getOrCreateTrashDirectory(): File {
-        return File(context.filesDir, "$TRASH_ROOT_DIR/$COMPROVANTES_DIR").apply {
+    private fun getOrCreateTrashDirectory(): File =
+        File(context.filesDir, "$TRASH_ROOT_DIR/$COMPROVANTES_DIR").apply {
             if (!exists()) mkdirs()
         }
-    }
 
-    private fun buildTrashFileName(timestamp: Long, pontoId: Long, originalPath: String): String {
-        // Codifica o path original substituindo / por __
-        val encodedPath = originalPath.replace("/", "__").replace("\\", "__")
+    /**
+     * Constrói o nome do arquivo na lixeira codificando os metadados.
+     *
+     * Formato: `{timestamp}_##_{pontoId}_##_{caminhoOriginalCodificado}`
+     *
+     * LIMITAÇÃO: O separador `_##_` pode colidir com nomes de arquivos
+     * que contenham essa sequência. Será substituído por JSON na Fase 1.
+     */
+    private fun buildTrashFileName(
+        timestamp: Long,
+        pontoId: Long,
+        originalPath: String
+    ): String {
+        val encodedPath = originalPath
+            .replace("/", "__")
+            .replace("\\", "__")
         return "${timestamp}${METADATA_SEPARATOR}${pontoId}${METADATA_SEPARATOR}${encodedPath}"
     }
 
+    /**
+     * Recupera os metadados do arquivo da lixeira a partir do nome do arquivo.
+     *
+     * Retorna null se o nome não estiver no formato esperado (ex: arquivo corrompido).
+     *
+     * LIMITAÇÃO: `split(METADATA_SEPARATOR)` espera exatamente 3 partes.
+     * Nomes com `_##_` no caminho original retornam null aqui.
+     */
     private fun parseTrashFileName(fileName: String): TrashMetadata? {
         return try {
             val parts = fileName.split(METADATA_SEPARATOR)
@@ -366,14 +429,23 @@ class ImageTrashManager @Inject constructor(
         }
     }
 
+    /**
+     * Remove diretórios que ficaram vazios após a movimentação de um arquivo.
+     *
+     * Sobe recursivamente a partir de [directory] enquanto os diretórios
+     * estiverem vazios e ainda dentro do diretório raiz de comprovantes.
+     *
+     * @param directory Diretório a partir do qual iniciar a limpeza
+     */
     private fun cleanupEmptyDirectories(directory: File?) {
         var current = directory
         val rootPath = getComprovantesRootDir().absolutePath
 
         while (current != null &&
             current.absolutePath.startsWith(rootPath) &&
-            current.absolutePath != rootPath) {
-            if (current.isDirectory && (current.listFiles()?.isEmpty() == true)) {
+            current.absolutePath != rootPath
+        ) {
+            if (current.isDirectory && current.listFiles()?.isEmpty() == true) {
                 current.delete()
                 current = current.parentFile
             } else {
@@ -383,10 +455,11 @@ class ImageTrashManager @Inject constructor(
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// DATA CLASSES
-// ════════════════════════════════════════════════════════════════════════════
+// ============================================================================
+// DATA CLASSES E SEALED CLASSES DE SUPORTE
+// ============================================================================
 
+/** Metadados extraídos do nome do arquivo na lixeira (uso interno) */
 private data class TrashMetadata(
     val timestamp: Long,
     val pontoId: Long,
@@ -394,7 +467,14 @@ private data class TrashMetadata(
 )
 
 /**
- * Item na lixeira.
+ * Item na lixeira de imagens.
+ *
+ * @property trashFileName Nome do arquivo na lixeira (para operações de restore/delete)
+ * @property originalPath Caminho relativo original para restauração
+ * @property pontoId ID do ponto vinculado à imagem
+ * @property deletedAt Data e hora da exclusão
+ * @property sizeBytes Tamanho do arquivo em bytes
+ * @property expiresAt Data e hora de expiração (exclusão permanente automática)
  */
 data class TrashItem(
     val trashFileName: String,
@@ -404,22 +484,29 @@ data class TrashItem(
     val sizeBytes: Long,
     val expiresAt: LocalDateTime
 ) {
+    /** Dias restantes até a expiração (mínimo: 0) */
     val daysUntilExpiration: Long
         get() = ChronoUnit.DAYS.between(LocalDateTime.now(), expiresAt).coerceAtLeast(0)
 
+    /** true se o item já passou do período de retenção */
     val isExpired: Boolean
         get() = LocalDateTime.now().isAfter(expiresAt)
 
-    val sizeFormatted: String
-        get() = when {
-            sizeBytes < 1024 -> "$sizeBytes B"
-            sizeBytes < 1024 * 1024 -> String.format("%.1f KB", sizeBytes / 1024.0)
-            else -> String.format("%.2f MB", sizeBytes / (1024.0 * 1024.0))
-        }
+    /**
+     * Tamanho formatado usando [Long.formatarTamanho] centralizado.
+     * Corrigido em 12.0.0: substituída lógica inline duplicada.
+     */
+    val sizeFormatted: String get() = sizeBytes.formatarTamanho()
 }
 
 /**
- * Estatísticas da lixeira.
+ * Estatísticas consolidadas da lixeira.
+ *
+ * @property totalItems Total de arquivos na lixeira
+ * @property totalSizeBytes Tamanho total em bytes
+ * @property expiredItems Arquivos que já ultrapassaram o período de retenção
+ * @property oldestItem Data do item mais antigo ou null se vazia
+ * @property newestItem Data do item mais recente ou null se vazia
  */
 data class TrashStats(
     val totalItems: Int,
@@ -428,20 +515,29 @@ data class TrashStats(
     val oldestItem: LocalDateTime?,
     val newestItem: LocalDateTime?
 ) {
+    /** true se a lixeira está vazia */
     val isEmpty: Boolean get() = totalItems == 0
 
-    val totalSizeFormatted: String
-        get() = when {
-            totalSizeBytes < 1024 -> "$totalSizeBytes B"
-            totalSizeBytes < 1024 * 1024 -> String.format("%.1f KB", totalSizeBytes / 1024.0)
-            else -> String.format("%.2f MB", totalSizeBytes / (1024.0 * 1024.0))
-        }
+    /**
+     * Tamanho total formatado usando [Long.formatarTamanho] centralizado.
+     * Corrigido em 12.0.0: substituída lógica inline duplicada.
+     */
+    val totalSizeFormatted: String get() = totalSizeBytes.formatarTamanho()
 }
 
 /**
  * Resultado da operação de mover para lixeira.
  */
 sealed class TrashResult {
+
+    /**
+     * Arquivo movido com sucesso.
+     *
+     * @property originalPath Caminho relativo original
+     * @property trashPath Nome do arquivo na lixeira
+     * @property pontoId ID do ponto vinculado
+     * @property deletedAt Momento da movimentação
+     */
     data class Success(
         val originalPath: String,
         val trashPath: String,
@@ -449,9 +545,13 @@ sealed class TrashResult {
         val deletedAt: LocalDateTime
     ) : TrashResult()
 
+    /** Arquivo de origem não encontrado no disco */
     data class FileNotFound(val path: String) : TrashResult()
+
+    /** Erro durante a operação */
     data class Error(val message: String) : TrashResult()
 
+    /** true se a operação foi bem-sucedida */
     val isSuccess: Boolean get() = this is Success
 }
 
@@ -459,14 +559,27 @@ sealed class TrashResult {
  * Resultado da operação de restaurar da lixeira.
  */
 sealed class RestoreResult {
+
+    /**
+     * Arquivo restaurado com sucesso.
+     *
+     * @property originalPath Caminho relativo restaurado
+     * @property pontoId ID do ponto vinculado
+     */
     data class Success(
         val originalPath: String,
         val pontoId: Long
     ) : RestoreResult()
 
+    /** Arquivo não encontrado na lixeira */
     data class FileNotFound(val trashFileName: String) : RestoreResult()
+
+    /** Nome do arquivo não pôde ser parseado para extrair metadados */
     data class InvalidMetadata(val trashFileName: String) : RestoreResult()
+
+    /** Erro durante a operação */
     data class Error(val message: String) : RestoreResult()
 
+    /** true se a operação foi bem-sucedida */
     val isSuccess: Boolean get() = this is Success
 }

@@ -1,16 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Caminhos de arquivos expostos via FileProvider para compartilhamento seguro.
+
+    ATENÇÃO: O nome e path de cada entrada devem corresponder exatamente
+    ao que é usado no código.
+
+    - temp_camera: usado por PhotoCaptureManager (TEMP_DIR = "temp_camera")
+      para arquivos temporários durante captura via câmera.
+      Alterado de "temp/" para "temp_camera/" para alinhar com
+      PhotoCaptureManager.kt (corrigido em 12.0.0).
+
+    - comprovantes: usado por ComprovanteImageStorage (ROOT_DIR = "comprovantes")
+      para fotos permanentes de comprovantes de ponto.
+
+    Referências no código:
+    - PhotoCaptureManager: context.cacheDir + "temp_camera/"
+    - ComprovanteImageStorage: context.filesDir + "comprovantes/"
+    - FileProvider authority: "${applicationId}.fileprovider"
+-->
 <paths>
-    <!-- Diretório de cache interno para arquivos temporários -->
+    <!-- Diretório de cache para arquivos temporários da câmera -->
+    <!-- Corresponde a: context.cacheDir/temp_camera/ -->
     <cache-path
-        name="temp_images"
-        path="temp/" />
+        name="temp_camera"
+        path="temp_camera/" />
 
     <!-- Diretório de arquivos internos para fotos permanentes -->
+    <!-- Corresponde a: context.filesDir/comprovantes/ -->
     <files-path
         name="comprovantes"
         path="comprovantes/" />
 
-    <!-- External files directory (se necessário) -->
+    <!-- Diretório externo (reservado para exportação futura de relatórios) -->
     <external-files-path
         name="external_comprovantes"
         path="comprovantes/" />

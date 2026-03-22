@@ -1,75 +1,79 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/editponto/EditPontoAction.kt
 package br.com.tlmacedo.meuponto.presentation.screen.editponto
 
-import android.net.Uri
-import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
+import br.com.tlmacedo.meuponto.domain.model.Emprego
 import java.time.LocalDate
 import java.time.LocalTime
 
 /**
- * Ações possíveis na tela de edição de ponto.
+ * Ações que a UI pode enviar para o [EditPontoViewModel].
+ *
+ * Modeladas como sealed class para garantir tipo seguro e
+ * rastreabilidade completa de todos os eventos da tela.
+ *
+ * ## Sobre tipoPonto:
+ * Não existe ação de AlterarTipoPonto. O tipo é calculado dinamicamente
+ * pela posição do ponto no dia (ímpar=entrada, par=saída) e não é editável.
  *
  * @author Thiago
- * @since 3.5.0
- * @updated 9.0.0 - Adicionadas ações para foto de comprovante
+ * @since 12.0.0
  */
-sealed interface EditPontoAction {
+sealed class EditPontoAction {
 
-    // ══════════════════════════════════════════════════════════════════════
-    // AÇÕES DE CAMPOS
-    // ══════════════════════════════════════════════════════════════════════
+    // ========================================================================
+    // ALTERAÇÕES DE CAMPOS EDITÁVEIS
+    // ========================================================================
 
-    data class AtualizarData(val data: LocalDate) : EditPontoAction
-    data class AtualizarHora(val hora: LocalTime) : EditPontoAction
-    data class AtualizarNsr(val nsr: String) : EditPontoAction
-    data class AtualizarLocalizacao(
-        val latitude: Double,
-        val longitude: Double,
-        val endereco: String? = null
-    ) : EditPontoAction
-    data class AtualizarObservacao(val observacao: String) : EditPontoAction
-    data class SelecionarMotivo(val motivo: MotivoEdicao) : EditPontoAction
-    data class AtualizarMotivoDetalhes(val detalhes: String) : EditPontoAction
-    data object AbrirMotivoDropdown : EditPontoAction
-    data object FecharMotivoDropdown : EditPontoAction
+    /** Altera a data do ponto */
+    data class AlterarData(val data: LocalDate) : EditPontoAction()
 
-    // ══════════════════════════════════════════════════════════════════════
-    // AÇÕES DE FOTO DE COMPROVANTE
-    // ══════════════════════════════════════════════════════════════════════
+    /** Altera a hora do ponto */
+    data class AlterarHora(val hora: LocalTime) : EditPontoAction()
 
-    /** Seleciona uma nova foto de comprovante */
-    data class SelecionarFotoComprovante(val uri: Uri) : EditPontoAction
+    /** Altera o emprego selecionado */
+    data class AlterarEmprego(val emprego: Emprego) : EditPontoAction()
 
-    /** Remove a foto de comprovante */
-    data object RemoverFotoComprovante : EditPontoAction
+    /** Altera o texto de observação */
+    data class AlterarObservacao(val observacao: String) : EditPontoAction()
 
-    /** Abre o visualizador de foto em tela cheia */
-    data object AbrirVisualizadorFoto : EditPontoAction
+    /** Altera o NSR */
+    data class AlterarNsr(val nsr: String) : EditPontoAction()
 
-    /** Fecha o visualizador de foto */
-    data object FecharVisualizadorFoto : EditPontoAction
+    /** Define o caminho da foto após captura bem-sucedida */
+    data class AlterarFoto(val relativePath: String?) : EditPontoAction()
 
-    // ══════════════════════════════════════════════════════════════════════
-    // AÇÕES DE DIALOGS
-    // ══════════════════════════════════════════════════════════════════════
+    // ========================================================================
+    // CONTROLE DE VISIBILIDADE DE SELETORES
+    // ========================================================================
 
-    data object AbrirTimePicker : EditPontoAction
-    data object FecharTimePicker : EditPontoAction
-    data object AbrirDatePicker : EditPontoAction
-    data object FecharDatePicker : EditPontoAction
-    data object AbrirLocationPicker : EditPontoAction
-    data object FecharLocationPicker : EditPontoAction
-    data object CapturarLocalizacao : EditPontoAction
-    data object LimparLocalizacao : EditPontoAction
+    /** Abre o seletor de data */
+    object AbrirDatePicker : EditPontoAction()
 
-    // ══════════════════════════════════════════════════════════════════════
+    /** Fecha o seletor de data */
+    object FecharDatePicker : EditPontoAction()
+
+    /** Abre o seletor de hora */
+    object AbrirTimePicker : EditPontoAction()
+
+    /** Fecha o seletor de hora */
+    object FecharTimePicker : EditPontoAction()
+
+    /** Abre o visualizador de foto */
+    object AbrirVisualizadorFoto : EditPontoAction()
+
+    // ========================================================================
     // AÇÕES PRINCIPAIS
-    // ══════════════════════════════════════════════════════════════════════
+    // ========================================================================
 
-    data object Salvar : EditPontoAction
-    data object SolicitarExclusao : EditPontoAction
-    data object ConfirmarExclusao : EditPontoAction
-    data object CancelarExclusao : EditPontoAction
-    data object Cancelar : EditPontoAction
-    data object LimparErro : EditPontoAction
+    /** Marca a foto atual para remoção */
+    object RemoverFoto : EditPontoAction()
+
+    /** Confirma o salvamento do ponto */
+    object Salvar : EditPontoAction()
+
+    /** Confirma a exclusão do ponto */
+    object Excluir : EditPontoAction()
+
+    /** Limpa a mensagem de erro atual */
+    object LimparErro : EditPontoAction()
 }

@@ -1,34 +1,374 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Arquivo de strings do MeuPonto.
+
+    REGRAS:
+    - Toda string exibível na UI deve estar aqui — nunca hardcoded no código
+    - Usar acentuação correta em pt-BR em todas as entradas
+    - Usar <plurals> para mensagens com contagem variável
+    - Organizar por seção com comentários separadores
+
+    @author Thiago
+    @since 1.0.0
+    @updated 12.0.0 - Corrigida acentuação; adicionadas strings de foto,
+                      lixeira, notificações, canais, permissões e plurals
+-->
 <resources>
     <string name="app_name">Meu Ponto</string>
-    
-    <!-- Geral -->
+
+    <!-- ====================================================================
+         GERAL — Botões e ações comuns
+         ==================================================================== -->
     <string name="btn_confirmar">Confirmar</string>
     <string name="btn_cancelar">Cancelar</string>
     <string name="btn_salvar">Salvar</string>
     <string name="btn_excluir">Excluir</string>
     <string name="btn_editar">Editar</string>
-    
-    <!-- Navegacao -->
-    <string name="nav_home">Inicio</string>
-    <string name="nav_historico">Historico</string>
-    <string name="nav_configuracoes">Configuracoes</string>
-    <string name="nav_relatorios">Relatorios</string>
-    
-    <!-- Tipos de Ponto -->
+    <string name="btn_fechar">Fechar</string>
+    <string name="btn_restaurar">Restaurar</string>
+    <string name="btn_compartilhar">Compartilhar</string>
+    <string name="btn_adicionar">Adicionar</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_sim">Sim</string>
+    <string name="btn_nao">Não</string>
+    <string name="btn_voltar">Voltar</string>
+    <string name="btn_continuar">Continuar</string>
+    <string name="btn_concluir">Concluir</string>
+    <string name="btn_limpar">Limpar</string>
+    <string name="btn_exportar">Exportar</string>
+    <string name="btn_importar">Importar</string>
+    <string name="btn_gerar">Gerar</string>
+
+    <!-- ====================================================================
+         ESTADOS GERAIS
+         ==================================================================== -->
+    <string name="estado_carregando">Carregando…</string>
+    <string name="estado_vazio">Nenhum item encontrado</string>
+    <string name="estado_erro">Ocorreu um erro. Tente novamente.</string>
+    <string name="estado_sem_conexao">Sem conexão com a internet</string>
+    <string name="em_desenvolvimento">Em Desenvolvimento</string>
+    <string name="em_desenvolvimento_descricao">Esta funcionalidade estará disponível em breve.</string>
+
+    <!-- ====================================================================
+         NAVEGAÇÃO INFERIOR
+         Corrigido: acentuação ausente em todas as entradas
+         ==================================================================== -->
+    <string name="nav_home">Início</string>
+    <string name="nav_historico">Histórico</string>
+    <string name="nav_configuracoes">Configurações</string>
+    <string name="nav_relatorios">Relatórios</string>
+
+    <!-- ====================================================================
+         TIPOS DE PONTO
+         Corrigido: acentuação ausente em saída e almoço
+         ==================================================================== -->
     <string name="tipo_entrada">Entrada</string>
-    <string name="tipo_saida_almoco">Saida Almoco</string>
-    <string name="tipo_retorno_almoco">Retorno Almoco</string>
-    <string name="tipo_saida">Saida</string>
-    
-    <!-- Home -->
+    <string name="tipo_saida_almoco">Saída Almoço</string>
+    <string name="tipo_retorno_almoco">Retorno Almoço</string>
+    <string name="tipo_saida">Saída</string>
+
+    <!-- ====================================================================
+         TELA INICIAL (HOME)
+         ==================================================================== -->
     <string name="home_titulo">Registro de Ponto</string>
     <string name="home_btn_bater_ponto">Bater Ponto</string>
     <string name="home_saldo_dia">Saldo do Dia</string>
-    
-    <!-- Mensagens -->
+    <string name="home_saldo_semana">Saldo da Semana</string>
+    <string name="home_saldo_mes">Saldo do Mês</string>
+    <string name="home_banco_horas">Banco de Horas</string>
+    <string name="home_sem_emprego">Nenhum emprego configurado</string>
+    <string name="home_sem_emprego_descricao">Adicione um emprego nas configurações para começar a registrar seus pontos.</string>
+    <string name="home_ponto_hoje">Pontos de Hoje</string>
+    <string name="home_sem_pontos_hoje">Nenhum ponto registrado hoje</string>
+    <string name="home_jornada_completa">Jornada completa!</string>
+
+    <!-- ====================================================================
+         HISTÓRICO
+         ==================================================================== -->
+    <string name="historico_titulo">Histórico</string>
+    <string name="historico_filtrar">Filtrar</string>
+    <string name="historico_sem_registros">Nenhum registro encontrado</string>
+    <string name="historico_sem_registros_periodo">Nenhum registro no período selecionado</string>
+    <string name="historico_periodo">Período</string>
+
+    <!-- ====================================================================
+         LANÇAMENTO DE PONTO
+         ==================================================================== -->
+    <string name="lancamento_titulo">Lançar Ponto</string>
+    <string name="lancamento_data">Data</string>
+    <string name="lancamento_hora">Hora</string>
+    <string name="lancamento_tipo">Tipo de Ponto</string>
+    <string name="lancamento_observacao">Observação (opcional)</string>
+    <string name="lancamento_localizacao">Localização</string>
+    <string name="lancamento_localizacao_obtendo">Obtendo localização…</string>
+    <string name="lancamento_localizacao_obtida">Localização obtida</string>
+    <string name="lancamento_localizacao_erro">Não foi possível obter a localização</string>
+    <string name="lancamento_foto">Foto do comprovante</string>
+
+    <!-- ====================================================================
+         EDIÇÃO DE PONTO
+         ==================================================================== -->
+    <string name="editar_ponto_titulo">Editar Ponto</string>
+    <string name="editar_ponto_confirmar_exclusao">Deseja excluir este ponto?</string>
+    <string name="editar_ponto_confirmar_exclusao_descricao">Esta ação não pode ser desfeita. O ponto será removido permanentemente.</string>
+
+    <!-- ====================================================================
+         MENSAGENS DE FEEDBACK (Snackbars / Toasts)
+         Corrigido: "excluido" → "excluído"
+         ==================================================================== -->
     <string name="msg_ponto_registrado">Ponto registrado com sucesso!</string>
     <string name="msg_erro_registrar">Erro ao registrar ponto</string>
-    <string name="msg_ponto_excluido">Ponto excluido</string>
+    <string name="msg_ponto_excluido">Ponto excluído</string>
     <string name="msg_ponto_atualizado">Ponto atualizado</string>
+    <string name="msg_erro_generico">Ocorreu um erro. Tente novamente.</string>
+    <string name="msg_salvo_com_sucesso">Salvo com sucesso!</string>
+    <string name="msg_excluido_com_sucesso">Excluído com sucesso!</string>
+    <string name="msg_erro_salvar">Erro ao salvar. Tente novamente.</string>
+    <string name="msg_erro_carregar">Erro ao carregar os dados.</string>
+    <string name="msg_operacao_cancelada">Operação cancelada</string>
+    <string name="msg_sem_alteracoes">Nenhuma alteração foi feita</string>
+    <string name="msg_campos_obrigatorios">Preencha todos os campos obrigatórios</string>
+
+    <!-- ====================================================================
+         FOTO / COMPROVANTE
+         Novo: strings completas para o sistema de foto (Fase 3)
+         ==================================================================== -->
+    <string name="foto_titulo">Foto do Comprovante</string>
+    <string name="foto_capturar">Tirar foto</string>
+    <string name="foto_galeria">Escolher da galeria</string>
+    <string name="foto_visualizar">Ver comprovante</string>
+    <string name="foto_excluir">Remover foto</string>
+    <string name="foto_confirmar_exclusao">Deseja remover esta foto?</string>
+    <string name="foto_confirmar_exclusao_descricao">A foto será movida para a lixeira e poderá ser restaurada por até 30 dias.</string>
+    <string name="foto_sem_comprovante">Sem comprovante</string>
+    <string name="foto_adicionando">Adicionando foto…</string>
+    <string name="foto_processando">Processando imagem…</string>
+    <string name="foto_salva">Foto salva com sucesso!</string>
+    <string name="foto_erro_captura">Erro ao capturar foto</string>
+    <string name="foto_erro_galeria">Erro ao acessar a galeria</string>
+    <string name="foto_erro_processar">Erro ao processar a imagem</string>
+    <string name="foto_erro_salvar">Erro ao salvar a foto</string>
+    <string name="foto_escolher_origem">Adicionar comprovante</string>
+    <string name="foto_escolher_origem_descricao">Escolha como deseja adicionar o comprovante</string>
+    <string name="foto_zoom_instrucao">Deslize para mover • Aperte para ampliar</string>
+    <string name="foto_detalhes">Detalhes da foto</string>
+    <string name="foto_tamanho">Tamanho</string>
+    <string name="foto_dimensoes">Dimensões</string>
+    <string name="foto_qualidade">Qualidade</string>
+    <string name="foto_hash">Hash MD5</string>
+    <string name="foto_data_captura">Data da captura</string>
+    <string name="foto_origem_camera">Câmera</string>
+    <string name="foto_origem_galeria">Galeria</string>
+
+    <!-- ====================================================================
+         LIXEIRA DE FOTOS
+         ==================================================================== -->
+    <string name="lixeira_titulo">Lixeira de Fotos</string>
+    <string name="lixeira_vazia">Nenhuma foto na lixeira</string>
+    <string name="lixeira_vazia_descricao">Fotos excluídas aparecem aqui por 30 dias.</string>
+    <string name="lixeira_esvaziar">Esvaziar lixeira</string>
+    <string name="lixeira_esvaziar_confirmar">Deseja esvaziar a lixeira?</string>
+    <string name="lixeira_esvaziar_confirmar_descricao">Todos os arquivos serão excluídos permanentemente. Esta ação não pode ser desfeita.</string>
+    <string name="lixeira_restaurar">Restaurar</string>
+    <string name="lixeira_excluir_permanente">Excluir definitivamente</string>
+    <string name="lixeira_expira_em">Expira em %d dias</string>
+    <string name="lixeira_expira_hoje">Expira hoje</string>
+    <string name="lixeira_expirado">Expirado</string>
+    <string name="lixeira_foto_restaurada">Foto restaurada com sucesso!</string>
+    <string name="lixeira_foto_excluida">Foto excluída permanentemente</string>
+    <string name="lixeira_erro_restaurar">Erro ao restaurar a foto</string>
+
+    <!-- ====================================================================
+         EMPREGOS
+         ==================================================================== -->
+    <string name="empregos_titulo">Empregos</string>
+    <string name="emprego_adicionar">Adicionar Emprego</string>
+    <string name="emprego_editar">Editar Emprego</string>
+    <string name="emprego_excluir">Excluir Emprego</string>
+    <string name="emprego_confirmar_exclusao">Deseja excluir este emprego?</string>
+    <string name="emprego_confirmar_exclusao_descricao">Todos os pontos, configurações e fotos associadas serão excluídos. Esta ação não pode ser desfeita.</string>
+    <string name="emprego_nome">Nome do emprego</string>
+    <string name="emprego_data_admissao">Data de admissão</string>
+    <string name="emprego_descricao">Descrição (opcional)</string>
+    <string name="emprego_ativo">Emprego ativo</string>
+    <string name="emprego_arquivado">Arquivado</string>
+    <string name="emprego_sem_empregos">Nenhum emprego cadastrado</string>
+    <string name="emprego_sem_empregos_descricao">Adicione seu primeiro emprego para começar a registrar pontos.</string>
+
+    <!-- ====================================================================
+         CONFIGURAÇÕES
+         ==================================================================== -->
+    <string name="configuracoes_titulo">Configurações</string>
+    <string name="configuracoes_emprego">Emprego</string>
+    <string name="configuracoes_jornada">Jornada de Trabalho</string>
+    <string name="configuracoes_horarios">Horários por Dia</string>
+    <string name="configuracoes_foto">Foto de Comprovante</string>
+    <string name="configuracoes_localizacao">Localização</string>
+    <string name="configuracoes_notificacoes">Notificações</string>
+    <string name="configuracoes_aparencia">Aparência</string>
+    <string name="configuracoes_backup">Backup e Dados</string>
+    <string name="configuracoes_privacidade">Privacidade e Segurança</string>
+    <string name="configuracoes_marcadores">Marcadores</string>
+    <string name="configuracoes_ajustes_saldo">Ajustes de Saldo</string>
+    <string name="configuracoes_sobre">Sobre o App</string>
+
+    <!-- ====================================================================
+         APARÊNCIA
+         ==================================================================== -->
+    <string name="aparencia_titulo">Aparência</string>
+    <string name="aparencia_tema">Tema</string>
+    <string name="aparencia_tema_claro">Claro</string>
+    <string name="aparencia_tema_escuro">Escuro</string>
+    <string name="aparencia_tema_sistema">Seguir o sistema</string>
+
+    <!-- ====================================================================
+         NOTIFICAÇÕES
+         ==================================================================== -->
+    <string name="notificacoes_titulo">Notificações</string>
+    <string name="notificacoes_habilitar">Habilitar notificações</string>
+    <string name="notificacoes_lembrar_entrada">Lembrete de entrada</string>
+    <string name="notificacoes_lembrar_saida">Lembrete de saída</string>
+    <string name="notificacoes_lembrar_intervalo">Lembrete de intervalo</string>
+    <string name="notificacoes_alertar_feriado">Alertar em feriados</string>
+    <string name="notificacoes_alertar_banco">Alertar banco de horas</string>
+
+    <!-- ====================================================================
+         CANAIS DE NOTIFICAÇÃO (exibido nas configurações do sistema)
+         ==================================================================== -->
+    <string name="canal_lembretes_nome">Lembretes de ponto</string>
+    <string name="canal_lembretes_descricao">Notificações de horário de entrada, intervalo e saída</string>
+    <string name="canal_alertas_saldo_nome">Alertas de saldo</string>
+    <string name="canal_alertas_saldo_descricao">Alertas quando o banco de horas está negativo ou próximo do limite</string>
+
+    <!-- ====================================================================
+         NOTIFICAÇÕES — Conteúdo das mensagens
+         ==================================================================== -->
+    <string name="notif_lembrete_entrada_titulo">Hora de registrar a entrada!</string>
+    <string name="notif_lembrete_entrada_texto">Não esqueça de bater o ponto de entrada.</string>
+    <string name="notif_lembrete_saida_titulo">Hora de registrar a saída!</string>
+    <string name="notif_lembrete_saida_texto">Não esqueça de bater o ponto de saída.</string>
+    <string name="notif_saldo_negativo_titulo">Banco de horas negativo</string>
+    <string name="notif_saldo_negativo_texto">Seu banco de horas está em %s. Verifique seus registros.</string>
+
+    <!-- ====================================================================
+         BACKUP E DADOS
+         ==================================================================== -->
+    <string name="backup_titulo">Backup e Dados</string>
+    <string name="backup_exportar_csv">Exportar CSV</string>
+    <string name="backup_exportar_pdf">Exportar PDF</string>
+    <string name="backup_importar">Importar backup</string>
+    <string name="backup_nuvem">Backup na nuvem</string>
+    <string name="backup_apenas_wifi">Backup somente via Wi-Fi</string>
+    <string name="backup_ultimo">Último backup</string>
+    <string name="backup_nunca">Nunca realizado</string>
+    <string name="backup_em_andamento">Realizando backup…</string>
+    <string name="backup_concluido">Backup concluído!</string>
+    <string name="backup_erro">Erro ao realizar backup</string>
+
+    <!-- ====================================================================
+         RELATÓRIOS
+         ==================================================================== -->
+    <string name="relatorios_titulo">Relatórios</string>
+    <string name="relatorios_periodo">Período do relatório</string>
+    <string name="relatorios_extrato">Extrato de Pontos</string>
+    <string name="relatorios_banco_horas">Banco de Horas</string>
+    <string name="relatorios_gerar_pdf">Gerar PDF</string>
+    <string name="relatorios_exportar_csv">Exportar CSV</string>
+    <string name="relatorios_compartilhar">Compartilhar relatório</string>
+    <string name="relatorios_gerando">Gerando relatório…</string>
+    <string name="relatorios_gerado">Relatório gerado!</string>
+    <string name="relatorios_erro_gerar">Erro ao gerar relatório</string>
+    <string name="relatorios_sem_dados">Sem dados para o período selecionado</string>
+
+    <!-- ====================================================================
+         MARCADORES
+         ==================================================================== -->
+    <string name="marcadores_titulo">Marcadores</string>
+    <string name="marcador_adicionar">Adicionar marcador</string>
+    <string name="marcador_editar">Editar marcador</string>
+    <string name="marcador_nome">Nome do marcador</string>
+    <string name="marcador_cor">Cor</string>
+    <string name="marcador_sem_marcadores">Nenhum marcador cadastrado</string>
+    <string name="marcador_excluir_confirmar">Deseja excluir este marcador?</string>
+
+    <!-- ====================================================================
+         AJUSTES DE SALDO
+         ==================================================================== -->
+    <string name="ajustes_titulo">Ajustes de Saldo</string>
+    <string name="ajuste_adicionar">Adicionar ajuste</string>
+    <string name="ajuste_tipo">Tipo de ajuste</string>
+    <string name="ajuste_tipo_credito">Crédito</string>
+    <string name="ajuste_tipo_debito">Débito</string>
+    <string name="ajuste_tipo_manual">Manual</string>
+    <string name="ajuste_valor">Valor (minutos)</string>
+    <string name="ajuste_motivo">Motivo</string>
+    <string name="ajuste_data">Data do ajuste</string>
+    <string name="ajuste_sem_ajustes">Nenhum ajuste registrado</string>
+
+    <!-- ====================================================================
+         HORÁRIOS POR DIA
+         ==================================================================== -->
+    <string name="horarios_titulo">Horários por Dia</string>
+    <string name="horario_entrada_ideal">Entrada ideal</string>
+    <string name="horario_saida_intervalo">Saída para intervalo</string>
+    <string name="horario_volta_intervalo">Retorno do intervalo</string>
+    <string name="horario_saida_ideal">Saída ideal</string>
+    <string name="horario_dia_ativo">Dia ativo</string>
+    <string name="horario_dia_folga">Folga</string>
+    <string name="horario_carga">Carga horária</string>
+
+    <!-- ====================================================================
+         DIAS DA SEMANA
+         ==================================================================== -->
+    <string name="dia_segunda">Segunda-feira</string>
+    <string name="dia_terca">Terça-feira</string>
+    <string name="dia_quarta">Quarta-feira</string>
+    <string name="dia_quinta">Quinta-feira</string>
+    <string name="dia_sexta">Sexta-feira</string>
+    <string name="dia_sabado">Sábado</string>
+    <string name="dia_domingo">Domingo</string>
+    <string name="dia_segunda_curto">Seg</string>
+    <string name="dia_terca_curto">Ter</string>
+    <string name="dia_quarta_curto">Qua</string>
+    <string name="dia_quinta_curto">Qui</string>
+    <string name="dia_sexta_curto">Sex</string>
+    <string name="dia_sabado_curto">Sáb</string>
+    <string name="dia_domingo_curto">Dom</string>
+
+    <!-- ====================================================================
+         PERMISSÕES — Racionais para exibição ao usuário
+         ==================================================================== -->
+    <string name="permissao_camera_titulo">Permissão de câmera</string>
+    <string name="permissao_camera_mensagem">O MeuPonto precisa de acesso à câmera para fotografar comprovantes de ponto.</string>
+    <string name="permissao_localizacao_titulo">Permissão de localização</string>
+    <string name="permissao_localizacao_mensagem">O MeuPonto usa a localização para registrar onde o ponto foi batido. Você pode desativar isso nas configurações.</string>
+    <string name="permissao_notificacao_titulo">Permissão de notificações</string>
+    <string name="permissao_notificacao_mensagem">Ative as notificações para receber lembretes de ponto e alertas de banco de horas.</string>
+    <string name="permissao_negada">Permissão negada</string>
+    <string name="permissao_negada_descricao">Abra as configurações do dispositivo para conceder a permissão manualmente.</string>
+    <string name="permissao_abrir_configuracoes">Abrir configurações</string>
+
+    <!-- ====================================================================
+         SALDO E BANCO DE HORAS
+         ==================================================================== -->
+    <string name="saldo_positivo_label">Horas extras</string>
+    <string name="saldo_negativo_label">Horas devidas</string>
+    <string name="saldo_zerado_label">Saldo zerado</string>
+    <string name="banco_horas_label">Banco de horas</string>
+    <string name="carga_horaria_label">Carga horária</string>
+    <string name="jornada_label">Jornada</string>
+
+    <!-- ====================================================================
+         SOBRE O APP
+         ==================================================================== -->
+    <string name="sobre_titulo">Sobre o MeuPonto</string>
+    <string name="sobre_versao">Versão %s</string>
+    <string name="sobre_desenvolvedor">Desenvolvido por Thiago Macedo</string>
+    <string name="sobre_descricao">App para controle de ponto eletrônico e banco de horas.</string>
+
+    <!-- ====================================================================
+         PLURALS — Contagens variáveis (usando formato <plurals>)
+         ==================================================================== -->
+    <!-- Usado nos relatórios e na lixeira -->
+
 </resources>

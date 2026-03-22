@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import br.com.tlmacedo.meuponto.BuildConfig
 import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
 import br.com.tlmacedo.meuponto.data.local.database.dao.*
 import br.com.tlmacedo.meuponto.data.local.database.migration.*
@@ -20,14 +21,28 @@ import javax.inject.Singleton
 /**
  * Módulo Hilt para injeção de dependências relacionadas ao banco de dados.
  *
+ * Os dados de seed inseridos em [inserirDadosIniciais] são exclusivos
+ * para o ambiente de desenvolvimento e protegidos por [BuildConfig.DEBUG].
+ * Em produção, o banco é criado vazio.
+ *
  * @author Thiago
  * @since 1.0.0
  * @updated 10.0.0 - Migração 22->23: Sistema de foto de comprovante com metadados
+ * @updated 12.0.0 - Dados de seed protegidos por BuildConfig.DEBUG
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    /**
+     * Fornece a instância singleton do banco de dados Room.
+     *
+     * Aplica todas as migrações incrementais e registra o callback
+     * de criação somente se em ambiente de debug.
+     *
+     * @param context Contexto da aplicação
+     * @return Instância singleton do [MeuPontoDatabase]
+     */
     @Provides
     @Singleton
     fun provideMeuPontoDatabase(
@@ -70,8 +85,13 @@ object DatabaseModule {
     }
 
     /**
-     * Provê o gerenciador de checkpoint WAL.
-     * Garante persistência imediata dos dados após operações de escrita.
+     * Fornece o gerenciador de checkpoint WAL.
+     *
+     * Garante persistência imediata dos dados após operações de escrita,
+     * evitando perda de dados em caso de crash logo após uma transação.
+     *
+     * @param database Instância do banco de dados
+     * @return Instância singleton do [DatabaseCheckpointManager]
      */
     @Provides
     @Singleton
@@ -81,18 +101,40 @@ object DatabaseModule {
         return DatabaseCheckpointManager(database)
     }
 
+    /**
+     * Cria o callback de inicialização do banco.
+     *
+     * Os dados iniciais de desenvolvimento são inseridos apenas quando
+     * [BuildConfig.DEBUG] é verdadeiro, garantindo que nenhum dado fictício
+     * chegue ao ambiente de produção.
+     *
+     * @return [RoomDatabase.Callback] configurado conforme o build type
+     */
     private fun createDatabaseCallback(): RoomDatabase.Callback {
         return object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                inserirDadosIniciais(db)
+                // Dados de seed exclusivos para ambiente de desenvolvimento
+                if (BuildConfig.DEBUG) {
+                    inserirDadosIniciais(db)
+                }
             }
         }
     }
 
     /**
-     * Insere dados iniciais de teste para desenvolvimento.
-     * ATUALIZADO: Inclui configurações de foto de comprovante.
+     * Insere dados iniciais para facilitar o desenvolvimento e testes manuais.
+     *
+     * ATENÇÃO: Este método só é chamado quando [BuildConfig.DEBUG] == true.
+     * Nunca deve ser chamado em produção.
+     *
+     * Dados inseridos:
+     * - 1 emprego de teste ("SIDIA Teste")
+     * - Configuração de emprego com campos de foto
+     * - Versão de jornada inicial
+     * - Horários por dia da semana (dias úteis + finais de semana)
+     *
+     * @param db Banco de dados em criação
      */
     private fun inserirDadosIniciais(db: SupportSQLiteDatabase) {
         val now = LocalDateTime.now().toString()
@@ -120,7 +162,7 @@ object DatabaseModule {
         )
 
         // ════════════════════════════════════════════════════════════════════
-        // 2. CONFIGURAÇÃO DO EMPREGO (COM CAMPOS DE FOTO)
+        // 2. CONFIGURAÇÃO DO EMPREGO
         // ════════════════════════════════════════════════════════════════════
         db.execSQL(
             """
@@ -147,27 +189,10 @@ object DatabaseModule {
                 criadoEm,
                 atualizadoEm
             ) VALUES (
-                1,
-                0,
-                'NUMERICO',
-                0,
-                0,
-                1,
-                0,
-                0,
-                'JPEG',
-                85,
-                1920,
-                1024,
-                1,
-                0,
-                1,
-                0,
-                1,
-                1,
-                1,
-                '$now',
-                '$now'
+                1, 0, 'NUMERICO', 0, 0, 1,
+                0, 0, 'JPEG', 85, 1920, 1024,
+                1, 0, 1, 0, 1, 1, 1,
+                '$now', '$now'
             )
             """.trimIndent()
         )
@@ -178,63 +203,21 @@ object DatabaseModule {
         db.execSQL(
             """
             INSERT INTO versoes_jornada (
-                empregoId,
-                dataInicio,
-                dataFim,
-                descricao,
-                numeroVersao,
-                vigente,
-                jornadaMaximaDiariaMinutos,
-                intervaloMinimoInterjornadaMinutos,
-                toleranciaIntervaloMaisMinutos,
-                turnoMaximoMinutos,
-                cargaHorariaDiariaMinutos,
-                acrescimoMinutosDiasPontes,
-                cargaHorariaSemanalMinutos,
-                primeiroDiaSemana,
-                diaInicioFechamentoRH,
-                zerarSaldoSemanal,
-                zerarSaldoPeriodoRH,
-                ocultarSaldoTotal,
-                bancoHorasHabilitado,
-                periodoBancoSemanas,
-                periodoBancoMeses,
-                dataInicioCicloBancoAtual,
-                diasUteisLembreteFechamento,
-                habilitarSugestaoAjuste,
-                zerarBancoAntesPeriodo,
-                exigeJustificativaInconsistencia,
-                criadoEm,
-                atualizadoEm
+                empregoId, dataInicio, dataFim, descricao, numeroVersao, vigente,
+                jornadaMaximaDiariaMinutos, intervaloMinimoInterjornadaMinutos,
+                toleranciaIntervaloMaisMinutos, turnoMaximoMinutos,
+                cargaHorariaDiariaMinutos, acrescimoMinutosDiasPontes,
+                cargaHorariaSemanalMinutos, primeiroDiaSemana, diaInicioFechamentoRH,
+                zerarSaldoSemanal, zerarSaldoPeriodoRH, ocultarSaldoTotal,
+                bancoHorasHabilitado, periodoBancoSemanas, periodoBancoMeses,
+                dataInicioCicloBancoAtual, diasUteisLembreteFechamento,
+                habilitarSugestaoAjuste, zerarBancoAntesPeriodo,
+                exigeJustificativaInconsistencia, criadoEm, atualizadoEm
             ) VALUES (
-                1,
-                '$dataAdmissao',
-                NULL,
-                'Configuração inicial',
-                1,
-                1,
-                600,
-                660,
-                20,
-                360,
-                480,
-                12,
-                2460,
-                'SEGUNDA',
-                1,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                NULL,
-                3,
-                0,
-                0,
-                0,
-                '$now',
-                '$now'
+                1, '$dataAdmissao', NULL, 'Configuração inicial', 1, 1,
+                600, 660, 20, 360, 480, 12, 2460, 'SEGUNDA', 1,
+                0, 0, 0, 0, 0, 0, NULL, 3, 0, 0, 0,
+                '$now', '$now'
             )
             """.trimIndent()
         )
@@ -247,33 +230,14 @@ object DatabaseModule {
             db.execSQL(
                 """
                 INSERT INTO horarios_dia_semana (
-                    empregoId,
-                    versaoJornadaId,
-                    diaSemana,
-                    ativo,
-                    cargaHorariaMinutos,
-                    entradaIdeal,
-                    saidaIntervaloIdeal,
-                    voltaIntervaloIdeal,
-                    saidaIdeal,
-                    intervaloMinimoMinutos,
-                    toleranciaIntervaloMaisMinutos,
-                    criadoEm,
-                    atualizadoEm
+                    empregoId, versaoJornadaId, diaSemana, ativo,
+                    cargaHorariaMinutos, entradaIdeal, saidaIntervaloIdeal,
+                    voltaIntervaloIdeal, saidaIdeal, intervaloMinimoMinutos,
+                    toleranciaIntervaloMaisMinutos, criadoEm, atualizadoEm
                 ) VALUES (
-                    1,
-                    1,
-                    '$dia',
-                    1,
-                    492,
-                    '08:00',
-                    '12:00',
-                    '13:00',
-                    '17:12',
-                    60,
-                    20,
-                    '$now',
-                    '$now'
+                    1, 1, '$dia', 1, 492,
+                    '08:00', '12:00', '13:00', '17:12',
+                    60, 20, '$now', '$now'
                 )
                 """.trimIndent()
             )
@@ -284,33 +248,14 @@ object DatabaseModule {
             db.execSQL(
                 """
                 INSERT INTO horarios_dia_semana (
-                    empregoId,
-                    versaoJornadaId,
-                    diaSemana,
-                    ativo,
-                    cargaHorariaMinutos,
-                    entradaIdeal,
-                    saidaIntervaloIdeal,
-                    voltaIntervaloIdeal,
-                    saidaIdeal,
-                    intervaloMinimoMinutos,
-                    toleranciaIntervaloMaisMinutos,
-                    criadoEm,
-                    atualizadoEm
+                    empregoId, versaoJornadaId, diaSemana, ativo,
+                    cargaHorariaMinutos, entradaIdeal, saidaIntervaloIdeal,
+                    voltaIntervaloIdeal, saidaIdeal, intervaloMinimoMinutos,
+                    toleranciaIntervaloMaisMinutos, criadoEm, atualizadoEm
                 ) VALUES (
-                    1,
-                    1,
-                    '$dia',
-                    0,
-                    0,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    60,
-                    0,
-                    '$now',
-                    '$now'
+                    1, 1, '$dia', 0, 0,
+                    NULL, NULL, NULL, NULL,
+                    60, 0, '$now', '$now'
                 )
                 """.trimIndent()
             )
@@ -321,55 +266,47 @@ object DatabaseModule {
     // PROVIDERS DOS DAOs
     // ════════════════════════════════════════════════════════════════════════
 
-    @Provides
-    @Singleton
-    fun providePontoDao(database: MeuPontoDatabase): PontoDao = database.pontoDao()
+    @Provides @Singleton
+    fun providePontoDao(db: MeuPontoDatabase): PontoDao = db.pontoDao()
 
-    @Provides
-    @Singleton
-    fun provideEmpregoDao(database: MeuPontoDatabase): EmpregoDao = database.empregoDao()
+    @Provides @Singleton
+    fun provideEmpregoDao(db: MeuPontoDatabase): EmpregoDao = db.empregoDao()
 
-    @Provides
-    @Singleton
-    fun provideConfiguracaoEmpregoDao(database: MeuPontoDatabase): ConfiguracaoEmpregoDao = database.configuracaoEmpregoDao()
+    @Provides @Singleton
+    fun provideConfiguracaoEmpregoDao(db: MeuPontoDatabase): ConfiguracaoEmpregoDao =
+        db.configuracaoEmpregoDao()
 
-    @Provides
-    @Singleton
-    fun provideHorarioDiaSemanaDao(database: MeuPontoDatabase): HorarioDiaSemanaDao = database.horarioDiaSemanaDao()
+    @Provides @Singleton
+    fun provideHorarioDiaSemanaDao(db: MeuPontoDatabase): HorarioDiaSemanaDao =
+        db.horarioDiaSemanaDao()
 
-    @Provides
-    @Singleton
-    fun provideAjusteSaldoDao(database: MeuPontoDatabase): AjusteSaldoDao = database.ajusteSaldoDao()
+    @Provides @Singleton
+    fun provideAjusteSaldoDao(db: MeuPontoDatabase): AjusteSaldoDao = db.ajusteSaldoDao()
 
-    @Provides
-    @Singleton
-    fun provideFechamentoPeriodoDao(database: MeuPontoDatabase): FechamentoPeriodoDao = database.fechamentoPeriodoDao()
+    @Provides @Singleton
+    fun provideFechamentoPeriodoDao(db: MeuPontoDatabase): FechamentoPeriodoDao =
+        db.fechamentoPeriodoDao()
 
-    @Provides
-    @Singleton
-    fun provideMarcadorDao(database: MeuPontoDatabase): MarcadorDao = database.marcadorDao()
+    @Provides @Singleton
+    fun provideMarcadorDao(db: MeuPontoDatabase): MarcadorDao = db.marcadorDao()
 
-    @Provides
-    @Singleton
-    fun provideAuditLogDao(database: MeuPontoDatabase): AuditLogDao = database.auditLogDao()
+    @Provides @Singleton
+    fun provideAuditLogDao(db: MeuPontoDatabase): AuditLogDao = db.auditLogDao()
 
-    @Provides
-    @Singleton
-    fun provideVersaoJornadaDao(database: MeuPontoDatabase): VersaoJornadaDao = database.versaoJornadaDao()
+    @Provides @Singleton
+    fun provideVersaoJornadaDao(db: MeuPontoDatabase): VersaoJornadaDao = db.versaoJornadaDao()
 
-    @Provides
-    @Singleton
-    fun provideFeriadoDao(database: MeuPontoDatabase): FeriadoDao = database.feriadoDao()
+    @Provides @Singleton
+    fun provideFeriadoDao(db: MeuPontoDatabase): FeriadoDao = db.feriadoDao()
 
-    @Provides
-    @Singleton
-    fun provideConfiguracaoPontesAnoDao(database: MeuPontoDatabase): ConfiguracaoPontesAnoDao = database.configuracaoPontesAnoDao()
+    @Provides @Singleton
+    fun provideConfiguracaoPontesAnoDao(db: MeuPontoDatabase): ConfiguracaoPontesAnoDao =
+        db.configuracaoPontesAnoDao()
 
-    @Provides
-    @Singleton
-    fun provideAusenciaDao(database: MeuPontoDatabase): AusenciaDao = database.ausenciaDao()
+    @Provides @Singleton
+    fun provideAusenciaDao(db: MeuPontoDatabase): AusenciaDao = db.ausenciaDao()
 
-    @Provides
-    @Singleton
-    fun provideFotoComprovanteDao(database: MeuPontoDatabase): FotoComprovanteDao = database.fotoComprovanteDao()
+    @Provides @Singleton
+    fun provideFotoComprovanteDao(db: MeuPontoDatabase): FotoComprovanteDao =
+        db.fotoComprovanteDao()
 }

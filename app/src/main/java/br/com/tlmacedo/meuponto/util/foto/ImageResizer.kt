@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
+import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,16 +15,24 @@ import kotlin.math.roundToInt
 /**
  * Utilitário para redimensionamento de imagens.
  *
- * Oferece múltiplas estratégias de redimensionamento mantendo
- * o aspect ratio original da imagem.
+ * Oferece múltiplas estratégias de redimensionamento sempre mantendo
+ * o aspect ratio original, exceto quando [ResizeStrategy.EXACT] for
+ * explicitamente solicitado.
  *
- * ## Estratégias:
- * - **FIT**: Redimensiona para caber dentro do limite (pode ser menor)
- * - **FILL**: Redimensiona para preencher o limite (pode cortar)
- * - **EXACT**: Redimensiona para dimensões exatas (pode distorcer)
+ * ## Estratégias disponíveis:
+ * - [ResizeStrategy.FIT]: Redimensiona para caber dentro do limite (padrão)
+ * - [ResizeStrategy.FILL]: Redimensiona para preencher, cortando o excesso
+ * - [ResizeStrategy.EXACT]: Dimensões exatas sem preservar aspect ratio
+ *
+ * ## Correções aplicadas (12.0.0):
+ * - [loadAndResize] (File): e.printStackTrace() substituído por Timber.e()
+ * - [loadAndResize] (Uri): e.printStackTrace() substituído por Timber.e()
+ *
+ * @param context Contexto da aplicação para acesso ao ContentResolver
  *
  * @author Thiago
  * @since 10.0.0
+ * @updated 12.0.0 - e.printStackTrace() substituído por Timber.e()
  */
 @Singleton
 class ImageResizer @Inject constructor(
@@ -31,10 +40,10 @@ class ImageResizer @Inject constructor(
 ) {
 
     companion object {
-        /** Resolução padrão máxima (Full HD) */
+        /** Resolução máxima padrão em pixels (Full HD) */
         const val DEFAULT_MAX_DIMENSION = 1920
 
-        /** Resolução para thumbnails */
+        /** Tamanho padrão para thumbnails em pixels */
         const val THUMBNAIL_SIZE = 200
     }
 
@@ -42,32 +51,33 @@ class ImageResizer @Inject constructor(
      * Estratégia de redimensionamento.
      */
     enum class ResizeStrategy {
-        /** Cabe dentro das dimensões (pode ser menor) */
+        /** Cabe dentro das dimensões preservando aspect ratio (pode resultar menor) */
         FIT,
-        /** Preenche as dimensões (pode cortar) */
+        /** Preenche as dimensões com crop central (pode cortar bordas) */
         FILL,
-        /** Dimensões exatas (pode distorcer) */
+        /** Dimensões exatas sem preservar aspect ratio (pode distorcer) */
         EXACT
     }
 
+    // ========================================================================
+    // REDIMENSIONAMENTO PRINCIPAL
+    // ========================================================================
+
     /**
-     * Redimensiona um Bitmap para caber dentro de uma dimensão máxima.
+     * Redimensiona um [Bitmap] para caber dentro de uma dimensão máxima.
      *
-     * Mantém o aspect ratio original. Se a imagem já for menor,
-     * retorna o Bitmap original.
+     * Mantém o aspect ratio. Se a imagem já estiver dentro do limite,
+     * retorna o bitmap original sem criar cópia.
      *
      * @param bitmap Bitmap original
-     * @param maxDimension Dimensão máxima (largura ou altura)
-     * @return Bitmap redimensionado ou original se não precisar
+     * @param maxDimension Dimensão máxima em pixels (largura ou altura)
+     * @return Bitmap redimensionado ou o original se já estiver no limite
      */
     fun resizeToFit(bitmap: Bitmap, maxDimension: Int = DEFAULT_MAX_DIMENSION): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
 
-        // Se já está dentro do limite, retorna o original
-        if (width <= maxDimension && height <= maxDimension) {
-            return bitmap
-        }
+        if (width <= maxDimension && height <= maxDimension) return bitmap
 
         val ratio = minOf(
             maxDimension.toFloat() / width,
@@ -81,44 +91,40 @@ class ImageResizer @Inject constructor(
     }
 
     /**
-     * Redimensiona um Bitmap para largura específica mantendo aspect ratio.
+     * Redimensiona para largura específica mantendo aspect ratio.
      *
      * @param bitmap Bitmap original
-     * @param targetWidth Largura desejada
+     * @param targetWidth Largura desejada em pixels
      * @return Bitmap redimensionado
      */
     fun resizeToWidth(bitmap: Bitmap, targetWidth: Int): Bitmap {
         if (bitmap.width == targetWidth) return bitmap
-
         val ratio = targetWidth.toFloat() / bitmap.width
         val newHeight = (bitmap.height * ratio).roundToInt()
-
         return Bitmap.createScaledBitmap(bitmap, targetWidth, newHeight, true)
     }
 
     /**
-     * Redimensiona um Bitmap para altura específica mantendo aspect ratio.
+     * Redimensiona para altura específica mantendo aspect ratio.
      *
      * @param bitmap Bitmap original
-     * @param targetHeight Altura desejada
+     * @param targetHeight Altura desejada em pixels
      * @return Bitmap redimensionado
      */
     fun resizeToHeight(bitmap: Bitmap, targetHeight: Int): Bitmap {
         if (bitmap.height == targetHeight) return bitmap
-
         val ratio = targetHeight.toFloat() / bitmap.height
         val newWidth = (bitmap.width * ratio).roundToInt()
-
         return Bitmap.createScaledBitmap(bitmap, newWidth, targetHeight, true)
     }
 
     /**
-     * Redimensiona para dimensões exatas (pode distorcer).
+     * Redimensiona para dimensões exatas sem preservar aspect ratio.
      *
      * @param bitmap Bitmap original
-     * @param width Largura desejada
-     * @param height Altura desejada
-     * @return Bitmap redimensionado
+     * @param width Largura desejada em pixels
+     * @param height Altura desejada em pixels
+     * @return Bitmap redimensionado nas dimensões exatas
      */
     fun resizeExact(bitmap: Bitmap, width: Int, height: Int): Bitmap {
         if (bitmap.width == width && bitmap.height == height) return bitmap
@@ -126,13 +132,13 @@ class ImageResizer @Inject constructor(
     }
 
     /**
-     * Redimensiona usando estratégia especificada.
+     * Redimensiona usando a estratégia especificada.
      *
      * @param bitmap Bitmap original
-     * @param targetWidth Largura alvo
-     * @param targetHeight Altura alvo
-     * @param strategy Estratégia de redimensionamento
-     * @return Bitmap redimensionado
+     * @param targetWidth Largura alvo em pixels
+     * @param targetHeight Altura alvo em pixels
+     * @param strategy Estratégia de redimensionamento (padrão: [ResizeStrategy.FIT])
+     * @return Bitmap redimensionado conforme a estratégia
      */
     fun resize(
         bitmap: Bitmap,
@@ -141,19 +147,22 @@ class ImageResizer @Inject constructor(
         strategy: ResizeStrategy = ResizeStrategy.FIT
     ): Bitmap {
         return when (strategy) {
-            ResizeStrategy.FIT -> resizeToFit(bitmap, maxOf(targetWidth, targetHeight))
-            ResizeStrategy.FILL -> resizeToFill(bitmap, targetWidth, targetHeight)
+            ResizeStrategy.FIT   -> resizeToFit(bitmap, maxOf(targetWidth, targetHeight))
+            ResizeStrategy.FILL  -> resizeToFill(bitmap, targetWidth, targetHeight)
             ResizeStrategy.EXACT -> resizeExact(bitmap, targetWidth, targetHeight)
         }
     }
 
     /**
-     * Redimensiona para preencher área (crop center).
+     * Redimensiona para preencher área com crop central.
+     *
+     * Escala a imagem até preencher completamente as dimensões alvo e
+     * corta o excesso centralizado.
      *
      * @param bitmap Bitmap original
-     * @param targetWidth Largura alvo
-     * @param targetHeight Altura alvo
-     * @return Bitmap redimensionado e cortado
+     * @param targetWidth Largura alvo em pixels
+     * @param targetHeight Altura alvo em pixels
+     * @return Bitmap redimensionado e cortado nas dimensões exatas
      */
     fun resizeToFill(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
         val ratio = maxOf(
@@ -166,25 +175,26 @@ class ImageResizer @Inject constructor(
 
         val scaled = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
 
-        // Crop center
         val x = (scaledWidth - targetWidth) / 2
         val y = (scaledHeight - targetHeight) / 2
 
         return try {
             Bitmap.createBitmap(scaled, x, y, targetWidth, targetHeight)
         } finally {
-            if (scaled !== bitmap) {
-                scaled.recycle()
-            }
+            if (scaled !== bitmap) scaled.recycle()
         }
     }
 
+    // ========================================================================
+    // THUMBNAILS
+    // ========================================================================
+
     /**
-     * Cria uma thumbnail quadrada (crop center).
+     * Cria uma thumbnail quadrada com crop central.
      *
      * @param bitmap Bitmap original
-     * @param size Tamanho da thumbnail
-     * @return Thumbnail quadrada
+     * @param size Tamanho do lado da thumbnail em pixels (padrão: [THUMBNAIL_SIZE])
+     * @return Bitmap quadrado com o tamanho especificado
      */
     fun createSquareThumbnail(bitmap: Bitmap, size: Int = THUMBNAIL_SIZE): Bitmap {
         return resizeToFill(bitmap, size, size)
@@ -194,43 +204,40 @@ class ImageResizer @Inject constructor(
      * Cria uma thumbnail mantendo aspect ratio.
      *
      * @param bitmap Bitmap original
-     * @param maxSize Tamanho máximo
-     * @return Thumbnail
+     * @param maxSize Dimensão máxima em pixels (padrão: [THUMBNAIL_SIZE])
+     * @return Thumbnail proporcional dentro do tamanho especificado
      */
     fun createThumbnail(bitmap: Bitmap, maxSize: Int = THUMBNAIL_SIZE): Bitmap {
         return resizeToFit(bitmap, maxSize)
     }
 
+    // ========================================================================
+    // CARREGAR E REDIMENSIONAR
+    // ========================================================================
+
     /**
      * Carrega e redimensiona uma imagem de arquivo com sampling otimizado.
      *
-     * Usa inSampleSize para eficiência de memória ao carregar imagens grandes.
+     * Usa [BitmapFactory.Options.inSampleSize] para eficiência de memória,
+     * decodificando a imagem já em escala reduzida antes de qualquer
+     * operação de bitmap.
      *
      * @param file Arquivo de imagem
-     * @param maxDimension Dimensão máxima desejada
+     * @param maxDimension Dimensão máxima desejada em pixels (padrão: [DEFAULT_MAX_DIMENSION])
      * @return Bitmap redimensionado ou null em caso de erro
      */
     fun loadAndResize(file: File, maxDimension: Int = DEFAULT_MAX_DIMENSION): Bitmap? {
         return try {
-            // Primeiro, obtém as dimensões sem carregar a imagem
-            val options = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-            }
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(file.absolutePath, options)
 
-            // Calcula o sample size ideal
             options.inSampleSize = calculateInSampleSize(
-                options.outWidth,
-                options.outHeight,
-                maxDimension,
-                maxDimension
+                options.outWidth, options.outHeight, maxDimension, maxDimension
             )
             options.inJustDecodeBounds = false
 
-            // Carrega com sampling
             val bitmap = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
 
-            // Redimensiona se ainda for maior que o limite
             if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
                 val resized = resizeToFit(bitmap, maxDimension)
                 if (resized !== bitmap) bitmap.recycle()
@@ -239,7 +246,7 @@ class ImageResizer @Inject constructor(
                 bitmap
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao carregar e redimensionar arquivo: ${file.name}")
             null
         }
     }
@@ -247,36 +254,26 @@ class ImageResizer @Inject constructor(
     /**
      * Carrega e redimensiona uma imagem de URI com sampling otimizado.
      *
-     * @param uri URI da imagem
-     * @param maxDimension Dimensão máxima desejada
+     * @param uri URI da imagem (content:// ou file://)
+     * @param maxDimension Dimensão máxima desejada em pixels (padrão: [DEFAULT_MAX_DIMENSION])
      * @return Bitmap redimensionado ou null em caso de erro
      */
     fun loadAndResize(uri: Uri, maxDimension: Int = DEFAULT_MAX_DIMENSION): Bitmap? {
         return try {
-            // Primeiro, obtém as dimensões sem carregar a imagem
-            val options = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-            }
-
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 BitmapFactory.decodeStream(inputStream, null, options)
             }
 
-            // Calcula o sample size ideal
             options.inSampleSize = calculateInSampleSize(
-                options.outWidth,
-                options.outHeight,
-                maxDimension,
-                maxDimension
+                options.outWidth, options.outHeight, maxDimension, maxDimension
             )
             options.inJustDecodeBounds = false
 
-            // Carrega com sampling
             val bitmap = context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 BitmapFactory.decodeStream(inputStream, null, options)
             } ?: return null
 
-            // Redimensiona se ainda for maior que o limite
             if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
                 val resized = resizeToFit(bitmap, maxDimension)
                 if (resized !== bitmap) bitmap.recycle()
@@ -285,22 +282,27 @@ class ImageResizer @Inject constructor(
                 bitmap
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao carregar e redimensionar URI: $uri")
             null
         }
     }
 
+    // ========================================================================
+    // UTILITÁRIOS
+    // ========================================================================
+
     /**
-     * Calcula o inSampleSize ideal para carregar uma imagem.
+     * Calcula o [BitmapFactory.Options.inSampleSize] ideal para carregar uma imagem.
      *
-     * Um inSampleSize de 2 reduz a imagem pela metade em cada dimensão,
-     * resultando em 1/4 dos pixels e uso de memória.
+     * Um `inSampleSize` de 2 reduz cada dimensão pela metade, resultando em
+     * 1/4 dos pixels totais e proporcional redução de uso de memória.
+     * O valor retornado é sempre uma potência de 2.
      *
-     * @param width Largura original
-     * @param height Altura original
-     * @param reqWidth Largura requerida
-     * @param reqHeight Altura requerida
-     * @return Valor ideal de inSampleSize (sempre potência de 2)
+     * @param width Largura original da imagem
+     * @param height Altura original da imagem
+     * @param reqWidth Largura máxima desejada
+     * @param reqHeight Altura máxima desejada
+     * @return Valor de `inSampleSize` (mínimo: 1, sempre potência de 2)
      */
     fun calculateInSampleSize(
         width: Int,
@@ -314,8 +316,8 @@ class ImageResizer @Inject constructor(
             val halfHeight = height / 2
             val halfWidth = width / 2
 
-            // Calcula o maior inSampleSize que ainda é >= que as dimensões requeridas
-            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+            while (halfHeight / inSampleSize >= reqHeight &&
+                halfWidth / inSampleSize >= reqWidth) {
                 inSampleSize *= 2
             }
         }
@@ -331,43 +333,36 @@ class ImageResizer @Inject constructor(
      */
     fun getImageDimensions(file: File): Pair<Int, Int>? {
         return try {
-            val options = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-            }
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(file.absolutePath, options)
 
             if (options.outWidth > 0 && options.outHeight > 0) {
                 Pair(options.outWidth, options.outHeight)
-            } else {
-                null
-            }
+            } else null
         } catch (e: Exception) {
+            Timber.w(e, "Falha ao obter dimensões do arquivo: ${file.name}")
             null
         }
     }
 
     /**
-     * Obtém as dimensões de uma imagem sem carregá-la na memória.
+     * Obtém as dimensões de uma imagem de URI sem carregá-la na memória.
      *
      * @param uri URI da imagem
      * @return Par (largura, altura) ou null em caso de erro
      */
     fun getImageDimensions(uri: Uri): Pair<Int, Int>? {
         return try {
-            val options = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-            }
-
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 BitmapFactory.decodeStream(inputStream, null, options)
             }
 
             if (options.outWidth > 0 && options.outHeight > 0) {
                 Pair(options.outWidth, options.outHeight)
-            } else {
-                null
-            }
+            } else null
         } catch (e: Exception) {
+            Timber.w(e, "Falha ao obter dimensões do URI: $uri")
             null
         }
     }
@@ -375,26 +370,45 @@ class ImageResizer @Inject constructor(
     /**
      * Verifica se uma imagem precisa ser redimensionada.
      *
-     * @param width Largura atual
-     * @param height Altura atual
-     * @param maxDimension Dimensão máxima permitida
-     * @return true se precisa redimensionamento
+     * @param width Largura atual em pixels
+     * @param height Altura atual em pixels
+     * @param maxDimension Dimensão máxima permitida em pixels
+     * @return true se largura ou altura excede [maxDimension]
      */
     fun needsResize(width: Int, height: Int, maxDimension: Int): Boolean {
         return width > maxDimension || height > maxDimension
     }
 }
 
+// ============================================================================
+// DATA CLASSES DE SUPORTE
+// ============================================================================
+
 /**
- * Informações sobre dimensões de imagem.
+ * Informações sobre dimensões de uma imagem.
+ *
+ * @property width Largura em pixels
+ * @property height Altura em pixels
  */
 data class ImageDimensions(
     val width: Int,
     val height: Int
 ) {
+    /** Proporção largura/altura */
     val aspectRatio: Float get() = width.toFloat() / height
+
+    /** true se a imagem está em modo retrato */
     val isPortrait: Boolean get() = height > width
+
+    /** true se a imagem está em modo paisagem */
     val isLandscape: Boolean get() = width > height
+
+    /** true se a imagem é perfeitamente quadrada */
     val isSquare: Boolean get() = width == height
+
+    /** Total de pixels */
     val pixelCount: Long get() = width.toLong() * height
+
+    /** Dimensões formatadas para exibição */
+    val formatted: String get() = "${width}x${height}"
 }

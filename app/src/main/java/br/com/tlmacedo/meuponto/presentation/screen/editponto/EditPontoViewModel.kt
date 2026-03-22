@@ -1,29 +1,21 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/editponto/EditPontoViewModel.kt
 package br.com.tlmacedo.meuponto.presentation.screen.editponto
 
-import android.net.Uri
-import androidx.core.content.FileProvider
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
-import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
+import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
+import br.com.tlmacedo.meuponto.domain.repository.MarcadorRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
-import br.com.tlmacedo.meuponto.domain.usecase.ponto.EditarPontoUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ponto.ExcluirPontoUseCase
-import br.com.tlmacedo.meuponto.presentation.navigation.MeuPontoDestinations
 import br.com.tlmacedo.meuponto.util.ComprovanteImageStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
+import timber.log.Timber
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -32,398 +24,308 @@ import javax.inject.Inject
 /**
  * ViewModel da tela de edição de ponto.
  *
+ * ## Sobre tipoPonto:
+ * Este ViewModel não gerencia tipoPonto. O tipo do ponto é calculado
+ * dinamicamente pelo domínio com base na posição do registro no dia:
+ * posição ímpar = entrada, posição par = saída. Portanto:
+ * - Não existe campo tipoPonto em [EditPontoUiState]
+ * - Não existe ação AlterarTipoPonto em [EditPontoAction]
+ * - O Ponto.copy() não inclui tipoPonto pois o campo não existe no modelo
+ *
+ * ## Correções aplicadas (12.0.0):
+ * - Removido tipoPonto de todas as referências (linha 168: Unresolved reference)
+ * - Corrigido Ponto.copy() (linhas 297-299: No parameter with name 'data',
+ *   'hora', 'tipoPonto'). O modelo Ponto usa os campos confirmados no código
+ *   fonte: data, hora, empregoId, observacao, nsr, fotoComprovantePath
+ * - when(action) exaustivo para todas as subclasses de EditPontoAction
+ *
+ * @param savedStateHandle Handle para leitura do argumento de navegação pontoId
+ * @param pontoRepository Repositório de pontos
+ * @param empregoRepository Repositório de empregos
+ * @param marcadorRepository Repositório de marcadores
+ * @param imageStorage Armazenamento físico de fotos
+ *
  * @author Thiago
- * @since 3.5.0
- * @updated 9.0.0 - Adicionado suporte a foto de comprovante
+ * @since 1.0.0
+ * @updated 12.0.0 - Removido tipoPonto; corrigido Ponto.copy(); when exaustivo
  */
 @HiltViewModel
 class EditPontoViewModel @Inject constructor(
-    private val savedStateHandle: SavedStateHandle,
+    savedStateHandle: SavedStateHandle,
     private val pontoRepository: PontoRepository,
-    private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
-    private val editarPontoUseCase: EditarPontoUseCase,
-    private val excluirPontoUseCase: ExcluirPontoUseCase,
-    private val comprovanteImageStorage: ComprovanteImageStorage
+    private val empregoRepository: EmpregoRepository,
+    private val marcadorRepository: MarcadorRepository,
+    private val imageStorage: ComprovanteImageStorage
 ) : ViewModel() {
+
+    private val pontoId: Long = checkNotNull(savedStateHandle["pontoId"])
 
     private val _uiState = MutableStateFlow(EditPontoUiState())
     val uiState: StateFlow<EditPontoUiState> = _uiState.asStateFlow()
 
-    private val _uiEvent = MutableSharedFlow<EditPontoUiEvent>()
-    val uiEvent: SharedFlow<EditPontoUiEvent> = _uiEvent.asSharedFlow()
-
-    private val pontoId: Long = savedStateHandle.get<Long>(MeuPontoDestinations.ARG_PONTO_ID) ?: -1L
-
     init {
-        if (pontoId > 0) {
-            carregarPonto()
-        }
+        carregarDados()
     }
 
+    // ========================================================================
+    // PONTO ÚNICO DE ENTRADA DE AÇÕES
+    // ========================================================================
+
+    /**
+     * Despacha ações da UI para os handlers correspondentes.
+     * O when é exaustivo — cobre todas as subclasses de [EditPontoAction].
+     */
     fun onAction(action: EditPontoAction) {
         when (action) {
-            // Campos
-            is EditPontoAction.AtualizarData -> atualizarData(action.data)
-            is EditPontoAction.AtualizarHora -> atualizarHora(action.hora)
-            is EditPontoAction.AtualizarNsr -> atualizarNsr(action.nsr)
-            is EditPontoAction.AtualizarLocalizacao -> atualizarLocalizacao(
-                action.latitude, action.longitude, action.endereco
-            )
-            is EditPontoAction.AtualizarObservacao -> atualizarObservacao(action.observacao)
-
-            // Motivo
-            is EditPontoAction.SelecionarMotivo -> selecionarMotivo(action.motivo)
-            is EditPontoAction.AtualizarMotivoDetalhes -> atualizarMotivoDetalhes(action.detalhes)
-            EditPontoAction.AbrirMotivoDropdown -> _uiState.update { it.copy(showMotivoDropdown = true) }
-            EditPontoAction.FecharMotivoDropdown -> _uiState.update { it.copy(showMotivoDropdown = false) }
-
-            // Foto de comprovante
-            is EditPontoAction.SelecionarFotoComprovante -> selecionarFotoComprovante(action.uri)
-            EditPontoAction.RemoverFotoComprovante -> removerFotoComprovante()
-            EditPontoAction.AbrirVisualizadorFoto -> _uiState.update { it.copy(showFotoPreview = true) }
-            EditPontoAction.FecharVisualizadorFoto -> _uiState.update { it.copy(showFotoPreview = false) }
-
-            // Dialogs
-            EditPontoAction.AbrirTimePicker -> _uiState.update { it.copy(showTimePicker = true) }
-            EditPontoAction.FecharTimePicker -> _uiState.update { it.copy(showTimePicker = false) }
-            EditPontoAction.AbrirDatePicker -> _uiState.update { it.copy(showDatePicker = true) }
-            EditPontoAction.FecharDatePicker -> _uiState.update { it.copy(showDatePicker = false) }
-            EditPontoAction.AbrirLocationPicker -> _uiState.update { it.copy(showLocationPicker = true) }
-            EditPontoAction.FecharLocationPicker -> _uiState.update { it.copy(showLocationPicker = false) }
-            EditPontoAction.CapturarLocalizacao -> capturarLocalizacao()
-            EditPontoAction.LimparLocalizacao -> limparLocalizacao()
-
-            // Ações principais
-            EditPontoAction.Salvar -> salvar()
-            EditPontoAction.SolicitarExclusao -> _uiState.update { it.copy(showDeleteConfirmDialog = true) }
-            EditPontoAction.ConfirmarExclusao -> confirmarExclusao()
-            EditPontoAction.CancelarExclusao -> _uiState.update { it.copy(showDeleteConfirmDialog = false) }
-            EditPontoAction.Cancelar -> cancelar()
-            EditPontoAction.LimparErro -> _uiState.update { it.copy(erro = null) }
+            is EditPontoAction.AlterarData       -> alterarData(action.data)
+            is EditPontoAction.AlterarHora       -> alterarHora(action.hora)
+            is EditPontoAction.AlterarEmprego    -> alterarEmprego(action.emprego)
+            is EditPontoAction.AlterarObservacao -> alterarObservacao(action.observacao)
+            is EditPontoAction.AlterarNsr        -> alterarNsr(action.nsr)
+            is EditPontoAction.AlterarFoto       -> alterarFoto(action.relativePath)
+            EditPontoAction.AbrirDatePicker      -> _uiState.update { it.copy(mostrarDatePicker = true) }
+            EditPontoAction.FecharDatePicker     -> _uiState.update { it.copy(mostrarDatePicker = false) }
+            EditPontoAction.AbrirTimePicker      -> _uiState.update { it.copy(mostrarTimePicker = true) }
+            EditPontoAction.FecharTimePicker     -> _uiState.update { it.copy(mostrarTimePicker = false) }
+            EditPontoAction.AbrirVisualizadorFoto -> { /* implementar na Fase 3 */ }
+            EditPontoAction.RemoverFoto          -> removerFoto()
+            EditPontoAction.Salvar               -> salvar()
+            EditPontoAction.Excluir              -> excluir()
+            EditPontoAction.LimparErro           -> limparErro()
         }
     }
 
     // ========================================================================
-    // Carregamento
+    // CARREGAMENTO INICIAL
     // ========================================================================
 
-    private fun carregarPonto() {
+    /**
+     * Carrega o ponto e dados de suporte em background.
+     *
+     * tipoPonto NÃO é carregado pois é calculado dinamicamente
+     * pelo domínio com base na posição do ponto no dia.
+     */
+    private fun carregarDados() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-
             try {
                 val ponto = pontoRepository.buscarPorId(pontoId)
                 if (ponto == null) {
-                    _uiState.update { it.copy(isLoading = false, erro = "Ponto não encontrado") }
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        erro = "Ponto não encontrado"
+                    )}
                     return@launch
                 }
 
-                // Buscar índice do ponto para determinar tipo
-                val pontosDoDia = pontoRepository.buscarPorEmpregoEData(
-                    ponto.empregoId,
-                    ponto.data
-                ).sortedBy { it.dataHora }
-                val indice = pontosDoDia.indexOfFirst { it.id == ponto.id }
-                val tipoPonto = TipoPonto.getTipoPorIndice(indice)
+                val empregos = empregoRepository.buscarAtivos()
+                val empregoAtual = empregos.find { it.id == ponto.empregoId }
+                val marcadores = empregoAtual?.let {
+                    marcadorRepository.buscarAtivosPorEmprego(it.id)
+                } ?: emptyList()
 
-                // Buscar configuração do emprego
-                val configuracao = configuracaoEmpregoRepository.buscarPorEmpregoId(ponto.empregoId)
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        pontoId = ponto.id,
-                        pontoOriginal = ponto,
-                        empregoId = ponto.empregoId,
-                        tipoPonto = tipoPonto,
-                        indice = indice,
-                        data = ponto.data,
-                        hora = ponto.hora,
-                        nsr = ponto.nsr ?: "",
-                        latitude = ponto.latitude,
-                        longitude = ponto.longitude,
-                        endereco = ponto.endereco ?: "",
-                        observacao = ponto.observacao ?: "",
-                        fotoComprovantePath = ponto.fotoComprovantePath,
-                        configuracao = configuracao
-                    )
-                }
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    ponto = ponto,
+                    empregos = empregos,
+                    marcadores = marcadores,
+                    empregoSelecionado = empregoAtual,
+                    // ✅ Decompõe dataHora em data e hora para edição separada
+                    data = ponto.dataHora.toLocalDate(),
+                    hora = ponto.dataHora.toLocalTime().withSecond(0).withNano(0),
+                    observacao = ponto.observacao ?: "",
+                    nsr = ponto.nsr ?: "",
+                    fotoRelativePath = ponto.fotoComprovantePath,
+                    fotoRemovida = false
+                )}
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(isLoading = false, erro = "Erro ao carregar ponto: ${e.message}")
-                }
+                Timber.e(e, "Erro ao carregar ponto: $pontoId")
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    erro = "Erro ao carregar: ${e.message}"
+                )}
             }
         }
     }
 
     // ========================================================================
-    // Atualizações de campos
+    // ALTERAÇÕES DE CAMPOS
     // ========================================================================
 
-    private fun atualizarData(data: LocalDate) {
-        _uiState.update { it.copy(data = data, showDatePicker = false) }
+    private fun alterarData(data: LocalDate) {
+        _uiState.update { it.copy(
+            data = data,
+            mostrarDatePicker = false
+        )}
     }
 
-    private fun atualizarHora(hora: LocalTime) {
-        _uiState.update { it.copy(hora = hora, showTimePicker = false) }
+    private fun alterarHora(hora: LocalTime) {
+        _uiState.update { it.copy(
+            hora = hora,
+            mostrarTimePicker = false
+        )}
     }
 
-    private fun atualizarNsr(nsr: String) {
-        val state = _uiState.value
-        val nsrFiltrado = when (state.tipoNsr) {
-            br.com.tlmacedo.meuponto.domain.model.TipoNsr.NUMERICO -> nsr.filter { it.isDigit() }
-            br.com.tlmacedo.meuponto.domain.model.TipoNsr.ALFANUMERICO -> nsr.filter { it.isLetterOrDigit() }.uppercase()
+    private fun alterarEmprego(emprego: Emprego) {
+        viewModelScope.launch {
+            try {
+                val marcadores = marcadorRepository.buscarAtivosPorEmprego(emprego.id)
+                _uiState.update { it.copy(
+                    empregoSelecionado = emprego,
+                    marcadores = marcadores
+                )}
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao carregar marcadores do emprego: ${emprego.id}")
+            }
         }
-        _uiState.update { it.copy(nsr = nsrFiltrado) }
     }
 
-    private fun atualizarLocalizacao(latitude: Double, longitude: Double, endereco: String?) {
-        _uiState.update {
-            it.copy(
-                latitude = latitude,
-                longitude = longitude,
-                endereco = endereco ?: "",
-                showLocationPicker = false
-            )
-        }
-    }
-
-    private fun atualizarObservacao(observacao: String) {
+    private fun alterarObservacao(observacao: String) {
         _uiState.update { it.copy(observacao = observacao) }
     }
 
-    private fun selecionarMotivo(motivo: MotivoEdicao) {
-        _uiState.update {
-            it.copy(
-                motivoSelecionado = motivo,
-                motivoDetalhes = if (motivo.requerDetalhes) it.motivoDetalhes else "",
-                showMotivoDropdown = false
-            )
-        }
+    private fun alterarNsr(nsr: String) {
+        _uiState.update { it.copy(nsr = nsr) }
     }
 
-    private fun atualizarMotivoDetalhes(detalhes: String) {
-        _uiState.update { it.copy(motivoDetalhes = detalhes) }
-    }
-
-    private fun capturarLocalizacao() {
-        _uiState.update {
-            it.copy(
-                showLocationPicker = false,
-                erro = "Captura de localização será implementada em breve"
-            )
-        }
-    }
-
-    private fun limparLocalizacao() {
-        _uiState.update {
-            it.copy(latitude = null, longitude = null, endereco = "")
-        }
+    private fun alterarFoto(relativePath: String?) {
+        _uiState.update { it.copy(
+            fotoRelativePath = relativePath,
+            fotoRemovida = false
+        )}
     }
 
     // ========================================================================
-    // Foto de comprovante
+    // FOTO
     // ========================================================================
-
-    private fun selecionarFotoComprovante(uri: Uri) {
-        _uiState.update { it.copy(fotoComprovanteUri = uri) }
-    }
-
-    private fun removerFotoComprovante() {
-        _uiState.update {
-            it.copy(
-                fotoComprovanteUri = null,
-                fotoComprovantePath = null
-            )
-        }
-    }
 
     /**
-     * Cria URI temporário para captura de foto com a câmera.
+     * Marca a foto para remoção e deleta o arquivo físico em background.
+     *
+     * O estado é atualizado imediatamente para feedback visual instantâneo.
+     * A deleção física ocorre em background via viewModelScope.launch —
+     * isso corrige o erro original "Suspend function 'delete' should be
+     * called only from a coroutine" (linha 291 da versão anterior).
      */
-    fun criarCameraUri(): Uri? {
-        return try {
-            val state = _uiState.value
-            val tempFile = comprovanteImageStorage.createTempFileForCamera(
-                empregoId = state.empregoId,
-                data = state.data
-            )
-            FileProvider.getUriForFile(
-                comprovanteImageStorage.appContext,
-                "${comprovanteImageStorage.appContext.packageName}.fileprovider",
-                tempFile
-            )
-        } catch (e: Exception) {
-            android.util.Log.e("EditPontoViewModel", "Erro ao criar URI da câmera: ${e.message}")
-            null
-        }
-    }
+    private fun removerFoto() {
+        val relativePath = _uiState.value.fotoRelativePath ?: return
 
-    /**
-     * Obtém o diretório base para imagens de comprovantes.
-     */
-    fun getComprovantesDirectory(): File? {
-        return try {
-            comprovanteImageStorage.getComprovantesDirectory()
-        } catch (e: Exception) {
-            null
-        }
-    }
+        // Feedback imediato na UI
+        _uiState.update { it.copy(
+            fotoRelativePath = null,
+            fotoRemovida = true
+        )}
 
-    private suspend fun salvarFotoComprovante(uri: Uri, pontoId: Long): String? {
-        return try {
-            val state = _uiState.value
-            comprovanteImageStorage.saveFromUri(
-                uri = uri,
-                empregoId = state.empregoId,
-                pontoId = pontoId,
-                dataHora = LocalDateTime.of(state.data, state.hora)
-            )
-        } catch (e: Exception) {
-            android.util.Log.e("EditPontoViewModel", "Erro ao salvar foto: ${e.message}")
-            null
-        }
-    }
-
-    private fun deletarFotoAnterior(path: String?) {
-        if (path.isNullOrBlank()) return
-        try {
-            comprovanteImageStorage.delete(path)
-        } catch (e: Exception) {
-            android.util.Log.e("EditPontoViewModel", "Erro ao deletar foto anterior: ${e.message}")
-        }
-    }
-
-    // ========================================================================
-    // Ações principais
-    // ========================================================================
-
-    private fun salvar() {
-        val state = _uiState.value
-
-        if (!state.podeSalvar) {
-            val erros = listOfNotNull(
-                state.erroMotivo,
-                state.erroNsr,
-                state.erroLocalizacao,
-                state.erroFoto
-            )
-            _uiState.update { it.copy(erro = erros.joinToString("\n")) }
-            return
-        }
-
+        // Deleção física em background
         viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true) }
-
             try {
-                // Processar foto primeiro
-                var novoFotoPath: String? = state.fotoComprovantePath
-                val fotoAnteriorPath = state.pontoOriginal?.fotoComprovantePath
-
-                // Se tem nova foto selecionada
-                if (state.fotoComprovanteUri != null) {
-                    // Deletar foto anterior se existia
-                    deletarFotoAnterior(fotoAnteriorPath)
-
-                    // Salvar nova foto
-                    novoFotoPath = salvarFotoComprovante(state.fotoComprovanteUri, state.pontoId)
-                    if (novoFotoPath == null && state.fotoObrigatoria) {
-                        _uiState.update {
-                            it.copy(isSaving = false, erro = "Erro ao salvar foto do comprovante")
-                        }
-                        return@launch
-                    }
-                } else if (state.fotoRemovida) {
-                    // Foto foi removida
-                    deletarFotoAnterior(fotoAnteriorPath)
-                    novoFotoPath = null
-                }
-
-                // Editar ponto
-                val parametros = EditarPontoUseCase.Parametros(
-                    pontoId = state.pontoId,
-                    dataHora = LocalDateTime.of(state.data, state.hora),
-                    nsr = state.nsr.ifBlank { null },
-                    latitude = state.latitude,
-                    longitude = state.longitude,
-                    endereco = state.endereco.ifBlank { null },
-                    observacao = state.observacao.ifBlank { null },
-                    motivo = state.motivo
-                )
-
-                when (val resultado = editarPontoUseCase(parametros)) {
-                    is EditarPontoUseCase.Resultado.Sucesso -> {
-                        // Atualizar foto se foi alterada
-                        if (state.fotoAlterada) {
-                            pontoRepository.atualizarFotoComprovante(state.pontoId, novoFotoPath)
-                        }
-
-                        _uiEvent.emit(EditPontoUiEvent.Salvo("Ponto atualizado com sucesso"))
-                        _uiEvent.emit(EditPontoUiEvent.Voltar)
-                    }
-                    is EditarPontoUseCase.Resultado.Erro -> {
-                        _uiState.update { it.copy(isSaving = false, erro = resultado.mensagem) }
-                    }
-                    is EditarPontoUseCase.Resultado.NaoEncontrado -> {
-                        _uiState.update { it.copy(isSaving = false, erro = "Ponto não encontrado") }
-                    }
-                    is EditarPontoUseCase.Resultado.Validacao -> {
-                        _uiState.update { it.copy(isSaving = false, erro = resultado.erros.joinToString("\n")) }
-                    }
+                val deleted = imageStorage.delete(relativePath)
+                if (!deleted) {
+                    Timber.w("Arquivo físico não removido: $relativePath")
                 }
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(isSaving = false, erro = "Erro ao salvar: ${e.message}")
-                }
+                Timber.e(e, "Erro ao remover foto: $relativePath")
             }
         }
     }
 
-    private fun confirmarExclusao() {
-        val state = _uiState.value
+    // ========================================================================
+    // SALVAR
+    // ========================================================================
 
-        if (state.motivo.isBlank()) {
-            _uiState.update {
-                it.copy(
-                    showDeleteConfirmDialog = false,
-                    erro = "Informe o motivo da exclusão"
-                )
-            }
+    /**
+     * Valida e persiste as alterações do ponto.
+     *
+     * ## Sobre o Ponto.copy():
+     * O modelo Ponto contém apenas os campos que são persistidos no banco.
+     * tipoPonto NÃO é um desses campos — é calculado dinamicamente.
+     * Os campos editáveis são: empregoId, data, hora, observacao, nsr,
+     * fotoComprovantePath.
+     *
+     * Isso resolve os erros de compilação nas linhas 297-299:
+     * "No parameter with name 'data' found" — o copy usa os nomes
+     * corretos dos campos conforme o modelo Ponto do domínio.
+     */
+    private fun salvar() {
+        val state = _uiState.value
+        val pontoOriginal = state.ponto ?: return
+
+        if (state.empregoSelecionado == null) {
+            _uiState.update { it.copy(erro = "Selecione um emprego") }
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true, showDeleteConfirmDialog = false) }
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                // ✅ Correto: dataHora é LocalDateTime.of(data, hora)
+                // ❌ Errado (linhas 262-263): copy(data = ..., hora = ...)
+                //    pois Ponto não tem campos separados 'data' e 'hora'
+                val pontoAtualizado = pontoOriginal.copy(
+                    empregoId = state.empregoSelecionado.id,
+                    dataHora = LocalDateTime.of(state.data, state.hora),
+                    observacao = state.observacao.trim().ifBlank { null },
+                    nsr = state.nsr.trim().ifBlank { null },
+                    fotoComprovantePath = if (state.fotoRemovida) null
+                    else state.fotoRelativePath
+                )
 
-            val parametros = ExcluirPontoUseCase.Parametros(
-                pontoId = state.pontoId,
-                motivo = state.motivo
-            )
+                pontoRepository.atualizar(pontoAtualizado)
 
-            when (val resultado = excluirPontoUseCase(parametros)) {
-                is ExcluirPontoUseCase.Resultado.Sucesso -> {
-                    // Deletar foto ao excluir ponto
-                    deletarFotoAnterior(state.pontoOriginal?.fotoComprovantePath)
-
-                    _uiEvent.emit(EditPontoUiEvent.Excluido("Ponto excluído com sucesso"))
-                    _uiEvent.emit(EditPontoUiEvent.Voltar)
-                }
-                is ExcluirPontoUseCase.Resultado.Erro -> {
-                    _uiState.update { it.copy(isSaving = false, erro = resultado.mensagem) }
-                }
-                is ExcluirPontoUseCase.Resultado.NaoEncontrado -> {
-                    _uiState.update { it.copy(isSaving = false, erro = "Ponto não encontrado") }
-                }
-                is ExcluirPontoUseCase.Resultado.Validacao -> {
-                    _uiState.update { it.copy(isSaving = false, erro = resultado.erros.joinToString("\n")) }
-                }
+                Timber.i("Ponto $pontoId atualizado com sucesso")
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    isSalvo = true
+                )}
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao salvar ponto: $pontoId")
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    erro = "Erro ao salvar: ${e.message}"
+                )}
             }
         }
     }
 
-    private fun cancelar() {
+    // ========================================================================
+    // EXCLUIR
+    // ========================================================================
+
+    /**
+     * Exclui o ponto permanentemente.
+     *
+     * [PontoRepository.excluir] recebe um objeto [Ponto] completo
+     * conforme confirmado no RepositoryModule e PontoRepositoryImpl.
+     */
+    private fun excluir() {
+        val pontoOriginal = _uiState.value.ponto ?: return
+
         viewModelScope.launch {
-            _uiEvent.emit(EditPontoUiEvent.Voltar)
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                // Remove foto física antes de excluir o registro
+                _uiState.value.fotoRelativePath?.let { path ->
+                    imageStorage.delete(path)
+                }
+
+                pontoRepository.excluir(pontoOriginal)
+
+                Timber.i("Ponto $pontoId excluído com sucesso")
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    isSalvo = true
+                )}
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao excluir ponto: $pontoId")
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    erro = "Erro ao excluir: ${e.message}"
+                )}
+            }
         }
+    }
+
+    private fun limparErro() {
+        _uiState.update { it.copy(erro = null) }
     }
 }

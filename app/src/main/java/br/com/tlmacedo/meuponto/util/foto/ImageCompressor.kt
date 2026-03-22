@@ -3,6 +3,8 @@ package br.com.tlmacedo.meuponto.util.foto
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import br.com.tlmacedo.meuponto.util.formatarTamanho
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -12,23 +14,31 @@ import javax.inject.Singleton
 /**
  * Utilitário para compressão inteligente de imagens.
  *
- * Oferece compressão adaptativa que tenta atingir um tamanho alvo
- * ajustando automaticamente a qualidade quando necessário.
+ * Oferece compressão com qualidade fixa e compressão adaptativa que reduz
+ * automaticamente a qualidade JPEG até atingir o tamanho alvo, respeitando
+ * um limite mínimo de qualidade aceitável.
  *
- * ## Funcionalidades:
- * - Compressão com qualidade fixa
- * - Compressão adaptativa para atingir tamanho alvo
- * - Suporte a JPEG e PNG
- * - Preservação de aspect ratio
+ * ## Estratégia de compressão adaptativa:
+ * 1. Comprime com qualidade inicial ([initialQuality])
+ * 2. Se o resultado for maior que [maxSizeBytes], reduz em [QUALITY_STEP]
+ * 3. Repete até atingir o tamanho ou a qualidade mínima [MIN_QUALITY]
+ *
+ * ## Correções aplicadas (12.0.0):
+ * - [saveToFile] e [saveToFileAdaptive]: e.printStackTrace() substituído por Timber.e()
+ * - [recompressFile]: e.printStackTrace() substituído por Timber.e() e Timber.w()
+ * - [AdaptiveCompressionResult.sizeFormatted]: substituída lógica inline duplicada
+ *   por [Long.formatarTamanho] centralizado em FileExtensions.kt
  *
  * @author Thiago
  * @since 10.0.0
+ * @updated 12.0.0 - e.printStackTrace() substituído por Timber.e();
+ *                   sizeFormatted usa Long.formatarTamanho() centralizado
  */
 @Singleton
 class ImageCompressor @Inject constructor() {
 
     companion object {
-        /** Qualidade mínima aceitável para JPEG */
+        /** Qualidade mínima aceitável para JPEG (abaixo disso o artefato é visível) */
         const val MIN_QUALITY = 30
 
         /** Qualidade máxima para JPEG */
@@ -37,16 +47,20 @@ class ImageCompressor @Inject constructor() {
         /** Passo de redução de qualidade na compressão adaptativa */
         const val QUALITY_STEP = 5
 
-        /** Tamanho padrão máximo em bytes (1MB) */
+        /** Tamanho padrão máximo em bytes (1 MB) */
         const val DEFAULT_MAX_SIZE_BYTES = 1024 * 1024L
     }
 
+    // ========================================================================
+    // COMPRESSÃO PARA BYTEARRAY
+    // ========================================================================
+
     /**
-     * Comprime um Bitmap para JPEG com qualidade especificada.
+     * Comprime um [Bitmap] para JPEG com qualidade especificada.
      *
      * @param bitmap Bitmap a ser comprimido
-     * @param quality Qualidade (1-100)
-     * @return ByteArray com os dados comprimidos
+     * @param quality Qualidade JPEG de 1 a 100 (padrão: 85)
+     * @return [ByteArray] com os dados JPEG comprimidos
      */
     fun compressToJpeg(bitmap: Bitmap, quality: Int = 85): ByteArray {
         val validQuality = quality.coerceIn(MIN_QUALITY, MAX_QUALITY)
@@ -57,26 +71,27 @@ class ImageCompressor @Inject constructor() {
     }
 
     /**
-     * Comprime um Bitmap para PNG (sem perdas).
+     * Comprime um [Bitmap] para PNG (lossless — sem perdas de qualidade).
+     *
+     * O parâmetro de qualidade é ignorado pelo Android para PNG.
      *
      * @param bitmap Bitmap a ser comprimido
-     * @return ByteArray com os dados comprimidos
+     * @return [ByteArray] com os dados PNG
      */
     fun compressToPng(bitmap: Bitmap): ByteArray {
         return ByteArrayOutputStream().use { outputStream ->
-            // PNG ignora o parâmetro de qualidade
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
             outputStream.toByteArray()
         }
     }
 
     /**
-     * Comprime um Bitmap com formato especificado.
+     * Comprime um [Bitmap] no formato especificado.
      *
      * @param bitmap Bitmap a ser comprimido
-     * @param format Formato de compressão
-     * @param quality Qualidade (1-100, ignorado para PNG)
-     * @return ByteArray com os dados comprimidos
+     * @param format Formato de compressão ([Bitmap.CompressFormat.JPEG] ou [Bitmap.CompressFormat.PNG])
+     * @param quality Qualidade para JPEG de 1 a 100 (ignorado para PNG)
+     * @return [ByteArray] com os dados comprimidos
      */
     fun compress(
         bitmap: Bitmap,
@@ -89,17 +104,22 @@ class ImageCompressor @Inject constructor() {
         }
     }
 
+    // ========================================================================
+    // COMPRESSÃO ADAPTATIVA
+    // ========================================================================
+
     /**
-     * Compressão adaptativa que tenta atingir um tamanho alvo.
+     * Compressão adaptativa que tenta atingir o tamanho máximo especificado.
      *
-     * Começa com a qualidade especificada e reduz gradualmente até
-     * atingir o tamanho máximo ou a qualidade mínima.
+     * Reduz a qualidade JPEG em passos de [QUALITY_STEP] até atingir
+     * [maxSizeBytes] ou alcançar [minQuality]. O resultado inclui a
+     * qualidade final aplicada e se o alvo foi atingido.
      *
      * @param bitmap Bitmap a ser comprimido
-     * @param maxSizeBytes Tamanho máximo desejado em bytes
-     * @param initialQuality Qualidade inicial (padrão: 85)
-     * @param minQuality Qualidade mínima aceitável (padrão: 30)
-     * @return Resultado da compressão com dados e qualidade final
+     * @param maxSizeBytes Tamanho máximo desejado em bytes (padrão: 1 MB)
+     * @param initialQuality Qualidade inicial de 1 a 100 (padrão: 85)
+     * @param minQuality Qualidade mínima aceitável (padrão: [MIN_QUALITY])
+     * @return [AdaptiveCompressionResult] com dados e metadados da compressão
      */
     fun compressAdaptive(
         bitmap: Bitmap,
@@ -110,7 +130,6 @@ class ImageCompressor @Inject constructor() {
         var currentQuality = initialQuality.coerceIn(minQuality, MAX_QUALITY)
         var compressedData = compressToJpeg(bitmap, currentQuality)
 
-        // Reduz a qualidade até atingir o tamanho alvo ou qualidade mínima
         while (compressedData.size > maxSizeBytes && currentQuality > minQuality) {
             currentQuality = (currentQuality - QUALITY_STEP).coerceAtLeast(minQuality)
             compressedData = compressToJpeg(bitmap, currentQuality)
@@ -124,14 +143,18 @@ class ImageCompressor @Inject constructor() {
         )
     }
 
+    // ========================================================================
+    // SALVAR EM ARQUIVO
+    // ========================================================================
+
     /**
-     * Salva um Bitmap comprimido diretamente em um arquivo.
+     * Salva um [Bitmap] comprimido diretamente em um arquivo.
      *
      * @param bitmap Bitmap a ser salvo
-     * @param outputFile Arquivo de destino
-     * @param format Formato de compressão
-     * @param quality Qualidade (1-100)
-     * @return true se salvou com sucesso
+     * @param outputFile Arquivo de destino (deve ser gravável)
+     * @param format Formato de compressão (padrão: JPEG)
+     * @param quality Qualidade para JPEG de 1 a 100 (padrão: 85)
+     * @return true se salvou com sucesso, false em caso de erro
      */
     fun saveToFile(
         bitmap: Bitmap,
@@ -146,7 +169,7 @@ class ImageCompressor @Inject constructor() {
             }
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao salvar bitmap no arquivo: ${outputFile.name}")
             false
         }
     }
@@ -154,11 +177,14 @@ class ImageCompressor @Inject constructor() {
     /**
      * Salva com compressão adaptativa diretamente em arquivo.
      *
+     * Combina [compressAdaptive] com gravação direta em disco, evitando
+     * manter o [ByteArray] inteiro em memória por tempo desnecessário.
+     *
      * @param bitmap Bitmap a ser salvo
      * @param outputFile Arquivo de destino
-     * @param maxSizeBytes Tamanho máximo em bytes
-     * @param initialQuality Qualidade inicial
-     * @return Resultado da compressão ou null em caso de erro
+     * @param maxSizeBytes Tamanho máximo em bytes (padrão: 1 MB)
+     * @param initialQuality Qualidade inicial (padrão: 85)
+     * @return [AdaptiveCompressionResult] com metadados ou null em caso de erro
      */
     fun saveToFileAdaptive(
         bitmap: Bitmap,
@@ -168,49 +194,56 @@ class ImageCompressor @Inject constructor() {
     ): AdaptiveCompressionResult? {
         return try {
             val result = compressAdaptive(bitmap, maxSizeBytes, initialQuality)
-
             FileOutputStream(outputFile).use { outputStream ->
                 outputStream.write(result.data)
                 outputStream.flush()
             }
-
             result
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao salvar bitmap com compressão adaptativa: ${outputFile.name}")
             null
         }
     }
 
+    // ========================================================================
+    // UTILITÁRIOS
+    // ========================================================================
+
     /**
-     * Estima o tamanho final após compressão sem realmente comprimir.
+     * Estima o tamanho em bytes após compressão JPEG sem comprimir de fato.
      *
-     * Útil para prever se uma imagem precisará de redimensionamento.
+     * ATENÇÃO: Esta é uma estimativa de ordem de grandeza baseada em constantes
+     * empíricas. O erro pode ser de até 50% dependendo do conteúdo da imagem
+     * (imagens de documentos com textura complexa tendem a ser maiores que o
+     * estimado). Use apenas para decisões de pré-filtragem, nunca para
+     * validações de tamanho exato.
      *
      * @param bitmap Bitmap para estimar
-     * @param quality Qualidade estimada
-     * @return Tamanho estimado em bytes
+     * @param quality Qualidade JPEG esperada de 1 a 100 (padrão: 85)
+     * @return Estimativa de tamanho em bytes
      */
     fun estimateCompressedSize(bitmap: Bitmap, quality: Int = 85): Long {
-        // Estimativa baseada em pixels e qualidade
-        // JPEG típico: ~0.5 bytes por pixel em qualidade 85
         val pixelCount = bitmap.width.toLong() * bitmap.height
         val bytesPerPixel = when {
             quality >= 90 -> 0.8
             quality >= 80 -> 0.5
             quality >= 70 -> 0.35
             quality >= 60 -> 0.25
-            else -> 0.15
+            else          -> 0.15
         }
         return (pixelCount * bytesPerPixel).toLong()
     }
 
     /**
-     * Recomprime um arquivo de imagem existente.
+     * Recomprime um arquivo de imagem existente com nova qualidade.
+     *
+     * Útil para reduzir o tamanho de imagens já salvas sem reprocessamento
+     * completo pelo pipeline do [ImageProcessor].
      *
      * @param inputFile Arquivo de entrada
-     * @param outputFile Arquivo de saída
-     * @param quality Qualidade desejada
-     * @return true se recomprimiu com sucesso
+     * @param outputFile Arquivo de saída (pode ser o mesmo que [inputFile])
+     * @param quality Qualidade JPEG desejada de 1 a 100 (padrão: 85)
+     * @return true se recomprimido com sucesso
      */
     fun recompressFile(
         inputFile: File,
@@ -218,24 +251,32 @@ class ImageCompressor @Inject constructor() {
         quality: Int = 85
     ): Boolean {
         return try {
-            val bitmap = BitmapFactory.decodeFile(inputFile.absolutePath) ?: return false
+            val bitmap = BitmapFactory.decodeFile(inputFile.absolutePath) ?: run {
+                Timber.w("Falha ao decodificar arquivo para recompressão: ${inputFile.name}")
+                return false
+            }
             val result = saveToFile(bitmap, outputFile, Bitmap.CompressFormat.JPEG, quality)
             bitmap.recycle()
             result
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao recomprimir arquivo: ${inputFile.name}")
             false
         }
     }
 }
 
+// ============================================================================
+// DATA CLASSES DE SUPORTE
+// ============================================================================
+
 /**
- * Resultado da compressão adaptativa.
+ * Resultado da compressão adaptativa de uma imagem.
  *
- * @property data Dados comprimidos
- * @property finalQuality Qualidade final utilizada
- * @property sizeBytes Tamanho final em bytes
- * @property targetAchieved true se atingiu o tamanho alvo
+ * @property data Dados binários comprimidos prontos para gravação em disco
+ * @property finalQuality Qualidade JPEG final efetivamente aplicada
+ * @property sizeBytes Tamanho final em bytes após compressão
+ * @property targetAchieved true se o tamanho [maxSizeBytes] foi atingido;
+ *           false se parou no [ImageCompressor.MIN_QUALITY] sem atingir o alvo
  */
 data class AdaptiveCompressionResult(
     val data: ByteArray,
@@ -243,14 +284,16 @@ data class AdaptiveCompressionResult(
     val sizeBytes: Long,
     val targetAchieved: Boolean
 ) {
-    /** Tamanho formatado para exibição */
-    val sizeFormatted: String
-        get() = when {
-            sizeBytes < 1024 -> "$sizeBytes B"
-            sizeBytes < 1024 * 1024 -> String.format("%.1f KB", sizeBytes / 1024.0)
-            else -> String.format("%.2f MB", sizeBytes / (1024.0 * 1024.0))
-        }
+    /**
+     * Tamanho formatado usando [Long.formatarTamanho] centralizado.
+     *
+     * Corrigido em 12.0.0: substituída lógica inline duplicada (que existia
+     * em 6 lugares do projeto com implementações ligeiramente diferentes)
+     * pelo utilitário centralizado em FileExtensions.kt.
+     */
+    val sizeFormatted: String get() = sizeBytes.formatarTamanho()
 
+    // ByteArray requer equals e hashCode customizados
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

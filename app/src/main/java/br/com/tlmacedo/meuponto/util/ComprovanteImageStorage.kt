@@ -6,6 +6,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDate
@@ -15,10 +18,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Utilitário para gerenciar o armazenamento de fotos de comprovantes de ponto.
+ * Utilitário para gerenciar o armazenamento físico de fotos de comprovantes.
  *
- * As imagens são salvas no diretório interno do app (não acessível externamente),
- * organizadas por emprego e data para facilitar a manutenção.
+ * Responsável exclusivamente pelo acesso ao sistema de arquivos: salvar,
+ * carregar, deletar e listar arquivos de imagem. A persistência de metadados
+ * no banco de dados é responsabilidade dos repositórios e use cases.
  *
  * Estrutura de diretórios:
  * ```
@@ -30,8 +34,15 @@ import javax.inject.Singleton
  *                 └── ponto_{pontoId}_{timestamp}.jpg
  * ```
  *
+ * ## Threads
+ * Todos os métodos públicos são `suspend` e executam em [Dispatchers.IO].
+ * Nunca chamá-los diretamente da main thread.
+ *
  * @author Thiago
  * @since 9.0.0
+ * @updated 12.0.0 - Todos os métodos de I/O migrados para suspend + withContext(IO);
+ *                   e.printStackTrace() substituído por Timber.e();
+ *                   cleanupOrphanImages corrigido para usar File.relativeTo()
  */
 @Singleton
 class ComprovanteImageStorage @Inject constructor(
@@ -39,15 +50,15 @@ class ComprovanteImageStorage @Inject constructor(
 ) {
     companion object {
         private const val ROOT_DIR = "comprovantes"
-        private const val IMAGE_QUALITY = 85 // Qualidade JPEG (0-100)
-        private const val MAX_IMAGE_DIMENSION = 1920 // Máximo largura/altura em pixels
-        private const val THUMBNAIL_SIZE = 200 // Tamanho da thumbnail em pixels
+        private const val IMAGE_QUALITY = 85
+        private const val MAX_IMAGE_DIMENSION = 1920
+        private const val THUMBNAIL_SIZE = 200
     }
 
     private val timestampFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
 
     // ========================================================================
-    // ACESSO PÚBLICO AO CONTEXTO E DIRETÓRIO
+    // ACESSO AO CONTEXTO E DIRETÓRIO
     // ========================================================================
 
     /**
@@ -56,8 +67,10 @@ class ComprovanteImageStorage @Inject constructor(
     val appContext: Context get() = context
 
     /**
-     * Obtém o diretório raiz de comprovantes.
-     * Necessário para componentes de UI que precisam do diretório base.
+     * Retorna o diretório raiz de comprovantes.
+     * Exposto para componentes que precisam do diretório base (ex: FileProvider).
+     *
+     * @return Diretório raiz criado se não existir
      */
     fun getComprovantesDirectory(): File = getRootDirectory()
 
@@ -66,11 +79,14 @@ class ComprovanteImageStorage @Inject constructor(
     // ========================================================================
 
     /**
-     * Cria um arquivo temporário para captura de foto pela câmera.
+     * Cria um arquivo temporário para captura via câmera.
+     *
+     * O arquivo é criado no diretório do emprego/data correspondente para
+     * que, após a captura, possa ser movido sem operação de cópia.
      *
      * @param empregoId ID do emprego
      * @param data Data do ponto
-     * @return File temporário pronto para receber a foto
+     * @return File temporário criado no sistema de arquivos
      */
     fun createTempFileForCamera(empregoId: Long, data: LocalDate): File {
         val directory = getOrCreateDirectory(empregoId, data)
@@ -86,77 +102,89 @@ class ComprovanteImageStorage @Inject constructor(
     /**
      * Salva uma imagem de comprovante a partir de um URI (galeria ou câmera).
      *
-     * @param uri URI da imagem original
+     * Decodifica a imagem, redimensiona se necessário e salva em JPEG com
+     * qualidade [IMAGE_QUALITY]. Executa em [Dispatchers.IO].
+     *
+     * @param uri URI da imagem original (content:// ou file://)
      * @param empregoId ID do emprego associado
      * @param pontoId ID do ponto (pode ser 0 se ainda não persistido)
-     * @param data Data do ponto
+     * @param dataHora Data e hora do ponto para nomear o arquivo
      * @return Caminho relativo da imagem salva, ou null em caso de erro
      */
-    fun saveFromUri(
+    suspend fun saveFromUri(
         uri: Uri,
         empregoId: Long,
         pontoId: Long,
-        dataHora: LocalDateTime  // ← Mudança: de LocalDate para LocalDateTime
-    ): String? {
-        return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        dataHora: LocalDateTime
+    ): String? = withContext(Dispatchers.IO) {
+        try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return@withContext null
             val originalBitmap = BitmapFactory.decodeStream(inputStream)
             inputStream.close()
 
-            if (originalBitmap == null) return null
+            if (originalBitmap == null) {
+                Timber.w("Falha ao decodificar bitmap do URI: $uri")
+                return@withContext null
+            }
 
             val resizedBitmap = resizeIfNeeded(originalBitmap)
-            saveBitmap(resizedBitmap, empregoId, pontoId, dataHora).also {  // ← Passa dataHora
-                if (resizedBitmap != originalBitmap) {
-                    resizedBitmap.recycle()
-                }
-                originalBitmap.recycle()
-            }
+            val result = saveBitmap(resizedBitmap, empregoId, pontoId, dataHora)
+
+            if (resizedBitmap !== originalBitmap) resizedBitmap.recycle()
+            originalBitmap.recycle()
+
+            result
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao salvar imagem do URI: $uri, empregoId=$empregoId, pontoId=$pontoId")
             null
         }
     }
-
 
     /**
      * Salva uma imagem de comprovante a partir de um Bitmap.
      *
-     * @param bitmap Bitmap da imagem
+     * @param bitmap Bitmap da imagem (não reciclado internamente — responsabilidade do chamador)
      * @param empregoId ID do emprego associado
      * @param pontoId ID do ponto
-     * @param data Data do ponto
+     * @param dataHora Data e hora do ponto
      * @return Caminho relativo da imagem salva, ou null em caso de erro
      */
-    fun saveFromBitmap(
+    suspend fun saveFromBitmap(
         bitmap: Bitmap,
         empregoId: Long,
         pontoId: Long,
-        dataHora: LocalDateTime  // ← Mudança
-    ): String? {
-        return try {
+        dataHora: LocalDateTime
+    ): String? = withContext(Dispatchers.IO) {
+        try {
             val resizedBitmap = resizeIfNeeded(bitmap)
-            saveBitmap(resizedBitmap, empregoId, pontoId, dataHora).also {
-                if (resizedBitmap != bitmap) {
-                    resizedBitmap.recycle()
-                }
-            }
+            val result = saveBitmap(resizedBitmap, empregoId, pontoId, dataHora)
+            if (resizedBitmap !== bitmap) resizedBitmap.recycle()
+            result
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao salvar bitmap, empregoId=$empregoId, pontoId=$pontoId")
             null
         }
     }
 
+    /**
+     * Salva o bitmap em arquivo e retorna o caminho relativo.
+     *
+     * @param bitmap Bitmap pronto para salvar (já redimensionado)
+     * @param empregoId ID do emprego
+     * @param pontoId ID do ponto
+     * @param dataHora Data e hora para composição do nome do arquivo
+     * @return Caminho relativo ou null em caso de erro
+     */
     private fun saveBitmap(
         bitmap: Bitmap,
         empregoId: Long,
         pontoId: Long,
-        dataHora: LocalDateTime  // ← Mudança
+        dataHora: LocalDateTime
     ): String? {
         return try {
             val data = dataHora.toLocalDate()
             val directory = getOrCreateDirectory(empregoId, data)
-            val fileName = generateFileName(pontoId, dataHora)  // ← Passa dataHora
+            val fileName = generateFileName(pontoId, dataHora)
             val file = File(directory, fileName)
 
             FileOutputStream(file).use { outputStream ->
@@ -166,7 +194,7 @@ class ComprovanteImageStorage @Inject constructor(
 
             getRelativePath(empregoId, data, fileName)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao gravar arquivo de imagem no disco")
             null
         }
     }
@@ -178,47 +206,54 @@ class ComprovanteImageStorage @Inject constructor(
     /**
      * Carrega uma imagem de comprovante como Bitmap.
      *
-     * @param relativePath Caminho relativo retornado por saveFromUri/saveFromBitmap
-     * @return Bitmap da imagem ou null se não encontrada
+     * @param relativePath Caminho relativo retornado por [saveFromUri] ou [saveFromBitmap]
+     * @return Bitmap da imagem ou null se não encontrada ou em caso de erro
      */
-    fun loadBitmap(relativePath: String): Bitmap? {
-        return try {
+    suspend fun loadBitmap(relativePath: String): Bitmap? = withContext(Dispatchers.IO) {
+        try {
             val file = getFileFromRelativePath(relativePath)
             if (file.exists()) {
                 BitmapFactory.decodeFile(file.absolutePath)
             } else {
+                Timber.w("Arquivo de imagem não encontrado: $relativePath")
                 null
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao carregar bitmap: $relativePath")
             null
         }
     }
 
     /**
-     * Carrega uma thumbnail da imagem para exibição em listas.
+     * Carrega uma thumbnail otimizada para exibição em listas.
+     *
+     * Usa [BitmapFactory.Options.inSampleSize] para eficiência de memória,
+     * decodificando a imagem já reduzida sem carregar o tamanho completo.
      *
      * @param relativePath Caminho relativo da imagem
      * @return Bitmap da thumbnail ou null se não encontrada
      */
-    fun loadThumbnail(relativePath: String): Bitmap? {
-        return try {
+    suspend fun loadThumbnail(relativePath: String): Bitmap? = withContext(Dispatchers.IO) {
+        try {
             val file = getFileFromRelativePath(relativePath)
-            if (!file.exists()) return null
+            if (!file.exists()) {
+                Timber.w("Arquivo não encontrado para thumbnail: $relativePath")
+                return@withContext null
+            }
 
-            // Decodifica apenas as dimensões primeiro
+            // Primeira passagem: obtém apenas as dimensões sem alocar memória
             val options = BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
             }
             BitmapFactory.decodeFile(file.absolutePath, options)
 
-            // Calcula o fator de escala
+            // Calcula fator de escala para o tamanho de thumbnail desejado
             val scaleFactor = maxOf(
                 options.outWidth / THUMBNAIL_SIZE,
                 options.outHeight / THUMBNAIL_SIZE
             ).coerceAtLeast(1)
 
-            // Decodifica com escala reduzida
+            // Segunda passagem: decodifica com escala reduzida
             options.apply {
                 inJustDecodeBounds = false
                 inSampleSize = scaleFactor
@@ -226,31 +261,32 @@ class ComprovanteImageStorage @Inject constructor(
 
             BitmapFactory.decodeFile(file.absolutePath, options)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao carregar thumbnail: $relativePath")
             null
         }
     }
 
     /**
-     * Obtém o arquivo absoluto a partir do caminho relativo.
+     * Retorna o [File] absoluto correspondente ao caminho relativo.
      *
      * @param relativePath Caminho relativo da imagem
-     * @return File apontando para a imagem
+     * @return File apontando para o arquivo (pode não existir)
      */
     fun getAbsoluteFile(relativePath: String): File {
         return getFileFromRelativePath(relativePath)
     }
 
     /**
-     * Verifica se a imagem existe no armazenamento.
+     * Verifica se uma imagem existe no armazenamento.
      *
      * @param relativePath Caminho relativo da imagem
-     * @return true se o arquivo existe
+     * @return true se o arquivo existe e é legível
      */
     fun exists(relativePath: String): Boolean {
         return try {
             getFileFromRelativePath(relativePath).exists()
         } catch (e: Exception) {
+            Timber.w(e, "Erro ao verificar existência: $relativePath")
             false
         }
     }
@@ -260,130 +296,152 @@ class ComprovanteImageStorage @Inject constructor(
     // ========================================================================
 
     /**
-     * Deleta uma imagem de comprovante.
+     * Deleta uma imagem de comprovante do sistema de arquivos.
      *
      * @param relativePath Caminho relativo da imagem
-     * @return true se deletado com sucesso ou se não existia
+     * @return true se deletado com sucesso ou se o arquivo já não existia
      */
-    fun delete(relativePath: String): Boolean {
-        return try {
+    suspend fun delete(relativePath: String): Boolean = withContext(Dispatchers.IO) {
+        try {
             val file = getFileFromRelativePath(relativePath)
             if (file.exists()) {
-                file.delete()
+                val deleted = file.delete()
+                if (!deleted) Timber.w("Não foi possível deletar: $relativePath")
+                deleted
             } else {
-                true // Arquivo já não existe
+                true // Arquivo já não existe — operação considerada bem-sucedida
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao deletar imagem: $relativePath")
             false
         }
     }
 
     /**
-     * Deleta todas as imagens de comprovantes de um emprego.
-     * Útil quando o emprego é excluído.
+     * Deleta todas as imagens de um emprego recursivamente.
+     *
+     * Deve ser chamado quando o emprego é excluído pelo usuário.
      *
      * @param empregoId ID do emprego
      * @return Número de arquivos deletados
      */
-    fun deleteAllForEmprego(empregoId: Long): Int {
-        return try {
+    suspend fun deleteAllForEmprego(empregoId: Long): Int = withContext(Dispatchers.IO) {
+        try {
             val empregoDir = File(getRootDirectory(), "emprego_$empregoId")
             if (empregoDir.exists()) {
                 val count = empregoDir.walkTopDown().filter { it.isFile }.count()
                 empregoDir.deleteRecursively()
+                Timber.i("Deletados $count arquivos do empregoId=$empregoId")
                 count
             } else {
                 0
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao deletar arquivos do empregoId=$empregoId")
             0
         }
     }
 
     // ========================================================================
-    // MANUTENÇÃO
+    // MANUTENÇÃO E ESTATÍSTICAS
     // ========================================================================
 
     /**
      * Obtém o tamanho total ocupado por comprovantes em bytes.
+     *
+     * @return Total em bytes ou 0 em caso de erro
      */
-    fun getTotalStorageSize(): Long {
-        return try {
+    suspend fun getTotalStorageSize(): Long = withContext(Dispatchers.IO) {
+        try {
             getRootDirectory().walkTopDown()
                 .filter { it.isFile }
                 .sumOf { it.length() }
         } catch (e: Exception) {
+            Timber.e(e, "Falha ao calcular tamanho total de armazenamento")
             0L
         }
     }
 
     /**
-     * Obtém o tamanho formatado (ex: "12.5 MB").
+     * Obtém o tamanho total formatado usando [Long.formatarTamanho].
+     *
+     * @return String formatada (ex: "12.5 MB")
      */
-    fun getTotalStorageSizeFormatted(): String {
-        val bytes = getTotalStorageSize()
-        return when {
-            bytes < 1024 -> "$bytes B"
-            bytes < 1024 * 1024 -> String.format("%.1f KB", bytes / 1024.0)
-            bytes < 1024 * 1024 * 1024 -> String.format("%.1f MB", bytes / (1024.0 * 1024))
-            else -> String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024))
-        }
-    }
+    suspend fun getTotalStorageSizeFormatted(): String = getTotalStorageSize().formatarTamanho()
 
     /**
      * Conta o número total de comprovantes armazenados.
+     *
+     * @return Total de arquivos .jpg no diretório raiz
      */
-    fun getTotalImageCount(): Int {
-        return try {
+    suspend fun getTotalImageCount(): Int = withContext(Dispatchers.IO) {
+        try {
             getRootDirectory().walkTopDown()
                 .filter { it.isFile && it.extension.lowercase() == "jpg" }
                 .count()
         } catch (e: Exception) {
+            Timber.e(e, "Falha ao contar imagens")
             0
         }
     }
 
     /**
-     * Limpa imagens órfãs (sem ponto associado no banco).
-     * Deve ser chamado passando a lista de caminhos válidos.
+     * Remove imagens órfãs (sem ponto associado no banco de dados).
      *
-     * @param validPaths Lista de caminhos que ainda estão em uso
-     * @return Número de arquivos removidos
+     * Deve ser chamado com a lista de caminhos relativos que ainda estão
+     * referenciados no banco. Qualquer arquivo não listado será deletado.
+     *
+     * Corrigido em 12.0.0: usa [File.relativeTo] em vez de manipulação
+     * de string com removePrefix, que era frágil a variações de separador.
+     *
+     * @param validPaths Conjunto de caminhos relativos em uso no banco
+     * @return Número de arquivos órfãos removidos
      */
-    fun cleanupOrphanImages(validPaths: Set<String>): Int {
+    suspend fun cleanupOrphanImages(validPaths: Set<String>): Int = withContext(Dispatchers.IO) {
         var removedCount = 0
+        val rootDir = getRootDirectory()
         try {
-            getRootDirectory().walkTopDown()
+            rootDir.walkTopDown()
                 .filter { it.isFile && it.extension.lowercase() == "jpg" }
                 .forEach { file ->
-                    val relativePath = file.absolutePath
-                        .removePrefix(getRootDirectory().absolutePath)
-                        .removePrefix("/")
+                    // Usa File.relativeTo() para cálculo robusto de caminho relativo
+                    val relativePath = file.relativeTo(rootDir).path
 
                     if (relativePath !in validPaths) {
                         if (file.delete()) {
                             removedCount++
+                            Timber.d("Arquivo órfão removido: $relativePath")
+                        } else {
+                            Timber.w("Não foi possível remover arquivo órfão: $relativePath")
                         }
                     }
                 }
+            Timber.i("Limpeza de órfãos concluída: $removedCount arquivo(s) removido(s)")
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha na limpeza de imagens órfãs")
         }
-        return removedCount
+        removedCount
     }
 
     // ========================================================================
     // HELPERS PRIVADOS
     // ========================================================================
 
+    /**
+     * Retorna o diretório raiz de comprovantes, criando-o se necessário.
+     */
     private fun getRootDirectory(): File {
         return File(context.filesDir, ROOT_DIR).apply {
             if (!exists()) mkdirs()
         }
     }
 
+    /**
+     * Retorna ou cria o diretório organizado por emprego/ano/mês.
+     *
+     * @param empregoId ID do emprego
+     * @param data Data para compor a estrutura de diretórios
+     */
     private fun getOrCreateDirectory(empregoId: Long, data: LocalDate): File {
         val path = "emprego_$empregoId/${data.year}/${String.format("%02d", data.monthValue)}"
         return File(getRootDirectory(), path).apply {
@@ -391,19 +449,47 @@ class ComprovanteImageStorage @Inject constructor(
         }
     }
 
+    /**
+     * Gera nome de arquivo único baseado no ID do ponto e timestamp do ponto.
+     *
+     * @param pontoId ID do ponto
+     * @param dataHora Data e hora do ponto (não o momento atual)
+     */
     private fun generateFileName(pontoId: Long, dataHora: LocalDateTime): String {
-        val timestamp = dataHora.format(timestampFormatter)  // ← Usa hora do ponto
+        val timestamp = dataHora.format(timestampFormatter)
         return "ponto_${pontoId}_$timestamp.jpg"
     }
 
+    /**
+     * Constrói o caminho relativo a partir dos componentes.
+     *
+     * @param empregoId ID do emprego
+     * @param data Data do ponto
+     * @param fileName Nome do arquivo
+     */
     private fun getRelativePath(empregoId: Long, data: LocalDate, fileName: String): String {
         return "emprego_$empregoId/${data.year}/${String.format("%02d", data.monthValue)}/$fileName"
     }
 
+    /**
+     * Resolve o [File] absoluto a partir do caminho relativo.
+     *
+     * @param relativePath Caminho relativo dentro do diretório raiz
+     */
     private fun getFileFromRelativePath(relativePath: String): File {
         return File(getRootDirectory(), relativePath)
     }
 
+    /**
+     * Redimensiona o bitmap se alguma dimensão ultrapassar [MAX_IMAGE_DIMENSION].
+     *
+     * Mantém o aspect ratio original. Retorna o bitmap original sem cópia
+     * se já estiver dentro do limite — o chamador deve verificar se o
+     * bitmap retornado é diferente do original antes de reciclar.
+     *
+     * @param bitmap Bitmap a verificar e redimensionar
+     * @return Bitmap redimensionado ou o próprio original se não precisar
+     */
     private fun resizeIfNeeded(bitmap: Bitmap): Bitmap {
         val width = bitmap.width
         val height = bitmap.height

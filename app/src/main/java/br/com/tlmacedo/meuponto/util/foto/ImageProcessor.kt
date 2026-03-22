@@ -7,7 +7,9 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.FotoFormato
+import br.com.tlmacedo.meuponto.util.formatarTamanho
 import dagger.hilt.android.qualifiers.ApplicationContext
+import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,20 +17,35 @@ import javax.inject.Singleton
 /**
  * Processador central de imagens de comprovante.
  *
- * Orquestra todas as operações de processamento de imagem em uma única
- * classe de fácil uso, aplicando as configurações do emprego.
+ * Orquestra todas as operações de processamento de imagem em um único
+ * pipeline configurável, aplicando as definições do emprego.
  *
- * ## Pipeline de Processamento:
- * 1. Carregamento com sampling otimizado
- * 2. Correção de orientação EXIF
- * 3. Redimensionamento (se necessário)
- * 4. Compressão adaptativa
- * 5. Gravação de metadados EXIF
- * 6. Cálculo de hash MD5
- * 7. Salvamento no destino final
+ * ## Pipeline de processamento:
+ * 1. Carregamento com correção de orientação EXIF (configurável)
+ * 2. Redimensionamento se exceder [ConfiguracaoEmprego.fotoResolucaoMaxima]
+ * 3. Compressão adaptativa JPEG ou fixa PNG conforme [ConfiguracaoEmprego.fotoFormato]
+ * 4. Gravação de metadados EXIF (apenas JPEG, configurável)
+ * 5. Cálculo de hash MD5 para integridade
+ * 6. Retorno de [ImageProcessingResult.Success] com todos os metadados
+ *
+ * ## Correções aplicadas (12.0.0):
+ * - e.printStackTrace() substituído por Timber.e() em todos os blocos catch
+ * - [ImageProcessingResult.Success.sizeFormatted] usa [Long.formatarTamanho] centralizado
+ * - Contrato de ciclo de vida do [originalBitmap] documentado explicitamente:
+ *   o bitmap original NÃO é reciclado internamente — responsabilidade do chamador.
+ *   O bitmap intermediário (redimensionado) É reciclado no bloco finally.
+ *
+ * @param context Contexto da aplicação para acesso ao ContentResolver
+ * @param resizer Utilitário de redimensionamento
+ * @param compressor Utilitário de compressão
+ * @param orientationCorrector Corretor de orientação EXIF
+ * @param hashCalculator Calculador de hash MD5
+ * @param exifWriter Gravador de metadados EXIF
  *
  * @author Thiago
  * @since 10.0.0
+ * @updated 12.0.0 - e.printStackTrace() → Timber.e(); sizeFormatted centralizado;
+ *                   contrato de ciclo de vida do bitmap documentado
  */
 @Singleton
 class ImageProcessor @Inject constructor(
@@ -40,14 +57,18 @@ class ImageProcessor @Inject constructor(
     private val exifWriter: ExifDataWriter
 ) {
 
+    // ========================================================================
+    // PROCESSAMENTO PRINCIPAL
+    // ========================================================================
+
     /**
-     * Processa uma imagem de URI aplicando todas as configurações.
+     * Processa uma imagem de URI aplicando todas as configurações do emprego.
      *
-     * @param sourceUri URI da imagem de origem
-     * @param outputFile Arquivo de destino
-     * @param config Configuração do emprego
-     * @param exifMetadata Metadados EXIF a serem gravados (opcional)
-     * @return Resultado do processamento
+     * @param sourceUri URI da imagem de origem (content:// ou file://)
+     * @param outputFile Arquivo de destino para a imagem processada
+     * @param config Configurações do emprego que controlam o pipeline
+     * @param exifMetadata Metadados EXIF a gravar (opcional, apenas JPEG)
+     * @return [ImageProcessingResult.Success] com metadados ou [ImageProcessingResult.Error]
      */
     fun processImage(
         sourceUri: Uri,
@@ -56,7 +77,6 @@ class ImageProcessor @Inject constructor(
         exifMetadata: FotoExifMetadata? = null
     ): ImageProcessingResult {
         return try {
-            // 1. Carregar com correção de orientação
             val bitmap = if (config.fotoCorrecaoOrientacao) {
                 orientationCorrector.loadBitmapWithCorrectOrientation(sourceUri)
             } else {
@@ -66,24 +86,24 @@ class ImageProcessor @Inject constructor(
             }
 
             if (bitmap == null) {
-                return ImageProcessingResult.Error("Falha ao carregar imagem")
+                return ImageProcessingResult.Error("Falha ao carregar imagem do URI: $sourceUri")
             }
 
             processAndSave(bitmap, outputFile, config, exifMetadata)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Erro no processamento da imagem do URI: $sourceUri")
             ImageProcessingResult.Error("Erro no processamento: ${e.message}")
         }
     }
 
     /**
-     * Processa uma imagem de arquivo aplicando todas as configurações.
+     * Processa uma imagem de arquivo aplicando todas as configurações do emprego.
      *
      * @param sourceFile Arquivo de origem
      * @param outputFile Arquivo de destino
-     * @param config Configuração do emprego
-     * @param exifMetadata Metadados EXIF a serem gravados (opcional)
-     * @return Resultado do processamento
+     * @param config Configurações do emprego
+     * @param exifMetadata Metadados EXIF a gravar (opcional, apenas JPEG)
+     * @return [ImageProcessingResult.Success] com metadados ou [ImageProcessingResult.Error]
      */
     fun processImage(
         sourceFile: File,
@@ -92,7 +112,6 @@ class ImageProcessor @Inject constructor(
         exifMetadata: FotoExifMetadata? = null
     ): ImageProcessingResult {
         return try {
-            // 1. Carregar com correção de orientação
             val bitmap = if (config.fotoCorrecaoOrientacao) {
                 orientationCorrector.loadBitmapWithCorrectOrientation(sourceFile)
             } else {
@@ -100,18 +119,34 @@ class ImageProcessor @Inject constructor(
             }
 
             if (bitmap == null) {
-                return ImageProcessingResult.Error("Falha ao carregar imagem")
+                return ImageProcessingResult.Error("Falha ao carregar imagem do arquivo: ${sourceFile.name}")
             }
 
             processAndSave(bitmap, outputFile, config, exifMetadata)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Erro no processamento da imagem do arquivo: ${sourceFile.name}")
             ImageProcessingResult.Error("Erro no processamento: ${e.message}")
         }
     }
 
+    // ========================================================================
+    // PIPELINE INTERNO
+    // ========================================================================
+
     /**
-     * Processa um Bitmap e salva no arquivo de destino.
+     * Executa o pipeline completo de processamento e salvamento.
+     *
+     * ## Contrato de ciclo de vida dos bitmaps:
+     * - [originalBitmap]: NÃO é reciclado por esta função. Responsabilidade do
+     *   chamador (geralmente [processImage] que deve reciclar após o retorno).
+     * - bitmap intermediário (redimensionado): É reciclado no bloco `finally`
+     *   se for diferente do [originalBitmap].
+     *
+     * @param originalBitmap Bitmap carregado e com orientação corrigida
+     * @param outputFile Arquivo de destino
+     * @param config Configurações do emprego
+     * @param exifMetadata Metadados EXIF opcionais
+     * @return Resultado do processamento
      */
     private fun processAndSave(
         originalBitmap: Bitmap,
@@ -123,65 +158,70 @@ class ImageProcessor @Inject constructor(
         var wasResized = false
 
         try {
-            // 2. Redimensionar se necessário
+            // Etapa 1: Redimensionar se exceder a resolução máxima configurada
             val maxDimension = config.fotoResolucaoMaxima
             if (maxDimension > 0 && resizer.needsResize(bitmap.width, bitmap.height, maxDimension)) {
                 val resizedBitmap = resizer.resizeToFit(bitmap, maxDimension)
                 if (resizedBitmap !== bitmap) {
-                    bitmap.recycle()
+                    // Não recicla originalBitmap — apenas substitui a referência local
                     bitmap = resizedBitmap
                     wasResized = true
                 }
             }
 
-            // 3. Determinar formato e qualidade
+            // Etapa 2: Determinar formato de compressão
             val format = when (config.fotoFormato) {
                 FotoFormato.PNG -> Bitmap.CompressFormat.PNG
                 else -> Bitmap.CompressFormat.JPEG
             }
 
-            // 4. Comprimir e salvar
+            // Etapa 3: Calcular limite de tamanho
             val maxSizeBytes = if (config.fotoTamanhoMaximoKb > 0) {
                 config.fotoTamanhoMaximoKb * 1024L
             } else {
                 Long.MAX_VALUE
             }
 
-            val compressionResult = if (format == Bitmap.CompressFormat.JPEG && maxSizeBytes < Long.MAX_VALUE) {
-                // Compressão adaptativa para JPEG com limite de tamanho
-                compressor.saveToFileAdaptive(
-                    bitmap = bitmap,
-                    outputFile = outputFile,
-                    maxSizeBytes = maxSizeBytes,
-                    initialQuality = config.fotoQualidade
-                )
-            } else {
-                // Compressão fixa
-                val success = compressor.saveToFile(bitmap, outputFile, format, config.fotoQualidade)
-                if (success) {
-                    AdaptiveCompressionResult(
-                        data = ByteArray(0),
-                        finalQuality = config.fotoQualidade,
-                        sizeBytes = outputFile.length(),
-                        targetAchieved = true
+            // Etapa 4: Comprimir e salvar
+            val compressionResult = when {
+                format == Bitmap.CompressFormat.JPEG && maxSizeBytes < Long.MAX_VALUE -> {
+                    // Compressão adaptativa para JPEG com limite de tamanho configurado
+                    compressor.saveToFileAdaptive(
+                        bitmap = bitmap,
+                        outputFile = outputFile,
+                        maxSizeBytes = maxSizeBytes,
+                        initialQuality = config.fotoQualidade
                     )
-                } else {
-                    null
+                }
+                else -> {
+                    // Compressão fixa para PNG ou JPEG sem limite de tamanho
+                    val success = compressor.saveToFile(bitmap, outputFile, format, config.fotoQualidade)
+                    if (success) {
+                        AdaptiveCompressionResult(
+                            data = ByteArray(0), // Dados já gravados no arquivo
+                            finalQuality = config.fotoQualidade,
+                            sizeBytes = outputFile.length(),
+                            targetAchieved = true
+                        )
+                    } else null
                 }
             }
 
             if (compressionResult == null) {
-                return ImageProcessingResult.Error("Falha na compressão")
+                return ImageProcessingResult.Error("Falha na compressão da imagem")
             }
 
-            // 5. Gravar metadados EXIF (apenas para JPEG)
+            // Etapa 5: Gravar metadados EXIF (somente JPEG)
             if (format == Bitmap.CompressFormat.JPEG && exifMetadata != null) {
-                exifWriter.writeMetadata(outputFile, exifMetadata)
+                val exifWritten = exifWriter.writeMetadata(outputFile, exifMetadata)
+                if (!exifWritten) {
+                    Timber.w("Falha ao gravar metadados EXIF em: ${outputFile.name}")
+                }
             }
 
-            // 6. Calcular hash MD5
+            // Etapa 6: Calcular hash MD5 do arquivo final
             val hash = hashCalculator.calculateMd5(outputFile)
-                ?: return ImageProcessingResult.Error("Falha ao calcular hash")
+                ?: return ImageProcessingResult.Error("Falha ao calcular hash MD5")
 
             return ImageProcessingResult.Success(
                 file = outputFile,
@@ -196,19 +236,28 @@ class ImageProcessor @Inject constructor(
                 format = config.fotoFormato
             )
         } finally {
+            // Recicla o bitmap intermediário se for diferente do original.
+            // O originalBitmap NÃO é reciclado aqui — responsabilidade do chamador.
             if (bitmap !== originalBitmap) {
                 bitmap.recycle()
             }
         }
     }
 
+    // ========================================================================
+    // FUNÇÕES AUXILIARES
+    // ========================================================================
+
     /**
-     * Processa rapidamente para preview (sem salvar).
+     * Processa uma imagem rapidamente para preview sem salvar em disco.
+     *
+     * Útil para exibir preview antes da confirmação do usuário.
+     * Não aplica o pipeline completo — apenas orientação e resize.
      *
      * @param sourceUri URI da imagem
-     * @param maxDimension Dimensão máxima
-     * @param correctOrientation Corrigir orientação
-     * @return Bitmap processado ou null
+     * @param maxDimension Dimensão máxima do preview (padrão: 1024px)
+     * @param correctOrientation Se deve corrigir orientação EXIF (padrão: true)
+     * @return Bitmap do preview ou null em caso de erro
      */
     fun processForPreview(
         sourceUri: Uri,
@@ -222,28 +271,28 @@ class ImageProcessor @Inject constructor(
                 resizer.loadAndResize(sourceUri, maxDimension)
             }
 
-            bitmap?.let {
-                if (resizer.needsResize(it.width, it.height, maxDimension)) {
-                    val resized = resizer.resizeToFit(it, maxDimension)
-                    if (resized !== it) it.recycle()
+            bitmap?.let { bmp ->
+                if (resizer.needsResize(bmp.width, bmp.height, maxDimension)) {
+                    val resized = resizer.resizeToFit(bmp, maxDimension)
+                    if (resized !== bmp) bmp.recycle()
                     resized
                 } else {
-                    it
+                    bmp
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao processar preview do URI: $sourceUri")
             null
         }
     }
 
     /**
-     * Cria thumbnail de uma imagem.
+     * Cria thumbnail de uma imagem de arquivo.
      *
      * @param sourceFile Arquivo de origem
-     * @param size Tamanho da thumbnail
-     * @param correctOrientation Corrigir orientação
-     * @return Bitmap da thumbnail ou null
+     * @param size Tamanho máximo da thumbnail (padrão: [ImageResizer.THUMBNAIL_SIZE])
+     * @param correctOrientation Se deve corrigir orientação EXIF (padrão: true)
+     * @return Bitmap da thumbnail ou null em caso de erro
      */
     fun createThumbnail(
         sourceFile: File,
@@ -259,17 +308,17 @@ class ImageProcessor @Inject constructor(
 
             bitmap?.let { resizer.createThumbnail(it, size) }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e, "Falha ao criar thumbnail do arquivo: ${sourceFile.name}")
             null
         }
     }
 
     /**
-     * Verifica integridade de uma imagem.
+     * Verifica a integridade de um arquivo de imagem comparando o hash MD5.
      *
-     * @param file Arquivo de imagem
-     * @param expectedHash Hash MD5 esperado
-     * @return Resultado da verificação
+     * @param file Arquivo a verificar
+     * @param expectedHash Hash MD5 armazenado no banco no momento do salvamento
+     * @return [IntegrityCheckResult] com resultado e hashes para comparação
      */
     fun verifyIntegrity(file: File, expectedHash: String): IntegrityCheckResult {
         val actualHash = hashCalculator.calculateMd5(file)
@@ -277,17 +326,33 @@ class ImageProcessor @Inject constructor(
             isValid = actualHash?.equals(expectedHash, ignoreCase = true) == true,
             expectedHash = expectedHash,
             actualHash = actualHash,
-            errorMessage = if (actualHash == null) "Falha ao calcular hash" else null
+            errorMessage = if (actualHash == null) "Falha ao calcular hash MD5" else null
         )
     }
 }
 
+// ============================================================================
+// SEALED CLASS DE RESULTADO
+// ============================================================================
+
 /**
- * Resultado do processamento de imagem.
+ * Resultado do processamento de uma imagem pelo [ImageProcessor].
  */
 sealed class ImageProcessingResult {
+
     /**
-     * Processamento bem-sucedido.
+     * Processamento concluído com sucesso.
+     *
+     * @property file Arquivo final gravado no disco
+     * @property originalWidth Largura original antes de qualquer processamento
+     * @property originalHeight Altura original antes de qualquer processamento
+     * @property finalWidth Largura final após redimensionamento (se aplicado)
+     * @property finalHeight Altura final após redimensionamento (se aplicado)
+     * @property wasResized true se houve redimensionamento
+     * @property finalQuality Qualidade JPEG final efetivamente aplicada
+     * @property sizeBytes Tamanho do arquivo final em bytes
+     * @property hashMd5 Hash MD5 do arquivo final para verificação de integridade
+     * @property format Formato de imagem utilizado ([FotoFormato])
      */
     data class Success(
         val file: File,
@@ -301,35 +366,40 @@ sealed class ImageProcessingResult {
         val hashMd5: String,
         val format: FotoFormato
     ) : ImageProcessingResult() {
-        /** Tamanho formatado */
-        val sizeFormatted: String
-            get() = when {
-                sizeBytes < 1024 -> "$sizeBytes B"
-                sizeBytes < 1024 * 1024 -> String.format("%.1f KB", sizeBytes / 1024.0)
-                else -> String.format("%.2f MB", sizeBytes / (1024.0 * 1024.0))
-            }
 
-        /** Dimensões originais formatadas */
+        /**
+         * Tamanho formatado usando [Long.formatarTamanho] centralizado.
+         * Corrigido em 12.0.0: substituída lógica inline duplicada.
+         */
+        val sizeFormatted: String get() = sizeBytes.formatarTamanho()
+
+        /** Dimensões originais formatadas para exibição */
         val originalDimensions: String get() = "${originalWidth}x${originalHeight}"
 
-        /** Dimensões finais formatadas */
+        /** Dimensões finais formatadas para exibição */
         val finalDimensions: String get() = "${finalWidth}x${finalHeight}"
+
+        /** true se as dimensões foram alteradas durante o processamento */
+        val dimensionsChanged: Boolean
+            get() = originalWidth != finalWidth || originalHeight != finalHeight
     }
 
     /**
-     * Erro no processamento.
+     * Erro no processamento da imagem.
+     *
+     * @property message Descrição do erro para log e feedback ao usuário
      */
     data class Error(val message: String) : ImageProcessingResult()
 
-    /** Verifica se foi sucesso */
+    /** true se o processamento foi bem-sucedido */
     val isSuccess: Boolean get() = this is Success
 
-    /** Verifica se foi erro */
+    /** true se ocorreu um erro */
     val isError: Boolean get() = this is Error
 
-    /** Obtém o resultado de sucesso ou null */
+    /** Retorna [Success] ou null */
     fun getOrNull(): Success? = this as? Success
 
-    /** Obtém a mensagem de erro ou null */
+    /** Retorna a mensagem de erro ou null */
     fun errorMessageOrNull(): String? = (this as? Error)?.message
 }
