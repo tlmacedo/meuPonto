@@ -58,7 +58,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         FotoComprovanteEntity::class
     ],
     version = 26,
-    exportSchema = true
+    exportSchema = false
 )
 @TypeConverters(Converters::class, FeriadoConverters::class)
 abstract class MeuPontoDatabase : RoomDatabase() {
