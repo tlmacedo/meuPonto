@@ -1,0 +1,110 @@
+[versions]
+# Android SDK
+android-compileSdk = "35" # Atualizado para 35
+android-minSdk = "24"    # Mantido em 24 para maior compatibilidade
+android-targetSdk = "35" # Atualizado para 35
+
+# Kotlin
+kotlin = "1.9.23" # Versão do Kotlin
+ksp = "1.9.23-1.0.19" # KSP deve corresponder à versão do Kotlin
+
+# AndroidX
+androidx-core-ktx = "1.13.0"
+androidx-lifecycle-runtime-ktx = "2.7.0"
+androidx-activity-compose = "1.9.0"
+androidx-navigation-compose = "2.7.0"
+androidx-hilt-navigation-compose = "1.2.0" # Adicionado para Hilt com Compose
+
+# Compose
+compose-bom = "2024.04.00" # BOM mais recente
+compose-compiler = "1.5.11" # Deve corresponder à versão do Kotlin
+androidx-material3 = "1.2.1"
+
+# Hilt (Dagger Hilt)
+hilt-android = "2.51.1"
+hilt-compiler = "2.51.1"
+androidx-hilt-compiler = "1.2.0" # Hilt para AndroidX
+
+# Room (Database)
+androidx-room = "2.6.1"
+
+# DataStore
+androidx-datastore-preferences = "1.0.0"
+
+# Retrofit & OkHttp
+retrofit = "2.9.0"
+okhttp = "4.12.0"
+okhttp-logging-interceptor = "4.12.0"
+gson = "2.10.1" # Adicionado para o conversor do Retrofit
+
+# Coroutines
+kotlinx-coroutines-android = "1.8.0"
+
+# Logging
+timber = "5.0.1"
+
+# Testes
+junit = "4.13.2"
+androidx-junit = "1.1.5"
+androidx-espresso-core = "3.5.1"
+
+# Outros Plugins
+secrets-gradle-plugin = "2.0.1" # Plugin para secrets
+
+[libraries]
+# Android Core
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidx-core-ktx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidx-lifecycle-runtime-ktx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidx-activity-compose" }
+
+# Compose UI
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "androidx-material3" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+
+# Navigation Compose
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidx-navigation-compose" }
+
+# Hilt
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt-android" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt-compiler" }
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "androidx-hilt-compiler" }
+
+# Room
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "androidx-room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "androidx-room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "androidx-room" }
+
+# DataStore
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "androidx-datastore-preferences" }
+
+# Retrofit & OkHttp
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp-logging-interceptor" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+# Coroutines
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinx-coroutines-android" }
+
+# Logging
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+
+# Testes
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
+androidx-espresso-core = { group = "androidx.espresso", name = "espresso-core", version.ref = "androidx-espresso-core" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "android-compileSdk" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt-android" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+secrets-gradle = { id = "com.google.android.libraries.maps.secrets-gradle-plugin", version.ref = "secrets-gradle-plugin" }

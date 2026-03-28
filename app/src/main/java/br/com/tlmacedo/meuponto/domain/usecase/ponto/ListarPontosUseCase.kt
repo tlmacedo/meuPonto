@@ -1,4 +1,3 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/ListarPontosUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
@@ -10,14 +9,6 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
-/**
- * Caso de uso para listar pontos com informações adicionais.
- *
- * @author Thiago
- * @since 1.0.0
- * @updated 2.1.0 - Tipo calculado por posição (índice par = entrada)
- * @updated 2.11.0 - Usa formatadores padronizados de MinutosExtensions
- */
 class ListarPontosUseCase @Inject constructor(
     private val pontoRepository: PontoRepository
 ) {
@@ -35,7 +26,6 @@ class ListarPontosUseCase @Inject constructor(
         val totalTrabalhadoMinutos: Long,
         val isCompleto: Boolean
     ) {
-        /** Total trabalhado: "00h 00min" */
         val totalTrabalhadoFormatado: String
             get() = totalTrabalhadoMinutos.minutosParaHoraMinuto()
     }
@@ -70,7 +60,6 @@ class ListarPontosUseCase @Inject constructor(
                 ChronoUnit.MINUTES.between(pontosOrdenados[index - 1].hora, ponto.hora)
             } else null
 
-            // Tipo calculado pela posição: índice par = entrada, ímpar = saída
             val isEntrada = index % 2 == 0
 
             PontoComDetalhes(
@@ -99,7 +88,6 @@ class ListarPontosUseCase @Inject constructor(
         var totalMinutos = 0L
         var i = 0
 
-        // Pares: índice par (entrada) + índice ímpar (saída)
         while (i < pontos.size - 1) {
             val entrada = pontos[i]
             val saida = pontos[i + 1]

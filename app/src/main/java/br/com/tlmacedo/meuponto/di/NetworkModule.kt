@@ -1,4 +1,3 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/di/NetworkModule.kt
 package br.com.tlmacedo.meuponto.di
 
 import br.com.tlmacedo.meuponto.BuildConfig
@@ -16,47 +15,18 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
-/**
- * Módulo Hilt para configuração de dependências de rede.
- *
- * ## Correção aplicada (12.0.0):
- * [HttpLoggingInterceptor] estava configurado com [HttpLoggingInterceptor.Level.BODY]
- * incondicionalmente, expondo tokens e payloads completos em produção.
- * Corrigido para usar [HttpLoggingInterceptor.Level.BODY] apenas em debug
- * e [HttpLoggingInterceptor.Level.NONE] em release.
- *
- * @author Thiago
- * @since 3.0.0
- * @updated 12.0.0 - HttpLoggingInterceptor protegido por BuildConfig.DEBUG
- */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    /**
-     * Provê instância configurada do [Gson].
-     */
     @Provides
     @Singleton
     fun provideGson(): Gson {
-        return GsonBuilder()
-            .setLenient()
-            .create()
+        return GsonBuilder().setLenient().create()
     }
 
-    /**
-     * Provê instância configurada do [OkHttpClient].
-     *
-     * O interceptor de log é ativo apenas em debug para evitar
-     * exposição de dados sensíveis (tokens, payloads) em produção.
-     *
-     * @return Cliente HTTP configurado com timeouts e interceptor condicional
-     */
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
-        // ✅ Correto: Level.BODY apenas em debug
-        // ❌ Errado (original): Level.BODY incondicional em produção
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
@@ -64,7 +34,6 @@ object NetworkModule {
                 HttpLoggingInterceptor.Level.NONE
             }
         }
-
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -73,19 +42,9 @@ object NetworkModule {
             .build()
     }
 
-    /**
-     * Provê instância configurada do [Retrofit].
-     *
-     * @param okHttpClient Cliente HTTP injetado
-     * @param gson Instância do Gson injetada
-     * @return Retrofit configurado para a BrasilAPI
-     */
     @Provides
     @Singleton
-    fun provideRetrofit(
-        okHttpClient: OkHttpClient,
-        gson: Gson
-    ): Retrofit {
+    fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BrasilApiService.BASE_URL)
             .client(okHttpClient)
@@ -93,12 +52,6 @@ object NetworkModule {
             .build()
     }
 
-    /**
-     * Provê implementação do [BrasilApiService] via Retrofit.
-     *
-     * @param retrofit Instância do Retrofit injetada
-     * @return Implementação gerada pelo Retrofit
-     */
     @Provides
     @Singleton
     fun provideBrasilApiService(retrofit: Retrofit): BrasilApiService {

@@ -10,8 +10,8 @@ import java.nio.charset.StandardCharsets
  */
 
 fun exportarPorCamadas(diretorioRaiz: String, diretorioDestino: String) {
-    val extensoesPermitidas = setOf("kt", "java", "xml")
-    val pastasIgnoradas = setOf("build", ".gradle", ".git", ".idea", "captures", "bin", "out", "export_meu_ponto")
+    val extensoesPermitidas = setOf("kt", "java", "xml", "build", ".gradle")
+    val pastasIgnoradas = setOf(".git", ".idea", "captures", "bin", "out", "export_meu_ponto")
 
     // Definição das camadas para divisão dos arquivos
     val camadas = mapOf(
@@ -21,6 +21,7 @@ fun exportarPorCamadas(diretorioRaiz: String, diretorioDestino: String) {
         "DOMAIN" to "/domain/",
         "PRESENTATION" to "/presentation/",
         "UTIL" to "/util/",
+        "WORKER" to "/worker/",
         "RESOURCES" to "/src/main/res/",
         "MANIFEST" to "AndroidManifest.xml"
     )

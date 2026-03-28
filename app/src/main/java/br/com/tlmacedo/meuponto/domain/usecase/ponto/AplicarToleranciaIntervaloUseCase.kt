@@ -1,4 +1,3 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/AplicarToleranciaIntervaloUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
@@ -9,18 +8,10 @@ import java.time.Duration
 import java.time.LocalTime
 import javax.inject.Inject
 
-/**
- * Caso de uso para aplicar tolerância de intervalo aos pontos de retorno.
- *
- * @author Thiago
- * @since 2.6.0
- * @updated 8.0.0 - Migrado para usar VersaoJornada
- */
 class AplicarToleranciaIntervaloUseCase @Inject constructor(
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository
 ) {
-
     data class ResultadoTolerancia(
         val pontoOriginal: Ponto,
         val horaConsiderada: LocalTime?,

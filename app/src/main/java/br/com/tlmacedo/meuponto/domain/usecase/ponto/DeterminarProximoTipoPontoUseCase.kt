@@ -1,4 +1,3 @@
-// Arquivo: DeterminarProximoTipoPontoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
@@ -30,12 +29,3 @@ class DeterminarProximoTipoPontoUseCase @Inject constructor() {
         )
     }
 }
-
-/**
- * Informações sobre o próximo ponto esperado.
- */
-data class ProximoPonto(
-    val isEntrada: Boolean,
-    val descricao: String,
-    val indice: Int
-)

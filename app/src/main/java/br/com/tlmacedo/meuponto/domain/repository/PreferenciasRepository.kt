@@ -12,8 +12,69 @@ import kotlinx.coroutines.flow.Flow
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 12.0.0 - Adicionadas preferências de Autenticação e Biometria
  */
 interface PreferenciasRepository {
+
+    // ========================================================================
+    // Autenticação e Segurança (Fase 1)
+    // ========================================================================
+
+    /**
+     * Verifica se o recurso de "Lembrar-me" está ativo.
+     *
+     * @return true se ativo
+     */
+    suspend fun isLembrarMeAtivo(): Boolean
+
+    /**
+     * Define o status do recurso "Lembrar-me".
+     *
+     * @param ativo Novo status
+     */
+    suspend fun definirLembrarMe(ativo: Boolean)
+
+    /**
+     * Observa o status do "Lembrar-me" de forma reativa.
+     *
+     * @return Flow com o status
+     */
+    fun observarLembrarMe(): Flow<Boolean>
+
+    /**
+     * Obtém o e-mail do último usuário logado (usado para preencher o campo de login).
+     *
+     * @return E-mail ou null
+     */
+    suspend fun obterUltimoEmailLogado(): String?
+
+    /**
+     * Define o e-mail do último usuário logado.
+     *
+     * @param email E-mail a ser salvo
+     */
+    suspend fun definirUltimoEmailLogado(email: String)
+
+    /**
+     * Verifica se o uso de biometria está habilitado para o app.
+     *
+     * @return true se habilitado
+     */
+    suspend fun isBiometriaHabilitada(): Boolean
+
+    /**
+     * Define se o uso de biometria está habilitado.
+     *
+     * @param habilitado Novo status
+     */
+    suspend fun definirBiometriaHabilitada(habilitado: Boolean)
+
+    /**
+     * Observa o status da biometria de forma reativa.
+     *
+     * @return Flow com o status
+     */
+    fun observarBiometriaHabilitada(): Flow<Boolean>
 
     // ========================================================================
     // Emprego Ativo

@@ -19,9 +19,6 @@ import javax.inject.Singleton
 
 /**
  * Extensão para criar o DataStore de preferências.
- *
- * Cria uma instância única do DataStore vinculada ao contexto da aplicação.
- * O nome "meu_ponto_preferences" será usado para o arquivo de preferências.
  */
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "meu_ponto_preferences"
@@ -30,47 +27,79 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 /**
  * Implementação do repositório de preferências usando DataStore.
  *
- * Persiste configurações do usuário de forma assíncrona e type-safe,
- * substituindo o SharedPreferences tradicional com uma API baseada em Flow.
- *
- * @property context Contexto da aplicação para acesso ao DataStore
- *
- * @author Thiago
- * @since 2.0.0
+ * @updated 12.0.0 - Adicionadas preferências de Autenticação e Biometria
  */
 @Singleton
 class PreferenciasRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context
 ) : PreferenciasRepository {
 
-    // ========================================================================
-    // Chaves do DataStore
-    // ========================================================================
-
-    /**
-     * Objeto que contém todas as chaves tipadas usadas no DataStore.
-     * Centraliza as definições para evitar duplicação e erros de digitação.
-     */
     private object PreferencesKeys {
         val EMPREGO_ATIVO_ID = longPreferencesKey("emprego_ativo_id")
         val PRIMEIRA_EXECUCAO = booleanPreferencesKey("primeira_execucao")
         val ONBOARDING_CONCLUIDO = booleanPreferencesKey("onboarding_concluido")
         val TEMA = stringPreferencesKey("tema")
         val NOTIFICACOES_HABILITADAS = booleanPreferencesKey("notificacoes_habilitadas")
+        
+        // Fase 1
+        val LEMBRAR_ME = booleanPreferencesKey("lembrar_me")
+        val ULTIMO_EMAIL_LOGADO = stringPreferencesKey("ultimo_email_logado")
+        val BIOMETRIA_HABILITADA = booleanPreferencesKey("biometria_habilitada")
     }
 
-    // ========================================================================
-    // Valores Padrão
-    // ========================================================================
-
-    /**
-     * Objeto que contém os valores padrão para cada preferência.
-     * Usado quando uma preferência ainda não foi definida pelo usuário.
-     */
     private object Defaults {
         const val TEMA = "system"
         const val NOTIFICACOES_HABILITADAS = true
         const val PRIMEIRA_EXECUCAO = true
+        const val LEMBRAR_ME = false
+        const val BIOMETRIA_HABILITADA = false
+    }
+
+    // ========================================================================
+    // Autenticação e Segurança (Fase 1)
+    // ========================================================================
+
+    override suspend fun isLembrarMeAtivo(): Boolean {
+        return context.dataStore.data.first()[PreferencesKeys.LEMBRAR_ME] ?: Defaults.LEMBRAR_ME
+    }
+
+    override suspend fun definirLembrarMe(ativo: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LEMBRAR_ME] = ativo
+        }
+    }
+
+    override fun observarLembrarMe(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.LEMBRAR_ME] ?: Defaults.LEMBRAR_ME
+        }
+    }
+
+    override suspend fun obterUltimoEmailLogado(): String? {
+        return context.dataStore.data.first()[PreferencesKeys.ULTIMO_EMAIL_LOGADO]
+    }
+
+    override suspend fun definirUltimoEmailLogado(email: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ULTIMO_EMAIL_LOGADO] = email
+        }
+    }
+
+    override suspend fun isBiometriaHabilitada(): Boolean {
+        return context.dataStore.data.first()[PreferencesKeys.BIOMETRIA_HABILITADA]
+            ?: Defaults.BIOMETRIA_HABILITADA
+    }
+
+    override suspend fun definirBiometriaHabilitada(habilitado: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BIOMETRIA_HABILITADA] = habilitado
+        }
+    }
+
+    override fun observarBiometriaHabilitada(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.BIOMETRIA_HABILITADA] ?: Defaults.BIOMETRIA_HABILITADA
+        }
     }
 
     // ========================================================================
@@ -104,7 +133,6 @@ class PreferenciasRepositoryImpl @Inject constructor(
     // ========================================================================
 
     override suspend fun isPrimeiraExecucao(): Boolean {
-        // Considera primeira execução se o onboarding ainda não foi concluído
         val onboardingConcluido = context.dataStore.data
             .first()[PreferencesKeys.ONBOARDING_CONCLUIDO] ?: false
         return !onboardingConcluido
@@ -119,7 +147,6 @@ class PreferenciasRepositoryImpl @Inject constructor(
 
     override fun observarPrimeiraExecucao(): Flow<Boolean> {
         return context.dataStore.data.map { preferences ->
-            // Inverte o valor: se onboarding não foi concluído, é primeira execução
             !(preferences[PreferencesKeys.ONBOARDING_CONCLUIDO] ?: false)
         }
     }
@@ -161,10 +188,6 @@ class PreferenciasRepositoryImpl @Inject constructor(
                 ?: Defaults.NOTIFICACOES_HABILITADAS
         }
     }
-
-    // ========================================================================
-    // Utilitários
-    // ========================================================================
 
     override suspend fun limparTudo() {
         context.dataStore.edit { preferences ->

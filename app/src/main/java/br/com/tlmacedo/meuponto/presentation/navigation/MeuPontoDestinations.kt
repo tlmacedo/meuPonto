@@ -7,8 +7,15 @@ package br.com.tlmacedo.meuponto.presentation.navigation
  * @updated 8.3.0 - Adicionadas rotas para Notificações e Privacidade
  * @updated 9.2.0 - Adicionada rota para Lixeira
  * @updated 11.0.0 - Adicionada rota para Auditoria
+ * @updated 12.0.0 - Adicionadas rotas para Autenticação (Fase 1)
  */
 object MeuPontoDestinations {
+    // Autenticação (Fase 1)
+    const val AUTH_GRAPH = "auth_graph"
+    const val LOGIN = "login"
+    const val REGISTER = "register"
+    const val FORGOT_PASSWORD = "forgot_password"
+
     // Telas principais
     const val HOME_BASE = "home"
     const val HOME = "home?data={data}"
