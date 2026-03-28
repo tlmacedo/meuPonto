@@ -1,5 +1,3 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -11,120 +9,87 @@ plugins {
 
 android {
     namespace = "br.com.tlmacedo.meuponto"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "br.com.tlmacedo.meuponto"
-        minSdk = 26
-        targetSdk = 35
+        minSdk = 35
+//        targetSdk = 36
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "1.0"
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        val localProperties = gradleLocalProperties(rootDir, providers)
-        val mapsApiKey = localProperties.getProperty("MAPS_API_KEY") ?: ""
-        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
-        debug {
-            isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
-        }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        }
     }
-
     buildFeatures {
         compose = true
         buildConfig = true
     }
-
-    lint {
-        disable += listOf(
-            "MultipleAwaitPointerEventScopes",
-            "ReturnFromAwaitPointerEventScope",
-            "FlowOperatorInvokedInComposition",
-            "StateFlowValueCalledInComposition"
-        )
-        abortOnError = false
-        checkTestSources = false
-        warningsAsErrors = false
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "/META-INF/LICENSE.md"
-            excludes += "/META-INF/LICENSE-notice.md"
         }
     }
-}
-
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
-    implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.exifinterface)
 
-    // Lifecycle
-    implementation(libs.bundles.lifecycle)
+    // Startup
+    implementation(libs.androidx.startup.runtime)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.bundles.compose)
-
-    // Navigation
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
 
     // Hilt
     implementation(libs.hilt.android)
-    implementation(libs.androidx.hilt.common)
-    implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.hilt.work)
-    implementation(libs.androidx.compose.remote.creation.core)
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
 
     // Room
-    implementation(libs.bundles.room)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
-    // Networking (Retrofit + OkHttp)
-    implementation(libs.bundles.networking)
-
-    // Google Maps Compose
-    implementation("com.google.maps.android:maps-compose:4.3.0")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.android.gms:play-services-location:21.1.0")
-
-    // Google Play Services Location
-    implementation("com.google.android.gms:play-services-location:21.1.0")
-
-    // Permissões (Accompanist)
-    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
-
     // Coroutines
-    implementation(libs.bundles.coroutines)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
 
     // DataStore
     implementation(libs.datastore.preferences)
@@ -132,45 +97,36 @@ dependencies {
     // Timber
     implementation(libs.timber)
 
-    // Coil para carregamento de imagens
-    implementation("io.coil-kt:coil-compose:2.5.0")
+    // Networking
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.core)
+    implementation(libs.okhttp.logging)
 
-    // ========================================================================
-    // Unit Tests
-    // ========================================================================
+    // Coil
+    implementation(libs.coil.compose)
+
+    // Accompanist
+    implementation(libs.accompanist.permissions)
+
+    // Location & Maps
+    implementation(libs.play.services.location)
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose)
+
+    // Testes
     testImplementation(libs.junit)
-    testImplementation(libs.bundles.testing)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.hilt.android.testing)
-    kspTest(libs.hilt.android.compiler)
-
-    // ========================================================================
-    // Instrumented Tests (Android)
-    // ========================================================================
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
-    androidTestImplementation(libs.mockk.android)
-    androidTestImplementation(libs.turbine)
-    androidTestImplementation(libs.kotlinx.coroutines.test)
-    androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.hilt.android.testing)
-    kspAndroidTest(libs.hilt.android.compiler)
-
-    // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-}
 
-secrets {
-    // Arquivo padrão para secrets (não commitado no git)
-    propertiesFileName = "secrets.properties"
-
-    // Arquivo de fallback com valores padrão (pode ser commitado)
-    defaultPropertiesFileName = "local.defaults.properties"
-
-    // Ignorar chaves que não existem
-    ignoreList.add("keyToIgnore")
-    ignoreList.add("sdk.*")
+    // Testes adicionais
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.arch.core.testing)
+    testImplementation(libs.truth)
 }

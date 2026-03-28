@@ -26,9 +26,10 @@
         tools:targetApi="35">
 
         <!-- Google Maps API Key (gerenciada pelo secrets-gradle-plugin) -->
-        <meta-data
+        <!-- Suspenso temporariamente conforme solicitação do usuário -->
+        <!-- <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
+            android:value="${MAPS_API_KEY}" /> -->
 
         <!-- FileProvider para compartilhamento seguro de arquivos -->
         <provider
