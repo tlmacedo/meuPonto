@@ -1,8 +1,8 @@
 package br.com.tlmacedo.meuponto.presentation.screen.auth.login
 
 sealed interface LoginEvent {
-    data object LoginSucesso : LoginEvent
-    data class MostrarErro(val mensagem: String) : LoginEvent
-    data object NavigateToRegister : LoginEvent
-    data object NavigateToForgotPassword : LoginEvent
+    object LoginSuccess : LoginEvent
+    data class ShowError(val message: String) : LoginEvent
+    object NavigateToRegister : LoginEvent
+    object NavigateToForgotPassword : LoginEvent
 }

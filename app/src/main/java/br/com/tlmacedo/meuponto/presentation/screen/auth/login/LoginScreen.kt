@@ -3,8 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.auth.login
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -22,86 +21,132 @@ import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun LoginScreen(
+    onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
-    onLoginSuccess: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        viewModel.eventos.collectLatest { event ->
+        viewModel.events.collectLatest { event ->
             when (event) {
-                LoginEvent.LoginSucesso -> onLoginSuccess()
-                is LoginEvent.MostrarErro -> snackbarHostState.showSnackbar(event.mensagem)
-                LoginEvent.NavigateToRegister -> onNavigateToRegister()
-                LoginEvent.NavigateToForgotPassword -> onNavigateToForgotPassword()
+                is LoginEvent.LoginSuccess -> onLoginSuccess()
+                is LoginEvent.NavigateToRegister -> onNavigateToRegister()
+                is LoginEvent.NavigateToForgotPassword -> onNavigateToForgotPassword()
+                is LoginEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
             }
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { paddingValues ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Meu Ponto", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                text = "Meu Ponto",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+
             Spacer(modifier = Modifier.height(48.dp))
 
             OutlinedTextField(
                 value = uiState.email,
-                onValueChange = { viewModel.onAction(LoginAction.OnEmailChange(it)) },
+                onValueChange = { viewModel.onAction(LoginAction.EmailChanged(it)) },
                 label = { Text("E-mail") },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = uiState.emailError != null,
+                supportingText = uiState.emailError?.let { { Text(it) } }
             )
+
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = uiState.senha,
-                onValueChange = { viewModel.onAction(LoginAction.OnSenhaChange(it)) },
+                onValueChange = { viewModel.onAction(LoginAction.SenhaChanged(it)) },
                 label = { Text("Senha") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                visualTransformation = if (uiState.isSenhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
                 trailingIcon = {
-                    IconButton(onClick = { viewModel.onAction(LoginAction.ToggleSenhaVisibility) }) {
+                    IconButton(onClick = { viewModel.onAction(LoginAction.TogglePasswordVisibility) }) {
                         Icon(
-                            imageVector = if (uiState.isSenhaVisivel) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = null
+                            imageVector = if (uiState.isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = "Alternar visibilidade da senha"
                         )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = uiState.senhaError != null,
+                supportingText = uiState.senhaError?.let { { Text(it) } }
             )
 
-            if (uiState.erro != null) {
-                Text(text = uiState.erro!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { viewModel.onAction(LoginAction.ForgotPasswordClick) }) {
+                    Text("Esqueci minha senha")
+                }
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { viewModel.onAction(LoginAction.ForgotPasswordClick) }) { Text("Esqueci minha senha") }
-            }
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { viewModel.onAction(LoginAction.FazerLogin) },
+                onClick = { viewModel.onAction(LoginAction.LoginClick) },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = uiState.isBotaoHabilitado
+                enabled = uiState.isFormValid && !uiState.isLoading
             ) {
-                if (uiState.isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                else Text("Entrar")
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Entrar")
+                }
             }
+
+            if (uiState.biometriaDisponivel) {
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedButton(
+                    onClick = { viewModel.onAction(LoginAction.LoginBiometriaClick) },
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Icon(Icons.Default.Fingerprint, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Entrar com Biometria")
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
 
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
                 Text("Não tem uma conta?", style = MaterialTheme.typography.bodyMedium)
-                TextButton(onClick = { viewModel.onAction(LoginAction.RegisterClick) }) { Text("Cadastre-se") }
+                TextButton(onClick = { viewModel.onAction(LoginAction.RegisterClick) }) {
+                    Text("Cadastre-se")
+                }
             }
         }
     }
