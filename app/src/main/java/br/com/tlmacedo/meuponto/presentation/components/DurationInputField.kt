@@ -125,7 +125,7 @@ fun DurationInputField(
             ) {
                 Icon(
                     imageVector = Icons.Default.Remove,
-                    contentDescription = "Diminuir ${unit.label}",
+                    contentDescription = "Diminuir \${unit.label}",
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -160,7 +160,7 @@ fun DurationInputField(
                             filtered.length <= 4 -> {
                                 val hours = filtered.take(2)
                                 val mins = filtered.drop(2)
-                                "$hours:$mins"
+                                "\$hours:\$mins"
                             }
                             else -> textValue // Não permite mais de 4 dígitos
                         }
@@ -241,7 +241,7 @@ fun DurationInputField(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Aumentar ${unit.label}",
+                    contentDescription = "Aumentar \${unit.label}",
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -334,9 +334,9 @@ private fun formatMinutesToReadable(minutes: Int): String {
 
     return when {
         hours == 0 && mins == 0 -> "0 minutos"
-        hours == 0 -> "$mins minuto${if (mins != 1) "s" else ""}"
-        mins == 0 -> "$hours hora${if (hours != 1) "s" else ""}"
-        else -> "$hours hora${if (hours != 1) "s" else ""} e $mins minuto${if (mins != 1) "s" else ""}"
+        hours == 0 -> "${mins} minuto${if (mins != 1) "s" else ""}"
+        mins == 0 -> "${hours} hora${if (hours != 1) "s" else ""}"
+        else -> "${hours} hora${if (hours != 1) "s" else ""} e ${mins} minuto${if (mins != 1) "s" else ""}"
     }
 }
 

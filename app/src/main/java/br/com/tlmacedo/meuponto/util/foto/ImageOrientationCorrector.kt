@@ -1,4 +1,3 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/util/foto/ImageOrientationCorrector.kt
 package br.com.tlmacedo.meuponto.util.foto
 
 import android.content.Context
@@ -13,31 +12,11 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Corretor de orientação de imagens baseado em metadados EXIF.
- *
- * Câmeras fotográficas e smartphones salvam imagens em orientação física
- * do sensor e registram a orientação correta nos metadados EXIF. Sem
- * essa correção, imagens retrato aparecem como paisagem rotacionada.
- *
- * @param context Contexto da aplicação para acesso ao ContentResolver
- *
- * @author Thiago
- * @since 10.0.0
- * @updated 12.0.0 - e.printStackTrace() substituído por Timber.e/w();
- *                   adicionado KDoc completo em todas as funções públicas
- */
 @Singleton
 class ImageOrientationCorrector @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    /**
-     * Obtém a orientação EXIF de um arquivo de imagem.
-     *
-     * @param file Arquivo de imagem JPEG
-     * @return Constante de orientação do [ExifInterface] (ex: ORIENTATION_ROTATE_90)
-     */
     fun getOrientation(file: File): Int {
         return try {
             val exif = ExifInterface(file)
@@ -51,12 +30,6 @@ class ImageOrientationCorrector @Inject constructor(
         }
     }
 
-    /**
-     * Obtém a orientação EXIF de um URI (galeria ou câmera).
-     *
-     * @param uri URI da imagem (content:// ou file://)
-     * @return Constante de orientação do [ExifInterface]
-     */
     fun getOrientation(uri: Uri): Int {
         return try {
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -72,16 +45,6 @@ class ImageOrientationCorrector @Inject constructor(
         }
     }
 
-    /**
-     * Corrige a orientação de um [Bitmap] com base na orientação EXIF.
-     *
-     * Se a orientação já for [ExifInterface.ORIENTATION_NORMAL], retorna
-     * o bitmap original sem criar cópia.
-     *
-     * @param bitmap Bitmap a ser corrigido
-     * @param orientation Orientação EXIF lida via [getOrientation]
-     * @return Bitmap com orientação corrigida ou o original se não necessário
-     */
     fun correctOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
         val matrix = Matrix()
 
@@ -111,15 +74,6 @@ class ImageOrientationCorrector @Inject constructor(
         }
     }
 
-    /**
-     * Carrega um [Bitmap] de arquivo já com orientação corrigida.
-     *
-     * Combina [getOrientation] e [correctOrientation] em uma única chamada.
-     * Se a orientação for normal, nenhuma cópia é criada.
-     *
-     * @param file Arquivo de imagem JPEG
-     * @return Bitmap com orientação correta ou null em caso de erro
-     */
     fun loadBitmapWithCorrectOrientation(file: File): Bitmap? {
         return try {
             val orientation = getOrientation(file)
@@ -141,12 +95,6 @@ class ImageOrientationCorrector @Inject constructor(
         }
     }
 
-    /**
-     * Carrega um [Bitmap] de URI já com orientação corrigida.
-     *
-     * @param uri URI da imagem
-     * @return Bitmap com orientação correta ou null em caso de erro
-     */
     fun loadBitmapWithCorrectOrientation(uri: Uri): Bitmap? {
         return try {
             val orientation = getOrientation(uri)
@@ -170,21 +118,9 @@ class ImageOrientationCorrector @Inject constructor(
         }
     }
 
-    /**
-     * Verifica se uma imagem precisa de correção de orientação.
-     *
-     * @param file Arquivo de imagem
-     * @return true se a orientação EXIF for diferente de [ExifInterface.ORIENTATION_NORMAL]
-     */
     fun needsCorrection(file: File): Boolean =
         getOrientation(file) != ExifInterface.ORIENTATION_NORMAL
 
-    /**
-     * Verifica se uma imagem precisa de correção de orientação.
-     *
-     * @param uri URI da imagem
-     * @return true se a orientação EXIF for diferente de [ExifInterface.ORIENTATION_NORMAL]
-     */
     fun needsCorrection(uri: Uri): Boolean =
         getOrientation(uri) != ExifInterface.ORIENTATION_NORMAL
 }

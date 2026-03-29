@@ -8,8 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
-import br.com.tlmacedo.meuponto.presentation.navigation.MeuPontoNavHost
+import br.com.tlmacedo.meuponto.presentation.navigation.RootNavGraph
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -24,8 +23,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    MeuPontoNavHost(navController = navController)
+                    // Agora sim, chamamos o RootNavGraph que decide entre Login e App
+                    RootNavGraph()
                 }
             }
         }

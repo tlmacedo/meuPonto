@@ -63,7 +63,7 @@ fun MeuPontoNavHost(
     Box(modifier = modifier) {
         NavHost(
             navController = navController,
-            startDestination = startDestination
+            startDestination = AuthDestinations.ROUTE,
         ) {
             // ===== TELAS PRINCIPAIS =====
 
