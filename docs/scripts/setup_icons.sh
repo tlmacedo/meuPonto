@@ -9,9 +9,9 @@ if ! command -v magick &> /dev/null; then
     exit 1
 fi
 
-SOURCE_DIR="app/src/main/ic_launcher_source"
-SOURCE_1="$SOURCE_DIR/ic_launcher_1.png"
-SOURCE_2="$SOURCE_DIR/ic_launcher_2.png"
+SOURCE_DIR="app/src/main/res"
+SOURCE_1="$SOURCE_DIR/icone_meu_ponto.png"
+SOURCE_2="$SOURCE_DIR/LogoMeuPonto.png"
 
 # Verificar imagens fonte
 if [ ! -f "$SOURCE_1" ]; then

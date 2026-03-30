@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import br.com.tlmacedo.meuponto.presentation.navigation.AuthDestinations
 import br.com.tlmacedo.meuponto.presentation.screen.auth.login.LoginScreen
+import br.com.tlmacedo.meuponto.presentation.screen.auth.register.RegisterScreen
 
 fun NavGraphBuilder.authNavGraph(navController: NavController) {
     navigation(

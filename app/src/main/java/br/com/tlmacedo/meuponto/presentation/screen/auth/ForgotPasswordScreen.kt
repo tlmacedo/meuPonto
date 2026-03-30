@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,7 +57,14 @@ fun ForgotPasswordScreen(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 isError = uiState.emailError != null,
-                singleLine = true
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = "Ícone de E-mail"
+                    )
+                }
+
             )
 
             if (uiState.emailError != null) {
@@ -64,7 +72,9 @@ fun ForgotPasswordScreen(
                     text = uiState.emailError!!,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.align(Alignment.Start).padding(top = 4.dp)
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(top = 4.dp)
                 )
             }
 
@@ -78,7 +88,10 @@ fun ForgotPasswordScreen(
                 enabled = !uiState.isLoading
             ) {
                 if (uiState.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 } else {
                     Text("Enviar Instruções")
                 }

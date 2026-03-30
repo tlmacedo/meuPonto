@@ -5,23 +5,23 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 
-// Importando a nova tela de Login que acabamos de criar
 import br.com.tlmacedo.meuponto.presentation.screen.auth.login.LoginScreen
-
-// Importando as telas de Register e ForgotPassword
-import br.com.tlmacedo.meuponto.presentation.screen.auth.RegisterScreen
+import br.com.tlmacedo.meuponto.presentation.screen.auth.register.RegisterScreen
 import br.com.tlmacedo.meuponto.presentation.screen.auth.ForgotPasswordScreen
 
 fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
     navigation(
         startDestination = AuthDestinations.LOGIN,
-        route = "auth_graph"
+        route = AuthDestinations.ROUTE
     ) {
         // Tela de Login
         composable(route = AuthDestinations.LOGIN) {
             LoginScreen(
-                onLoginSuccess = {
-                    // TODO: Navegar para a Home principal após o login
+                onNavigateToHome = {
+                    // Navega para a HomeScreen e limpa o gráfico de autenticação do histórico
+                    navController.navigate(MeuPontoDestinations.HOME_BASE) {
+                        popUpTo(AuthDestinations.ROUTE) { inclusive = true }
+                    }
                 },
                 onNavigateToRegister = { navController.navigate(AuthDestinations.REGISTER) },
                 onNavigateToForgotPassword = { navController.navigate(AuthDestinations.FORGOT_PASSWORD) }

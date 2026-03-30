@@ -4,16 +4,16 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 /**
- * Script utilitário para exportar o código do projeto organizado por camadas.
- * Com limite de 20.000 linhas por arquivo gerado.
+ * Utility script to export project code organized by layers.
+ * With a limit of 20,000 lines per generated file.
  */
 
-fun exportarPorCamadas(diretorioRaiz: String, diretorioDestino: String) {
-    val MAX_LINHAS = 20000
-    val extensoesPermitidas = setOf("kt", "java", "xml", "gradle", "kts", "properties", "sql")
-    val pastasIgnoradas = setOf(".git", ".idea", "captures", "bin", "out", "export_meu_ponto", "build")
+fun exportByLayers(rootDirectory: String, destinationDirectory: String) {
+    val MAX_LINES = 20000
+    val allowedExtensions = setOf("kt", "java", "xml", "gradle", "kts", "properties", "sql")
+    val ignoredFolders = setOf(".git", ".idea", "captures", "bin", "out", "export_meu_ponto", "build")
 
-    val camadas = mapOf(
+    val layers = mapOf(
         "CORE" to "/core/",
         "DATA" to "/data/",
         "DI" to "/di/",
@@ -25,82 +25,82 @@ fun exportarPorCamadas(diretorioRaiz: String, diretorioDestino: String) {
         "MANIFEST" to "AndroidManifest.xml"
     )
 
-    val pastaRaiz = File(diretorioRaiz)
-    val pastaBaseDestino = File(diretorioDestino, "camadas")
+    val rootFolder = File(rootDirectory)
+    val destinationBaseFolder = File(destinationDirectory, "layers")
 
-    if (pastaBaseDestino.exists()) {
-        pastaBaseDestino.deleteRecursively()
+    if (destinationBaseFolder.exists()) {
+        destinationBaseFolder.deleteRecursively()
     }
-    pastaBaseDestino.mkdirs()
+    destinationBaseFolder.mkdirs()
 
-    println("Analisando arquivos e respeitando limite de $MAX_LINHAS linhas...")
+    println("Analyzing files and respecting limit of $MAX_LINES lines...")
 
     val buffers = mutableMapOf<String, StringBuilder>()
-    val contagemLinhas = mutableMapOf<String, Int>()
-    val sequencialArquivo = mutableMapOf<String, Int>()
+    val lineCount = mutableMapOf<String, Int>()
+    val fileSequence = mutableMapOf<String, Int>()
 
-    fun salvarBuffer(camada: String) {
-        val buffer = buffers[camada] ?: return
+    fun saveBuffer(layer: String) {
+        val buffer = buffers[layer] ?: return
         if (buffer.isEmpty()) return
 
-        val seq = sequencialArquivo.getOrDefault(camada, 0)
-        val sufixo = if (seq == 0) "" else "_$seq"
-        val nomeArquivo = "PROJETO_${camada}${sufixo}.txt"
-        val arquivoSaida = File(pastaBaseDestino, nomeArquivo)
+        val seq = fileSequence.getOrDefault(layer, 0)
+        val suffix = if (seq == 0) "" else "_$seq"
+        val fileName = "PROJECT_${layer}${suffix}.txt"
+        val outputFile = File(destinationBaseFolder, fileName)
 
-        arquivoSaida.writeText(buffer.toString(), StandardCharsets.UTF_8)
-        println("Gerado: $nomeArquivo (${contagemLinhas[camada]} linhas)")
+        outputFile.writeText(buffer.toString(), StandardCharsets.UTF_8)
+        println("Generated: $fileName (${lineCount[layer]} lines)")
 
         buffer.clear()
-        contagemLinhas[camada] = 0
-        sequencialArquivo[camada] = seq + 1
+        lineCount[layer] = 0
+        fileSequence[layer] = seq + 1
     }
 
-    pastaRaiz.walk()
-        .onEnter { it.name !in pastasIgnoradas }
-        .filter { it.isFile && (it.extension in extensoesPermitidas || it.name == "AndroidManifest.xml") }
-        .forEach { arquivo ->
-            val caminhoAbsoluto = arquivo.absolutePath
-            val camadaIdentificada = camadas.entries.find { caminhoAbsoluto.contains(it.value, ignoreCase = true) }?.key ?: "OUTROS"
+    rootFolder.walk()
+        .onEnter { it.name !in ignoredFolders }
+        .filter { it.isFile && (it.extension in allowedExtensions || it.name == "AndroidManifest.xml") }
+        .forEach { file ->
+            val absolutePath = file.absolutePath
+            val identifiedLayer = layers.entries.find { absolutePath.contains(it.value, ignoreCase = true) }?.key ?: "OTHERS"
 
-            val conteudo = try {
-                arquivo.readText(StandardCharsets.UTF_8)
+            val content = try {
+                file.readText(StandardCharsets.UTF_8)
             } catch (e: Exception) {
-                "Erro ao ler ${arquivo.name}: ${e.message}"
+                "Error reading ${file.name}: ${e.message}"
             }
 
-            val linhasNoArquivo = conteudo.lines()
-            val totalLinhasNovas = linhasNoArquivo.size + 6 // Delimitadores e metadados
+            val linesInFile = content.lines()
+            val totalNewLines = linesInFile.size + 6 // Delimiters and metadata
 
-            // Verifica se adicionar este arquivo ultrapassa o limite
-            if ((contagemLinhas[camadaIdentificada] ?: 0) + totalLinhasNovas > MAX_LINHAS) {
-                salvarBuffer(camadaIdentificada)
+            // Check if adding this file exceeds the limit
+            if ((lineCount[identifiedLayer] ?: 0) + totalNewLines > MAX_LINES) {
+                saveBuffer(identifiedLayer)
             }
 
-            val buffer = buffers.getOrPut(camadaIdentificada) { StringBuilder() }
-            val delimitador = "=".repeat(80)
+            val buffer = buffers.getOrPut(identifiedLayer) { StringBuilder() }
+            val delimiter = "=".repeat(80)
 
-            buffer.append("\n$delimitador\n")
-            buffer.append("ARQUIVO: $caminhoAbsoluto\n")
-            buffer.append("LINHAS: ${linhasNoArquivo.size}\n")
-            buffer.append("$delimitador\n\n")
-            buffer.append(conteudo)
+            buffer.append("\n$delimiter\n")
+            buffer.append("FILE: $absolutePath\n")
+            buffer.append("LINES: ${linesInFile.size}\n")
+            buffer.append("$delimiter\n\n")
+            buffer.append(content)
             buffer.append("\n\n")
 
-            contagemLinhas[camadaIdentificada] = (contagemLinhas[camadaIdentificada] ?: 0) + totalLinhasNovas
+            lineCount[identifiedLayer] = (lineCount[identifiedLayer] ?: 0) + totalNewLines
         }
 
-    // Salva o restante dos buffers
-    buffers.keys.forEach { salvarBuffer(it) }
+    // Save the remaining buffers
+    buffers.keys.forEach { saveBuffer(it) }
 
-    println("\nExportação concluída com sucesso!")
-    println("Localização: ${pastaBaseDestino.absolutePath}")
+    println("\nExport completed successfully!")
+    println("Location: ${destinationBaseFolder.absolutePath}")
 }
 
-// Execução do script
+// Script execution
 val currentDir = File(System.getProperty("user.dir")).parentFile.parentFile
-val caminhoProjeto = if (currentDir.name == "scripts" || currentDir.name == "docs") {
-    // Tenta encontrar a raiz do projeto subindo níveis
+val projectPath = if (currentDir.name == "scripts" || currentDir.name == "docs") {
+    // Try to find the project root by going up levels
     var root = currentDir
     while (root.parentFile != null && !File(root, "app").exists()) {
         root = root.parentFile
@@ -110,9 +110,9 @@ val caminhoProjeto = if (currentDir.name == "scripts" || currentDir.name == "doc
     currentDir.absolutePath
 }
 
-val caminhoDestino = File(caminhoProjeto, "docs/export_codigo_projeto").absolutePath
+val destinationPath = File(projectPath, "docs/export_codigo_projeto").absolutePath
 
-println("Iniciando exportação do projeto: $caminhoProjeto")
-println("Destino: $caminhoDestino")
+println("Starting project export: $projectPath")
+println("Destination: $destinationPath")
 
-exportarPorCamadas(caminhoProjeto, caminhoDestino)
+exportByLayers(projectPath, destinationPath)

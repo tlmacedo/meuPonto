@@ -19,9 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
@@ -44,460 +44,442 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersa
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
 
 /**
- * NavHost principal da aplicação MeuPonto.
+ * Extensão para definir as rotas principais da aplicação MeuPonto.
  *
  * @param navController Controlador de navegação
- * @param modifier Modificador para o container
- * @param startDestination Destino inicial (padrão: HOME_BASE)
- *
- * @author Thiago
- * @since 1.0.0
- * @updated 8.3.0 - Migração para SettingsMainScreen
  */
-@Composable
-fun MeuPontoNavHost(
-    navController: NavHostController,
-    modifier: Modifier = Modifier,
-    startDestination: String = MeuPontoDestinations.HOME_BASE
-) {
-    Box(modifier = modifier) {
-        NavHost(
-            navController = navController,
-            startDestination = AuthDestinations.ROUTE,
-        ) {
-            // ===== TELAS PRINCIPAIS =====
+fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
+    // ===== TELAS PRINCIPAIS =====
 
-            composable(
-                route = MeuPontoDestinations.HOME,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_DATA) {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
+    composable(
+        route = MeuPontoDestinations.HOME,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_DATA) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) { backStackEntry ->
+        val dataString = backStackEntry.arguments?.getString(MeuPontoDestinations.ARG_DATA)
+
+        HomeScreen(
+            dataSelecionadaInicial = dataString,
+            onNavigateToHistorico = {
+                navController.navigate(MeuPontoDestinations.HISTORY)
+            },
+            onNavigateToConfiguracoes = {
+                navController.navigate(MeuPontoDestinations.SETTINGS)
+            },
+            onNavigateToEditarPonto = { pontoId ->
+                navController.navigate(MeuPontoDestinations.editPonto(pontoId))
+            },
+            onNavigateToNovoEmprego = {
+                navController.navigate(MeuPontoDestinations.editarEmprego(-1L))
+            },
+            onNavigateToEditarEmprego = { empregoId ->
+                navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
+            },
+            onNavigateToHistoricoCiclos = {
+                navController.navigate(MeuPontoDestinations.HISTORICO_CICLOS)
+            }
+        )
+    }
+
+    composable(MeuPontoDestinations.HISTORY) {
+        HistoryScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToDay = { data ->
+                navController.navigate(MeuPontoDestinations.homeComData(data.toString())) {
+                    popUpTo(MeuPontoDestinations.HOME_BASE) {
+                        inclusive = true
                     }
-                )
-            ) { backStackEntry ->
-                val dataString = backStackEntry.arguments?.getString(MeuPontoDestinations.ARG_DATA)
-
-                HomeScreen(
-                    dataSelecionadaInicial = dataString,
-                    onNavigateToHistorico = {
-                        navController.navigate(MeuPontoDestinations.HISTORY)
-                    },
-                    onNavigateToConfiguracoes = {
-                        navController.navigate(MeuPontoDestinations.SETTINGS)
-                    },
-                    onNavigateToEditarPonto = { pontoId ->
-                        navController.navigate(MeuPontoDestinations.editPonto(pontoId))
-                    },
-                    onNavigateToNovoEmprego = {
-                        navController.navigate(MeuPontoDestinations.editarEmprego(-1L))
-                    },
-                    onNavigateToEditarEmprego = { empregoId ->
-                        navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
-                    },
-                    onNavigateToHistoricoCiclos = {
-                        navController.navigate(MeuPontoDestinations.HISTORICO_CICLOS)
-                    }
-                )
+                }
             }
+        )
+    }
 
-            composable(MeuPontoDestinations.HISTORY) {
-                HistoryScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToDay = { data ->
-                        navController.navigate(MeuPontoDestinations.homeComData(data.toString())) {
-                            popUpTo(MeuPontoDestinations.HOME_BASE) {
-                                inclusive = true
-                            }
-                        }
-                    }
-                )
+    // ===== HISTÓRICO DE CICLOS =====
+    composable(MeuPontoDestinations.HISTORICO_CICLOS) {
+        HistoricoCiclosScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+
+    composable(
+        route = MeuPontoDestinations.EDIT_PONTO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_PONTO_ID) {
+                type = NavType.LongType
+                defaultValue = -1L
             }
+        )
+    ) {
+        EditPontoScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            // ===== HISTÓRICO DE CICLOS ===== (ADICIONAR AQUI)
-            composable(MeuPontoDestinations.HISTORICO_CICLOS) {
-                HistoricoCiclosScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
+    // ===== AUSÊNCIAS =====
+
+    composable(MeuPontoDestinations.AUSENCIAS) {
+        AusenciasScreen(
+            onVoltar = { navController.popBackStack() },
+            onNovaAusencia = {
+                navController.navigate(MeuPontoDestinations.NOVA_AUSENCIA_BASE)
+            },
+            onEditarAusencia = { ausenciaId ->
+                navController.navigate(MeuPontoDestinations.editarAusencia(ausenciaId))
             }
+        )
+    }
 
-
-            composable(
-                route = MeuPontoDestinations.EDIT_PONTO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_PONTO_ID) {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    }
-                )
-            ) {
-                EditPontoScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
+    composable(
+        route = MeuPontoDestinations.NOVA_AUSENCIA,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_TIPO) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            },
+            navArgument(MeuPontoDestinations.ARG_DATA) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
             }
+        )
+    ) {
+        AusenciaFormScreen(
+            onVoltar = { navController.popBackStack() },
+            onSalvo = { navController.popBackStack() }
+        )
+    }
 
-            // ===== AUSÊNCIAS =====
-
-            composable(MeuPontoDestinations.AUSENCIAS) {
-                AusenciasScreen(
-                    onVoltar = { navController.popBackStack() },
-                    onNovaAusencia = {
-                        navController.navigate(MeuPontoDestinations.NOVA_AUSENCIA_BASE)
-                    },
-                    onEditarAusencia = { ausenciaId ->
-                        navController.navigate(MeuPontoDestinations.editarAusencia(ausenciaId))
-                    }
-                )
+    composable(
+        route = MeuPontoDestinations.EDITAR_AUSENCIA,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_AUSENCIA_ID) {
+                type = NavType.LongType
             }
+        )
+    ) {
+        AusenciaFormScreen(
+            onVoltar = { navController.popBackStack() },
+            onSalvo = { navController.popBackStack() }
+        )
+    }
 
-            composable(
-                route = MeuPontoDestinations.NOVA_AUSENCIA,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_TIPO) {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument(MeuPontoDestinations.ARG_DATA) {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }
-                )
-            ) {
-                AusenciaFormScreen(
-                    onVoltar = { navController.popBackStack() },
-                    onSalvo = { navController.popBackStack() }
-                )
+    // ===== CONFIGURAÇÕES PRINCIPAIS =====
+
+    composable(MeuPontoDestinations.SETTINGS) {
+        SettingsMainScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToEmpregoEdit = { empregoId ->
+                navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
+            },
+            onNavigateToGerenciarEmpregos = {
+                navController.navigate(MeuPontoDestinations.GERENCIAR_EMPREGOS)
+            },
+            onNavigateToCalendario = {
+                navController.navigate(MeuPontoDestinations.FERIADOS)
+            },
+            onNavigateToAparencia = {
+                navController.navigate(MeuPontoDestinations.APARENCIA)
+            },
+            onNavigateToNotificacoes = {
+                navController.navigate(MeuPontoDestinations.NOTIFICACOES)
+            },
+            onNavigateToPrivacidade = {
+                navController.navigate(MeuPontoDestinations.PRIVACIDADE)
+            },
+            onNavigateToBackup = {
+                navController.navigate(MeuPontoDestinations.BACKUP)
+            },
+            onNavigateToSobre = {
+                navController.navigate(MeuPontoDestinations.SOBRE)
+            },
+            onNavigateToLixeira = {
+                navController.navigate(MeuPontoDestinations.LIXEIRA)
+            },
+            onNavigateToAuditoria = {
+                navController.navigate(MeuPontoDestinations.AUDITORIA)
             }
+        )
+    }
 
-            composable(
-                route = MeuPontoDestinations.EDITAR_AUSENCIA,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_AUSENCIA_ID) {
-                        type = NavType.LongType
-                    }
-                )
-            ) {
-                AusenciaFormScreen(
-                    onVoltar = { navController.popBackStack() },
-                    onSalvo = { navController.popBackStack() }
-                )
+    // ===== CONFIGURAÇÕES DO EMPREGO =====
+
+    composable(
+        route = MeuPontoDestinations.EMPREGO_SETTINGS,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
             }
-
-            // ===== CONFIGURAÇÕES PRINCIPAIS =====
-
-            composable(MeuPontoDestinations.SETTINGS) {
-                SettingsMainScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEmpregoEdit = { empregoId ->
-                        navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
-                    },
-                    onNavigateToGerenciarEmpregos = {
-                        navController.navigate(MeuPontoDestinations.GERENCIAR_EMPREGOS)
-                    },
-                    onNavigateToCalendario = {
-                        navController.navigate(MeuPontoDestinations.FERIADOS)
-                    },
-                    onNavigateToAparencia = {
-                        navController.navigate(MeuPontoDestinations.APARENCIA)
-                    },
-                    onNavigateToNotificacoes = {
-                        navController.navigate(MeuPontoDestinations.NOTIFICACOES)
-                    },
-                    onNavigateToPrivacidade = {
-                        navController.navigate(MeuPontoDestinations.PRIVACIDADE)
-                    },
-                    onNavigateToBackup = {
-                        navController.navigate(MeuPontoDestinations.BACKUP)
-                    },
-                    onNavigateToSobre = {
-                        navController.navigate(MeuPontoDestinations.SOBRE)
-                    },
-                    onNavigateToLixeira = {
-                        navController.navigate(MeuPontoDestinations.LIXEIRA)
-                    },
-                    onNavigateToAuditoria = {
-                        navController.navigate(MeuPontoDestinations.AUDITORIA)
-                    }
-                )
+        )
+    ) {
+        EmpregoSettingsDetailScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToVersoes = { id ->
+                navController.navigate(MeuPontoDestinations.versoesJornada(id))
             }
+        )
+    }
 
-            // ===== CONFIGURAÇÕES DO EMPREGO =====
+    // ===== VERSÕES DE JORNADA =====
 
-            composable(
-                route = MeuPontoDestinations.EMPREGO_SETTINGS,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
-                        type = NavType.LongType
-                    }
-                )
-            ) {
-                EmpregoSettingsDetailScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToVersoes = { id ->
-                        navController.navigate(MeuPontoDestinations.versoesJornada(id))
-                    }
-                )
+    // Lista de versões (por emprego)
+    composable(
+        route = MeuPontoDestinations.VERSOES_JORNADA_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
             }
-
-            // ===== VERSÕES DE JORNADA =====
-
-            // Lista de versões (por emprego)
-            composable(
-                route = MeuPontoDestinations.VERSOES_JORNADA_EMPREGO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
-                        type = NavType.LongType
-                    }
-                )
-            ) {
-                VersoesJornadaScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditar = { empId, versaoId ->
-                        navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empId, versaoId))
-                    }
-                )
+        )
+    ) {
+        VersoesJornadaScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToEditar = { empId, versaoId ->
+                navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empId, versaoId))
             }
+        )
+    }
 
-            // Editar versão (com emprego)
-            composable(
-                route = MeuPontoDestinations.EDITAR_VERSAO_EMPREGO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
-                        type = NavType.LongType
-                    },
-                    navArgument(MeuPontoDestinations.ARG_VERSAO_ID) {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    }
-                )
-            ) {
-                EditarVersaoScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToHorarios = { _ ->
-                        // TODO: Implementar navegação para horários
-                    }
-                )
+    // Editar versão (com emprego)
+    composable(
+        route = MeuPontoDestinations.EDITAR_VERSAO_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            },
+            navArgument(MeuPontoDestinations.ARG_VERSAO_ID) {
+                type = NavType.LongType
+                defaultValue = -1L
             }
-
-            // Lista de versões (legacy - sem emprego específico)
-            composable(MeuPontoDestinations.VERSOES_JORNADA) {
-                VersoesJornadaScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditar = { empregoId, versaoId ->
-                        navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
-                    }
-                )
+        )
+    ) {
+        EditarVersaoScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToHorarios = { _ ->
+                // TODO: Implementar navegação para horários
             }
+        )
+    }
 
-            // Editar versão (legacy)
-            composable(
-                route = MeuPontoDestinations.EDITAR_VERSAO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_VERSAO_ID) {
-                        type = NavType.LongType
-                    }
-                )
-            ) {
-                EditarVersaoScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToHorarios = { _ ->
-                        // TODO: Implementar navegação para horários
-                    }
-                )
+    // Lista de versões (legacy - sem emprego específico)
+    composable(MeuPontoDestinations.VERSOES_JORNADA) {
+        VersoesJornadaScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToEditar = { empregoId, versaoId ->
+                navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
             }
+        )
+    }
 
-            // ===== CONFIGURAÇÕES GLOBAIS =====
-
-            composable(MeuPontoDestinations.CONFIGURACOES_GLOBAIS) {
-                GlobalSettingsScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
+    // Editar versão (legacy)
+    composable(
+        route = MeuPontoDestinations.EDITAR_VERSAO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_VERSAO_ID) {
+                type = NavType.LongType
             }
-
-            // ===== APARÊNCIA, NOTIFICAÇÕES, PRIVACIDADE E BACKUP =====
-
-            composable(MeuPontoDestinations.APARENCIA) {
-                PlaceholderScreen(
-                    titulo = "Aparência",
-                    onNavigateBack = { navController.popBackStack() }
-                )
+        )
+    ) {
+        EditarVersaoScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToHorarios = { _ ->
+                // TODO: Implementar navegação para horários
             }
+        )
+    }
 
-            composable(MeuPontoDestinations.NOTIFICACOES) {
-                PlaceholderScreen(
-                    titulo = "Notificações",
-                    onNavigateBack = { navController.popBackStack() }
-                )
+    // ===== CONFIGURAÇÕES GLOBAIS =====
+
+    composable(MeuPontoDestinations.CONFIGURACOES_GLOBAIS) {
+        GlobalSettingsScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    // ===== APARÊNCIA, NOTIFICAÇÕES, PRIVACIDADE E BACKUP =====
+
+    composable(MeuPontoDestinations.APARENCIA) {
+        PlaceholderScreen(
+            titulo = "Aparência",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(MeuPontoDestinations.NOTIFICACOES) {
+        PlaceholderScreen(
+            titulo = "Notificações",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(MeuPontoDestinations.PRIVACIDADE) {
+        PlaceholderScreen(
+            titulo = "Privacidade & Segurança",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(MeuPontoDestinations.BACKUP) {
+        PlaceholderScreen(
+            titulo = "Backup & Dados",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    // ===== EMPREGOS =====
+
+    composable(MeuPontoDestinations.GERENCIAR_EMPREGOS) {
+        GerenciarEmpregosScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToEditarEmprego = { empregoId ->
+                navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
+            },
+            onNavigateToNovoEmprego = {
+                navController.navigate(MeuPontoDestinations.editarEmprego(-1L))
             }
+        )
+    }
 
-            composable(MeuPontoDestinations.PRIVACIDADE) {
-                PlaceholderScreen(
-                    titulo = "Privacidade & Segurança",
-                    onNavigateBack = { navController.popBackStack() }
-                )
+    composable(
+        route = MeuPontoDestinations.EDITAR_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+                defaultValue = -1L
             }
+        )
+    ) {
+        EditarEmpregoScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            composable(MeuPontoDestinations.BACKUP) {
-                PlaceholderScreen(
-                    titulo = "Backup & Dados",
-                    onNavigateBack = { navController.popBackStack() }
-                )
+    // ===== AJUSTES DE SALDO =====
+
+    composable(
+        route = MeuPontoDestinations.AJUSTES_SALDO_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
             }
+        )
+    ) {
+        PlaceholderScreen(
+            titulo = "Ajustes de Saldo",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            // ===== EMPREGOS =====
+    composable(MeuPontoDestinations.AJUSTES_BANCO_HORAS) {
+        PlaceholderScreen(
+            titulo = "Ajustes de Saldo",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            composable(MeuPontoDestinations.GERENCIAR_EMPREGOS) {
-                GerenciarEmpregosScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditarEmprego = { empregoId ->
-                        navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
-                    },
-                    onNavigateToNovoEmprego = {
-                        navController.navigate(MeuPontoDestinations.editarEmprego(-1L))
-                    }
-                )
+    // ===== AUSÊNCIAS POR EMPREGO =====
+
+    composable(
+        route = MeuPontoDestinations.AUSENCIAS_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
             }
-
-            composable(
-                route = MeuPontoDestinations.EDITAR_EMPREGO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    }
-                )
-            ) {
-                EditarEmpregoScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
+        )
+    ) {
+        AusenciasScreen(
+            onVoltar = { navController.popBackStack() },
+            onNovaAusencia = {
+                navController.navigate(MeuPontoDestinations.NOVA_AUSENCIA_BASE)
+            },
+            onEditarAusencia = { ausenciaId ->
+                navController.navigate(MeuPontoDestinations.editarAusencia(ausenciaId))
             }
+        )
+    }
 
-            // ===== AJUSTES DE SALDO =====
+    // ===== FERIADOS =====
 
-            composable(
-                route = MeuPontoDestinations.AJUSTES_SALDO_EMPREGO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
-                        type = NavType.LongType
-                    }
-                )
-            ) {
-                PlaceholderScreen(
-                    titulo = "Ajustes de Saldo",
-                    onNavigateBack = { navController.popBackStack() }
-                )
+    composable(MeuPontoDestinations.FERIADOS) {
+        FeriadosListScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToEditar = { feriadoId ->
+                navController.navigate(MeuPontoDestinations.editarFeriado(feriadoId))
+            },
+            onNavigateToNovo = {
+                navController.navigate(MeuPontoDestinations.NOVO_FERIADO)
             }
+        )
+    }
 
-            composable(MeuPontoDestinations.AJUSTES_BANCO_HORAS) {
-                PlaceholderScreen(
-                    titulo = "Ajustes de Saldo",
-                    onNavigateBack = { navController.popBackStack() }
-                )
+    composable(MeuPontoDestinations.NOVO_FERIADO) {
+        EditarFeriadoScreen(
+            feriadoId = null,
+            onNavigateBack = { navController.popBackStack() },
+            onSalvoComSucesso = { navController.popBackStack() }
+        )
+    }
+
+    composable(
+        route = MeuPontoDestinations.EDITAR_FERIADO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_FERIADO_ID) {
+                type = NavType.LongType
             }
+        )
+    ) { backStackEntry ->
+        val feriadoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_FERIADO_ID)
+        EditarFeriadoScreen(
+            feriadoId = feriadoId,
+            onNavigateBack = { navController.popBackStack() },
+            onSalvoComSucesso = { navController.popBackStack() }
+        )
+    }
 
-            // ===== AUSÊNCIAS POR EMPREGO =====
+    // ===== OUTRAS CONFIGURAÇÕES (Legacy/Placeholder) =====
 
-            composable(
-                route = MeuPontoDestinations.AUSENCIAS_EMPREGO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
-                        type = NavType.LongType
-                    }
-                )
-            ) {
-                AusenciasScreen(
-                    onVoltar = { navController.popBackStack() },
-                    onNovaAusencia = {
-                        navController.navigate(MeuPontoDestinations.NOVA_AUSENCIA_BASE)
-                    },
-                    onEditarAusencia = { ausenciaId ->
-                        navController.navigate(MeuPontoDestinations.editarAusencia(ausenciaId))
-                    }
-                )
-            }
+    composable(MeuPontoDestinations.CONFIGURACAO_JORNADA) {
+        PlaceholderScreen(
+            titulo = "Configuração de Jornada",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            // ===== FERIADOS =====
+    composable(MeuPontoDestinations.HORARIOS_TRABALHO) {
+        PlaceholderScreen(
+            titulo = "Horários por Dia",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            composable(MeuPontoDestinations.FERIADOS) {
-                FeriadosListScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditar = { feriadoId ->
-                        navController.navigate(MeuPontoDestinations.editarFeriado(feriadoId))
-                    },
-                    onNavigateToNovo = {
-                        navController.navigate(MeuPontoDestinations.NOVO_FERIADO)
-                    }
-                )
-            }
+    composable(MeuPontoDestinations.MARCADORES) {
+        PlaceholderScreen(
+            titulo = "Marcadores",
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            composable(MeuPontoDestinations.NOVO_FERIADO) {
-                EditarFeriadoScreen(
-                    feriadoId = null,
-                    onNavigateBack = { navController.popBackStack() },
-                    onSalvoComSucesso = { navController.popBackStack() }
-                )
-            }
+    composable(MeuPontoDestinations.SOBRE) {
+        SobreScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            composable(
-                route = MeuPontoDestinations.EDITAR_FERIADO,
-                arguments = listOf(
-                    navArgument(MeuPontoDestinations.ARG_FERIADO_ID) {
-                        type = NavType.LongType
-                    }
-                )
-            ) { backStackEntry ->
-                val feriadoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_FERIADO_ID)
-                EditarFeriadoScreen(
-                    feriadoId = feriadoId,
-                    onNavigateBack = { navController.popBackStack() },
-                    onSalvoComSucesso = { navController.popBackStack() }
-                )
-            }
+    composable(MeuPontoDestinations.LIXEIRA) {
+        LixeiraScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
 
-            // ===== OUTRAS CONFIGURAÇÕES (Legacy/Placeholder) =====
-
-            composable(MeuPontoDestinations.CONFIGURACAO_JORNADA) {
-                PlaceholderScreen(
-                    titulo = "Configuração de Jornada",
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(MeuPontoDestinations.HORARIOS_TRABALHO) {
-                PlaceholderScreen(
-                    titulo = "Horários por Dia",
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(MeuPontoDestinations.MARCADORES) {
-                PlaceholderScreen(
-                    titulo = "Marcadores",
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(MeuPontoDestinations.SOBRE) {
-                SobreScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(MeuPontoDestinations.LIXEIRA) {
-                LixeiraScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(MeuPontoDestinations.AUDITORIA) {
-                AuditoriaScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-        }
+    composable(MeuPontoDestinations.AUDITORIA) {
+        AuditoriaScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
     }
 }
 

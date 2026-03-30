@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
+    onNavigateToHome: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
@@ -30,12 +30,11 @@ fun LoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        viewModel.events.collectLatest { event ->
+        viewModel.eventos.collectLatest { event ->
             when (event) {
-                is LoginEvent.LoginSuccess -> onLoginSuccess()
-                is LoginEvent.NavigateToRegister -> onNavigateToRegister()
-                is LoginEvent.NavigateToForgotPassword -> onNavigateToForgotPassword()
-                is LoginEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is LoginEvent.LoginSucesso -> onNavigateToHome()
+                is LoginEvent.MostrarErro -> snackbarHostState.showSnackbar(event.mensagem)
+                else -> {} // Navegações movidas diretamente para os botões
             }
         }
     }
@@ -61,7 +60,7 @@ fun LoginScreen(
 
             OutlinedTextField(
                 value = uiState.email,
-                onValueChange = { viewModel.onAction(LoginAction.EmailChanged(it)) },
+                onValueChange = { viewModel.onAction(LoginAction.EmailAlterado(it)) },
                 label = { Text("E-mail") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
@@ -69,40 +68,41 @@ fun LoginScreen(
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                isError = uiState.emailError != null,
-                supportingText = uiState.emailError?.let { { Text(it) } }
+                isError = uiState.emailErro != null,
+                supportingText = uiState.emailErro?.let { { Text(it) } }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = uiState.senha,
-                onValueChange = { viewModel.onAction(LoginAction.SenhaChanged(it)) },
+                onValueChange = { viewModel.onAction(LoginAction.SenhaAlterada(it)) },
                 label = { Text("Senha") },
-                visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (uiState.isSenhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
                 ),
                 trailingIcon = {
-                    IconButton(onClick = { viewModel.onAction(LoginAction.TogglePasswordVisibility) }) {
+                    IconButton(onClick = { viewModel.onAction(LoginAction.AlternarSenhaVisibilidade) }) {
                         Icon(
-                            imageVector = if (uiState.isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            imageVector = if (uiState.isSenhaVisivel) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = "Alternar visibilidade da senha"
                         )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                isError = uiState.senhaError != null,
-                supportingText = uiState.senhaError?.let { { Text(it) } }
+                isError = uiState.senhaErro != null,
+                supportingText = uiState.senhaErro?.let { { Text(it) } }
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = { viewModel.onAction(LoginAction.ForgotPasswordClick) }) {
+                // CORREÇÃO: Navegação direta
+                TextButton(onClick = onNavigateToForgotPassword) {
                     Text("Esqueci minha senha")
                 }
             }
@@ -110,11 +110,11 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { viewModel.onAction(LoginAction.LoginClick) },
+                onClick = { viewModel.onAction(LoginAction.ClicarEntrar) },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = uiState.isFormValid && !uiState.isLoading
+                enabled = uiState.isFormValido && !uiState.isCarregando
             ) {
-                if (uiState.isLoading) {
+                if (uiState.isCarregando) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -144,8 +144,9 @@ fun LoginScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Text("Não tem uma conta?", style = MaterialTheme.typography.bodyMedium)
-                TextButton(onClick = { viewModel.onAction(LoginAction.RegisterClick) }) {
-                    Text("Cadastre-se")
+                // CORREÇÃO: Navegação direta
+                TextButton(onClick = onNavigateToRegister) {
+                    Text("Cadastre‑se")
                 }
             }
         }

@@ -2,12 +2,13 @@ package br.com.tlmacedo.meuponto.presentation.screen.auth.login
 
 data class LoginUiState(
     val email: String = "",
-    val emailError: String? = null,
+    val emailErro: String? = null,
     val senha: String = "",
-    val senhaError: String? = null,
-    val isPasswordVisible: Boolean = false,
-    val isLoading: Boolean = false,
-    val biometriaDisponivel: Boolean = true
-) {
-    val isFormValid: Boolean get() = email.isNotBlank() && senha.isNotBlank() && emailError == null && senhaError == null
-}
+    val senhaErro: String? = null,
+    val isCarregando: Boolean = false,
+    val isSenhaVisivel: Boolean = false,
+    val biometriaDisponivel: Boolean = false,
+    val isFormValido: Boolean = false,
+    val erro: String? = null,
+    val lembrarMe: Boolean = false
+)

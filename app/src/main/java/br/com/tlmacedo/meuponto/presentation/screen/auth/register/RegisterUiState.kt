@@ -5,10 +5,7 @@ data class RegisterUiState(
     val email: String = "",
     val senha: String = "",
     val confirmarSenha: String = "",
+    val isCarregando: Boolean = false,
     val erro: String? = null,
-    val isLoading: Boolean = false,
-    val isSuccess: Boolean = false
-) {
-    val formularioValido: Boolean
-        get() = nome.isNotBlank() && email.isNotBlank() && senha.isNotBlank() && senha == confirmarSenha
-}
+    val isSenhaVisivel: Boolean = false
+)

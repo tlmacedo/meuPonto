@@ -1,61 +1,76 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/repository/AuthRepositoryImpl.kt
 package br.com.tlmacedo.meuponto.data.repository
 
+import br.com.tlmacedo.meuponto.data.local.database.dao.UsuarioDao
+import br.com.tlmacedo.meuponto.data.local.database.entity.UsuarioEntity
 import br.com.tlmacedo.meuponto.domain.model.Usuario
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
-import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Implementação do repositório de autenticação.
- * 
- * Por enquanto, utiliza um simulador de autenticação local.
- * Em uma aplicação real, aqui seriam feitas as chamadas à API REST ou Firebase.
- */
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
-    private val preferenciasRepository: PreferenciasRepository
+    private val usuarioDao: UsuarioDao
 ) : AuthRepository {
 
     private val _usuarioLogado = MutableStateFlow<Usuario?>(null)
 
     override suspend fun login(email: String, senha: String): Result<Usuario> {
-        // Simulação de delay de rede
-        delay(1500)
+        return try {
+            val entity = usuarioDao.buscarPorEmail(email)
+                ?: return Result.failure(Exception("Usuário não encontrado."))
 
-        // Simulação de lógica de autenticação
-        return if (email == "teste@meuponto.com" && senha == "123456") {
+            if (entity.senhaHash != senha) {
+                return Result.failure(Exception("Senha incorreta."))
+            }
+
             val usuario = Usuario(
-                id = "1",
-                nome = "Usuário de Teste",
-                email = email,
-                biometriaHabilitada = preferenciasRepository.isBiometriaHabilitada()
+                id = entity.id,
+                nome = entity.nome,
+                email = entity.email,
+                biometriaHabilitada = entity.biometriaHabilitada
             )
             _usuarioLogado.value = usuario
-            
-            // Salva o último e-mail se o login for bem-sucedido
-            preferenciasRepository.definirUltimoEmailLogado(email)
-            
             Result.success(usuario)
-        } else {
-            Result.failure(Exception("E-mail ou senha inválidos"))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    override suspend fun cadastrar(nome: String, email: String, senha: String): Result<Usuario> {
-        delay(1500)
-        val usuario = Usuario(id = "2", nome = nome, email = email)
-        _usuarioLogado.value = usuario
-        return Result.success(usuario)
+    override suspend fun register(nome: String, email: String, senha: String): Result<Usuario> {
+        return try {
+            val existente = usuarioDao.buscarPorEmail(email)
+            if (existente != null) {
+                return Result.failure(Exception("E-mail já cadastrado."))
+            }
+
+            val novoId = UUID.randomUUID().toString()
+            val entity = UsuarioEntity(
+                id = novoId,
+                nome = nome,
+                email = email,
+                senhaHash = senha,
+                biometriaHabilitada = false
+            )
+            usuarioDao.inserir(entity)
+
+            val usuario = Usuario(
+                id = novoId,
+                nome = nome,
+                email = email,
+                biometriaHabilitada = false
+            )
+            _usuarioLogado.value = usuario
+            Result.success(usuario)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun recuperarSenha(email: String): Result<Unit> {
-        delay(1000)
         return Result.success(Unit)
     }
 

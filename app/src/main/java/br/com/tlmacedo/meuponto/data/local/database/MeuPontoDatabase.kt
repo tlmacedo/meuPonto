@@ -18,6 +18,7 @@ import br.com.tlmacedo.meuponto.data.local.database.dao.FotoComprovanteDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.HorarioDiaSemanaDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.MarcadorDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.UsuarioDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.VersaoJornadaDao
 import br.com.tlmacedo.meuponto.data.local.database.entity.AjusteSaldoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.AuditLogEntity
@@ -31,6 +32,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.FotoComprovanteEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.HorarioDiaSemanaEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.MarcadorEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.PontoEntity
+import br.com.tlmacedo.meuponto.data.local.database.entity.UsuarioEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
 
 /**
@@ -55,9 +57,10 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         FeriadoEntity::class,
         ConfiguracaoPontesAnoEntity::class,
         AusenciaEntity::class,
-        FotoComprovanteEntity::class
+        FotoComprovanteEntity::class,
+        UsuarioEntity::class
     ],
-    version = 26,
+    version = 27,
     exportSchema = false
 )
 @TypeConverters(Converters::class, FeriadoConverters::class)
@@ -76,6 +79,8 @@ abstract class MeuPontoDatabase : RoomDatabase() {
     abstract fun configuracaoPontesAnoDao(): ConfiguracaoPontesAnoDao
     abstract fun ausenciaDao(): AusenciaDao
     abstract fun fotoComprovanteDao(): FotoComprovanteDao
+
+    abstract fun usuarioDao(): UsuarioDao
 
     companion object {
         const val DATABASE_NAME = "meuponto.db"
