@@ -45,6 +45,7 @@ fun LoginScreen(
                 LoginEvent.NavegarParaEsqueciSenha -> TODO()
                 LoginEvent.NavegarParaCadastro -> TODO()
                 LoginEvent.NavegarParaRegistro -> TODO()
+                LoginEvent.SolicitarBiometria -> TODO()
             }
         }
     }

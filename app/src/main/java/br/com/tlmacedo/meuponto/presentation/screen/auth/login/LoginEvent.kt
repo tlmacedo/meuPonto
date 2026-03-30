@@ -6,5 +6,5 @@ sealed interface LoginEvent {
     object NavegarParaCadastro : LoginEvent
     object NavegarParaEsqueciSenha : LoginEvent
     object NavegarParaRegistro : LoginEvent
-
+    object SolicitarBiometria : LoginEvent
 }

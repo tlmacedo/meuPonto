@@ -40,6 +40,7 @@ playServicesLocation = "21.3.0"
 playServicesMaps = "19.0.0"
 mapsCompose = "6.1.2"
 exifinterface = "1.3.7"
+biometric = "1.4.0-alpha02"
 
 
 [libraries]
@@ -100,6 +101,7 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
+androidx-biometric-ktx = { group = "androidx.biometric", name = "biometric-ktx", version.ref = "biometric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

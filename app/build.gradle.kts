@@ -97,6 +97,9 @@ dependencies {
     // Timber
     implementation(libs.timber)
 
+    // Biometrics
+    implementation(libs.androidx.biometric.ktx)
+
     // Networking
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.gson)

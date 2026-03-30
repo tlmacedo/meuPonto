@@ -8,6 +8,8 @@ data class LoginUiState(
     val isCarregando: Boolean = false,
     val isSenhaVisivel: Boolean = false,
     val biometriaDisponivel: Boolean = false,
+    val biometriaHabilitada: Boolean = false,
+    val showDialogHabilitarBiometria: Boolean = false,
     val isFormValido: Boolean = false,
     val erro: String? = null,
     val lembrarMe: Boolean = false

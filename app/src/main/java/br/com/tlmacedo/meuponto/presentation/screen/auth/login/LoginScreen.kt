@@ -1,5 +1,7 @@
 package br.com.tlmacedo.meuponto.presentation.screen.auth.login
 
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -10,11 +12,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
@@ -28,15 +33,83 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
+
+    // Configuração do BiometricPrompt
+    val biometricPrompt = remember(activity) {
+        activity?.let {
+            BiometricPrompt(
+                it,
+                ContextCompat.getMainExecutor(it),
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        super.onAuthenticationSucceeded(result)
+                        viewModel.onBiometriaSucesso()
+                    }
+
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        super.onAuthenticationError(errorCode, errString)
+                        // Silencia erro de cancelamento pelo usuário
+                        if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && 
+                            errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                            // viewModel.onAction(LoginAction.ErroBiometria(errString.toString()))
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    val promptInfo = remember {
+        BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Autenticação Biométrica")
+            .setSubtitle("Use sua biometria para entrar")
+            .setNegativeButtonText("Usar senha")
+            .build()
+    }
+
+    // Verifica disponibilidade da biometria ao iniciar
+    LaunchedEffect(Unit) {
+        val biometricManager = BiometricManager.from(context)
+        val canAuthenticate = biometricManager.canAuthenticate(
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        )
+        viewModel.onAction(LoginAction.BiometriaDisponibilidadeAlterada(
+            canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS
+        ))
+    }
 
     LaunchedEffect(Unit) {
         viewModel.eventos.collectLatest { event ->
             when (event) {
                 is LoginEvent.LoginSucesso -> onNavigateToHome()
                 is LoginEvent.MostrarErro -> snackbarHostState.showSnackbar(event.mensagem)
-                else -> {} // Navegações movidas diretamente para os botões
+                is LoginEvent.SolicitarBiometria -> {
+                    biometricPrompt?.authenticate(promptInfo)
+                }
+                else -> {}
             }
         }
+    }
+
+    // Dialog para habilitar biometria
+    if (uiState.showDialogHabilitarBiometria) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onAction(LoginAction.HabilitarBiometriaCancelado) },
+            title = { Text("Habilitar Biometria") },
+            text = { Text("Deseja utilizar biometria para seus próximos acessos?") },
+            confirmButton = {
+                Button(onClick = { viewModel.onAction(LoginAction.HabilitarBiometriaConfirmado) }) {
+                    Text("Sim, habilitar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onAction(LoginAction.HabilitarBiometriaCancelado) }) {
+                    Text("Agora não")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -101,7 +174,6 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                // CORREÇÃO: Navegação direta
                 TextButton(onClick = onNavigateToForgotPassword) {
                     Text("Esqueci minha senha")
                 }
@@ -144,7 +216,6 @@ fun LoginScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Text("Não tem uma conta?", style = MaterialTheme.typography.bodyMedium)
-                // CORREÇÃO: Navegação direta
                 TextButton(onClick = onNavigateToRegister) {
                     Text("Cadastre‑se")
                 }

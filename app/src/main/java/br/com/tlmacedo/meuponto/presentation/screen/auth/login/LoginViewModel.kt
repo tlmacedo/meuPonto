@@ -34,7 +34,12 @@ class LoginViewModel @Inject constructor(
     private fun carregarPreferencias() {
         viewModelScope.launch {
             val lembrarMe = preferenciasRepository.isLembrarMeAtivo()
-            _uiState.update { it.copy(lembrarMe = lembrarMe) }
+            val biometriaHabilitada = preferenciasRepository.isBiometriaHabilitada()
+            
+            _uiState.update { it.copy(
+                lembrarMe = lembrarMe,
+                biometriaHabilitada = biometriaHabilitada
+            ) }
 
             if (lembrarMe) {
                 val ultimoEmail = preferenciasRepository.obterUltimoEmailLogado()
@@ -68,9 +73,28 @@ class LoginViewModel @Inject constructor(
             is LoginAction.LembrarMeAlterado -> _uiState.update { it.copy(lembrarMe = action.lembrar) }
             LoginAction.AlternarSenhaVisibilidade -> _uiState.update { it.copy(isSenhaVisivel = !it.isSenhaVisivel) }
             LoginAction.ClicarEntrar -> login()
-            LoginAction.LoginBiometriaClick -> { /* Implementar biometria no futuro */ }
+            LoginAction.LoginBiometriaClick -> loginComBiometria()
             LoginAction.ClicarCadastrar -> emitirEvento(LoginEvent.NavegarParaRegistro)
             LoginAction.ClicarEsqueciSenha -> emitirEvento(LoginEvent.NavegarParaEsqueciSenha)
+            
+            is LoginAction.BiometriaDisponibilidadeAlterada -> {
+                _uiState.update { it.copy(biometriaDisponivel = action.disponivel) }
+                // Se biometria está habilitada e disponível, tenta disparar o login biográfico
+                if (action.disponivel && _uiState.value.biometriaHabilitada) {
+                    loginComBiometria()
+                }
+            }
+            LoginAction.HabilitarBiometriaConfirmado -> {
+                viewModelScope.launch {
+                    preferenciasRepository.definirBiometriaHabilitada(true)
+                    _uiState.update { it.copy(biometriaHabilitada = true, showDialogHabilitarBiometria = false) }
+                    _eventos.emit(LoginEvent.LoginSucesso)
+                }
+            }
+            LoginAction.HabilitarBiometriaCancelado -> {
+                _uiState.update { it.copy(showDialogHabilitarBiometria = false) }
+                viewModelScope.launch { _eventos.emit(LoginEvent.LoginSucesso) }
+            }
         }
     }
 
@@ -91,20 +115,56 @@ class LoginViewModel @Inject constructor(
             val resultado = authRepository.login(estadoAtual.email, estadoAtual.senha)
 
             resultado.onSuccess {
-                preferenciasRepository.definirLembrarMe(estadoAtual.lembrarMe)
-                if (estadoAtual.lembrarMe) {
-                    preferenciasRepository.definirUltimoEmailLogado(estadoAtual.email)
-                } else {
-                    preferenciasRepository.definirUltimoEmailLogado("")
-                }
-
+                salvarPreferenciasPosLogin(estadoAtual)
+                
                 _uiState.update { it.copy(isCarregando = false) }
-                _eventos.emit(LoginEvent.LoginSucesso)
+                
+                // Se a biometria está disponível mas NÃO está habilitada, pergunta se quer habilitar
+                if (estadoAtual.biometriaDisponivel && !estadoAtual.biometriaHabilitada) {
+                    _uiState.update { it.copy(showDialogHabilitarBiometria = true) }
+                } else {
+                    _eventos.emit(LoginEvent.LoginSucesso)
+                }
             }.onFailure { excecao ->
                 val msgErro = excecao.message ?: "Erro ao fazer login"
                 _uiState.update { it.copy(isCarregando = false, erro = msgErro) }
                 _eventos.emit(LoginEvent.MostrarErro(msgErro))
             }
+        }
+    }
+
+    private fun loginComBiometria() {
+        viewModelScope.launch {
+            _eventos.emit(LoginEvent.SolicitarBiometria)
+        }
+    }
+    
+    // Chamado pelo LoginScreen após autenticação biométrica com sucesso
+    fun onBiometriaSucesso() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCarregando = true, erro = null) }
+            
+            // Em um app real, aqui usaríamos um token salvo com segurança (EncryptedSharedPreferences/DataStore)
+            // Para este exemplo, vamos assumir que o sucesso da biometria permite o login do último usuário.
+            val ultimoEmail = preferenciasRepository.obterUltimoEmailLogado()
+            if (ultimoEmail != null) {
+                // Simula o login bem-sucedido via biometria
+                _uiState.update { it.copy(isCarregando = false) }
+                _eventos.emit(LoginEvent.LoginSucesso)
+            } else {
+                _uiState.update { it.copy(isCarregando = false, erro = "Nenhum usuário salvo para biometria") }
+                _eventos.emit(LoginEvent.MostrarErro("Nenhum usuário salvo para biometria. Faça login com senha primeiro."))
+            }
+        }
+    }
+
+    private suspend fun salvarPreferenciasPosLogin(estado: LoginUiState) {
+        preferenciasRepository.definirLembrarMe(estado.lembrarMe)
+        if (estado.lembrarMe) {
+            preferenciasRepository.definirUltimoEmailLogado(estado.email)
+        } else if (!estado.biometriaHabilitada) { 
+            // Se nem lembrar me nem biometria estão ativos, limpa o email
+            preferenciasRepository.definirUltimoEmailLogado("")
         }
     }
 
