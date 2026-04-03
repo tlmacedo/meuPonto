@@ -1,7 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/core/util/LocationUtils.kt
 package br.com.tlmacedo.meuponto.core.util
 
-import kotlin.math.PI
+import kotlin.math.PI // Importação explícita de PI
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -46,6 +46,7 @@ object LocationUtils {
         lat2: Double,
         lon2: Double
     ): Double {
+        // ✅ Correção aplicada: Uso de extensão .toRad() para Kotlin puro
         val dLat = (lat2 - lat1).toRad()
         val dLon = (lon2 - lon1).toRad()
 

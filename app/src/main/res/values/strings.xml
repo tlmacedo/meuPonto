@@ -369,6 +369,17 @@
     <!-- ====================================================================
          PLURALS — Contagens variáveis (usando formato <plurals>)
          ==================================================================== -->
-    <!-- Usado nos relatórios e na lixeira -->
+    <plurals name="lixeira_itens_removidos">
+        <item quantity="one">%d arquivo removido permanentemente.</item>
+        <item quantity="other">%d arquivos removidos permanentemente.</item>
+    </plurals>
+    <plurals name="lixeira_itens_expirados">
+        <item quantity="one">%d arquivo expirado.</item>
+        <item quantity="other">%d arquivos expirados.</item>
+    </plurals>
+    <plurals name="lixeira_dias_expiracao">
+        <item quantity="one">Expira em %d dia</item>
+        <item quantity="other">Expira em %d dias</item>
+    </plurals>
 
 </resources>

@@ -1,3 +1,4 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/di/NetworkModule.kt
 package br.com.tlmacedo.meuponto.di
 
 import br.com.tlmacedo.meuponto.BuildConfig
@@ -28,6 +29,7 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
+            // ✅ Correção aplicada: Logs de rede apenas em DEBUG
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
             } else {

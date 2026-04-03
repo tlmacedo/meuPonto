@@ -6,7 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
-import timber.log.Timber
+import timber.log.Timber // Importação adicionada
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -246,7 +246,7 @@ class ImageResizer @Inject constructor(
                 bitmap
             }
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao carregar e redimensionar arquivo: ${file.name}")
+            Timber.e(e, "Falha ao carregar e redimensionar arquivo: ${file.name}") // Correção aqui
             null
         }
     }
@@ -282,7 +282,7 @@ class ImageResizer @Inject constructor(
                 bitmap
             }
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao carregar e redimensionar URI: $uri")
+            Timber.e(e, "Falha ao carregar e redimensionar URI: $uri") // Correção aqui
             null
         }
     }

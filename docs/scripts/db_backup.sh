@@ -22,6 +22,7 @@
 
 PACKAGE_BASE="br.com.tlmacedo.meuponto"
 DB_NAME="meuponto.db"
+IMAGES_PATH="files/comprovantes"
 BACKUP_DIR="./docs/export_meu_ponto"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
@@ -93,8 +94,8 @@ show_backup_table() {
         return 1
     fi
 
-    printf "  ${CYAN}%-4s %-28s %-20s %s${NC}\n" "#" "Arquivo" "Data" "Tamanho"
-    printf "  %-4s %-28s %-20s %s\n" "────" "────────────────────────────" "────────────────────" "────────"
+    printf "  ${CYAN}%-4s %-28s %-20s %-10s %s${NC}\n" "#" "Arquivo" "Data" "Tamanho" "Imagens"
+    printf "  %-4s %-28s %-20s %-10s %s\n" "────" "────────────────────────────" "────────────────────" "────────" "───────"
 
     local index=1
     for file in "${BACKUP_FILES[@]}"; do
@@ -102,8 +103,10 @@ show_backup_table() {
         local size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
         local size_formatted=$(format_size $size)
         local date_formatted=$(format_date "$filename")
+        local has_images="-"
+        [ -f "${file%.db}_images.tar.gz" ] && has_images="✓"
 
-        printf "  %-4s %-28s %-20s %s\n" "[$index]" "$filename" "$date_formatted" "$size_formatted"
+        printf "  %-4s %-28s %-20s %-10s %s\n" "[$index]" "$filename" "$date_formatted" "$size_formatted" "$has_images"
         ((index++))
     done
 
@@ -172,12 +175,12 @@ case "$1" in
         echo ""
 
         # 1. Parar o app para liberar locks
-        echo "🛑 [1/6] Parando app para garantir consistência..."
+        echo "🛑 [1/7] Parando app para garantir consistência..."
         adb shell am force-stop $PACKAGE
         sleep 1
 
         # 2. Tentar checkpoint WAL no dispositivo (pode falhar se sqlite3 não existir)
-        echo "⏳ [2/6] Tentando checkpoint WAL no dispositivo..."
+        echo "⏳ [2/7] Tentando checkpoint WAL no dispositivo..."
         CHECKPOINT_RESULT=$(adb shell "run-as $PACKAGE sqlite3 databases/$DB_NAME 'PRAGMA wal_checkpoint(TRUNCATE);'" 2>&1)
 
         if [[ "$CHECKPOINT_RESULT" == *"not found"* ]] || [[ "$CHECKPOINT_RESULT" == *"error"* ]] || [[ "$CHECKPOINT_RESULT" == *"Error"* ]] || [[ "$CHECKPOINT_RESULT" == *"inaccessible"* ]]; then
@@ -191,13 +194,13 @@ case "$1" in
         sleep 1
 
         # 3. Verificar arquivos antes do backup
-        echo "📂 [3/6] Verificando arquivos no dispositivo..."
+        echo "📂 [3/7] Verificando arquivos no dispositivo..."
         adb shell "run-as $PACKAGE ls -la databases/" 2>/dev/null | grep -E "meuponto|\.db" | while read line; do
             echo "   $line"
         done
 
         # 4. Copiar banco de dados + WAL + SHM
-        echo "⏳ [4/6] Copiando banco de dados..."
+        echo "⏳ [4/7] Copiando banco de dados..."
 
         # Copiar arquivo principal
         adb shell "run-as $PACKAGE cat databases/$DB_NAME" > "$BACKUP_FILE"
@@ -210,7 +213,7 @@ case "$1" in
         adb shell "run-as $PACKAGE cat databases/${DB_NAME}-shm" > "$SHM_FILE" 2>/dev/null
 
         # 5. Consolidar WAL localmente (garantia extra)
-        echo "🔄 [5/6] Consolidando WAL localmente..."
+        echo "🔄 [5/7] Consolidando WAL localmente..."
 
         WAL_SIZE=$(stat -f%z "$WAL_FILE" 2>/dev/null || stat -c%s "$WAL_FILE" 2>/dev/null || echo "0")
 
@@ -234,8 +237,28 @@ case "$1" in
             rm -f "$WAL_FILE" "$SHM_FILE"
         fi
 
-        # 6. Verificar resultado
-        echo "🔍 [6/6] Verificando backup..."
+        # 6. Backup das imagens
+        echo "📸 [6/7] Realizando backup das imagens..."
+        IMAGES_BACKUP="${BACKUP_FILE%.db}_images.tar.gz"
+
+        # Verificar se o diretório de imagens existe no dispositivo
+        if adb shell "run-as $PACKAGE [ -d $IMAGES_PATH ]" 2>/dev/null; then
+            # tar -c: create, -z: gzip, -C .: root da app, IMAGES_PATH: subfolder
+            adb shell "run-as $PACKAGE tar -cz -C . $IMAGES_PATH 2>/dev/null" > "$IMAGES_BACKUP"
+
+            IMG_SIZE=$(stat -f%z "$IMAGES_BACKUP" 2>/dev/null || stat -c%s "$IMAGES_BACKUP" 2>/dev/null || echo "0")
+            if [ "$IMG_SIZE" -le 64 ]; then
+                rm -f "$IMAGES_BACKUP"
+                echo "   ℹ️ Nenhuma imagem encontrada para backup"
+            else
+                echo "   ✓ Backup de imagens concluído ($(format_size $IMG_SIZE))"
+            fi
+        else
+            echo "   ℹ️ Diretório de imagens não encontrado no dispositivo"
+        fi
+
+        # 7. Verificar resultado
+        echo "🔍 [7/7] Verificando backup..."
 
         SIZE=$(stat -f%z "$BACKUP_FILE" 2>/dev/null || stat -c%s "$BACKUP_FILE" 2>/dev/null)
 
@@ -276,7 +299,7 @@ case "$1" in
             echo ""
             echo -e "${RED}❌ Erro: arquivo muito pequeno ($SIZE bytes)${NC}"
             echo "   O backup pode estar corrompido"
-            rm -f "$BACKUP_FILE" "$WAL_FILE" "$SHM_FILE"
+            rm -f "$BACKUP_FILE" "$WAL_FILE" "$SHM_FILE" "$IMAGES_BACKUP"
             exit 1
         fi
         ;;
@@ -366,6 +389,9 @@ case "$1" in
         SELECTED_SIZE_FORMATTED=$(format_size "$SELECTED_SIZE")
         SELECTED_DATE=$(format_date "$SELECTED_NAME")
         PONTOS_NO_BACKUP=$(sqlite3 "$SELECTED_FILE" "SELECT COUNT(*) FROM pontos;" 2>/dev/null || echo "?")
+        IMAGES_BACKUP="${SELECTED_FILE%.db}_images.tar.gz"
+        HAS_IMAGES="Não"
+        [ -f "$IMAGES_BACKUP" ] && HAS_IMAGES="Sim"
 
         echo ""
         echo "═══════════════════════════════════════════════════════════════"
@@ -376,6 +402,7 @@ case "$1" in
         echo "   📅 Data:       $SELECTED_DATE"
         echo "   📊 Tamanho:    $SELECTED_SIZE_FORMATTED"
         echo "   📝 Registros:  $PONTOS_NO_BACKUP pontos"
+        echo "   📸 Imagens:    $HAS_IMAGES"
         echo "   📁 Caminho:    $SELECTED_FILE"
         echo ""
         read -p "❓ Confirma a restauração? (s/n): " CONFIRM
@@ -391,27 +418,42 @@ case "$1" in
         echo "═══════════════════════════════════════════════════════════════"
         echo ""
 
-        echo "🛑 [1/7] Parando app..."
+        echo "🛑 [1/8] Parando app..."
         adb shell am force-stop $PACKAGE
         sleep 1
 
-        echo "🧹 [2/7] Limpando cache do app..."
+        echo "🧹 [2/8] Limpando cache do app..."
         adb shell "run-as $PACKAGE rm -rf cache/*" 2>/dev/null
 
-        echo "📤 [3/7] Enviando backup para dispositivo..."
+        echo "📤 [3/8] Enviando backup para dispositivo..."
         adb push "$SELECTED_FILE" /data/local/tmp/restore.db
 
-        echo "🗑️  [4/7] Removendo banco atual e arquivos WAL..."
+        echo "🗑️  [4/8] Removendo banco atual e arquivos WAL..."
         adb shell "run-as $PACKAGE rm -f databases/$DB_NAME databases/$DB_NAME-shm databases/$DB_NAME-wal"
 
-        echo "📥 [5/7] Copiando banco restaurado..."
+        echo "📥 [5/8] Copiando banco restaurado..."
         adb shell "cat /data/local/tmp/restore.db | run-as $PACKAGE sh -c 'cat > databases/$DB_NAME'"
 
-        echo "🔒 [6/7] Ajustando permissões..."
+        echo "🔒 [6/8] Ajustando permissões..."
         adb shell "run-as $PACKAGE chmod 660 databases/$DB_NAME"
 
-        echo "🧹 [7/7] Limpando temporários..."
+        echo "🧹 [7/8] Limpando temporários..."
         adb shell rm /data/local/tmp/restore.db
+
+        # 8. Restaurar imagens
+        if [ -f "$IMAGES_BACKUP" ]; then
+            echo "📥 [8/8] Restaurando imagens..."
+            # Limpar imagens atuais para garantir restore limpo
+            adb shell "run-as $PACKAGE rm -rf $IMAGES_PATH/*" 2>/dev/null
+            # Criar diretório se não existir
+            adb shell "run-as $PACKAGE mkdir -p $IMAGES_PATH" 2>/dev/null
+
+            # Restaurar via pipe para adb shell
+            cat "$IMAGES_BACKUP" | adb shell "run-as $PACKAGE tar -xz -C ."
+            echo "   ✓ Imagens restauradas"
+        else
+            echo "ℹ️  [8/8] Nenhuma imagem para restaurar."
+        fi
 
         # Verificar restauração
         echo ""
@@ -472,6 +514,14 @@ case "$1" in
         for file in "$BACKUP_DIR"/*.db; do
             size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
             TOTAL_SIZE=$((TOTAL_SIZE + size))
+
+            # Incluir tamanho das imagens se existirem
+            img_file="${file%.db}_images.tar.gz"
+            if [ -f "$img_file" ]; then
+                img_size=$(stat -f%z "$img_file" 2>/dev/null || stat -c%s "$img_file" 2>/dev/null)
+                TOTAL_SIZE=$((TOTAL_SIZE + img_size))
+            fi
+
             ((TOTAL_COUNT++))
         done
 
@@ -493,28 +543,11 @@ case "$1" in
         echo ""
         echo "   Uso: $0 <comando> [opções]"
         echo ""
-        echo "   ┌─────────────────────────────────────────────────────────┐"
-        echo "   │  Comandos disponíveis:                                  │"
-        echo "   ├─────────────────────────────────────────────────────────┤"
-        echo "   │  backup      Cria backup do banco de dados              │"
-        echo "   │  restore     Restaura backup (menu ou arquivo direto)   │"
-        echo "   │  list        Lista todos os backups disponíveis         │"
-        echo "   └─────────────────────────────────────────────────────────┘"
+        echo "   Comandos:"
+        echo "     backup      Cria backup do banco de dados e imagens"
+        echo "     restore     Restaura backup (menu ou arquivo direto)"
+        echo "     list        Lista todos os backups disponíveis"
         echo ""
-        echo "   Exemplos:"
-        echo "     $0 backup                         # Criar backup"
-        echo "     $0 restore                        # Restaurar (interativo)"
-        echo "     $0 restore arquivo.db             # Restaurar arquivo específico"
-        echo "     $0 list                           # Ver backups"
-        echo ""
-        echo "   Configurações:"
-        echo "     Banco:      $DB_NAME"
-        echo "     Backups:    $BACKUP_DIR"
-        if [ -n "$PACKAGE" ]; then
-            echo "     Pacote:     $PACKAGE"
-        else
-            echo "     Pacote:     (será detectado automaticamente)"
-        fi
-        echo ""
+        exit 0
         ;;
 esac

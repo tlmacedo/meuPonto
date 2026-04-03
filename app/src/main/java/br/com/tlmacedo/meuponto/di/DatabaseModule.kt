@@ -1,10 +1,11 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/di/DatabaseModule.kt
 package br.com.tlmacedo.meuponto.di
 
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import br.com.tlmacedo.meuponto.BuildConfig
+import br.com.tlmacedo.meuponto.BuildConfig // Import adicionado
 import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
 import br.com.tlmacedo.meuponto.data.local.database.dao.*
 import br.com.tlmacedo.meuponto.data.local.database.migration.*
@@ -51,6 +52,7 @@ object DatabaseModule {
         return object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
+                // ✅ Correção aplicada: Dados de seed apenas em DEBUG
                 if (BuildConfig.DEBUG) {
                     inserirDadosIniciais(db)
                 }

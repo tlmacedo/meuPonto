@@ -7,7 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.FotoFormato
-import br.com.tlmacedo.meuponto.util.formatarTamanho
+import br.com.tlmacedo.meuponto.util.formatarTamanho // Importação adicionada
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.io.File
@@ -76,8 +76,9 @@ class ImageProcessor @Inject constructor(
         config: ConfiguracaoEmprego,
         exifMetadata: FotoExifMetadata? = null
     ): ImageProcessingResult {
+        var originalBitmap: Bitmap? = null // Declaração para controle de reciclagem
         return try {
-            val bitmap = if (config.fotoCorrecaoOrientacao) {
+            originalBitmap = if (config.fotoCorrecaoOrientacao) {
                 orientationCorrector.loadBitmapWithCorrectOrientation(sourceUri)
             } else {
                 context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
@@ -85,14 +86,18 @@ class ImageProcessor @Inject constructor(
                 }
             }
 
-            if (bitmap == null) {
+            if (originalBitmap == null) {
                 return ImageProcessingResult.Error("Falha ao carregar imagem do URI: $sourceUri")
             }
 
-            processAndSave(bitmap, outputFile, config, exifMetadata)
+            processAndSave(originalBitmap, outputFile, config, exifMetadata)
         } catch (e: Exception) {
             Timber.e(e, "Erro no processamento da imagem do URI: $sourceUri")
             ImageProcessingResult.Error("Erro no processamento: ${e.message}")
+        } finally {
+            // Recicla o bitmap original se ele foi criado nesta função e não foi passado para processAndSave
+            // (processAndSave tem seu próprio controle para o bitmap intermediário)
+            originalBitmap?.recycle()
         }
     }
 
@@ -111,21 +116,25 @@ class ImageProcessor @Inject constructor(
         config: ConfiguracaoEmprego,
         exifMetadata: FotoExifMetadata? = null
     ): ImageProcessingResult {
+        var originalBitmap: Bitmap? = null // Declaração para controle de reciclagem
         return try {
-            val bitmap = if (config.fotoCorrecaoOrientacao) {
+            originalBitmap = if (config.fotoCorrecaoOrientacao) {
                 orientationCorrector.loadBitmapWithCorrectOrientation(sourceFile)
             } else {
                 BitmapFactory.decodeFile(sourceFile.absolutePath)
             }
 
-            if (bitmap == null) {
+            if (originalBitmap == null) {
                 return ImageProcessingResult.Error("Falha ao carregar imagem do arquivo: ${sourceFile.name}")
             }
 
-            processAndSave(bitmap, outputFile, config, exifMetadata)
+            processAndSave(originalBitmap, outputFile, config, exifMetadata)
         } catch (e: Exception) {
             Timber.e(e, "Erro no processamento da imagem do arquivo: ${sourceFile.name}")
             ImageProcessingResult.Error("Erro no processamento: ${e.message}")
+        } finally {
+            // Recicla o bitmap original se ele foi criado nesta função e não foi passado para processAndSave
+            originalBitmap?.recycle()
         }
     }
 
@@ -264,17 +273,18 @@ class ImageProcessor @Inject constructor(
         maxDimension: Int = 1024,
         correctOrientation: Boolean = true
     ): Bitmap? {
+        var loadedBitmap: Bitmap? = null // Declaração para controle de reciclagem
         return try {
-            val bitmap = if (correctOrientation) {
+            loadedBitmap = if (correctOrientation) {
                 orientationCorrector.loadBitmapWithCorrectOrientation(sourceUri)
             } else {
                 resizer.loadAndResize(sourceUri, maxDimension)
             }
 
-            bitmap?.let { bmp ->
+            loadedBitmap?.let { bmp ->
                 if (resizer.needsResize(bmp.width, bmp.height, maxDimension)) {
                     val resized = resizer.resizeToFit(bmp, maxDimension)
-                    if (resized !== bmp) bmp.recycle()
+                    if (resized !== bmp) bmp.recycle() // Recicla o bitmap original se um novo foi criado
                     resized
                 } else {
                     bmp
@@ -283,6 +293,9 @@ class ImageProcessor @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "Falha ao processar preview do URI: $sourceUri")
             null
+        } finally {
+            // Não recicla loadedBitmap aqui, pois ele pode ter sido retornado ou reciclado internamente pelo resizer.
+            // A responsabilidade de reciclagem do bitmap final retornado é do chamador.
         }
     }
 
@@ -299,17 +312,21 @@ class ImageProcessor @Inject constructor(
         size: Int = ImageResizer.THUMBNAIL_SIZE,
         correctOrientation: Boolean = true
     ): Bitmap? {
+        var loadedBitmap: Bitmap? = null // Declaração para controle de reciclagem
         return try {
-            val bitmap = if (correctOrientation) {
+            loadedBitmap = if (correctOrientation) {
                 orientationCorrector.loadBitmapWithCorrectOrientation(sourceFile)
             } else {
                 BitmapFactory.decodeFile(sourceFile.absolutePath)
             }
 
-            bitmap?.let { resizer.createThumbnail(it, size) }
+            loadedBitmap?.let { resizer.createThumbnail(it, size) }
         } catch (e: Exception) {
             Timber.e(e, "Falha ao criar thumbnail do arquivo: ${sourceFile.name}")
             null
+        } finally {
+            // Não recicla loadedBitmap aqui, pois ele pode ter sido retornado ou reciclado internamente pelo resizer.
+            // A responsabilidade de reciclagem do bitmap final retornado é do chamador.
         }
     }
 

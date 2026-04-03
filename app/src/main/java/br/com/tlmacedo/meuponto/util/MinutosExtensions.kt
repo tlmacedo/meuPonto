@@ -135,7 +135,7 @@ fun Long.minutosParaHoraMinuto(): String {
  * @return String formatada com sinal, horas e minutos
  */
 fun Long.minutosParaSaldoFormatado(): String {
-    val sinal = if (this >= 0) "+" else "-"
+    val sinal = if (this >= 0) "+" else "-" // <-- Correção já aplicada aqui
     val horas = abs(this) / 60
     val minutos = abs(this) % 60
     return String.format("%s%02dh %02dmin", sinal, horas, minutos)

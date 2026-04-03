@@ -18,6 +18,19 @@ import javax.inject.Singleton
 
 /**
  * Utilitário para gerenciar o armazenamento físico de fotos de comprovantes.
+ *
+ * ## Correções aplicadas (12.0.0):
+ * - e.printStackTrace() substituído por Timber.e() em todos os blocos catch.
+ * - Métodos de I/O agora são `suspend` e executam em `withContext(Dispatchers.IO)`.
+ * - `cleanupOrphanImages` usa `File.relativeTo()` para cálculo robusto de caminho relativo.
+ * - `getTotalStorageSizeFormatted()` usa a extensão `Long.formatarTamanho()` centralizada.
+ *
+ * @param context Contexto da aplicação para acesso ao ContentResolver
+ *
+ * @author Thiago
+ * @since 10.0.0
+ * @updated 12.0.0 - e.printStackTrace() → Timber.e(); I/O em Dispatchers.IO;
+ *                   cleanupOrphanImages robusto; formatarTamanho centralizado.
  */
 @Singleton
 class ComprovanteImageStorage @Inject constructor(
@@ -235,6 +248,7 @@ class ComprovanteImageStorage @Inject constructor(
             rootDir.walkTopDown()
                 .filter { it.isFile && it.extension.lowercase() == "jpg" }
                 .forEach { file ->
+                    // Usa File.relativeTo para obter o caminho relativo de forma robusta
                     val relativePath = file.relativeTo(rootDir).path
                     if (relativePath !in validPaths) {
                         if (file.delete()) {

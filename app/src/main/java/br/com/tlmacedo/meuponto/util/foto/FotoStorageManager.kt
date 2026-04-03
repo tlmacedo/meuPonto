@@ -10,7 +10,7 @@ import br.com.tlmacedo.meuponto.util.formatarTamanho
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import timber.log.Timber
+import timber.log.Timber // Importação adicionada
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -108,7 +108,7 @@ class FotoStorageManager @Inject constructor(
 
             buildSaveResult(result, outputFile, empregoId, data)
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao salvar foto via URI — empregoId=$empregoId, pontoId=$pontoId")
+            Timber.e(e, "Falha ao salvar foto via URI — empregoId=$empregoId, pontoId=$pontoId") // Correção aqui
             SavePhotoResult.Error("Erro ao salvar foto: ${e.message}")
         }
     }
@@ -159,7 +159,7 @@ class FotoStorageManager @Inject constructor(
 
             saveResult
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao salvar foto via arquivo — empregoId=$empregoId, pontoId=$pontoId")
+            Timber.e(e, "Falha ao salvar foto via arquivo — empregoId=$empregoId, pontoId=$pontoId") // Correção aqui
             SavePhotoResult.Error("Erro ao salvar foto: ${e.message}")
         }
     }

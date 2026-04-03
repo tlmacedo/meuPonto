@@ -10,7 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import timber.log.Timber
+import timber.log.Timber // Importação adicionada
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -131,7 +131,7 @@ class PhotoCaptureManager @Inject constructor(
             Timber.d("Câmera preparada: ${currentTempFile!!.name}")
             currentTempUri
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao preparar captura via câmera")
+            Timber.e(e, "Falha ao preparar captura via câmera") // Correção aqui
             _captureState.value = CaptureState.Error("Erro ao preparar câmera: ${e.message}")
             null
         }
@@ -266,14 +266,14 @@ class PhotoCaptureManager @Inject constructor(
                     cleanupTempFile()
                 }
                 is SavePhotoResult.Error -> {
-                    Timber.e("Falha ao salvar foto: ${result.message}")
+                    Timber.e("Falha ao salvar foto: ${result.message}") // Correção aqui
                     _captureState.value = CaptureState.Error(result.message)
                 }
             }
 
             result
         } catch (e: Exception) {
-            Timber.e(e, "Exceção não tratada ao processar foto")
+            Timber.e(e, "Exceção não tratada ao processar foto") // Correção aqui
             val error = SavePhotoResult.Error("Erro ao processar foto: ${e.message}")
             _captureState.value = CaptureState.Error(error.message)
             error
@@ -350,7 +350,7 @@ class PhotoCaptureManager @Inject constructor(
                         count++
                         Timber.d("Arquivo temporário antigo removido: ${file.name}")
                     } else {
-                        Timber.w("Não foi possível remover arquivo temporário: ${file.name}")
+                        Timber.w("Não foi possível remover arquivo temporário: ${file.name}") // Correção aqui
                     }
                 }
             }
@@ -360,7 +360,7 @@ class PhotoCaptureManager @Inject constructor(
             }
             count
         } catch (e: Exception) {
-            Timber.w(e, "Falha na limpeza de arquivos temporários antigos")
+            Timber.w(e, "Falha na limpeza de arquivos temporários antigos") // Correção aqui
             0
         }
     }
@@ -382,11 +382,11 @@ class PhotoCaptureManager @Inject constructor(
                 if (file.exists()) {
                     val deleted = file.delete()
                     if (!deleted) {
-                        Timber.w("Não foi possível remover arquivo temporário: ${file.name}")
+                        Timber.w("Não foi possível remover arquivo temporário: ${file.name}") // Correção aqui
                     }
                 }
             } catch (e: Exception) {
-                Timber.w(e, "Falha ao remover arquivo temporário: ${file.name}")
+                Timber.w(e, "Falha ao remover arquivo temporário: ${file.name}") // Correção aqui
             }
         }
         currentTempFile = null
