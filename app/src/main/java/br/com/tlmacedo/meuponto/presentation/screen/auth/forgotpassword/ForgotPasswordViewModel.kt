@@ -28,13 +28,22 @@ class ForgotPasswordViewModel @Inject constructor(
     fun onAction(action: ForgotPasswordAction) {
         when (action) {
             is ForgotPasswordAction.EmailAlterado -> {
-                _uiState.update { it.copy(email = action.email, emailErro = null, erro = null) }
+                _uiState.update { 
+                    it.copy(email = action.email, emailErro = null, erro = null).also { newState ->
+                        validarFormulario(newState)
+                    }
+                }
             }
             ForgotPasswordAction.ClicarEnviar -> enviarRecuperacao()
             ForgotPasswordAction.ClicarVoltar -> {
                 viewModelScope.launch { _eventos.emit(ForgotPasswordEvent.NavegarVoltar) }
             }
         }
+    }
+
+    private fun validarFormulario(state: ForgotPasswordUiState) {
+        val emailValido = state.email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(state.email).matches()
+        _uiState.update { it.copy(isFormValido = emailValido) }
     }
 
     private fun enviarRecuperacao() {

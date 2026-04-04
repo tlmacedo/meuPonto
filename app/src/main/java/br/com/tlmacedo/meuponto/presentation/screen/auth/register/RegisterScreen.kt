@@ -77,6 +77,8 @@ fun RegisterScreen(
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next
                 ),
+                isError = uiState.nomeErro != null,
+                supportingText = uiState.nomeErro?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -92,6 +94,8 @@ fun RegisterScreen(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
+                isError = uiState.emailErro != null,
+                supportingText = uiState.emailErro?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -114,6 +118,8 @@ fun RegisterScreen(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Next
                 ),
+                isError = uiState.senhaErro != null,
+                supportingText = uiState.senhaErro?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -136,6 +142,8 @@ fun RegisterScreen(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
                 ),
+                isError = uiState.confirmarSenhaErro != null,
+                supportingText = uiState.confirmarSenhaErro?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
             )
 

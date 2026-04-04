@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
+import br.com.tlmacedo.meuponto.domain.usecase.auth.ValidarLoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val preferenciasRepository: PreferenciasRepository
+    private val preferenciasRepository: PreferenciasRepository,
+    private val validarLoginUseCase: ValidarLoginUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -99,10 +101,11 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun validarFormulario(state: LoginUiState) {
-        val emailValido = state.email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(state.email).matches()
-        val senhaValida = state.senha.length >= 4
+        val resultado = validarLoginUseCase(state.email, state.senha)
         
-        _uiState.update { it.copy(isFormValido = emailValido && senhaValida) }
+        _uiState.update { it.copy(
+            isFormValido = resultado.isValido
+        ) }
     }
 
     private fun login() {

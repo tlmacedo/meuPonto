@@ -172,8 +172,19 @@ fun LoginScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = uiState.lembrarMe,
+                        onCheckedChange = { viewModel.onAction(LoginAction.LembrarMeAlterado(it)) }
+                    )
+                    Text(
+                        text = "Lembrar-me",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
                 TextButton(onClick = onNavigateToForgotPassword) {
                     Text("Esqueci minha senha")
                 }
