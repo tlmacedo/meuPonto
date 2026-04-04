@@ -85,8 +85,35 @@ class EditarVersaoViewModel @Inject constructor(
             is EditarVersaoAction.AlterarJornadaMaxima -> alterarJornadaMaxima(action.minutos)
             is EditarVersaoAction.AlterarIntervaloInterjornada -> alterarIntervaloInterjornada(action.minutos)
             is EditarVersaoAction.AlterarToleranciaIntervalo -> alterarToleranciaIntervalo(action.minutos)
+            is EditarVersaoAction.AlterarTurnoMaximo -> _uiState.update { it.copy(turnoMaximoMinutos = action.minutos) }
+
+            // Carga horária
+            is EditarVersaoAction.AlterarCargaHorariaDiaria -> _uiState.update { it.copy(cargaHorariaDiariaMinutos = action.minutos) }
+            is EditarVersaoAction.AlterarAcrescimoDiasPontes -> _uiState.update { it.copy(acrescimoMinutosDiasPontes = action.minutos) }
+            is EditarVersaoAction.AlterarCargaHorariaSemanal -> _uiState.update { it.copy(cargaHorariaSemanalMinutos = action.minutos) }
+
+            // Período/Saldo
+            is EditarVersaoAction.AlterarPrimeiroDiaSemana -> _uiState.update { it.copy(primeiroDiaSemana = action.dia) }
+            is EditarVersaoAction.AlterarDiaInicioFechamentoRH -> _uiState.update { it.copy(diaInicioFechamentoRH = action.dia) }
+            is EditarVersaoAction.AlterarZerarSaldoSemanal -> _uiState.update { it.copy(zerarSaldoSemanal = action.zerar) }
+            is EditarVersaoAction.AlterarZerarSaldoPeriodoRH -> _uiState.update { it.copy(zerarSaldoPeriodoRH = action.zerar) }
+            is EditarVersaoAction.AlterarOcultarSaldoTotal -> _uiState.update { it.copy(ocultarSaldoTotal = action.ocultar) }
+
+            // Banco de Horas
+            is EditarVersaoAction.AlterarBancoHorasHabilitado -> _uiState.update { it.copy(bancoHorasHabilitado = action.habilitar) }
+            is EditarVersaoAction.AlterarPeriodoBancoSemanas -> _uiState.update { it.copy(periodoBancoSemanas = action.semanas) }
+            is EditarVersaoAction.AlterarPeriodoBancoMeses -> _uiState.update { it.copy(periodoBancoMeses = action.meses) }
+            is EditarVersaoAction.AlterarDataInicioCicloBancoAtual -> _uiState.update { it.copy(dataInicioCicloBancoAtual = action.data, showDataInicioCicloBancoPicker = false) }
+            is EditarVersaoAction.AlterarZerarBancoAntesPeriodo -> _uiState.update { it.copy(zerarBancoAntesPeriodo = action.zerar) }
+            is EditarVersaoAction.AlterarHabilitarSugestaoAjuste -> _uiState.update { it.copy(habilitarSugestaoAjuste = action.habilitar) }
+            is EditarVersaoAction.AlterarDiasUteisLembreteFechamento -> _uiState.update { it.copy(diasUteisLembreteFechamento = action.dias) }
+
+            // Validação
+            is EditarVersaoAction.AlterarExigeJustificativaInconsistencia -> _uiState.update { it.copy(exigeJustificativaInconsistencia = action.exige) }
+
             is EditarVersaoAction.MostrarDataInicioPicker -> mostrarDataInicioPicker(action.mostrar)
             is EditarVersaoAction.MostrarDataFimPicker -> mostrarDataFimPicker(action.mostrar)
+            is EditarVersaoAction.MostrarDataInicioCicloBancoPicker -> _uiState.update { it.copy(showDataInicioCicloBancoPicker = action.mostrar) }
             is EditarVersaoAction.ToggleSecao -> toggleSecao(action.secao)
             is EditarVersaoAction.Salvar -> salvar()
             is EditarVersaoAction.Cancelar -> cancelar()
@@ -133,6 +160,32 @@ class EditarVersaoViewModel @Inject constructor(
                             jornadaMaximaDiariaMinutos = versao.jornadaMaximaDiariaMinutos,
                             intervaloMinimoInterjornadaMinutos = versao.intervaloMinimoInterjornadaMinutos,
                             toleranciaIntervaloMaisMinutos = versao.toleranciaIntervaloMaisMinutos,
+                            turnoMaximoMinutos = versao.turnoMaximoMinutos,
+
+                            // Carga horária
+                            cargaHorariaDiariaMinutos = versao.cargaHorariaDiariaMinutos,
+                            acrescimoMinutosDiasPontes = versao.acrescimoMinutosDiasPontes,
+                            cargaHorariaSemanalMinutos = versao.cargaHorariaSemanalMinutos,
+
+                            // Período/Saldo
+                            primeiroDiaSemana = versao.primeiroDiaSemana,
+                            diaInicioFechamentoRH = versao.diaInicioFechamentoRH,
+                            zerarSaldoSemanal = versao.zerarSaldoSemanal,
+                            zerarSaldoPeriodoRH = versao.zerarSaldoPeriodoRH,
+                            ocultarSaldoTotal = versao.ocultarSaldoTotal,
+
+                            // Banco de Horas
+                            bancoHorasHabilitado = versao.bancoHorasHabilitado,
+                            periodoBancoSemanas = versao.periodoBancoSemanas,
+                            periodoBancoMeses = versao.periodoBancoMeses,
+                            dataInicioCicloBancoAtual = versao.dataInicioCicloBancoAtual,
+                            diasUteisLembreteFechamento = versao.diasUteisLembreteFechamento,
+                            habilitarSugestaoAjuste = versao.habilitarSugestaoAjuste,
+                            zerarBancoAntesPeriodo = versao.zerarBancoAntesPeriodo,
+
+                            // Validação
+                            exigeJustificativaInconsistencia = versao.exigeJustificativaInconsistencia,
+
                             horarios = horarios
                         )
                     }
@@ -229,6 +282,32 @@ class EditarVersaoViewModel @Inject constructor(
                     jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,
                     intervaloMinimoInterjornadaMinutos = state.intervaloMinimoInterjornadaMinutos,
                     toleranciaIntervaloMaisMinutos = state.toleranciaIntervaloMaisMinutos,
+                    turnoMaximoMinutos = state.turnoMaximoMinutos,
+
+                    // Carga horária
+                    cargaHorariaDiariaMinutos = state.cargaHorariaDiariaMinutos,
+                    acrescimoMinutosDiasPontes = state.acrescimoMinutosDiasPontes,
+                    cargaHorariaSemanalMinutos = state.cargaHorariaSemanalMinutos,
+
+                    // Período/Saldo
+                    primeiroDiaSemana = state.primeiroDiaSemana,
+                    diaInicioFechamentoRH = state.diaInicioFechamentoRH,
+                    zerarSaldoSemanal = state.zerarSaldoSemanal,
+                    zerarSaldoPeriodoRH = state.zerarSaldoPeriodoRH,
+                    ocultarSaldoTotal = state.ocultarSaldoTotal,
+
+                    // Banco de Horas
+                    bancoHorasHabilitado = state.bancoHorasHabilitado,
+                    periodoBancoSemanas = state.periodoBancoSemanas,
+                    periodoBancoMeses = state.periodoBancoMeses,
+                    dataInicioCicloBancoAtual = state.dataInicioCicloBancoAtual,
+                    diasUteisLembreteFechamento = state.diasUteisLembreteFechamento,
+                    habilitarSugestaoAjuste = state.habilitarSugestaoAjuste,
+                    zerarBancoAntesPeriodo = state.zerarBancoAntesPeriodo,
+
+                    // Validação
+                    exigeJustificativaInconsistencia = state.exigeJustificativaInconsistencia,
+
                     atualizadoEm = LocalDateTime.now()
                 )
 

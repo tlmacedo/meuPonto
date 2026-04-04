@@ -193,6 +193,7 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
         val proximoNumero = (versaoJornadaDao.buscarMaiorNumeroVersao(empregoId) ?: 0) + 1
 
         // 5. Criar nova versão
+        val anterior = versaoAnterior?.toDomain()
         val novaVersao = VersaoJornada(
             empregoId = empregoId,
             dataInicio = dataInicio,
@@ -200,9 +201,37 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
             descricao = descricao,
             numeroVersao = proximoNumero,
             vigente = isVigente,
-            jornadaMaximaDiariaMinutos = versaoAnterior?.toDomain()?.jornadaMaximaDiariaMinutos ?: 600,
-            intervaloMinimoInterjornadaMinutos = versaoAnterior?.toDomain()?.intervaloMinimoInterjornadaMinutos ?: 660,
-            toleranciaIntervaloMaisMinutos = versaoAnterior?.toDomain()?.toleranciaIntervaloMaisMinutos ?: 0,
+
+            // Cópia ou Padrão de Jornada
+            jornadaMaximaDiariaMinutos = anterior?.jornadaMaximaDiariaMinutos ?: 600,
+            intervaloMinimoInterjornadaMinutos = anterior?.intervaloMinimoInterjornadaMinutos ?: 660,
+            toleranciaIntervaloMaisMinutos = anterior?.toleranciaIntervaloMaisMinutos ?: 0,
+            turnoMaximoMinutos = anterior?.turnoMaximoMinutos ?: 360,
+
+            // Carga Horária
+            cargaHorariaDiariaMinutos = anterior?.cargaHorariaDiariaMinutos ?: 480,
+            acrescimoMinutosDiasPontes = anterior?.acrescimoMinutosDiasPontes ?: 12,
+            cargaHorariaSemanalMinutos = anterior?.cargaHorariaSemanalMinutos ?: 2460,
+
+            // Período/Saldo
+            primeiroDiaSemana = anterior?.primeiroDiaSemana ?: DiaSemana.SEGUNDA,
+            diaInicioFechamentoRH = anterior?.diaInicioFechamentoRH ?: 1,
+            zerarSaldoSemanal = anterior?.zerarSaldoSemanal ?: false,
+            zerarSaldoPeriodoRH = anterior?.zerarSaldoPeriodoRH ?: false,
+            ocultarSaldoTotal = anterior?.ocultarSaldoTotal ?: false,
+
+            // Banco de Horas
+            bancoHorasHabilitado = anterior?.bancoHorasHabilitado ?: false,
+            periodoBancoSemanas = anterior?.periodoBancoSemanas ?: 0,
+            periodoBancoMeses = anterior?.periodoBancoMeses ?: 0,
+            dataInicioCicloBancoAtual = anterior?.dataInicioCicloBancoAtual,
+            diasUteisLembreteFechamento = anterior?.diasUteisLembreteFechamento ?: 3,
+            habilitarSugestaoAjuste = anterior?.habilitarSugestaoAjuste ?: false,
+            zerarBancoAntesPeriodo = anterior?.zerarBancoAntesPeriodo ?: false,
+
+            // Validação
+            exigeJustificativaInconsistencia = anterior?.exigeJustificativaInconsistencia ?: false,
+
             criadoEm = agora,
             atualizadoEm = agora
         )
@@ -277,7 +306,25 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
         "vigente" to vigente,
         "descricao" to descricao,
         "jornadaMaximaDiariaMinutos" to jornadaMaximaDiariaMinutos,
-        "intervaloMinimoInterjornadaMinutos" to intervaloMinimoInterjornadaMinutos
+        "intervaloMinimoInterjornadaMinutos" to intervaloMinimoInterjornadaMinutos,
+        "toleranciaIntervaloMaisMinutos" to toleranciaIntervaloMaisMinutos,
+        "turnoMaximoMinutos" to turnoMaximoMinutos,
+        "cargaHorariaDiariaMinutos" to cargaHorariaDiariaMinutos,
+        "acrescimoMinutosDiasPontes" to acrescimoMinutosDiasPontes,
+        "cargaHorariaSemanalMinutos" to cargaHorariaSemanalMinutos,
+        "primeiroDiaSemana" to primeiroDiaSemana.name,
+        "diaInicioFechamentoRH" to diaInicioFechamentoRH,
+        "zerarSaldoSemanal" to zerarSaldoSemanal,
+        "zerarSaldoPeriodoRH" to zerarSaldoPeriodoRH,
+        "ocultarSaldoTotal" to ocultarSaldoTotal,
+        "bancoHorasHabilitado" to bancoHorasHabilitado,
+        "periodoBancoSemanas" to periodoBancoSemanas,
+        "periodoBancoMeses" to periodoBancoMeses,
+        "dataInicioCicloBancoAtual" to dataInicioCicloBancoAtual?.format(dateFormatter),
+        "diasUteisLembreteFechamento" to diasUteisLembreteFechamento,
+        "habilitarSugestaoAjuste" to habilitarSugestaoAjuste,
+        "zerarBancoAntesPeriodo" to zerarBancoAntesPeriodo,
+        "exigeJustificativaInconsistencia" to exigeJustificativaInconsistencia
     )
 
     companion object {

@@ -183,6 +183,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNavigateToGerenciarEmpregos = {
                 navController.navigate(MeuPontoDestinations.GERENCIAR_EMPREGOS)
             },
+            onNavigateToVersoes = { empregoId ->
+                navController.navigate(MeuPontoDestinations.versoesJornada(empregoId))
+            },
             onNavigateToCalendario = {
                 navController.navigate(MeuPontoDestinations.FERIADOS)
             },

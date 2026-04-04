@@ -1,46 +1,31 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.versoes
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import kotlinx.coroutines.flow.collectLatest
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarVersaoScreen(
     onNavigateBack: () -> Unit,
@@ -58,7 +43,6 @@ fun EditarVersaoScreen(
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
                 is EditarVersaoEvent.SalvoComSucesso -> {
-                    snackbarHostState.showSnackbar("Versão salva com sucesso!")
                     onNavigateBack()
                 }
                 is EditarVersaoEvent.Voltar -> {
@@ -68,6 +52,93 @@ fun EditarVersaoScreen(
                     onNavigateToHorarios(evento.versaoId)
                 }
             }
+        }
+    }
+
+    if (uiState.showDataInicioPicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = uiState.dataInicio.atStartOfDay()
+                .toInstant(ZoneOffset.UTC).toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        val selectedDate = Instant.ofEpochMilli(it)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        viewModel.onAction(EditarVersaoAction.AlterarDataInicio(selectedDate))
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (uiState.showDataFimPicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = (uiState.dataFim ?: LocalDate.now()).atStartOfDay()
+                .toInstant(ZoneOffset.UTC).toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { viewModel.onAction(EditarVersaoAction.MostrarDataFimPicker(false)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        val selectedDate = Instant.ofEpochMilli(it)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        viewModel.onAction(EditarVersaoAction.AlterarDataFim(selectedDate))
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.AlterarDataFim(null)) }) {
+                    Text("Limpar")
+                }
+                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.MostrarDataFimPicker(false)) }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (uiState.showDataInicioCicloBancoPicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = (uiState.dataInicioCicloBancoAtual ?: LocalDate.now()).atStartOfDay()
+                .toInstant(ZoneOffset.UTC).toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        val selectedDate = Instant.ofEpochMilli(it)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        viewModel.onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(selectedDate))
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(null)) }) {
+                    Text("Limpar")
+                }
+                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 
@@ -112,6 +183,28 @@ fun EditarVersaoScreen(
                 EditarVersaoContent(
                     uiState = uiState,
                     onDescricaoChange = { viewModel.onAction(EditarVersaoAction.AlterarDescricao(it)) },
+                    onDataInicioClick = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioPicker(true)) },
+                    onDataFimClick = { viewModel.onAction(EditarVersaoAction.MostrarDataFimPicker(true)) },
+                    onJornadaMaximaChange = { viewModel.onAction(EditarVersaoAction.AlterarJornadaMaxima(it)) },
+                    onIntervaloInterjornadaChange = { viewModel.onAction(EditarVersaoAction.AlterarIntervaloInterjornada(it)) },
+                    onToleranciaIntervaloChange = { viewModel.onAction(EditarVersaoAction.AlterarToleranciaIntervalo(it)) },
+                    onTurnoMaximoChange = { viewModel.onAction(EditarVersaoAction.AlterarTurnoMaximo(it)) },
+                    onCargaHorariaDiariaChange = { viewModel.onAction(EditarVersaoAction.AlterarCargaHorariaDiaria(it)) },
+                    onAcrescimoDiasPontesChange = { viewModel.onAction(EditarVersaoAction.AlterarAcrescimoDiasPontes(it)) },
+                    onCargaHorariaSemanalChange = { viewModel.onAction(EditarVersaoAction.AlterarCargaHorariaSemanal(it)) },
+                    onPrimeiroDiaSemanaChange = { viewModel.onAction(EditarVersaoAction.AlterarPrimeiroDiaSemana(it)) },
+                    onDiaInicioFechamentoRHChange = { viewModel.onAction(EditarVersaoAction.AlterarDiaInicioFechamentoRH(it)) },
+                    onZerarSaldoSemanalChange = { viewModel.onAction(EditarVersaoAction.AlterarZerarSaldoSemanal(it)) },
+                    onZerarSaldoPeriodoRHChange = { viewModel.onAction(EditarVersaoAction.AlterarZerarSaldoPeriodoRH(it)) },
+                    onOcultarSaldoTotalChange = { viewModel.onAction(EditarVersaoAction.AlterarOcultarSaldoTotal(it)) },
+                    onBancoHorasHabilitadoChange = { viewModel.onAction(EditarVersaoAction.AlterarBancoHorasHabilitado(it)) },
+                    onPeriodoBancoSemanasChange = { viewModel.onAction(EditarVersaoAction.AlterarPeriodoBancoSemanas(it)) },
+                    onPeriodoBancoMesesChange = { viewModel.onAction(EditarVersaoAction.AlterarPeriodoBancoMeses(it)) },
+                    onDataInicioCicloBancoAtualClick = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(true)) },
+                    onZerarBancoAntesPeriodoChange = { viewModel.onAction(EditarVersaoAction.AlterarZerarBancoAntesPeriodo(it)) },
+                    onHabilitarSugestaoAjusteChange = { viewModel.onAction(EditarVersaoAction.AlterarHabilitarSugestaoAjuste(it)) },
+                    onDiasUteisLembreteFechamentoChange = { viewModel.onAction(EditarVersaoAction.AlterarDiasUteisLembreteFechamento(it)) },
+                    onExigeJustificativaInconsistenciaChange = { viewModel.onAction(EditarVersaoAction.AlterarExigeJustificativaInconsistencia(it)) },
                     onSalvar = { viewModel.onAction(EditarVersaoAction.Salvar) },
                     onGerenciarHorarios = { viewModel.onAction(EditarVersaoAction.ConfigurarHorarios) },
                     modifier = Modifier.padding(paddingValues)
@@ -121,10 +214,33 @@ fun EditarVersaoScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditarVersaoContent(
     uiState: EditarVersaoUiState,
     onDescricaoChange: (String) -> Unit,
+    onDataInicioClick: () -> Unit,
+    onDataFimClick: () -> Unit,
+    onJornadaMaximaChange: (Int) -> Unit,
+    onIntervaloInterjornadaChange: (Int) -> Unit,
+    onToleranciaIntervaloChange: (Int) -> Unit,
+    onTurnoMaximoChange: (Int) -> Unit,
+    onCargaHorariaDiariaChange: (Int) -> Unit,
+    onAcrescimoDiasPontesChange: (Int) -> Unit,
+    onCargaHorariaSemanalChange: (Int) -> Unit,
+    onPrimeiroDiaSemanaChange: (DiaSemana) -> Unit,
+    onDiaInicioFechamentoRHChange: (Int) -> Unit,
+    onZerarSaldoSemanalChange: (Boolean) -> Unit,
+    onZerarSaldoPeriodoRHChange: (Boolean) -> Unit,
+    onOcultarSaldoTotalChange: (Boolean) -> Unit,
+    onBancoHorasHabilitadoChange: (Boolean) -> Unit,
+    onPeriodoBancoSemanasChange: (Int) -> Unit,
+    onPeriodoBancoMesesChange: (Int) -> Unit,
+    onDataInicioCicloBancoAtualClick: () -> Unit,
+    onZerarBancoAntesPeriodoChange: (Boolean) -> Unit,
+    onHabilitarSugestaoAjusteChange: (Boolean) -> Unit,
+    onDiasUteisLembreteFechamentoChange: (Int) -> Unit,
+    onExigeJustificativaInconsistenciaChange: (Boolean) -> Unit,
     onSalvar: () -> Unit,
     onGerenciarHorarios: () -> Unit,
     modifier: Modifier = Modifier
@@ -208,6 +324,11 @@ private fun EditarVersaoContent(
                         onValueChange = { },
                         label = { Text("Data início") },
                         readOnly = true,
+                        trailingIcon = {
+                            IconButton(onClick = onDataInicioClick) {
+                                Icon(Icons.Default.Edit, contentDescription = "Editar data início")
+                            }
+                        },
                         modifier = Modifier.weight(1f)
                     )
 
@@ -216,6 +337,11 @@ private fun EditarVersaoContent(
                         onValueChange = { },
                         label = { Text("Data fim") },
                         readOnly = true,
+                        trailingIcon = {
+                            IconButton(onClick = onDataFimClick) {
+                                Icon(Icons.Default.Edit, contentDescription = "Editar data fim")
+                            }
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -242,24 +368,276 @@ private fun EditarVersaoContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Jornada máxima diária: ${uiState.jornadaMaximaFormatada}",
-                    style = MaterialTheme.typography.bodyMedium
+                OutlinedTextField(
+                    value = uiState.jornadaMaximaDiariaMinutos.toString(),
+                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onJornadaMaximaChange(value) },
+                    label = { Text("Jornada máx. diária (minutos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Atual: ${uiState.jornadaMaximaFormatada}") }
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
-                    text = "Intervalo interjornada: ${uiState.intervaloInterjornadaFormatado}",
-                    style = MaterialTheme.typography.bodyMedium
+                OutlinedTextField(
+                    value = uiState.intervaloMinimoInterjornadaMinutos.toString(),
+                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onIntervaloInterjornadaChange(value) },
+                    label = { Text("Intervalo interjornada (minutos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Atual: ${uiState.intervaloInterjornadaFormatado}") }
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
-                    text = "Tolerância intervalo: ${uiState.toleranciaIntervaloFormatada}",
-                    style = MaterialTheme.typography.bodyMedium
+                OutlinedTextField(
+                    value = uiState.toleranciaIntervaloMaisMinutos.toString(),
+                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onToleranciaIntervaloChange(value) },
+                    label = { Text("Tolerância intervalo (minutos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = uiState.turnoMaximoMinutos.toString(),
+                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onTurnoMaximoChange(value) },
+                    label = { Text("Turno máximo (minutos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Carga Horária
+        Card(
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            )
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Carga Horária",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = uiState.cargaHorariaDiariaMinutos.toString(),
+                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onCargaHorariaDiariaChange(value) },
+                    label = { Text("Carga horária diária (minutos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = uiState.acrescimoMinutosDiasPontes.toString(),
+                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onAcrescimoDiasPontesChange(value) },
+                    label = { Text("Acréscimo dias ponte (minutos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = uiState.cargaHorariaSemanalMinutos.toString(),
+                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onCargaHorariaSemanalChange(value) },
+                    label = { Text("Carga horária semanal (minutos)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Período e Saldo
+        Card(
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            )
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Período e Saldo",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                var expanded by remember { mutableStateOf(false) }
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = uiState.primeiroDiaSemana.descricao,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Primeiro dia da semana") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DiaSemana.entries.forEach { dia ->
+                            DropdownMenuItem(
+                                text = { Text(dia.descricao) },
+                                onClick = {
+                                    onPrimeiroDiaSemanaChange(dia)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = uiState.diaInicioFechamentoRH.toString(),
+                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onDiaInicioFechamentoRHChange(value) },
+                    label = { Text("Dia início fechamento RH") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = uiState.zerarSaldoSemanal, onCheckedChange = onZerarSaldoSemanalChange)
+                    Text("Zerar saldo semanalmente")
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = uiState.zerarSaldoPeriodoRH, onCheckedChange = onZerarSaldoPeriodoRHChange)
+                    Text("Zerar saldo no período RH")
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = uiState.ocultarSaldoTotal, onCheckedChange = onOcultarSaldoTotalChange)
+                    Text("Ocultar saldo total")
+                }
+            }
+        }
+
+        // Banco de Horas
+        Card(
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            )
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Banco de Horas",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(checked = uiState.bancoHorasHabilitado, onCheckedChange = onBancoHorasHabilitadoChange)
+                }
+
+                if (uiState.bancoHorasHabilitado) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = uiState.periodoBancoSemanas.toString(),
+                        onValueChange = { val value = it.toIntOrNull(); if (value != null) onPeriodoBancoSemanasChange(value) },
+                        label = { Text("Período (semanas)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = uiState.periodoBancoMeses.toString(),
+                        onValueChange = { val value = it.toIntOrNull(); if (value != null) onPeriodoBancoMesesChange(value) },
+                        label = { Text("Período (meses)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = uiState.dataInicioCicloBancoAtual?.toString() ?: "Não definida",
+                        onValueChange = { },
+                        label = { Text("Data início ciclo atual") },
+                        readOnly = true,
+                        trailingIcon = {
+                            IconButton(onClick = onDataInicioCicloBancoAtualClick) {
+                                Icon(Icons.Default.Edit, contentDescription = "Editar data")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = uiState.zerarBancoAntesPeriodo, onCheckedChange = onZerarBancoAntesPeriodoChange)
+                        Text("Ignorar registros antes do início do banco")
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = uiState.habilitarSugestaoAjuste, onCheckedChange = onHabilitarSugestaoAjusteChange)
+                        Text("Habilitar sugestão de ajuste automático")
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = uiState.diasUteisLembreteFechamento.toString(),
+                        onValueChange = { val value = it.toIntOrNull(); if (value != null) onDiasUteisLembreteFechamentoChange(value) },
+                        label = { Text("Dias úteis para lembrete de fechamento") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        // Validação
+        Card(
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            )
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Validação",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = uiState.exigeJustificativaInconsistencia,
+                        onCheckedChange = onExigeJustificativaInconsistenciaChange
+                    )
+                    Text("Exigir justificativa para inconsistências")
+                }
             }
         }
 

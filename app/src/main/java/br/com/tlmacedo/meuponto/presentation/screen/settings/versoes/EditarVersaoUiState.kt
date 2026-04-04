@@ -1,5 +1,6 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.versoes
 
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -18,12 +19,39 @@ data class EditarVersaoUiState(
     val dataFim: LocalDate? = null,
     val numeroVersao: Int = 1,
     val vigente: Boolean = false,
-    val jornadaMaximaDiariaMinutos: Int = 480,
+    val jornadaMaximaDiariaMinutos: Int = 600,
     val intervaloMinimoInterjornadaMinutos: Int = 660,
-    val toleranciaIntervaloMaisMinutos: Int = 10,
+    val toleranciaIntervaloMaisMinutos: Int = 0,
+    val turnoMaximoMinutos: Int = 360,
+
+    // Carga horária
+    val cargaHorariaDiariaMinutos: Int = 480,
+    val acrescimoMinutosDiasPontes: Int = 12,
+    val cargaHorariaSemanalMinutos: Int = 2460,
+
+    // Período/Saldo
+    val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
+    val diaInicioFechamentoRH: Int = 1,
+    val zerarSaldoSemanal: Boolean = false,
+    val zerarSaldoPeriodoRH: Boolean = false,
+    val ocultarSaldoTotal: Boolean = false,
+
+    // Banco de Horas
+    val bancoHorasHabilitado: Boolean = false,
+    val periodoBancoSemanas: Int = 0,
+    val periodoBancoMeses: Int = 0,
+    val dataInicioCicloBancoAtual: LocalDate? = null,
+    val diasUteisLembreteFechamento: Int = 3,
+    val habilitarSugestaoAjuste: Boolean = false,
+    val zerarBancoAntesPeriodo: Boolean = false,
+
+    // Validação
+    val exigeJustificativaInconsistencia: Boolean = false,
+
     val horarios: List<HorarioDiaSemana> = emptyList(),
     val showDataInicioPicker: Boolean = false,
     val showDataFimPicker: Boolean = false,
+    val showDataInicioCicloBancoPicker: Boolean = false,
     val secaoExpandida: SecaoVersao? = SecaoVersao.INFORMACOES_BASICAS,
     val errorMessage: String? = null
 ) {

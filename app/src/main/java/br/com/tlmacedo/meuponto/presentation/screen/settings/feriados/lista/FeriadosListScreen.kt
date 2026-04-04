@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Search
@@ -33,8 +32,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,10 +41,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components.FeriadoCard
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components.FeriadoFilterChips
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components.ImportarFeriadosDialog
@@ -68,7 +65,6 @@ fun FeriadosListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     var searchActive by remember { mutableStateOf(false) }
 
@@ -121,21 +117,14 @@ fun FeriadosListScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text("Feriados") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Voltar"
-                        )
-                    }
-                },
+            MeuPontoTopBar(
+                title = "Feriados",
+                showBackButton = true,
+                onBackClick = onNavigateBack,
                 actions = {
                     // Botão de busca
-                    IconButton(onClick = { searchActive = true }) {
+                    IconButton(onClick = { searchActive = !searchActive }) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Buscar"
@@ -150,8 +139,7 @@ fun FeriadosListScreen(
                             contentDescription = "Importar feriados"
                         )
                     }
-                },
-                scrollBehavior = scrollBehavior
+                }
             )
         },
         floatingActionButton = {

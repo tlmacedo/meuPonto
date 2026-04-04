@@ -78,6 +78,7 @@ fun SettingsMainScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEmpregoEdit: (Long) -> Unit,
     onNavigateToGerenciarEmpregos: () -> Unit,
+    onNavigateToVersoes: (Long) -> Unit,
     onNavigateToCalendario: () -> Unit,
     onNavigateToAparencia: () -> Unit,
     onNavigateToNotificacoes: () -> Unit,
@@ -149,11 +150,24 @@ fun SettingsMainScreen(
                 .padding(padding)
         ) {
             // ══════════════════════════════════════════════════════════════
+            // SEÇÃO: EMPREGO ATIVO E JORNADA (DESTAQUE)
+            // ══════════════════════════════════════════════════════════════
+            uiState.empregoAtual?.let { emprego ->
+                item {
+                    ActiveEmploymentCard(
+                        nomeEmprego = emprego.nome,
+                        versaoVigente = uiState.versaoVigenteDescricao ?: "Nenhuma versão ativa",
+                        onClick = { onNavigateToVersoes(emprego.id) }
+                    )
+                }
+            }
+
+            // ══════════════════════════════════════════════════════════════
             // SEÇÃO: EMPREGOS
             // ══════════════════════════════════════════════════════════════
             item {
                 SettingsSectionHeader(
-                    title = "Empregos",
+                    title = "Gestão de Empregos",
                     icon = Icons.Outlined.Work
                 )
             }
@@ -161,8 +175,8 @@ fun SettingsMainScreen(
             // Gerenciar Empregos
             item {
                 SettingsNavigationItem(
-                    title = "Gerenciar Empregos",
-                    subtitle = "Adicionar, editar ou excluir empregos",
+                    title = "Meus Empregos",
+                    subtitle = "Adicionar, editar ou arquivar",
                     icon = Icons.Outlined.Business,
                     onClick = onNavigateToGerenciarEmpregos
                 )
@@ -307,6 +321,63 @@ fun SettingsMainScreen(
 // ════════════════════════════════════════════════════════════════════════════════
 // COMPONENTES INTERNOS
 // ════════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun ActiveEmploymentCard(
+    nomeEmprego: String,
+    versaoVigente: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Emprego Ativo",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = nomeEmprego,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.EventNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = versaoVigente,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Icon(
+                imageVector = Icons.Outlined.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
 
 /**
  * Cabeçalho de seção com ícone e título.
