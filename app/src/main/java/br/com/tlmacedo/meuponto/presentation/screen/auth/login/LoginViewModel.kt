@@ -53,6 +53,11 @@ class LoginViewModel @Inject constructor(
                     }
                 }
             }
+
+            // Se biometria já está habilitada e disponível, dispara o login automaticamente
+            if (biometriaHabilitada && _uiState.value.biometriaDisponivel) {
+                loginComBiometria()
+            }
         }
     }
 
@@ -151,9 +156,14 @@ class LoginViewModel @Inject constructor(
             // Para este exemplo, vamos assumir que o sucesso da biometria permite o login do último usuário.
             val ultimoEmail = preferenciasRepository.obterUltimoEmailLogado()
             if (ultimoEmail != null) {
-                // Simula o login bem-sucedido via biometria
                 _uiState.update { it.copy(isCarregando = false) }
-                _eventos.emit(LoginEvent.LoginSucesso)
+                
+                // Se logou com biometria mas o recurso ainda não está "Habilitado" para login automático, pergunta se quer ativar
+                if (!_uiState.value.biometriaHabilitada) {
+                    _uiState.update { it.copy(showDialogHabilitarBiometria = true) }
+                } else {
+                    _eventos.emit(LoginEvent.LoginSucesso)
+                }
             } else {
                 _uiState.update { it.copy(isCarregando = false, erro = "Nenhum usuário salvo para biometria") }
                 _eventos.emit(LoginEvent.MostrarErro("Nenhum usuário salvo para biometria. Faça login com senha primeiro."))
