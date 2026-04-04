@@ -6,10 +6,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,6 +21,8 @@ import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.settings.StatusChip
 import kotlinx.coroutines.flow.collectLatest
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun VersoesJornadaScreen(
@@ -170,7 +174,164 @@ fun VersoesJornadaScreen(
                 }
             }
         }
+
+        if (uiState.mostrarDialogNovaVersao) {
+            NovaVersaoDialog(
+                dataInicio = uiState.dataInicioNovaVersao,
+                descricao = uiState.descricaoNovaVersao,
+                copiarHorarios = uiState.copiarHorariosNovaVersao,
+                isSaving = uiState.isCriando,
+                onDataInicioChange = { viewModel.onAction(VersoesJornadaAction.AlterarDataInicioNovaVersao(it)) },
+                onDescricaoChange = { viewModel.onAction(VersoesJornadaAction.AlterarDescricaoNovaVersao(it)) },
+                onCopiarHorariosToggle = { viewModel.onAction(VersoesJornadaAction.ToggleCopiarHorariosNovaVersao(it)) },
+                onConfirmar = { viewModel.onAction(VersoesJornadaAction.ConfirmarNovaVersao) },
+                onDismiss = { viewModel.onAction(VersoesJornadaAction.FecharDialogNovaVersao) }
+            )
+        }
+
+        uiState.versaoParaExcluir?.let { versao ->
+            AlertDialog(
+                onDismissRequest = { viewModel.onAction(VersoesJornadaAction.FecharDialogExcluir) },
+                title = { Text("Excluir Versão") },
+                text = {
+                    Text("Tem certeza que deseja excluir a versão \"${versao.titulo}\"? Esta ação não pode ser desfeita.")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.onAction(VersoesJornadaAction.ConfirmarExclusao) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        if (uiState.isExcluindo) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onError,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Excluir")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.onAction(VersoesJornadaAction.FecharDialogExcluir) }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NovaVersaoDialog(
+    dataInicio: LocalDate,
+    descricao: String,
+    copiarHorarios: Boolean,
+    isSaving: Boolean,
+    onDataInicioChange: (LocalDate) -> Unit,
+    onDescricaoChange: (String) -> Unit,
+    onCopiarHorariosToggle: (Boolean) -> Unit,
+    onConfirmar: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = dataInicio.atStartOfDay()
+                .toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        onDataInicioChange(
+                            java.time.Instant.ofEpochMilli(it)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .toLocalDate()
+                        )
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nova Versão de Jornada") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    text = "A nova versão passará a valer a partir da data de início selecionada. A versão anterior será encerrada automaticamente um dia antes.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = dataInicio.format(dateFormatter),
+                    onValueChange = { },
+                    label = { Text("Data de Início") },
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.Schedule, contentDescription = "Selecionar data")
+                        }
+                    }
+                )
+
+                OutlinedTextField(
+                    value = descricao,
+                    onValueChange = onDescricaoChange,
+                    label = { Text("Descrição (opcional)") },
+                    placeholder = { Text("Ex: Horário de Verão, Promoção...") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = copiarHorarios,
+                        onCheckedChange = onCopiarHorariosToggle
+                    )
+                    Text(
+                        text = "Copiar horários da versão atual",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirmar,
+                enabled = !isSaving
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Criar Versão")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Composable

@@ -160,27 +160,34 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
     ): Long {
         val agora = LocalDateTime.now()
 
-        // 1. Buscar versão anterior para fechar
+        // 1. Buscar versões adjacentes
         val versaoAnterior = versaoJornadaDao.buscarVersaoAnterior(empregoId, dataInicio)
-            ?: versaoJornadaDao.buscarVigente(empregoId)
+        val proximaVersao = versaoJornadaDao.buscarProximaVersao(empregoId, dataInicio)
 
-        // 2. Fechar versão anterior
+        // 2. Ajustar versão anterior (se existir)
         versaoAnterior?.let {
             val dataFimAnterior = dataInicio.minusDays(1)
-            versaoJornadaDao.definirDataFim(it.id, dataFimAnterior, agora)
+            if (it.dataFim == null || it.dataFim != dataFimAnterior) {
+                versaoJornadaDao.definirDataFim(it.id, dataFimAnterior, agora)
 
-            auditService.logUpdate(
-                entidade = ENTIDADE,
-                entidadeId = it.id,
-                motivo = "Versão v${it.numeroVersao} encerrada em ${dataFimAnterior.format(dateFormatter)}",
-                valorAntigo = "dataFim=null",
-                valorNovo = "dataFim=${dataFimAnterior.format(dateFormatter)}",
-                serializer = { s -> s }
-            )
+                auditService.logUpdate(
+                    entidade = ENTIDADE,
+                    entidadeId = it.id,
+                    motivo = "Versão v${it.numeroVersao} ajustada para encerrar em ${dataFimAnterior.format(dateFormatter)}",
+                    valorAntigo = "dataFim=${it.dataFim?.format(dateFormatter) ?: "null"}",
+                    valorNovo = "dataFim=${dataFimAnterior.format(dateFormatter)}",
+                    serializer = { s -> s }
+                )
+            }
         }
 
-        // 3. Remover flag vigente de todas
-        versaoJornadaDao.removerVigenteDeTodas(empregoId)
+        // 3. Calcular dados da nova versão
+        val dataFimNovaVersao = proximaVersao?.dataInicio?.minusDays(1)
+        val isVigente = dataFimNovaVersao == null
+
+        if (isVigente) {
+            versaoJornadaDao.removerVigenteDeTodas(empregoId)
+        }
 
         // 4. Calcular próximo número de versão
         val proximoNumero = (versaoJornadaDao.buscarMaiorNumeroVersao(empregoId) ?: 0) + 1
@@ -189,10 +196,10 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
         val novaVersao = VersaoJornada(
             empregoId = empregoId,
             dataInicio = dataInicio,
-            dataFim = null,
+            dataFim = dataFimNovaVersao,
             descricao = descricao,
             numeroVersao = proximoNumero,
-            vigente = true,
+            vigente = isVigente,
             jornadaMaximaDiariaMinutos = versaoAnterior?.toDomain()?.jornadaMaximaDiariaMinutos ?: 600,
             intervaloMinimoInterjornadaMinutos = versaoAnterior?.toDomain()?.intervaloMinimoInterjornadaMinutos ?: 660,
             toleranciaIntervaloMaisMinutos = versaoAnterior?.toDomain()?.toleranciaIntervaloMaisMinutos ?: 0,

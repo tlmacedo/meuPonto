@@ -117,11 +117,24 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val dataInicio = ultimoFechamento?.dataFimPeriodo?.plusDays(1) ?: pontos.minOfOrNull { it.data } ?: ateData
 
         if (dataInicio > ateData) {
-            return ResultadoBancoHoras(Duration.ZERO, ateData, ateData, 0, 0, 0, 0, 0, ultimoFechamento)
+            val saldoBase = if (ultimoFechamento?.tipo?.automatico == true)
+                Duration.ofMinutes(ultimoFechamento.saldoAnteriorMinutos.toLong())
+            else Duration.ZERO
+            return ResultadoBancoHoras(saldoBase, ateData, ateData, 0, 0, 0, 0, 0, ultimoFechamento)
         }
 
-        return calcularBancoHorasInterno(empregoId, pontos, ajustes, ausencias, feriados, dataInicio, ateData)
-            .copy(ultimoFechamento = ultimoFechamento)
+        val resultadoInterno = calcularBancoHorasInterno(empregoId, pontos, ajustes, ausencias, feriados, dataInicio, ateData)
+
+        val saldoFinal = if (ultimoFechamento?.tipo?.automatico == true) {
+            resultadoInterno.saldoTotal.plusMinutes(ultimoFechamento.saldoAnteriorMinutos.toLong())
+        } else {
+            resultadoInterno.saldoTotal
+        }
+
+        return resultadoInterno.copy(
+            saldoTotal = saldoFinal,
+            ultimoFechamento = ultimoFechamento
+        )
     }
 
     private suspend fun calcularBancoHorasParaPeriodo(

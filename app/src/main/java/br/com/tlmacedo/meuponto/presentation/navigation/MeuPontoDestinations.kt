@@ -50,6 +50,7 @@ object MeuPontoDestinations {
     // Jornada (por emprego)
     const val VERSOES_JORNADA_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/versoes"
     const val EDITAR_VERSAO_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/versoes/{$ARG_VERSAO_ID}"
+    const val HORARIOS_VERSAO = "emprego/{$ARG_EMPREGO_ID}/versoes/{$ARG_VERSAO_ID}/horarios"
 
     // Ajustes de saldo (por emprego)
     const val AJUSTES_SALDO_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/ajustes"
@@ -105,6 +106,7 @@ object MeuPontoDestinations {
     fun empregoSettings(empregoId: Long) = "emprego/$empregoId/settings"
     fun versoesJornada(empregoId: Long) = "emprego/$empregoId/versoes"
     fun editarVersaoEmprego(empregoId: Long, versaoId: Long) = "emprego/$empregoId/versoes/$versaoId"
+    fun horariosVersao(empregoId: Long, versaoId: Long) = "emprego/$empregoId/versoes/$versaoId/horarios"
     fun ajustesSaldo(empregoId: Long) = "emprego/$empregoId/ajustes"
     fun ausenciasEmprego(empregoId: Long) = "emprego/$empregoId/ausencias"
 

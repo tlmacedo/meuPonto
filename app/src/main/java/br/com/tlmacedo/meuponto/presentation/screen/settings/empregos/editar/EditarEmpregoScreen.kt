@@ -257,6 +257,18 @@ private fun EditarEmpregoContent(
                 isExpanded = uiState.secaoExpandida == SecaoFormulario.JORNADA,
                 onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.JORNADA)) }
             ) {
+                if (!uiState.isNovoEmprego && onNavigateToVersoes != null) {
+                    TextButton(
+                        onClick = onNavigateToVersoes,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Timer, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ver Histórico de Versões")
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp))
+                }
+
                 MinutesSliderWithSteppers(
                     label = "Carga Horária Diária",
                     value = uiState.cargaHorariaDiaria.toMinutes().toInt(),
@@ -265,6 +277,35 @@ private fun EditarEmpregoContent(
                     sliderStep = 30,
                     formatAsHours = true
                 )
+
+                uiState.avisoJornadaExcedida?.let { ValidationWarning(it, isError = uiState.cargaHorariaTotalMinutos > uiState.jornadaMaximaDiariaMinutos) }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                MinutesSliderWithSteppers(
+                    label = "Acréscimo (Dias Ponte)",
+                    value = uiState.acrescimoMinutosDiasPontes,
+                    onValueChange = { onAction(EditarEmpregoAction.AlterarAcrescimoDiasPontes(it)) },
+                    valueRange = 0..60,
+                    sliderStep = 1,
+                    formatAsHours = false,
+                    suffix = "min",
+                    helperText = "Minutos extras diários para compensar feriados"
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                MinutesSliderWithSteppers(
+                    label = "Turno Máximo Sem Pausa",
+                    value = uiState.turnoMaximoMinutos,
+                    onValueChange = { onAction(EditarEmpregoAction.AlterarTurnoMaximo(it)) },
+                    valueRange = 120..420,
+                    sliderStep = 15,
+                    formatAsHours = true,
+                    helperText = "Tempo máximo de trabalho contínuo sem intervalo"
+                )
+
+                uiState.avisoTurnoMaximo?.let { ValidationWarning(it) }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -297,6 +338,29 @@ private fun EditarEmpregoContent(
                     valueRange = 540..780,
                     sliderStep = 30,
                     formatAsHours = true
+                )
+
+                uiState.avisoInterjornada?.let { ValidationWarning(it) }
+            }
+        }
+
+        // TOLERÂNCIAS
+        item {
+            FormSection(
+                title = "Tolerâncias",
+                icon = Icons.Default.Timer,
+                isExpanded = uiState.secaoExpandida == SecaoFormulario.TOLERANCIAS,
+                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.TOLERANCIAS)) }
+            ) {
+                MinutesSliderWithSteppers(
+                    label = "Tolerância Intervalo (Extra)",
+                    value = uiState.toleranciaIntervaloMaisMinutos,
+                    onValueChange = { onAction(EditarEmpregoAction.AlterarToleranciaIntervaloMais(it)) },
+                    valueRange = 0..30,
+                    sliderStep = 1,
+                    formatAsHours = false,
+                    suffix = "min",
+                    helperText = "Minutos permitidos além do intervalo mínimo"
                 )
             }
         }
@@ -581,6 +645,35 @@ private fun EditarEmpregoContent(
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+private fun ValidationWarning(
+    message: String,
+    isError: Boolean = false
+) {
+    val color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+    val icon = if (isError) Icons.Default.Info else Icons.Default.Info
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, start = 8.dp, end = 8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = color
+        )
     }
 }
 

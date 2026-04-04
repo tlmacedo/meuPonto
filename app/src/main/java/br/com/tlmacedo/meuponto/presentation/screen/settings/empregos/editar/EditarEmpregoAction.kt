@@ -21,7 +21,9 @@ sealed class EditarEmpregoAction {
 
     // Jornada
     data class AlterarCargaHorariaDiaria(val duracao: Duration) : EditarEmpregoAction()
+    data class AlterarAcrescimoDiasPontes(val minutos: Int) : EditarEmpregoAction()
     data class AlterarJornadaMaximaDiaria(val minutos: Int) : EditarEmpregoAction()
+    data class AlterarTurnoMaximo(val minutos: Int) : EditarEmpregoAction()
     data class AlterarIntervaloMinimo(val minutos: Int) : EditarEmpregoAction()
     data class AlterarIntervaloInterjornada(val minutos: Int) : EditarEmpregoAction()
 

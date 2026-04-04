@@ -24,8 +24,10 @@ data class EditarEmpregoUiState(
     val dataInicioTrabalho: LocalDate? = null,
 
     // JORNADA DE TRABALHO
-    val cargaHorariaDiaria: Duration = Duration.ofMinutes(492),
+    val cargaHorariaDiaria: Duration = Duration.ofMinutes(480),
+    val acrescimoMinutosDiasPontes: Int = 0,
     val jornadaMaximaDiariaMinutos: Int = 600,
+    val turnoMaximoMinutos: Int = 360,
     val intervaloMinimoMinutos: Int = 60,
     val intervaloInterjornadaMinutos: Int = 660,
 
@@ -70,7 +72,31 @@ data class EditarEmpregoUiState(
     // Propriedades computadas básicas
     val tituloTela: String = if (isNovoEmprego) "Novo Emprego" else "Editar Emprego"
     val textoBotaoSalvar: String = if (isNovoEmprego) "Criar Emprego" else "Salvar Alterações"
-    val formularioValido: Boolean = nome.isNotBlank() && nomeErro == null
+
+    val cargaHorariaTotalMinutos: Int
+        get() = cargaHorariaDiaria.toMinutes().toInt() + acrescimoMinutosDiasPontes
+
+    val formularioValido: Boolean = nome.isNotBlank() &&
+            nomeErro == null &&
+            cargaHorariaTotalMinutos <= jornadaMaximaDiariaMinutos
+
+    // Validações Visuais
+    val avisoJornadaExcedida: String?
+        get() = if (cargaHorariaTotalMinutos > jornadaMaximaDiariaMinutos)
+            "A carga horária total ($cargaHorariaTotalMinutos min) excede a jornada máxima permitida."
+        else if (jornadaMaximaDiariaMinutos > 600)
+            "Atenção: Jornada máxima acima de 10h (600 min) pode violar regras trabalhistas."
+        else null
+
+    val avisoTurnoMaximo: String?
+        get() = if (turnoMaximoMinutos > 360)
+            "Atenção: Turnos sem intervalo acima de 6h (360 min) são restritos por lei."
+        else null
+
+    val avisoInterjornada: String?
+        get() = if (intervaloInterjornadaMinutos < 660)
+            "Atenção: O descanso mínimo entre jornadas deve ser de 11h (660 min)."
+        else null
 
     // Formatações de data
     val dataInicioTrabalhoFormatada: String

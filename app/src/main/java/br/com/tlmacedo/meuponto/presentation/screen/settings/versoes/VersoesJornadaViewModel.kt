@@ -53,6 +53,12 @@ class VersoesJornadaViewModel @Inject constructor(
         when (action) {
             is VersoesJornadaAction.Recarregar -> observarVersoes()
             is VersoesJornadaAction.CriarNovaVersao -> criarNovaVersao()
+            is VersoesJornadaAction.AbrirDialogNovaVersao -> abrirDialogNovaVersao()
+            is VersoesJornadaAction.FecharDialogNovaVersao -> fecharDialogNovaVersao()
+            is VersoesJornadaAction.AlterarDataInicioNovaVersao -> alterarDataInicioNovaVersao(action.data)
+            is VersoesJornadaAction.AlterarDescricaoNovaVersao -> alterarDescricaoNovaVersao(action.descricao)
+            is VersoesJornadaAction.ToggleCopiarHorariosNovaVersao -> toggleCopiarHorarios(action.copiar)
+            is VersoesJornadaAction.ConfirmarNovaVersao -> confirmarNovaVersao()
             is VersoesJornadaAction.EditarVersao -> editarVersao(action.versaoId)
             is VersoesJornadaAction.AbrirDialogExcluir -> abrirDialogExcluir(action.versao)
             is VersoesJornadaAction.FecharDialogExcluir -> fecharDialogExcluir()
@@ -111,32 +117,64 @@ class VersoesJornadaViewModel @Inject constructor(
     }
 
     private fun criarNovaVersao() {
-        if (empregoId <= 0L) {
-            viewModelScope.launch {
-                _eventos.emit(
-                    VersoesJornadaEvent.MostrarMensagem("Emprego inválido para criar versão")
-                )
-            }
-            return
+        abrirDialogNovaVersao()
+    }
+
+    private fun abrirDialogNovaVersao() {
+        _uiState.update {
+            it.copy(
+                mostrarDialogNovaVersao = true,
+                dataInicioNovaVersao = it.versaoVigente?.dataFim?.plusDays(1) ?: LocalDate.now(),
+                descricaoNovaVersao = "",
+                copiarHorariosNovaVersao = true
+            )
         }
+    }
+
+    private fun fecharDialogNovaVersao() {
+        _uiState.update {
+            it.copy(mostrarDialogNovaVersao = false)
+        }
+    }
+
+    private fun alterarDataInicioNovaVersao(data: LocalDate) {
+        _uiState.update { it.copy(dataInicioNovaVersao = data) }
+    }
+
+    private fun alterarDescricaoNovaVersao(descricao: String) {
+        _uiState.update { it.copy(descricaoNovaVersao = descricao) }
+    }
+
+    private fun toggleCopiarHorarios(copiar: Boolean) {
+        _uiState.update { it.copy(copiarHorariosNovaVersao = copiar) }
+    }
+
+    private fun confirmarNovaVersao() {
+        val state = _uiState.value
+        if (state.empregoId <= 0L) return
 
         viewModelScope.launch {
+            _uiState.update { it.copy(isCriando = true) }
             try {
                 val novaVersaoId = versaoJornadaRepository.criarNovaVersao(
-                    empregoId = empregoId,
-                    dataInicio = LocalDate.now(),
-                    descricao = null,
-                    copiarDaVersaoAnterior = true
+                    empregoId = state.empregoId,
+                    dataInicio = state.dataInicioNovaVersao,
+                    descricao = state.descricaoNovaVersao.ifBlank { null },
+                    copiarDaVersaoAnterior = state.copiarHorariosNovaVersao
                 )
+                
+                _uiState.update { 
+                    it.copy(
+                        isCriando = false, 
+                        mostrarDialogNovaVersao = false
+                    ) 
+                }
                 _eventos.emit(VersoesJornadaEvent.MostrarMensagem("Nova versão criada"))
                 _eventos.emit(VersoesJornadaEvent.NavegarParaEditar(novaVersaoId))
             } catch (e: Exception) {
-                Timber.e(e, "Erro ao criar nova versão para emprego %d", empregoId)
-                _eventos.emit(
-                    VersoesJornadaEvent.MostrarMensagem(
-                        "Erro ao criar versão: ${e.message}"
-                    )
-                )
+                Timber.e(e, "Erro ao criar nova versão")
+                _uiState.update { it.copy(isCriando = false) }
+                _eventos.emit(VersoesJornadaEvent.MostrarMensagem("Erro: ${e.message}"))
             }
         }
     }

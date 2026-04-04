@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -68,7 +69,11 @@ fun EditarHorarioDialog(
     onFecharTimePicker: () -> Unit,
     onLimparHorariosIdeais: () -> Unit,
     onSalvar: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    avisoJornadaExcedida: String? = null,
+    avisoTurnoMaximo: String? = null,
+    avisoIntervaloMinimo: String? = null,
+    canSave: Boolean = true
 ) {
     // Estado para TimePicker
     val horarioAtual = when (campoTimePicker) {
@@ -243,6 +248,13 @@ fun EditarHorarioDialog(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Mensagens de Validação
+                avisoJornadaExcedida?.let { ValidationWarning(it, isError = true) }
+                avisoTurnoMaximo?.let { ValidationWarning(it, isError = false) }
+                avisoIntervaloMinimo?.let { ValidationWarning(it, isError = false) }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Botões de ação
@@ -256,7 +268,7 @@ fun EditarHorarioDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = onSalvar,
-                        enabled = !isSaving
+                        enabled = !isSaving && canSave
                     ) {
                         if (isSaving) {
                             CircularProgressIndicator(
@@ -270,6 +282,35 @@ fun EditarHorarioDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ValidationWarning(
+    message: String,
+    isError: Boolean = false
+) {
+    val color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+    val icon = Icons.Default.Info
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = color
+        )
     }
 }
 

@@ -4,7 +4,9 @@ package br.com.tlmacedo.meuponto.domain.usecase.emprego
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.domain.model.FotoFormato
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
+import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
@@ -13,14 +15,15 @@ import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.validacao.ValidarEmpregoUseCase
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import javax.inject.Inject
 
 /**
- * Caso de uso para criar um novo emprego com suas configurações padrão.
+ * Caso de uso para criar um novo emprego com suas configurações completas.
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 8.0.0 - Atualizado para criar VersaoJornada com campos de jornada/banco
+ * @updated 11.0.0 - Suporte total a configurações de jornada, banco e RH conforme requisitos do usuário.
  */
 class CriarEmpregoUseCase @Inject constructor(
     private val empregoRepository: EmpregoRepository,
@@ -32,7 +35,31 @@ class CriarEmpregoUseCase @Inject constructor(
     data class Parametros(
         val nome: String,
         val descricao: String? = null,
-        val dataInicioTrabalho: LocalDate = LocalDate.now()
+        val dataInicioTrabalho: LocalDate = LocalDate.now(),
+        
+        // Jornada
+        val cargaHorariaDiariaMinutos: Int = 480, // 8h
+        val acrescimoMinutosDiasPontes: Int = 0,
+        val jornadaMaximaDiariaMinutos: Int = 600, // 10h
+        val intervaloMinimoMinutos: Int = 60, // 1h
+        val intervaloMinimoInterjornadaMinutos: Int = 660, // 11h
+        val turnoMaximoMinutos: Int = 360, // 6h
+        val toleranciaIntervaloMaisMinutos: Int = 0,
+        
+        // RH e Banco
+        val diaInicioFechamentoRH: Int = 1,
+        val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
+        val bancoHorasHabilitado: Boolean = false,
+        val periodoBancoMeses: Int = 0,
+        val dataInicioCicloBanco: LocalDate? = null,
+        val zerarBancoAoFecharCiclo: Boolean = false,
+        
+        // Extras
+        val habilitarNsr: Boolean = false,
+        val tipoNsr: TipoNsr = TipoNsr.NUMERICO,
+        val fotoHabilitada: Boolean = false,
+        val fotoObrigatoria: Boolean = false,
+        val exigeJustificativaInconsistencia: Boolean = false
     )
 
     sealed class Resultado {
@@ -48,12 +75,9 @@ class CriarEmpregoUseCase @Inject constructor(
             dataInicioTrabalho = parametros.dataInicioTrabalho,
             ativo = true,
             arquivado = false,
-            ordem = empregoRepository.buscarProximaOrdem(),
-            criadoEm = LocalDateTime.now(),
-            atualizadoEm = LocalDateTime.now()
+            ordem = empregoRepository.buscarProximaOrdem()
         )
 
-        // Validação
         val resultadoValidacao = validarEmpregoUseCase(emprego)
         if (resultadoValidacao is ValidarEmpregoUseCase.ResultadoValidacao.Invalido) {
             return Resultado.Validacao(resultadoValidacao.erros.map { it.mensagem })
@@ -62,18 +86,23 @@ class CriarEmpregoUseCase @Inject constructor(
         return try {
             val agora = LocalDateTime.now()
 
-            // 1. Cria o emprego
+            // 1. Criar Emprego
             val empregoId = empregoRepository.inserir(emprego)
 
-            // 2. Cria configuração de exibição/comportamento (simplificada)
+            // 2. Criar ConfiguracaoEmprego (campos fixos do emprego)
             val configuracao = ConfiguracaoEmprego(
                 empregoId = empregoId,
+                habilitarNsr = parametros.habilitarNsr,
+                tipoNsr = parametros.tipoNsr,
+                fotoHabilitada = parametros.fotoHabilitada,
+                fotoObrigatoria = parametros.fotoObrigatoria,
+                fotoFormato = FotoFormato.JPEG,
                 criadoEm = agora,
                 atualizadoEm = agora
             )
             configuracaoEmpregoRepository.inserir(configuracao)
 
-            // 3. Cria versão de jornada inicial (com campos de jornada e banco)
+            // 3. Criar VersaoJornada (campos versionáveis)
             val versaoJornada = VersaoJornada(
                 empregoId = empregoId,
                 dataInicio = parametros.dataInicioTrabalho,
@@ -81,36 +110,72 @@ class CriarEmpregoUseCase @Inject constructor(
                 numeroVersao = 1,
                 vigente = true,
                 // Jornada
-                jornadaMaximaDiariaMinutos = 600,
-                intervaloMinimoInterjornadaMinutos = 660,
-                turnoMaximoMinutos = 360,
-                // Carga horária
-                cargaHorariaDiariaMinutos = 480,
-                acrescimoMinutosDiasPontes = 12,
-                cargaHorariaSemanalMinutos = 2460,
-                // Período
-                primeiroDiaSemana = DiaSemana.SEGUNDA,
-                diaInicioFechamentoRH = 1,
-                // Banco de horas (desabilitado por padrão)
-                bancoHorasHabilitado = false,
+                cargaHorariaDiariaMinutos = parametros.cargaHorariaDiariaMinutos,
+                acrescimoMinutosDiasPontes = parametros.acrescimoMinutosDiasPontes,
+                jornadaMaximaDiariaMinutos = parametros.jornadaMaximaDiariaMinutos,
+                intervaloMinimoInterjornadaMinutos = parametros.intervaloMinimoInterjornadaMinutos,
+                turnoMaximoMinutos = parametros.turnoMaximoMinutos,
+                toleranciaIntervaloMaisMinutos = parametros.toleranciaIntervaloMaisMinutos,
+                // RH e Banco
+                primeiroDiaSemana = parametros.primeiroDiaSemana,
+                diaInicioFechamentoRH = parametros.diaInicioFechamentoRH,
+                bancoHorasHabilitado = parametros.bancoHorasHabilitado,
+                periodoBancoMeses = parametros.periodoBancoMeses,
+                dataInicioCicloBancoAtual = parametros.dataInicioCicloBanco,
+                zerarBancoAntesPeriodo = parametros.zerarBancoAoFecharCiclo,
+                // Validação
+                exigeJustificativaInconsistencia = parametros.exigeJustificativaInconsistencia,
                 criadoEm = agora,
                 atualizadoEm = agora
             )
             val versaoJornadaId = versaoJornadaRepository.inserir(versaoJornada)
 
-            // 4. Cria horários padrão para cada dia da semana
-            DiaSemana.entries.forEach { diaSemana ->
-                val horario = HorarioDiaSemana.criarPadrao(
-                    empregoId = empregoId,
-                    diaSemana = diaSemana,
-                    versaoJornadaId = versaoJornadaId
-                )
-                horarioDiaSemanaRepository.inserir(horario)
-            }
+            // 4. Criar Horários por Dia da Semana (Sugestão baseada nos parâmetros)
+            criarHorariosIniciais(empregoId, versaoJornadaId, parametros)
 
             Resultado.Sucesso(empregoId)
         } catch (e: Exception) {
             Resultado.Erro("Erro ao criar emprego: ${e.message}")
+        }
+    }
+
+    private suspend fun criarHorariosIniciais(
+        empregoId: Long,
+        versaoJornadaId: Long,
+        parametros: Parametros
+    ) {
+        val cargaTotalMinutos = parametros.cargaHorariaDiariaMinutos + parametros.acrescimoMinutosDiasPontes
+        
+        DiaSemana.entries.forEach { dia ->
+            val ehDiaUtil = dia.isDiaUtil && dia != DiaSemana.SABADO // Por padrão, Sab e Dom são folga no seu exemplo
+            
+            val horario = if (ehDiaUtil) {
+                // Exemplo Sugerido: 08:00 - 12:30 (4h30) e 13:30 - (fim conforme carga)
+                val entrada = LocalTime.of(8, 0)
+                val saidaIntervalo = LocalTime.of(12, 30)
+                val voltaIntervalo = saidaIntervalo.plusMinutes(parametros.intervaloMinimoMinutos.toLong())
+                
+                val minutosManha = java.time.Duration.between(entrada, saidaIntervalo).toMinutes()
+                val minutosRestantes = cargaTotalMinutos - minutosManha
+                val saidaFinal = voltaIntervalo.plusMinutes(minutosRestantes)
+
+                HorarioDiaSemana(
+                    empregoId = empregoId,
+                    versaoJornadaId = versaoJornadaId,
+                    diaSemana = dia,
+                    ativo = true,
+                    cargaHorariaMinutos = cargaTotalMinutos,
+                    entradaIdeal = entrada,
+                    saidaIntervaloIdeal = saidaIntervalo,
+                    voltaIntervaloIdeal = voltaIntervalo,
+                    saidaIdeal = saidaFinal,
+                    intervaloMinimoMinutos = parametros.intervaloMinimoMinutos,
+                    toleranciaIntervaloMaisMinutos = parametros.toleranciaIntervaloMaisMinutos
+                )
+            } else {
+                HorarioDiaSemana.criarPadrao(empregoId, dia, versaoJornadaId).copy(ativo = false, cargaHorariaMinutos = 0)
+            }
+            horarioDiaSemanaRepository.inserir(horario)
         }
     }
 }

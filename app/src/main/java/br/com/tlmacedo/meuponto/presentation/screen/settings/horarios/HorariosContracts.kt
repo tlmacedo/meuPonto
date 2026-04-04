@@ -4,6 +4,8 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.horarios
 
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
+import java.time.Duration
 import java.time.LocalTime
 
 /**
@@ -18,6 +20,7 @@ data class HorariosUiState(
     val versaoJornadaId: Long = 0L,
     val empregoId: Long = 0L,
     val versaoDescricao: String = "",
+    val versaoJornada: VersaoJornada? = null,
     val horarios: List<HorarioDiaSemana> = emptyList(),
     val horarioEmEdicao: HorarioDiaSemana? = null,
     val mostrarDialogEdicao: Boolean = false,
@@ -42,6 +45,55 @@ data class HorariosUiState(
 
     val temAlteracoesPendentes: Boolean
         get() = horarioEmEdicao != null
+
+    // Validações para o horário em edição
+    val avisoJornadaExcedida: String?
+        get() {
+            val h = horarioEmEdicao ?: return null
+            val max = versaoJornada?.jornadaMaximaDiariaMinutos ?: 600
+            return if (h.cargaHorariaMinutos > max)
+                "Carga horária (${h.cargaHorariaMinutos} min) excede o máximo de $max min."
+            else null
+        }
+
+    val avisoTurnoMaximo: String?
+        get() {
+            val h = horarioEmEdicao ?: return null
+            val max = versaoJornada?.turnoMaximoMinutos ?: 360
+            
+            val turno1 = if (h.entradaIdeal != null && h.saidaIntervaloIdeal != null)
+                Duration.between(h.entradaIdeal, h.saidaIntervaloIdeal).toMinutes().toInt()
+            else 0
+            
+            val turno2 = if (h.voltaIntervaloIdeal != null && h.saidaIdeal != null)
+                Duration.between(h.voltaIntervaloIdeal, h.saidaIdeal).toMinutes().toInt()
+            else 0
+
+            return if (turno1 > max || turno2 > max)
+                "Atenção: Turno sem intervalo acima de ${max / 60}h pode violar regras."
+            else null
+        }
+
+    val avisoIntervaloMinimo: String?
+        get() {
+            val h = horarioEmEdicao ?: return null
+            val min = h.intervaloMinimoMinutos
+            
+            val intervaloReal = if (h.saidaIntervaloIdeal != null && h.voltaIntervaloIdeal != null)
+                Duration.between(h.saidaIntervaloIdeal, h.voltaIntervaloIdeal).toMinutes().toInt()
+            else null
+
+            return if (intervaloReal != null && intervaloReal < min)
+                "Atenção: Intervalo configurado (${intervaloReal} min) é menor que o mínimo de $min min."
+            else null
+        }
+
+    val canSaveHorario: Boolean
+        get() {
+            val h = horarioEmEdicao ?: return false
+            val max = versaoJornada?.jornadaMaximaDiariaMinutos ?: 600
+            return h.cargaHorariaMinutos <= max
+        }
 }
 
 /**

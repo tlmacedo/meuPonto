@@ -124,7 +124,10 @@ class HorariosViewModel @Inject constructor(
                 }
 
                 _uiState.update {
-                    it.copy(versaoDescricao = versao.descricao ?: "Versão ${versao.numeroVersao}")
+                    it.copy(
+                        versaoDescricao = versao.descricao ?: "Versão ${versao.numeroVersao}",
+                        versaoJornada = versao
+                    )
                 }
 
                 observarHorarios()

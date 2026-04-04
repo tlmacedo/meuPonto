@@ -132,7 +132,11 @@ fun HorariosScreen(
                 onFecharTimePicker = { viewModel.onAction(HorariosAction.FecharTimePicker) },
                 onLimparHorariosIdeais = { viewModel.onAction(HorariosAction.LimparHorariosIdeais) },
                 onSalvar = { viewModel.onAction(HorariosAction.SalvarHorario) },
-                onDismiss = { viewModel.onAction(HorariosAction.FecharDialogEdicao) }
+                onDismiss = { viewModel.onAction(HorariosAction.FecharDialogEdicao) },
+                avisoJornadaExcedida = uiState.avisoJornadaExcedida,
+                avisoTurnoMaximo = uiState.avisoTurnoMaximo,
+                avisoIntervaloMinimo = uiState.avisoIntervaloMinimo,
+                canSave = uiState.canSaveHorario
             )
         }
 

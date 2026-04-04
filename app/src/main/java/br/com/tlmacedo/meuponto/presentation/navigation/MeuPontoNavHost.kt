@@ -35,9 +35,11 @@ import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsDetailScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.versoes.VersoesJornadaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista.FeriadosListScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.global.GlobalSettingsScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.horarios.HorariosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.SettingsMainScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
@@ -257,12 +259,30 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
                 defaultValue = -1L
             }
         )
-    ) {
+    ) { backStackEntry ->
+        val empId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
         EditarVersaoScreen(
             onNavigateBack = { navController.popBackStack() },
-            onNavigateToHorarios = { _ ->
-                // TODO: Implementar navegação para horários
+            onNavigateToHorarios = { versaoId ->
+                navController.navigate(MeuPontoDestinations.horariosVersao(empId, versaoId))
             }
+        )
+    }
+
+    // Horários da versão
+    composable(
+        route = MeuPontoDestinations.HORARIOS_VERSAO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            },
+            navArgument(MeuPontoDestinations.ARG_VERSAO_ID) {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        HorariosScreen(
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 
@@ -353,9 +373,16 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
                 defaultValue = -1L
             }
         )
-    ) {
+    ) { backStackEntry ->
+        val empregoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
+        
         EditarEmpregoScreen(
-            onNavigateBack = { navController.popBackStack() }
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToVersoes = {
+                if (empregoId > 0) {
+                    navController.navigate(MeuPontoDestinations.versoesJornada(empregoId))
+                }
+            }
         )
     }
 

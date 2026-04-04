@@ -79,12 +79,16 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
                 dataFim = dataFimCiclo
             )
 
+            val ultimoFechamento = fechamentoRepository.buscarUltimoFechamentoBancoAteData(empregoId, cicloInicio.minusDays(1))
+            val saldoAnterior = ultimoFechamento?.saldoAnteriorMinutos ?: 0
+            val saldoAcumulado = saldoCiclo.saldoTotalMinutos + saldoAnterior
+
             val fechamento = FechamentoPeriodo(
                 empregoId = empregoId,
                 dataFechamento = proximoCicloInicio,
                 dataInicioPeriodo = cicloInicio,
                 dataFimPeriodo = dataFimCiclo,
-                saldoAnteriorMinutos = saldoCiclo.saldoTotalMinutos,
+                saldoAnteriorMinutos = saldoAcumulado,
                 tipo = TipoFechamento.CICLO_BANCO_AUTOMATICO,
                 observacao = "Fechamento automático de ciclo do banco de horas"
             )
@@ -129,17 +133,20 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
         val dataInicio = versaoJornada.dataInicioCicloBancoAtual!!
         val dataFim = versaoJornada.calcularDataFimCicloAtual()!!
 
-        val saldoAtual = calcularSaldoPeriodoUseCase(
+        val saldoPeriodo = calcularSaldoPeriodoUseCase(
             empregoId = empregoId,
             dataInicio = dataInicio,
             dataFim = minOf(dataAtual, dataFim)
         )
 
+        val ultimoFechamento = fechamentoRepository.buscarUltimoFechamentoBancoAteData(empregoId, dataInicio.minusDays(1))
+        val saldoInicial = ultimoFechamento?.saldoAnteriorMinutos ?: 0
+
         return CicloBancoHoras(
             dataInicio = dataInicio,
             dataFim = dataFim,
-            saldoInicialMinutos = 0,
-            saldoAtualMinutos = saldoAtual.saldoTotalMinutos,
+            saldoInicialMinutos = saldoInicial,
+            saldoAtualMinutos = saldoInicial + saldoPeriodo.saldoTotalMinutos,
             isCicloAtual = true
         )
     }
