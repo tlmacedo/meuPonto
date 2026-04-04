@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets
  */
 
 fun exportByLayers(rootDirectory: String, destinationDirectory: String) {
-    val MAX_LINES = 20000
+    val MAX_LINES = 12000
     val allowedExtensions = setOf("kt", "java", "xml", "gradle", "kts", "properties", "sql")
     val ignoredFolders = setOf(".git", ".idea", "captures", "bin", "out", "export_meu_ponto", "build")
 

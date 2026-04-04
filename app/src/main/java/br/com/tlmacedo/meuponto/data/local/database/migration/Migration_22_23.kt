@@ -180,5 +180,49 @@ val MIGRATION_22_23 = object : Migration(22, 23) {
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoBackupApenasWifi INTEGER NOT NULL DEFAULT 1
         """.trimIndent())
+
+        // ════════════════════════════════════════════════════════════════════
+        // 4. SUPORTE A SOFT DELETE NA TABELA PONTOS (Adicionado retroativamente)
+        // ════════════════════════════════════════════════════════════════════
+
+        // Adicionar coluna is_deleted com valor padrão 0 (false)
+        db.execSQL(
+            """
+            ALTER TABLE pontos 
+            ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0
+            """
+        )
+
+        // Adicionar coluna deleted_at (nullable)
+        db.execSQL(
+            """
+            ALTER TABLE pontos 
+            ADD COLUMN deleted_at INTEGER DEFAULT NULL
+            """
+        )
+
+        // Adicionar coluna updated_at
+        db.execSQL(
+            """
+            ALTER TABLE pontos 
+            ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0
+            """
+        )
+
+        // Criar índice para consultas de soft delete
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_pontos_is_deleted 
+            ON pontos(is_deleted)
+            """
+        )
+
+        // Atualizar updated_at com timestamp atual para registros existentes
+        val currentTime = System.currentTimeMillis()
+        db.execSQL(
+            """
+            UPDATE pontos SET updated_at = $currentTime WHERE updated_at = 0
+            """
+        )
     }
 }

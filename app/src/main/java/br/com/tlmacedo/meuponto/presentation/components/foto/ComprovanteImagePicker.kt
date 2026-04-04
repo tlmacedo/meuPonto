@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import timber.log.Timber
 
 /**
  * Composable que gerencia seleção de imagem via câmera ou galeria.
@@ -50,7 +51,7 @@ fun ComprovanteImagePicker(
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
-        android.util.Log.d("ComprovanteImagePicker", "cameraLauncher resultado: success=$success")
+        Timber.d("cameraLauncher resultado: success=$success")
         actionInProgress = false
         onCameraResult(success)
     }
@@ -59,17 +60,17 @@ fun ComprovanteImagePicker(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        android.util.Log.d("ComprovanteImagePicker", "galleryLauncher resultado: uri=$uri")
+        Timber.d("galleryLauncher resultado: uri=$uri")
         actionInProgress = false
         onGalleryResult(uri)
     }
 
     // Permissão da câmera
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA) { granted ->
-        android.util.Log.d("ComprovanteImagePicker", "Permissão câmera: granted=$granted")
+        Timber.d("Permissão câmera: granted=$granted")
         if (granted) {
             cameraUri?.let { uri ->
-                android.util.Log.d("ComprovanteImagePicker", "Lançando câmera com uri=$uri")
+                Timber.d("Lançando câmera com uri=$uri")
                 cameraLauncher.launch(uri)
             } ?: run {
                 actionInProgress = false
@@ -85,27 +86,27 @@ fun ComprovanteImagePicker(
     if (showSourceDialog && !actionInProgress) {
         FotoSourceDialog(
             onDismiss = {
-                android.util.Log.d("ComprovanteImagePicker", "Diálogo fechado pelo usuário")
+                Timber.d("Diálogo fechado pelo usuário")
                 onDismissSourceDialog()
             },
             onCameraSelected = {
-                android.util.Log.d("ComprovanteImagePicker", "Câmera selecionada. permissao=${cameraPermissionState.status.isGranted}, cameraUri=$cameraUri")
+                Timber.d("Câmera selecionada. permissao=${cameraPermissionState.status.isGranted}, cameraUri=$cameraUri")
                 actionInProgress = true
                 if (cameraPermissionState.status.isGranted) {
                     cameraUri?.let { uri ->
-                        android.util.Log.d("ComprovanteImagePicker", "Lançando câmera direto")
+                        Timber.d("Lançando câmera direto")
                         cameraLauncher.launch(uri)
                     } ?: run {
                         actionInProgress = false
                         onPermissionDenied("Erro ao preparar câmera. Tente novamente.")
                     }
                 } else {
-                    android.util.Log.d("ComprovanteImagePicker", "Solicitando permissão de câmera")
+                    Timber.d("Solicitando permissão de câmera")
                     cameraPermissionState.launchPermissionRequest()
                 }
             },
             onGallerySelected = {
-                android.util.Log.d("ComprovanteImagePicker", "Galeria selecionada")
+                Timber.d("Galeria selecionada")
                 actionInProgress = true
                 galleryLauncher.launch("image/*")
             }

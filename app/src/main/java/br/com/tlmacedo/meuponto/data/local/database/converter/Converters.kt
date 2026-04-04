@@ -11,6 +11,9 @@ import br.com.tlmacedo.meuponto.domain.model.TipoJornadaDia
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
+import br.com.tlmacedo.meuponto.domain.model.feriado.AbrangenciaFeriado
+import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
+import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -23,8 +26,7 @@ import java.time.format.DateTimeFormatter
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 5.5.0 - Removido conversor para SubTipoFolga
- * @updated 10.0.0 - Adicionados conversores para tipos de foto de comprovante
+ * @updated 12.0.0 - Adicionados conversores para Feriado (Tipo, Recorrencia, Abrangencia)
  */
 class Converters {
 
@@ -147,5 +149,33 @@ class Converters {
     @TypeConverter
     fun toTipoJornadaDia(value: String?): TipoJornadaDia? = value?.let {
         try { TipoJornadaDia.valueOf(it) } catch (e: Exception) { TipoJornadaDia.NORMAL }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CONVERSORES DE ENUMS DE FERIADO
+    // ════════════════════════════════════════════════════════════════════════
+
+    @TypeConverter
+    fun fromTipoFeriado(tipo: TipoFeriado?): String? = tipo?.name
+
+    @TypeConverter
+    fun toTipoFeriado(value: String?): TipoFeriado? = value?.let {
+        try { TipoFeriado.valueOf(it) } catch (e: Exception) { TipoFeriado.NACIONAL }
+    }
+
+    @TypeConverter
+    fun fromRecorrenciaFeriado(recorrencia: RecorrenciaFeriado?): String? = recorrencia?.name
+
+    @TypeConverter
+    fun toRecorrenciaFeriado(value: String?): RecorrenciaFeriado? = value?.let {
+        try { RecorrenciaFeriado.valueOf(it) } catch (e: Exception) { RecorrenciaFeriado.ANUAL }
+    }
+
+    @TypeConverter
+    fun fromAbrangenciaFeriado(abrangencia: AbrangenciaFeriado?): String? = abrangencia?.name
+
+    @TypeConverter
+    fun toAbrangenciaFeriado(value: String?): AbrangenciaFeriado? = value?.let {
+        try { AbrangenciaFeriado.valueOf(it) } catch (e: Exception) { AbrangenciaFeriado.GLOBAL }
     }
 }

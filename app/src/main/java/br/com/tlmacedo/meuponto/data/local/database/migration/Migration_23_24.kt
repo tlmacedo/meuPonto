@@ -3,58 +3,47 @@ package br.com.tlmacedo.meuponto.data.local.database.migration
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /**
- * Migration 23 → 24: Adiciona suporte a Soft Delete na tabela pontos.
+ * Migration 23 → 24: Atualiza a tabela ajustes_saldo com novas colunas de controle.
  *
- * Alterações:
- * - Adiciona coluna is_deleted (INTEGER DEFAULT 0)
- * - Adiciona coluna deleted_at (INTEGER nullable)
- * - Adiciona coluna updated_at (INTEGER DEFAULT 0)
- * - Cria índice em is_deleted para consultas eficientes
+ * Alterações (ajustes_saldo):
+ * - Adiciona coluna atualizadoEm (TEXT NOT NULL)
+ * - Adiciona coluna tipo (TEXT NOT NULL DEFAULT 'MANUAL')
+ * - Cria índice em tipo
  *
  * @author Thiago
  * @since 11.0.0
  */
 val MIGRATION_23_24 = object : Migration(23, 24) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // Adicionar coluna is_deleted com valor padrão 0 (false)
+        // --- Tabela ajustes_saldo ---
+        // Valor padrão válido para LocalDateTime
+        val agora = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+        // Adicionar coluna 'atualizadoEm' na tabela ajustes_saldo
         db.execSQL(
             """
-            ALTER TABLE pontos 
-            ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0
+            ALTER TABLE ajustes_saldo 
+            ADD COLUMN atualizadoEm TEXT NOT NULL DEFAULT '$agora'
             """
         )
 
-        // Adicionar coluna deleted_at (nullable)
+        // Adicionar coluna 'tipo' na tabela ajustes_saldo
         db.execSQL(
             """
-            ALTER TABLE pontos 
-            ADD COLUMN deleted_at INTEGER DEFAULT NULL
+            ALTER TABLE ajustes_saldo 
+            ADD COLUMN tipo TEXT NOT NULL DEFAULT 'MANUAL'
             """
         )
 
-        // Adicionar coluna updated_at
+        // Criar índice para a coluna 'tipo'
         db.execSQL(
             """
-            ALTER TABLE pontos 
-            ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0
-            """
-        )
-
-        // Criar índice para consultas de soft delete
-        db.execSQL(
-            """
-            CREATE INDEX IF NOT EXISTS index_pontos_is_deleted 
-            ON pontos(is_deleted)
-            """
-        )
-
-        // Atualizar updated_at com timestamp atual para registros existentes
-        val currentTime = System.currentTimeMillis()
-        db.execSQL(
-            """
-            UPDATE pontos SET updated_at = $currentTime WHERE updated_at = 0
+            CREATE INDEX IF NOT EXISTS index_ajustes_saldo_tipo 
+            ON ajustes_saldo(tipo)
             """
         )
     }
