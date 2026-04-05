@@ -7,6 +7,7 @@ import br.com.tlmacedo.meuponto.domain.model.proximoPontoDescricao
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -18,12 +19,13 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 2.0.0
- * @updated 7.0.0 - Integração com CalcularHoraConsideradaUseCase para persistir tolerância
+ * @updated 12.0.0 - Integração com VersaoJornada para validações e tolerância
  */
 class RegistrarPontoUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val preferenciasRepository: PreferenciasRepository,
     private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val calcularHoraConsideradaUseCase: CalcularHoraConsideradaUseCase
 ) {
 
@@ -41,6 +43,7 @@ class RegistrarPontoUseCase @Inject constructor(
         data class Validacao(val erros: List<String>) : Resultado()
         data class NsrObrigatorio(val tipoNsr: br.com.tlmacedo.meuponto.domain.model.TipoNsr) : Resultado()
         data object LocalizacaoObrigatoria : Resultado()
+        data object VersaoNaoEncontrada : Resultado()
         data class Erro(val mensagem: String) : Resultado()
     }
 
@@ -60,45 +63,41 @@ class RegistrarPontoUseCase @Inject constructor(
                 ?: preferenciasRepository.obterEmpregoAtivoId()
                 ?: return Resultado.SemEmpregoAtivo
 
-            // Buscar configurações do emprego
+            val dataHoraOriginal = parametros.dataHora ?: LocalDateTime.now()
+            val dataHora = dataHoraOriginal.truncatedTo(ChronoUnit.MINUTES)
+            val data = dataHora.toLocalDate()
+
+            // 1. Buscar Versão da Jornada para a data do ponto
+            val versao = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+                ?: return Resultado.VersaoNaoEncontrada
+
+            // 2. Buscar configurações fixas do emprego
             val configuracao = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
 
-            // Validar NSR se habilitado
+            // 3. Validar NSR se habilitado (ConfiguracaoEmprego)
             if (configuracao?.habilitarNsr == true && parametros.nsr.isNullOrBlank()) {
                 return Resultado.NsrObrigatorio(configuracao.tipoNsr)
             }
 
-            // Validar localização se habilitada
+            // 4. Validar localização se habilitada (ConfiguracaoEmprego)
             if (configuracao?.habilitarLocalizacao == true) {
                 if (parametros.latitude == null || parametros.longitude == null) {
                     return Resultado.LocalizacaoObrigatoria
                 }
             }
 
-            val dataHoraOriginal = parametros.dataHora ?: LocalDateTime.now()
-            val dataHora = dataHoraOriginal.truncatedTo(ChronoUnit.MINUTES)
-            val data = dataHora.toLocalDate()
-
             val pontosNoDia = pontoRepository.buscarPorEmpregoEData(empregoId, data)
 
-            // Verifica limite de pontos
+            // 5. Verifica limite de pontos
             if (pontosNoDia.size >= PontoConstants.MAX_PONTOS) {
                 return Resultado.LimiteAtingido(PontoConstants.MAX_PONTOS)
             }
 
-            // Valida horário
-            val ultimoPonto = pontosNoDia.maxByOrNull { it.dataHora }
-            if (ultimoPonto != null && dataHora.isBefore(ultimoPonto.dataHora)) {
-                return Resultado.HorarioInvalido(
-                    "O horário não pode ser anterior ao último registro (${ultimoPonto.horaFormatada})"
-                )
-            }
-
-            // Determina descrição do tipo baseado na posição
-            val indicePonto = pontosNoDia.size
+            // 6. Determina o índice correto baseado na ordem cronológica (mesmo se inserido fora de ordem)
+            val indicePonto = pontosNoDia.count { it.dataHora.isBefore(dataHora) }
             val tipoDescricao = proximoPontoDescricao(indicePonto)
 
-            // *** Calcula hora considerada com tolerância (retorna LocalTime) ***
+            // 7. Calcula hora considerada com tolerância (usa a versão encontrada no passo 1)
             val horaConsiderada: LocalTime = calcularHoraConsideradaUseCase(
                 empregoId = empregoId,
                 dataHora = dataHora,

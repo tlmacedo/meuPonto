@@ -76,6 +76,7 @@ class EditarEmpregoViewModel @Inject constructor(
             is EditarEmpregoAction.AlterarHabilitarLocalizacao -> alterarHabilitarLocalizacao(action.habilitado)
             is EditarEmpregoAction.AlterarLocalizacaoAutomatica -> alterarLocalizacaoAutomatica(action.automatica)
             is EditarEmpregoAction.AlterarHabilitarFotoComprovante -> alterarHabilitarFotoComprovante(action.habilitado)
+            is EditarEmpregoAction.AlterarFotoObrigatoria -> alterarFotoObrigatoria(action.obrigatoria)
 
             is EditarEmpregoAction.AlterarExigeJustificativa -> alterarExigeJustificativa(action.exigir)
             is EditarEmpregoAction.AlterarPrimeiroDiaSemana -> alterarPrimeiroDiaSemana(action.dia)
@@ -133,6 +134,7 @@ class EditarEmpregoViewModel @Inject constructor(
                             habilitarLocalizacao = config.habilitarLocalizacao,
                             localizacaoAutomatica = config.localizacaoAutomatica,
                             habilitarFotoComprovante = config.fotoHabilitada,
+                            fotoObrigatoria = config.fotoObrigatoria,
 
                             exigeJustificativaInconsistencia = versaoVigente?.exigeJustificativaInconsistencia ?: false,
                             primeiroDiaSemana = versaoVigente?.primeiroDiaSemana ?: DiaSemana.SEGUNDA,
@@ -180,6 +182,7 @@ class EditarEmpregoViewModel @Inject constructor(
     private fun alterarHabilitarLocalizacao(habilitado: Boolean) = _uiState.update { it.copy(habilitarLocalizacao = habilitado) }
     private fun alterarLocalizacaoAutomatica(automatica: Boolean) = _uiState.update { it.copy(localizacaoAutomatica = automatica) }
     private fun alterarHabilitarFotoComprovante(habilitado: Boolean) = _uiState.update { it.copy(habilitarFotoComprovante = habilitado) }
+    private fun alterarFotoObrigatoria(obrigatoria: Boolean) = _uiState.update { it.copy(fotoObrigatoria = obrigatoria) }
     private fun alterarExigeJustificativa(exigir: Boolean) = _uiState.update { it.copy(exigeJustificativaInconsistencia = exigir) }
     private fun alterarPrimeiroDiaSemana(dia: DiaSemana) = _uiState.update { it.copy(primeiroDiaSemana = dia) }
     private fun alterarDiaInicioFechamentoRH(dia: Int) = _uiState.update { it.copy(diaInicioFechamentoRH = dia.coerceIn(1, 28)) }
@@ -236,8 +239,10 @@ class EditarEmpregoViewModel @Inject constructor(
                         zerarBancoAoFecharCiclo = state.zerarBancoAntesPeriodo,
                         habilitarNsr = state.habilitarNsr,
                         tipoNsr = state.tipoNsr,
+                        habilitarLocalizacao = state.habilitarLocalizacao,
+                        localizacaoAutomatica = state.localizacaoAutomatica,
                         fotoHabilitada = state.habilitarFotoComprovante,
-                        fotoObrigatoria = false, // Padrao inicial
+                        fotoObrigatoria = state.fotoObrigatoria,
                         exigeJustificativaInconsistencia = state.exigeJustificativaInconsistencia
                     )
                     
@@ -259,8 +264,10 @@ class EditarEmpregoViewModel @Inject constructor(
                         dataInicioTrabalho = state.dataInicioTrabalho ?: LocalDate.now(),
                         habilitarNsr = state.habilitarNsr,
                         tipoNsr = state.tipoNsr,
+                        habilitarLocalizacao = state.habilitarLocalizacao,
+                        localizacaoAutomatica = state.localizacaoAutomatica,
                         fotoHabilitada = state.habilitarFotoComprovante,
-                        fotoObrigatoria = false,
+                        fotoObrigatoria = state.fotoObrigatoria,
                         cargaHorariaDiariaMinutos = state.cargaHorariaDiaria.toMinutes().toInt(),
                         acrescimoMinutosDiasPontes = state.acrescimoMinutosDiasPontes,
                         jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,

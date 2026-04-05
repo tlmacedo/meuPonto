@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,13 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -43,18 +40,16 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Botão compacto para registrar ponto no dia atual.
+ * Botão único para abrir o modal de registro de ponto.
  *
  * @author Thiago
- * @since 1.0.0
- * @updated 5.0.0 - Corrigido VerticalDivider com altura fixa
+ * @since 12.0.0
  */
 @Composable
 fun RegistrarPontoButton(
     proximoTipo: ProximoPonto,
     horaAtual: LocalTime,
-    onRegistrarAgora: () -> Unit,
-    onRegistrarManual: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isEntrada = proximoTipo.isEntrada
@@ -83,86 +78,51 @@ fun RegistrarPontoButton(
             .fillMaxWidth()
             .scale(scale)
             .shadow(4.dp, RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp) // Altura fixa para o botão
+                .height(52.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            // Área principal clicável - registro automático
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = onRegistrarAgora
-                    )
-                    .padding(horizontal = 12.dp)
-            ) {
-                Icon(
-                    imageVector = icone,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = texto,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = horaAtual.format(formatadorHora),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
-                )
-            }
-
-            // Divisor vertical com altura fixa
-            VerticalDivider(
-                modifier = Modifier
-                    .height(32.dp),
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f),
-                thickness = 1.dp
+            Icon(
+                imageVector = icone,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(22.dp)
             )
-
-            // Botão para registro manual
-            Box(
-                modifier = Modifier
-                    .clickable(onClick = onRegistrarManual)
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = "Informar outro horário",
-                    tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = texto,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = horaAtual.format(formatadorHora),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+            )
         }
     }
 }
 
 /**
  * Botão compacto para registrar ponto manual em dias anteriores.
- *
- * @author Thiago
- * @since 2.6.0
- * @updated 5.0.0 - Layout compactado
  */
 @Composable
 fun RegistrarPontoManualButton(
     proximoTipo: ProximoPonto,
-    dataFormatada: String,
-    onRegistrarManual: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isEntrada = proximoTipo.isEntrada
@@ -189,17 +149,17 @@ fun RegistrarPontoManualButton(
             .fillMaxWidth()
             .scale(scale)
             .shadow(4.dp, RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onRegistrarManual
-                )
                 .padding(vertical = 14.dp, horizontal = 16.dp)
         ) {
             Icon(
@@ -215,19 +175,6 @@ fun RegistrarPontoManualButton(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimary
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.Default.Schedule,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                modifier = Modifier.size(14.dp)
-            )
-//            Spacer(modifier = Modifier.width(4.dp))
-//            Text(
-//                text = "Informar horário",
-//                style = MaterialTheme.typography.bodySmall,
-//                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-//            )
         }
     }
 }

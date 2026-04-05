@@ -24,16 +24,21 @@ import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -128,6 +133,7 @@ fun IntervaloCard(
                     ) {
                         PontoContent(
                             tipo = TipoRegistro.ENTRADA,
+                            ponto = intervalo.entrada,
                             horaReal = intervalo.entrada.hora.format(formatadorHora),
                             horaConsiderada = if (intervalo.temHoraEntradaConsiderada) {
                                 intervalo.horaEntradaConsiderada!!.toLocalTime().format(formatadorHora)
@@ -218,6 +224,7 @@ fun IntervaloCard(
                         ) {
                             PontoContent(
                                 tipo = TipoRegistro.SAIDA,
+                                ponto = intervalo.saida,
                                 horaReal = intervalo.saida.hora.format(formatadorHora),
                                 horaConsiderada = null, // Saída não tem tolerância
                                 nsr = if (mostrarNsr) intervalo.saida.nsr else null,
@@ -243,12 +250,11 @@ private enum class TipoRegistro {
     ENTRADA, SAIDA
 }
 
-/**
- * Conteúdo visual de um registro de ponto (entrada ou saída).
- */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun PontoContent(
     tipo: TipoRegistro,
+    ponto: Ponto,
     horaReal: String,
     horaConsiderada: String?,
     nsr: String?,
@@ -282,12 +288,24 @@ private fun PontoContent(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = corPrimaria
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = corPrimaria
+            )
+            
+            if (ponto.temAjusteTolerancia) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Com corte",
+                    tint = corPrimaria.copy(alpha = 0.6f),
+                    modifier = Modifier.size(10.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(2.dp))
 
@@ -310,7 +328,7 @@ private fun PontoContent(
                 text = horaReal,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = if (ponto.temAjusteTolerancia) corPrimaria else MaterialTheme.colorScheme.onSurface
             )
         }
 
@@ -318,7 +336,7 @@ private fun PontoContent(
         if (!nsr.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "# $nsr",
+                text = "NSR $nsr",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)

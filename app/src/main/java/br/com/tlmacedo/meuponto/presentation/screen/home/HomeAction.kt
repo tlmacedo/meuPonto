@@ -6,6 +6,7 @@ import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 /**
@@ -27,23 +28,46 @@ sealed interface HomeAction {
     data object FecharTimePickerDialog : HomeAction
     data class RegistrarPontoManual(val hora: LocalTime) : HomeAction
 
-    // ══════════════════════════════════════════════════════════════════════
-    // AÇÕES DE NSR
-    // ══════════════════════════════════════════════════════════════════════
+    // ── NOVO MODAL DE REGISTRO (UNIFICADO) ──────────────────────────────────
+    /** Abre o modal de registro unificado */
+    data class AbrirRegistrarPontoModal(val dataHora: LocalDateTime) : HomeAction
 
-    data class AtualizarNsr(val nsr: String) : HomeAction
-    data object ConfirmarRegistroComNsr : HomeAction
-    data object CancelarNsrDialog : HomeAction
+    /** Fecha o modal de registro unificado */
+    data object FecharRegistrarPontoModal : HomeAction
 
-    // ══════════════════════════════════════════════════════════════════════
-    // AÇÕES DE FOTO DE COMPROVANTE
-    // ══════════════════════════════════════════════════════════════════════
+    /** Atualiza o NSR no modal de registro */
+    data class AtualizarNsrRegistroModal(val nsr: String) : HomeAction
 
+    /** Atualiza a foto no modal de registro */
+    data class AtualizarFotoRegistroModal(val uri: Uri?) : HomeAction
+
+    /** Atualiza a hora no modal de registro */
+    data class AtualizarHoraRegistroModal(val hora: LocalTime) : HomeAction
+
+    /** Abre o seletor de hora no modal de registro */
+    data object AbrirTimePickerRegistroModal : HomeAction
+
+    /** Fecha o seletor de hora no modal de registro */
+    data object FecharTimePickerRegistroModal : HomeAction
+
+    /** Solicita captura de localização no modal */
+    data object CapturarLocalizacaoRegistroModal : HomeAction
+
+    /** Confirma o registro do ponto a partir do modal */
+    data object ConfirmarRegistroPontoModal : HomeAction
+
+    // ── FOTO DE COMPROVANTE (Ações globais/fluxo antigo) ─────────────────────
+    /** Abre o diálogo de seleção de fonte da foto (Câmera/Galeria) */
     data object AbrirFotoSourceDialog : HomeAction
+
+    /** Fecha o diálogo de seleção de fonte da foto */
     data object FecharFotoSourceDialog : HomeAction
+
+    /** Confirma a foto capturada pela câmera */
     data object ConfirmarFotoCamera : HomeAction
+
+    /** Seleciona uma foto da galeria */
     data class SelecionarFotoComprovante(val uri: Uri) : HomeAction
-    data object RemoverFotoComprovante : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
     // MODAIS DE PONTO (Nova implementação 7.2.0)
@@ -88,15 +112,6 @@ sealed interface HomeAction {
 
     /** Fecha o modal de foto */
     data object FecharFotoModal : HomeAction
-
-    // ══════════════════════════════════════════════════════════════════════
-    // AÇÕES DE EXCLUSÃO DE PONTO (legado - manter por compatibilidade)
-    // ══════════════════════════════════════════════════════════════════════
-
-    data class SolicitarExclusao(val ponto: Ponto) : HomeAction
-    data object CancelarExclusao : HomeAction
-    data class AtualizarMotivoExclusao(val motivo: String) : HomeAction
-    data object ConfirmarExclusao : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
     // AÇÕES DE NAVEGAÇÃO POR DATA
@@ -144,6 +159,6 @@ sealed interface HomeAction {
 
     data object AbrirDialogFechamentoCiclo : HomeAction
     data object FecharDialogFechamentoCiclo : HomeAction
-    data object ConfirmarFechamentoCiclo : HomeAction
+    data class ConfirmarFechamentoCiclo(val saldoAnterior: Long, val motivo: String) : HomeAction
     data object NavegarParaHistoricoCiclos : HomeAction
 }

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.tlmacedo.meuponto.data.service.LocationService
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
@@ -86,7 +87,8 @@ class HomeViewModel @Inject constructor(
     private val inicializarCiclosRetroativosUseCase: InicializarCiclosRetroativosUseCase,
     private val reverterFechamentoIncorretoUseCase: ReverterFechamentoIncorretoUseCase,
     private val fechamentoPeriodoRepository: FechamentoPeriodoRepository,
-    private val pontoRepository: PontoRepository
+    private val pontoRepository: PontoRepository,
+    private val locationService: LocationService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -110,18 +112,10 @@ class HomeViewModel @Inject constructor(
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.RecarregarConfiguracaoEmprego -> recarregarConfiguracaoEmprego()
-            is HomeAction.RegistrarPontoAgora -> iniciarRegistroPonto(LocalTime.now())
+            is HomeAction.RegistrarPontoAgora -> abrirRegistrarPontoModal(LocalDateTime.now())
             is HomeAction.AbrirTimePickerDialog -> abrirTimePicker()
             is HomeAction.FecharTimePickerDialog -> fecharTimePicker()
-            is HomeAction.RegistrarPontoManual -> iniciarRegistroPonto(action.hora)
-            is HomeAction.AtualizarNsr -> atualizarNsr(action.nsr)
-            is HomeAction.ConfirmarRegistroComNsr -> confirmarRegistroComNsr()
-            is HomeAction.CancelarNsrDialog -> cancelarNsrDialog()
-            is HomeAction.AbrirFotoSourceDialog -> abrirFotoSourceDialog()
-            is HomeAction.FecharFotoSourceDialog -> fecharFotoSourceDialog()
-            is HomeAction.ConfirmarFotoCamera -> confirmarFotoCamera()
-            is HomeAction.SelecionarFotoComprovante -> selecionarFotoComprovante(action.uri)
-            is HomeAction.RemoverFotoComprovante -> removerFotoComprovante()
+            is HomeAction.RegistrarPontoManual -> abrirRegistrarPontoModal(LocalDateTime.of(_uiState.value.dataSelecionada, action.hora))
 
             // ══════════════════════════════════════════════════════════════════════
             // MODAIS DE PONTO
@@ -146,12 +140,6 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            // Exclusão legado (manter por compatibilidade)
-            is HomeAction.SolicitarExclusao -> solicitarExclusao(action.ponto)
-            is HomeAction.CancelarExclusao -> cancelarExclusao()
-            is HomeAction.AtualizarMotivoExclusao -> atualizarMotivoExclusao(action.motivo)
-            is HomeAction.ConfirmarExclusao -> confirmarExclusao()
-
             // Navegação por data
             is HomeAction.DiaAnterior -> navegarDiaAnterior()
             is HomeAction.ProximoDia -> navegarProximoDia()
@@ -175,6 +163,23 @@ class HomeViewModel @Inject constructor(
             is HomeAction.FecharDialogFechamentoCiclo -> fecharDialogFechamentoCiclo()
             is HomeAction.ConfirmarFechamentoCiclo -> confirmarFechamentoCiclo()
             is HomeAction.NavegarParaHistoricoCiclos -> navegarParaHistoricoCiclos()
+
+            // NOVO MODAL DE REGISTRO
+            is HomeAction.AbrirRegistrarPontoModal -> abrirRegistrarPontoModal(action.dataHora)
+            is HomeAction.FecharRegistrarPontoModal -> fecharRegistrarPontoModal()
+            is HomeAction.AtualizarNsrRegistroModal -> atualizarNsrRegistroModal(action.nsr)
+            is HomeAction.AtualizarFotoRegistroModal -> atualizarFotoRegistroModal(action.uri)
+            is HomeAction.AtualizarHoraRegistroModal -> atualizarHoraRegistroModal(action.hora)
+            is HomeAction.AbrirTimePickerRegistroModal -> abrirTimePickerRegistroModal()
+            is HomeAction.FecharTimePickerRegistroModal -> fecharTimePickerRegistroModal()
+            is HomeAction.CapturarLocalizacaoRegistroModal -> capturarLocalizacaoRegistroModal()
+            is HomeAction.ConfirmarRegistroPontoModal -> confirmarRegistroPontoModal()
+
+            // FOTO DE COMPROVANTE
+            is HomeAction.AbrirFotoSourceDialog -> abrirFotoSourceDialog()
+            is HomeAction.FecharFotoSourceDialog -> fecharFotoSourceDialog()
+            is HomeAction.ConfirmarFotoCamera -> confirmarFotoCamera()
+            is HomeAction.SelecionarFotoComprovante -> selecionarFotoComprovante(action.uri)
         }
     }
 
@@ -390,6 +395,247 @@ class HomeViewModel @Inject constructor(
 
     private fun fecharFotoModal() {
         _uiState.update { it.copy(fotoModal = null) }
+    }
+
+    // ── NOVO MODAL DE REGISTRO (UNIFICADO) ──────────────────────────────────
+
+    private fun abrirRegistrarPontoModal(dataHora: LocalDateTime) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    registrarPontoModal = RegistrarPontoModalState(
+                        dataHora = dataHora
+                    )
+                )
+            }
+
+            // Iniciar captura de localização se habilitado e for automática
+            if (_uiState.value.localizacaoHabilitada && _uiState.value.configuracaoEmprego?.localizacaoAutomatica == true) {
+                capturarLocalizacaoRegistroModal()
+            }
+        }
+    }
+
+    private fun fecharRegistrarPontoModal() {
+        _uiState.update { it.copy(registrarPontoModal = null) }
+    }
+
+    private fun atualizarNsrRegistroModal(nsr: String) {
+        _uiState.update { state ->
+            state.copy(
+                registrarPontoModal = state.registrarPontoModal?.copy(nsr = nsr)
+            )
+        }
+    }
+
+    private fun atualizarFotoRegistroModal(uri: Uri?) {
+        _uiState.update { state ->
+            state.copy(
+                registrarPontoModal = state.registrarPontoModal?.copy(fotoUri = uri),
+                showFotoSourceDialog = false
+            )
+        }
+    }
+
+    private fun atualizarHoraRegistroModal(hora: LocalTime) {
+        _uiState.update { state ->
+            state.registrarPontoModal?.let { modal ->
+                val novaDataHora = LocalDateTime.of(modal.dataHora.toLocalDate(), hora)
+                state.copy(
+                    registrarPontoModal = modal.copy(
+                        dataHora = novaDataHora,
+                        showTimePicker = false
+                    )
+                )
+            } ?: state
+        }
+    }
+
+    private fun abrirTimePickerRegistroModal() {
+        _uiState.update { state ->
+            state.copy(
+                registrarPontoModal = state.registrarPontoModal?.copy(showTimePicker = true)
+            )
+        }
+    }
+
+    private fun fecharTimePickerRegistroModal() {
+        _uiState.update { state ->
+            state.copy(
+                registrarPontoModal = state.registrarPontoModal?.copy(showTimePicker = false)
+            )
+        }
+    }
+
+    private fun capturarLocalizacaoRegistroModal() {
+        if (!_uiState.value.localizacaoHabilitada) return
+
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    registrarPontoModal = state.registrarPontoModal?.copy(
+                        isCapturingLocation = true,
+                        erroLocalizacao = null
+                    )
+                )
+            }
+
+            if (locationService.hasLocationPermission()) {
+                try {
+                    val localizacao = locationService.getCurrentLocation()
+                    if (localizacao != null) {
+                        val endereco = locationService.getAddressFromLocation(
+                            localizacao.latitude,
+                            localizacao.longitude
+                        )
+                        _uiState.update { state ->
+                            state.copy(
+                                registrarPontoModal = state.registrarPontoModal?.copy(
+                                    latitude = localizacao.latitude,
+                                    longitude = localizacao.longitude,
+                                    endereco = endereco,
+                                    isCapturingLocation = false
+                                )
+                            )
+                        }
+                    } else {
+                        _uiState.update { state ->
+                            state.copy(
+                                registrarPontoModal = state.registrarPontoModal?.copy(
+                                    isCapturingLocation = false,
+                                    erroLocalizacao = "Não foi possível obter a localização. Verifique se o GPS está ligado."
+                                )
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    _uiState.update { state ->
+                        state.copy(
+                            registrarPontoModal = state.registrarPontoModal?.copy(
+                                isCapturingLocation = false,
+                                erroLocalizacao = "Erro ao capturar localização: ${e.message}"
+                            )
+                        )
+                    }
+                }
+            } else {
+                _uiState.update { state ->
+                    state.copy(
+                        registrarPontoModal = state.registrarPontoModal?.copy(
+                            isCapturingLocation = false,
+                            erroLocalizacao = "Permissão de localização negada"
+                        )
+                    )
+                }
+                _uiEvent.emit(HomeUiEvent.SolicitarPermissaoLocalizacao)
+            }
+        }
+    }
+
+    private fun confirmarRegistroPontoModal() {
+        val modalState = _uiState.value.registrarPontoModal ?: return
+        val empregoId = _uiState.value.empregoAtivo?.id ?: return
+
+        // Validar foto obrigatória
+        if (_uiState.value.fotoObrigatoria && modalState.fotoUri == null) {
+            viewModelScope.launch {
+                _uiEvent.emit(HomeUiEvent.MostrarErro("A foto do comprovante é obrigatória."))
+            }
+            return
+        }
+
+        // Validar NSR obrigatório
+        if (_uiState.value.nsrHabilitado && modalState.nsr.isBlank()) {
+            viewModelScope.launch {
+                _uiEvent.emit(HomeUiEvent.MostrarErro("O NSR é obrigatório."))
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    registrarPontoModal = state.registrarPontoModal?.copy(isSaving = true)
+                )
+            }
+
+            val parametros = RegistrarPontoUseCase.Parametros(
+                empregoId = empregoId,
+                dataHora = modalState.dataHora,
+                nsr = if (_uiState.value.nsrHabilitado) modalState.nsr else null,
+                latitude = modalState.latitude,
+                longitude = modalState.longitude,
+                endereco = modalState.endereco
+            )
+
+            when (val resultado = registrarPontoUseCase(parametros)) {
+                is RegistrarPontoUseCase.Resultado.Sucesso -> {
+                    // Salvar foto se houver
+                    modalState.fotoUri?.let { uri ->
+                        salvarFotoComprovante(uri, resultado.pontoId, empregoId, modalState.dataHora)
+                    }
+
+                    _uiState.update { it.copy(registrarPontoModal = null) }
+                    
+                    val horaFormatada = modalState.dataHora.format(DateTimeFormatter.ofPattern("HH:mm"))
+                    val tipoDescricao = _uiState.value.proximoTipo.descricao
+                    _uiEvent.emit(
+                        HomeUiEvent.MostrarMensagem("$tipoDescricao registrada às $horaFormatada")
+                    )
+                    
+                    carregarPontosDoDia()
+                    carregarBancoHoras()
+                }
+                is RegistrarPontoUseCase.Resultado.LocalizacaoObrigatoria -> {
+                    _uiState.update { state ->
+                        state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarErro("A localização é obrigatória para este registro. Verifique as permissões de GPS."))
+                }
+                is RegistrarPontoUseCase.Resultado.NsrObrigatorio -> {
+                    _uiState.update { state ->
+                        state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarErro("O NSR é obrigatório para este registro."))
+                }
+                is RegistrarPontoUseCase.Resultado.HorarioInvalido -> {
+                    _uiState.update { state ->
+                        state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.motivo))
+                }
+                is RegistrarPontoUseCase.Resultado.LimiteAtingido -> {
+                    _uiState.update { state ->
+                        state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarErro("Limite de registros diários atingido."))
+                }
+                is RegistrarPontoUseCase.Resultado.VersaoNaoEncontrada -> {
+                    _uiState.update { state ->
+                        state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarErro("Configuração de jornada não encontrada."))
+                }
+                is RegistrarPontoUseCase.Resultado.Validacao -> {
+                    _uiState.update { state ->
+                        state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.erros.joinToString("\n")))
+                }
+                is RegistrarPontoUseCase.Resultado.Erro -> {
+                    _uiState.update { state ->
+                        state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.mensagem))
+                }
+                else -> {
+                    _uiState.update { state ->
+                        state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarErro("Erro ao registrar ponto."))
+                }
+            }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -812,166 +1058,10 @@ class HomeViewModel @Inject constructor(
 
         fecharTimePicker()
 
-        android.util.Log.d("HomeViewModel", "iniciarRegistroPonto: hora=$hora, fotoObrigatoria=${_uiState.value.fotoObrigatoria}, fotoUri=${_uiState.value.fotoComprovanteUri}")
+        val data = _uiState.value.dataSelecionada
+        val dataHora = LocalDateTime.of(data, hora)
 
-        if (_uiState.value.fotoObrigatoria && _uiState.value.fotoComprovanteUri == null) {
-            val uri = criarCameraUri()
-            android.util.Log.d("HomeViewModel", "Abrindo diálogo de foto. cameraUri=$uri")
-            _uiState.update {
-                it.copy(
-                    horaPendenteParaRegistro = hora,
-                    showFotoSourceDialog = true,
-                    cameraUri = uri
-                )
-            }
-            return
-        }
-
-        continuarFluxoRegistro(hora)
-    }
-
-    private fun continuarFluxoRegistro(hora: LocalTime) {
-        android.util.Log.d("HomeViewModel", "continuarFluxoRegistro: hora=$hora, nsrHabilitado=${_uiState.value.nsrHabilitado}")
-
-        if (_uiState.value.nsrHabilitado) {
-            _uiState.update {
-                it.copy(
-                    showNsrDialog = true,
-                    nsrPendente = "",
-                    horaPendenteParaRegistro = hora
-                )
-            }
-        } else {
-            registrarPonto(hora, null)
-        }
-    }
-
-    private fun atualizarNsr(nsr: String) {
-        _uiState.update { it.copy(nsrPendente = nsr) }
-    }
-
-    private fun confirmarRegistroComNsr() {
-        val hora = _uiState.value.horaPendenteParaRegistro
-        val nsr = _uiState.value.nsrPendente
-
-        android.util.Log.d("HomeViewModel", "confirmarRegistroComNsr: hora=$hora, nsr=$nsr")
-
-        if (hora == null) {
-            android.util.Log.e("HomeViewModel", "confirmarRegistroComNsr: hora é null!")
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("Erro interno. Tente novamente."))
-            }
-            _uiState.update {
-                it.copy(
-                    showNsrDialog = false,
-                    nsrPendente = "",
-                    horaPendenteParaRegistro = null
-                )
-            }
-            return
-        }
-
-        if (nsr.isBlank()) {
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("NSR é obrigatório"))
-            }
-            return
-        }
-
-        _uiState.update {
-            it.copy(
-                showNsrDialog = false,
-                nsrPendente = "",
-                horaPendenteParaRegistro = null
-            )
-        }
-
-        registrarPonto(hora, nsr)
-    }
-
-    private fun cancelarNsrDialog() {
-        _uiState.update {
-            it.copy(
-                showNsrDialog = false,
-                nsrPendente = "",
-                horaPendenteParaRegistro = null,
-                fotoComprovanteUri = null
-            )
-        }
-    }
-
-    private fun registrarPonto(hora: LocalTime, nsr: String?) {
-        val empregoId = _uiState.value.empregoAtivo?.id
-        if (empregoId == null) {
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("Nenhum emprego ativo selecionado"))
-            }
-            return
-        }
-
-        if (_uiState.value.fotoObrigatoria && _uiState.value.fotoComprovanteUri == null) {
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("Foto do comprovante é obrigatória"))
-            }
-            return
-        }
-
-        android.util.Log.d("HomeViewModel", "registrarPonto: hora=$hora, nsr=$nsr, fotoUri=${_uiState.value.fotoComprovanteUri}")
-
-        viewModelScope.launch {
-            val data = _uiState.value.dataSelecionada
-            val dataHora = LocalDateTime.of(data, hora)
-            val fotoUri = _uiState.value.fotoComprovanteUri
-
-            val parametros = RegistrarPontoUseCase.Parametros(
-                empregoId = empregoId,
-                dataHora = dataHora,
-                nsr = nsr
-            )
-
-            when (val resultado = registrarPontoUseCase(parametros)) {
-                is RegistrarPontoUseCase.Resultado.Sucesso -> {
-                    fotoUri?.let { uri ->
-                        salvarFotoComprovante(uri, resultado.pontoId, empregoId, dataHora)
-                    }
-
-                    _uiState.update { it.copy(fotoComprovanteUri = null) }
-
-                    val horaFormatada = hora.format(DateTimeFormatter.ofPattern("HH:mm"))
-                    val tipoDescricao = _uiState.value.proximoTipo.descricao
-                    _uiEvent.emit(
-                        HomeUiEvent.MostrarMensagem("$tipoDescricao registrada às $horaFormatada")
-                    )
-                }
-                is RegistrarPontoUseCase.Resultado.Erro -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.mensagem))
-                }
-                is RegistrarPontoUseCase.Resultado.Validacao -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.erros.joinToString("\n")))
-                }
-                is RegistrarPontoUseCase.Resultado.SemEmpregoAtivo -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro("Nenhum emprego ativo configurado"))
-                }
-                is RegistrarPontoUseCase.Resultado.HorarioInvalido -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.motivo))
-                }
-                is RegistrarPontoUseCase.Resultado.LimiteAtingido -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro("Limite de ${resultado.limite} pontos atingido"))
-                }
-                is RegistrarPontoUseCase.Resultado.LocalizacaoObrigatoria -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro("Localização é obrigatória para este emprego"))
-                }
-                is RegistrarPontoUseCase.Resultado.NsrObrigatorio -> {
-                    _uiState.update {
-                        it.copy(
-                            showNsrDialog = true,
-                            nsrPendente = "",
-                            horaPendenteParaRegistro = hora
-                        )
-                    }
-                }
-            }
-        }
+        abrirRegistrarPontoModal(dataHora)
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1048,155 +1138,15 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun confirmarFotoCamera() {
-        val cameraUri = _uiState.value.cameraUri
-        val horaPendente = _uiState.value.horaPendenteParaRegistro
-
-        android.util.Log.d("HomeViewModel", "confirmarFotoCamera: cameraUri=$cameraUri, horaPendente=$horaPendente")
-
-        if (cameraUri == null) {
-            android.util.Log.e("HomeViewModel", "confirmarFotoCamera: cameraUri é null!")
-            _uiState.update {
-                it.copy(
-                    showFotoSourceDialog = false,
-                    horaPendenteParaRegistro = null
-                )
-            }
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("Erro ao capturar foto. Tente novamente."))
-            }
-            return
-        }
-
-        _uiState.update {
-            it.copy(
-                fotoComprovanteUri = cameraUri,
-                cameraUri = null,
-                showFotoSourceDialog = false
-            )
-        }
-
-        continuarRegistroAposFoto()
+        val uri = _uiState.value.cameraUri ?: return
+        fecharFotoSourceDialog()
+        // O HomeScreen já trata o caso do modal de registro.
+        // Se houver necessidade de tratar fora do modal, a lógica entraria aqui.
     }
 
     private fun selecionarFotoComprovante(uri: Uri) {
-        android.util.Log.d("HomeViewModel", "selecionarFotoComprovante: uri=$uri, horaPendente=${_uiState.value.horaPendenteParaRegistro}")
-
-        _uiState.update {
-            it.copy(
-                fotoComprovanteUri = uri,
-                showFotoSourceDialog = false
-            )
-        }
-
-        continuarRegistroAposFoto()
-    }
-
-    private fun removerFotoComprovante() {
-        _uiState.update { it.copy(fotoComprovanteUri = null) }
-    }
-
-    private fun continuarRegistroAposFoto() {
-        val hora = _uiState.value.horaPendenteParaRegistro
-
-        android.util.Log.d("HomeViewModel", "continuarRegistroAposFoto: hora=$hora, nsrHabilitado=${_uiState.value.nsrHabilitado}")
-
-        if (hora == null) {
-            android.util.Log.e("HomeViewModel", "continuarRegistroAposFoto: horaPendenteParaRegistro é null!")
-            return
-        }
-
-        if (_uiState.value.nsrHabilitado) {
-            _uiState.update {
-                it.copy(
-                    showNsrDialog = true,
-                    nsrPendente = ""
-                )
-            }
-        } else {
-            _uiState.update { it.copy(horaPendenteParaRegistro = null) }
-            registrarPonto(hora, null)
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // EXCLUSÃO DE PONTO (Legado - manter por compatibilidade)
-    // ══════════════════════════════════════════════════════════════════════
-
-    private fun solicitarExclusao(ponto: Ponto) {
-        // Fechar modais se houver algum aberto
-        if (_uiState.value.temModalAberto) {
-            _uiState.update {
-                it.copy(
-                    edicaoModal = null,
-                    exclusaoModal = null,
-                    localizacaoModal = null,
-                    fotoModal = null
-                )
-            }
-        }
-
-        _uiState.update {
-            it.copy(
-                showDeleteConfirmDialog = true,
-                pontoParaExcluir = ponto
-            )
-        }
-    }
-
-    private fun cancelarExclusao() {
-        _uiState.update {
-            it.copy(
-                showDeleteConfirmDialog = false,
-                pontoParaExcluir = null,
-                motivoExclusao = ""
-            )
-        }
-    }
-
-    private fun confirmarExclusao() {
-        val ponto = _uiState.value.pontoParaExcluir ?: return
-        val motivo = _uiState.value.motivoExclusao.trim()
-
-        if (motivo.length < 5) {
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("Informe um motivo válido (mínimo 5 caracteres)"))
-            }
-            return
-        }
-
-        viewModelScope.launch {
-            val parametros = ExcluirPontoUseCase.Parametros(
-                pontoId = ponto.id,
-                motivo = motivo
-            )
-
-            when (val resultado = excluirPontoUseCase(parametros)) {
-                is ExcluirPontoUseCase.Resultado.Sucesso -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ponto excluído com sucesso"))
-                }
-                is ExcluirPontoUseCase.Resultado.Erro -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.mensagem))
-                }
-                is ExcluirPontoUseCase.Resultado.NaoEncontrado -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro("Ponto não encontrado"))
-                }
-                is ExcluirPontoUseCase.Resultado.Validacao -> {
-                    _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.erros.joinToString("\n")))
-                }
-            }
-
-            _uiState.update {
-                it.copy(
-                    showDeleteConfirmDialog = false,
-                    pontoParaExcluir = null,
-                    motivoExclusao = ""
-                )
-            }
-        }
-    }
-
-    private fun atualizarMotivoExclusao(motivo: String) {
-        _uiState.update { it.copy(motivoExclusao = motivo) }
+        fecharFotoSourceDialog()
+        // Idem ao confirmarFotoCamera
     }
 
     // ══════════════════════════════════════════════════════════════════════

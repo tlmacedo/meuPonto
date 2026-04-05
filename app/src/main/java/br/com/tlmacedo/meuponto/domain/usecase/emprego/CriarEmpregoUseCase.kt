@@ -57,6 +57,8 @@ class CriarEmpregoUseCase @Inject constructor(
         // Extras
         val habilitarNsr: Boolean = false,
         val tipoNsr: TipoNsr = TipoNsr.NUMERICO,
+        val habilitarLocalizacao: Boolean = false,
+        val localizacaoAutomatica: Boolean = false,
         val fotoHabilitada: Boolean = false,
         val fotoObrigatoria: Boolean = false,
         val exigeJustificativaInconsistencia: Boolean = false
@@ -94,6 +96,8 @@ class CriarEmpregoUseCase @Inject constructor(
                 empregoId = empregoId,
                 habilitarNsr = parametros.habilitarNsr,
                 tipoNsr = parametros.tipoNsr,
+                habilitarLocalizacao = parametros.habilitarLocalizacao,
+                localizacaoAutomatica = parametros.localizacaoAutomatica,
                 fotoHabilitada = parametros.fotoHabilitada,
                 fotoObrigatoria = parametros.fotoObrigatoria,
                 fotoFormato = FotoFormato.JPEG,

@@ -42,6 +42,7 @@ data class EditarEmpregoUiState(
 
     // FOTO COMPROVANTE
     val habilitarFotoComprovante: Boolean = false,
+    val fotoObrigatoria: Boolean = false,
 
     // VALIDAÇÕES
     val exigeJustificativaInconsistencia: Boolean = false,

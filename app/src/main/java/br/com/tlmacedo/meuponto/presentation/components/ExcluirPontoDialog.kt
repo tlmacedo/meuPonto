@@ -25,18 +25,18 @@ import java.time.format.DateTimeFormatter
  * @param tipoDescricao Descrição do tipo (Entrada/Saída) - calculada dinamicamente pelo índice
  * @param onDismiss Callback ao fechar/cancelar
  * @param onConfirmar Callback ao confirmar exclusão (recebe o motivo)
- * @param isLoading Se está processando a exclusão
+ * @param isDeleting Se está processando a exclusão
  *
  * @author Thiago
  * @since 7.2.0
  */
 @Composable
-fun ExcluirPontoDialog(
+fun ExclusaoModal(
     ponto: Ponto,
     tipoDescricao: String,
     onDismiss: () -> Unit,
     onConfirmar: (motivo: String) -> Unit,
-    isLoading: Boolean = false
+    isDeleting: Boolean = false
 ) {
     var motivo by remember { mutableStateOf("") }
 
@@ -44,10 +44,10 @@ fun ExcluirPontoDialog(
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
 
     val motivoValido = motivo.trim().length >= 5
-    val podeConfirmar = motivoValido && !isLoading
+    val podeConfirmar = motivoValido && !isDeleting
 
     AlertDialog(
-        onDismissRequest = { if (!isLoading) onDismiss() },
+        onDismissRequest = { if (!isDeleting) onDismiss() },
         icon = {
             Icon(
                 imageVector = Icons.Default.Warning,
@@ -121,7 +121,7 @@ fun ExcluirPontoDialog(
                     supportingText = {
                         Text("${motivo.length}/5 caracteres mínimos")
                     },
-                    enabled = !isLoading
+                    enabled = !isDeleting
                 )
             }
         },
@@ -133,7 +133,7 @@ fun ExcluirPontoDialog(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                if (isLoading) {
+                if (isDeleting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
@@ -153,7 +153,7 @@ fun ExcluirPontoDialog(
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
-                enabled = !isLoading
+                enabled = !isDeleting
             ) {
                 Text("Cancelar")
             }

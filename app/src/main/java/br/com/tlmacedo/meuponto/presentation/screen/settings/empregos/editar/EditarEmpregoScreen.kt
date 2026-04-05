@@ -596,13 +596,26 @@ private fun EditarEmpregoContent(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-                // Foto Comprovante - FORA do AnimatedVisibility
+                // Foto Comprovante
                 SwitchOption(
-                    title = "Foto de Comprovante",
-                    description = "Exigir foto no momento do registro de ponto",
+                    title = "Habilitar Foto de Comprovante",
+                    description = "Permitir anexar uma foto ao registro de ponto",
                     checked = uiState.habilitarFotoComprovante,
                     onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarFotoComprovante(it)) }
                 )
+
+                // Foto Obrigatória (só aparece se foto habilitada)
+                AnimatedVisibility(visible = uiState.habilitarFotoComprovante) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SwitchOption(
+                            title = "Foto Obrigatória",
+                            description = "Impedir o registro de ponto sem capturar uma foto",
+                            checked = uiState.fotoObrigatoria,
+                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarFotoObrigatoria(it)) }
+                        )
+                    }
+                }
             }
         }
 

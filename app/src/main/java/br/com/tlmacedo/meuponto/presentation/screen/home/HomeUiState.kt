@@ -139,6 +139,31 @@ data class FotoModalState(
 }
 
 /**
+ * Estado do modal de registro de ponto (Unificado).
+ *
+ * @author Thiago
+ * @since 12.0.0
+ */
+data class RegistrarPontoModalState(
+    val dataHora: LocalDateTime,
+    val nsr: String = "",
+    val fotoUri: Uri? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val endereco: String? = null,
+    val isSaving: Boolean = false,
+    val isCapturingLocation: Boolean = false,
+    val showTimePicker: Boolean = false,
+    val erroLocalizacao: String? = null
+) {
+    val horaFormatada: String
+        get() = dataHora.format(DateTimeFormatter.ofPattern("HH:mm"))
+
+    val dataFormatada: String
+        get() = dataHora.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+}
+
+/**
  * Estado da tela Home.
  *
  * @author Thiago
@@ -168,21 +193,11 @@ data class HomeUiState(
     val isLoading: Boolean = false,
     val isLoadingEmpregos: Boolean = false,
     val showTimePickerDialog: Boolean = false,
-    val showDeleteConfirmDialog: Boolean = false,
     val showEmpregoSelector: Boolean = false,
     val showEmpregoMenu: Boolean = false,
     val showDatePicker: Boolean = false,
-    // NSR Dialog
-    val showNsrDialog: Boolean = false,
-    val nsrPendente: String = "",
-    // Foto de comprovante
-    val fotoComprovanteUri: Uri? = null,
-    val showFotoSourceDialog: Boolean = false,
     val cameraUri: Uri? = null,
-    val horaPendenteParaRegistro: LocalTime? = null,
-    // Exclusão de ponto (dialog legado - manter por compatibilidade)
-    val pontoParaExcluir: Ponto? = null,
-    val motivoExclusao: String = "",
+    val showFotoSourceDialog: Boolean = false,
     val erro: String? = null,
     // Ciclo de banco de horas
     val estadoCiclo: EstadoCiclo = EstadoCiclo.Nenhum,
@@ -195,14 +210,16 @@ data class HomeUiState(
     val edicaoModal: EdicaoModalState? = null,
     val exclusaoModal: ExclusaoModalState? = null,
     val localizacaoModal: LocalizacaoModalState? = null,
-    val fotoModal: FotoModalState? = null
+    val fotoModal: FotoModalState? = null,
+    // NOVO MODAL DE REGISTRO
+    val registrarPontoModal: RegistrarPontoModalState? = null
 ) {
     companion object {
         private val localeBR = Locale("pt", "BR")
-        private val formatterDiaSemana = DateTimeFormatter.ofPattern("EEEE", localeBR)
-        private val formatterDiaSemanaAbrev = DateTimeFormatter.ofPattern("EEE", localeBR)
-        private val formatterDataCompleta = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", localeBR)
-        private val formatterDataCurta = DateTimeFormatter.ofPattern("dd/MM/yyyy", localeBR)
+        internal val formatterDiaSemana = DateTimeFormatter.ofPattern("EEEE", localeBR)
+        internal val formatterDiaSemanaAbrev = DateTimeFormatter.ofPattern("EEE", localeBR)
+        internal val formatterDataCompleta = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", localeBR)
+        internal val formatterDataCurta = DateTimeFormatter.ofPattern("dd/MM/yyyy", localeBR)
     }
 
     val isHoje: Boolean
@@ -235,16 +252,17 @@ data class HomeUiState(
     // ========================================================================
 
     val fotoHabilitada: Boolean
-        get() = configuracaoEmprego?.fotoObrigatoria == true
+        get() = configuracaoEmprego?.fotoHabilitada == true
 
     val fotoObrigatoria: Boolean
         get() = configuracaoEmprego?.fotoObrigatoria == true
 
-    val temFotoPendente: Boolean
-        get() = fotoComprovanteUri != null
+    // ========================================================================
+    // LOCALIZAÇÃO
+    // ========================================================================
 
-    val fotoValidaParaRegistro: Boolean
-        get() = !fotoObrigatoria || temFotoPendente
+    val localizacaoHabilitada: Boolean
+        get() = configuracaoEmprego?.habilitarLocalizacao == true
 
     // ========================================================================
     // FERIADOS
@@ -337,7 +355,8 @@ data class HomeUiState(
     /** Verifica se há algum modal aberto */
     val temModalAberto: Boolean
         get() = edicaoModal != null || exclusaoModal != null ||
-                localizacaoModal != null || fotoModal != null
+                localizacaoModal != null || fotoModal != null ||
+                registrarPontoModal != null
 
     /** Obtém o índice de um ponto na lista ordenada */
     fun getIndicePonto(pontoId: Long): Int {

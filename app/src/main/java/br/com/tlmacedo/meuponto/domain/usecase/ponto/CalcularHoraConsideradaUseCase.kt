@@ -4,8 +4,10 @@ package br.com.tlmacedo.meuponto.domain.usecase.ponto
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Ponto
+import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import timber.log.Timber
 import java.time.Duration
 import java.time.LocalDateTime
@@ -25,7 +27,7 @@ import javax.inject.Inject
  * 2. VOLTA DO INTERVALO (índice 2, 4, etc - entradas após saída):
  *    - Calcula hora ideal de volta = hora real da saída anterior + intervalo mínimo
  *    - Se bateu DEPOIS da hora ideal de volta (ex: 14:07 para volta às 13:47)
- *    - E está dentro da tolerância de intervalo configurada
+ *    - E está dentro da tolerância de intervalo configurada NA VERSÃO DA JORNADA
  *    - Considera o horário ideal (13:47)
  *
  * 3. SAÍDAS (índices ímpares):
@@ -34,9 +36,10 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 7.0.0
- * @updated 7.2.0 - Tolerância de entrada agora é fixa (10 minutos)
+ * @updated 12.0.0 - Ajustado para buscar configurações da VersaoJornada vigente na data
  */
 class CalcularHoraConsideradaUseCase @Inject constructor(
+    private val versaoJornadaRepository: VersaoJornadaRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val pontoRepository: PontoRepository
 ) {
@@ -60,9 +63,13 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
     ): LocalTime {
         val horaReal = dataHora.toLocalTime()
 
-        // Busca configuração do dia
+        // Busca a versão da jornada vigente para a data do ponto
+        val versao = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, dataHora.toLocalDate())
+            ?: return horaReal // Sem versão = sem tolerância
+
+        // Busca configuração do dia para esta versão específica
         val diaSemana = DiaSemana.fromJavaDayOfWeek(dataHora.dayOfWeek)
-        val horarioDia = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+        val horarioDia = horarioDiaSemanaRepository.buscarPorVersaoEDia(versao.id, diaSemana)
             ?: return horaReal // Sem configuração = sem tolerância
 
         // Saídas não têm tolerância
@@ -72,7 +79,7 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
         // Determina qual tolerância aplicar baseado no índice
         return when (indicePonto) {
             0 -> calcularToleranciaEntrada(dataHora, horarioDia)
-            else -> calcularToleranciaVoltaIntervalo(empregoId, dataHora, horarioDia, indicePonto)
+            else -> calcularToleranciaVoltaIntervalo(empregoId, dataHora, versao, horarioDia, indicePonto)
         }
     }
 
@@ -109,15 +116,16 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
     private suspend fun calcularToleranciaVoltaIntervalo(
         empregoId: Long,
         dataHora: LocalDateTime,
+        versao: VersaoJornada,
         horarioDia: HorarioDiaSemana,
         indicePonto: Int
     ): LocalTime {
         val horaReal = dataHora.toLocalTime()
 
-        // Verifica se há tolerância configurada
-        val toleranciaMinutos = horarioDia.toleranciaIntervaloMaisMinutos
+        // Verifica se há tolerância configurada na VERSÃO da jornada
+        val toleranciaMinutos = versao.toleranciaIntervaloMaisMinutos
         if (toleranciaMinutos <= 0) {
-            Timber.d("Sem tolerância de intervalo configurada")
+            Timber.d("Sem tolerância de intervalo configurada na versão")
             return horaReal
         }
 

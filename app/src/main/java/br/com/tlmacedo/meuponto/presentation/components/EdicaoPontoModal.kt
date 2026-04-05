@@ -34,7 +34,8 @@ import java.time.format.DateTimeFormatter
  * @param ponto Ponto a ser editado
  * @param tipoDescricao Descrição do tipo (Entrada/Saída) - calculada dinamicamente pelo índice
  * @param onDismiss Callback ao fechar o dialog
- * @param onSalvar Callback ao confirmar a edição
+ * @param onConfirmar Callback ao confirmar a edição
+ * @param isSaving Se está processando a gravação
  * @param mostrarNsr Se deve exibir o campo NSR
  *
  * @author Thiago
@@ -43,11 +44,12 @@ import java.time.format.DateTimeFormatter
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EdicaoPontoModal(
+fun EdicaoModal(
     ponto: Ponto,
     tipoDescricao: String,
     onDismiss: () -> Unit,
-    onSalvar: (hora: LocalTime, nsr: String?, motivo: MotivoEdicao, detalhes: String?) -> Unit,
+    onConfirmar: (hora: LocalTime, nsr: String?, motivo: MotivoEdicao, detalhes: String?) -> Unit,
+    isSaving: Boolean = false,
     mostrarNsr: Boolean = false
 ) {
     var hora by remember { mutableStateOf(ponto.hora) }
@@ -67,7 +69,7 @@ fun EdicaoPontoModal(
         motivoSelecionado.requerDetalhes -> detalhes.trim().length >= 5
         else -> true
     }
-    val podeSalvar = motivoValido
+    val podeSalvar = motivoValido && !isSaving
 
     // Dialog do TimePicker - usando o componente existente do projeto
     if (mostrarTimePicker) {
@@ -86,10 +88,10 @@ fun EdicaoPontoModal(
 
     // Dialog principal
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isSaving) onDismiss() },
         properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true,
+            dismissOnBackPress = !isSaving,
+            dismissOnClickOutside = !isSaving,
             usePlatformDefaultWidth = false
         )
     ) {
@@ -132,7 +134,10 @@ fun EdicaoPontoModal(
                         )
                     }
 
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        enabled = !isSaving
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Fechar",
@@ -157,7 +162,7 @@ fun EdicaoPontoModal(
                 OutlinedCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { mostrarTimePicker = true },
+                        .clickable(enabled = !isSaving) { mostrarTimePicker = true },
                     colors = CardDefaults.outlinedCardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     )
@@ -196,7 +201,8 @@ fun EdicaoPontoModal(
                         label = { Text("NSR (opcional)") },
                         placeholder = { Text("Número do registro") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isSaving
                     )
                 }
 
@@ -229,7 +235,8 @@ fun EdicaoPontoModal(
                             .fillMaxWidth()
                             .menuAnchor(),
                         colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                        isError = motivoSelecionado == MotivoEdicao.NENHUM
+                        isError = motivoSelecionado == MotivoEdicao.NENHUM,
+                        enabled = !isSaving
                     )
 
                     ExposedDropdownMenu(
@@ -282,7 +289,8 @@ fun EdicaoPontoModal(
                         isError = detalhes.trim().length < 5,
                         supportingText = {
                             Text("${detalhes.length}/5 caracteres mínimos")
-                        }
+                        },
+                        enabled = !isSaving
                     )
                 }
 
@@ -297,14 +305,15 @@ fun EdicaoPontoModal(
                 ) {
                     OutlinedButton(
                         onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSaving
                     ) {
                         Text("Cancelar")
                     }
 
                     Button(
                         onClick = {
-                            onSalvar(
+                            onConfirmar(
                                 hora,
                                 nsr.ifBlank { null },
                                 motivoSelecionado,
@@ -314,6 +323,14 @@ fun EdicaoPontoModal(
                         modifier = Modifier.weight(1f),
                         enabled = podeSalvar
                     ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                         Text("Salvar")
                     }
                 }

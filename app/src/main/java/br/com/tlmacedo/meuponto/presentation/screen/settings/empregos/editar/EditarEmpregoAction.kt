@@ -38,6 +38,7 @@ sealed class EditarEmpregoAction {
 
     // Foto Comprovante
     data class AlterarHabilitarFotoComprovante(val habilitado: Boolean) : EditarEmpregoAction()
+    data class AlterarFotoObrigatoria(val obrigatoria: Boolean) : EditarEmpregoAction()
 
     // Validações
     data class AlterarExigeJustificativa(val exigir: Boolean) : EditarEmpregoAction()

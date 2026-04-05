@@ -33,6 +33,8 @@ class AtualizarEmpregoUseCase @Inject constructor(
         // Configurações Fixas
         val habilitarNsr: Boolean,
         val tipoNsr: TipoNsr,
+        val habilitarLocalizacao: Boolean,
+        val localizacaoAutomatica: Boolean,
         val fotoHabilitada: Boolean,
         val fotoObrigatoria: Boolean,
         
@@ -84,6 +86,8 @@ class AtualizarEmpregoUseCase @Inject constructor(
                     configExistente.copy(
                         habilitarNsr = parametros.habilitarNsr,
                         tipoNsr = parametros.tipoNsr,
+                        habilitarLocalizacao = parametros.habilitarLocalizacao,
+                        localizacaoAutomatica = parametros.localizacaoAutomatica,
                         fotoHabilitada = parametros.fotoHabilitada,
                         fotoObrigatoria = parametros.fotoObrigatoria,
                         atualizadoEm = agora

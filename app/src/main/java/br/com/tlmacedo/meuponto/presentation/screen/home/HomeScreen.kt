@@ -1,6 +1,11 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
+import android.Manifest
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.activity.ComponentActivity
+import androidx.core.app.ActivityCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -19,6 +24,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -46,22 +58,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
-import br.com.tlmacedo.meuponto.presentation.components.DateNavigator
-import br.com.tlmacedo.meuponto.presentation.components.EdicaoPontoModal
-import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorBottomSheet
-import br.com.tlmacedo.meuponto.presentation.components.EmpregoSelectorChip
-import br.com.tlmacedo.meuponto.presentation.components.ExcluirPontoDialog
-import br.com.tlmacedo.meuponto.presentation.components.FechamentoCicloBanner
+import br.com.tlmacedo.meuponto.presentation.components.EdicaoModal
+import br.com.tlmacedo.meuponto.presentation.components.ExclusaoModal
 import br.com.tlmacedo.meuponto.presentation.components.FeriadoBanner
 import br.com.tlmacedo.meuponto.presentation.components.FotoPontoModal
 import br.com.tlmacedo.meuponto.presentation.components.IntervaloCard
 import br.com.tlmacedo.meuponto.presentation.components.LocalizacaoModal
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
-import br.com.tlmacedo.meuponto.presentation.components.NsrInputDialog
-import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoButton
-import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoManualButton
+import br.com.tlmacedo.meuponto.presentation.components.ProximoPontoCard
+import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoModal
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
 import br.com.tlmacedo.meuponto.presentation.components.foto.ComprovanteImagePicker
@@ -142,63 +150,47 @@ fun HomeScreen(
                 is HomeUiEvent.NavegarParaHistoricoCiclos -> {
                     onNavigateToHistoricoCiclos()
                 }
+
+                is HomeUiEvent.SolicitarPermissaoLocalizacao -> {
+                    context.findActivity()?.let { activity ->
+                        ActivityCompat.requestPermissions(
+                            activity,
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            ),
+                            1001
+                        )
+                    }
+                }
             }
         }
     }
 
     LaunchedEffect(dataSelecionadaInicial) {
-        dataSelecionadaInicial?.let { dataString ->
-            try {
-                val data = LocalDate.parse(dataString)
-                viewModel.onAction(HomeAction.SelecionarData(data))
-            } catch (e: Exception) {
-                // Ignora se a data for inválida
-            }
+        if (dataSelecionadaInicial != null) {
+            viewModel.onAction(HomeAction.SelecionarData(LocalDate.parse(dataSelecionadaInicial)))
         }
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // DIALOGS
+    // MODAIS E DIALOGS
     // ══════════════════════════════════════════════════════════════════════
 
-    // TimePicker para registro de ponto
-    if (uiState.showTimePickerDialog) {
-        TimePickerDialog(
-            titulo = "Registrar ${uiState.proximoTipo.descricao}",
-            horaInicial = uiState.horaAtual,
-            onConfirm = { hora ->
-                viewModel.onAction(HomeAction.RegistrarPontoManual(hora))
-            },
-            onDismiss = {
-                viewModel.onAction(HomeAction.FecharTimePickerDialog)
-            }
-        )
-    }
-
-    // DatePicker
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dataSelecionada
-                .atStartOfDay()
-                .atZone(ZoneOffset.UTC)
-                .toInstant()
-                .toEpochMilli()
+            initialSelectedDateMillis = uiState.dataSelecionada.atStartOfDay(ZoneOffset.UTC)
+                .toInstant().toEpochMilli()
         )
-
         DatePickerDialog(
             onDismissRequest = { viewModel.onAction(HomeAction.FecharDatePicker) },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val selectedDate = millis.toLocalDateFromDatePicker()
-                            viewModel.onAction(HomeAction.SelecionarData(selectedDate))
-                        }
-                        viewModel.onAction(HomeAction.FecharDatePicker)
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        viewModel.onAction(HomeAction.SelecionarData(it.toLocalDateFromDatePicker()))
                     }
-                ) {
-                    Text("Confirmar")
-                }
+                    viewModel.onAction(HomeAction.FecharDatePicker)
+                }) { Text("Confirmar") }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.onAction(HomeAction.FecharDatePicker) }) {
@@ -210,81 +202,71 @@ fun HomeScreen(
         }
     }
 
-    // NSR Dialog
-    if (uiState.showNsrDialog) {
-        NsrInputDialog(
-            tipoNsr = uiState.tipoNsr,
-            valor = uiState.nsrPendente,
-            tipoPonto = uiState.proximoTipo.descricao,
-            onValorChange = { viewModel.onAction(HomeAction.AtualizarNsr(it)) },
-            onConfirm = { viewModel.onAction(HomeAction.ConfirmarRegistroComNsr) },
-            onDismiss = { viewModel.onAction(HomeAction.CancelarNsrDialog) }
-        )
+    if (uiState.showFechamentoCicloDialog) {
+        (uiState.estadoCiclo as? EstadoCiclo.Pendente)?.let { estadoPendente ->
+            FechamentoCicloDialog(
+                estadoCiclo = estadoPendente,
+                onConfirmar = {
+                    viewModel.onAction(
+                        HomeAction.ConfirmarFechamentoCiclo(
+                            saldoAnterior = estadoPendente.ciclo.saldoAtualMinutos.toLong(),
+                            motivo = "Fechamento de ciclo"
+                        )
+                    )
+                },
+                onCancelar = { viewModel.onAction(HomeAction.FecharDialogFechamentoCiclo) }
+            )
+        }
     }
 
-    // Emprego Selector
-    if (uiState.showEmpregoSelector) {
-        EmpregoSelectorBottomSheet(
-            empregos = uiState.empregosDisponiveis,
-            empregoAtivoId = uiState.empregoAtivo?.id,
-            onSelecionarEmprego = { emprego ->
-                viewModel.onAction(HomeAction.SelecionarEmprego(emprego))
-            },
-            onDismiss = {
-                viewModel.onAction(HomeAction.FecharSeletorEmprego)
+    // Gerenciador de fotos (Câmera e Galeria)
+    // IMPORTANTE: Deve permanecer na composição para que os launchers funcionem corretamente
+    ComprovanteImagePicker(
+        showSourceDialog = uiState.showFotoSourceDialog,
+        onDismissSourceDialog = { viewModel.onAction(HomeAction.FecharFotoSourceDialog) },
+        cameraUri = uiState.cameraUri,
+        onCameraResult = { success ->
+            if (success) {
+                if (uiState.registrarPontoModal != null) {
+                    viewModel.onAction(HomeAction.AtualizarFotoRegistroModal(uiState.cameraUri))
+                } else {
+                    viewModel.onAction(HomeAction.ConfirmarFotoCamera)
+                }
             }
-        )
-    }
-
-    // Fechamento de Ciclo Dialog
-    if (uiState.showFechamentoCicloDialog && uiState.estadoCiclo is EstadoCiclo.Pendente) {
-        FechamentoCicloDialog(
-            estadoCiclo = uiState.estadoCiclo as EstadoCiclo.Pendente,
-            onConfirmar = { viewModel.onAction(HomeAction.ConfirmarFechamentoCiclo) },
-            onCancelar = { viewModel.onAction(HomeAction.FecharDialogFechamentoCiclo) }
-        )
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // MODAIS DE PONTO
-    // ══════════════════════════════════════════════════════════════════════
+        },
+        onGalleryResult = { uri ->
+            uri?.let {
+                if (uiState.registrarPontoModal != null) {
+                    viewModel.onAction(HomeAction.AtualizarFotoRegistroModal(it))
+                } else {
+                    viewModel.onAction(HomeAction.SelecionarFotoComprovante(it))
+                }
+            }
+        },
+        onPermissionDenied = { /* O erro de permissão pode ser tratado aqui se necessário */ }
+    )
 
     // Modal de Edição
     uiState.edicaoModal?.let { modalState ->
-        EdicaoPontoModal(
+        EdicaoModal(
             ponto = modalState.ponto,
             tipoDescricao = modalState.tipoDescricao,
-            onDismiss = { viewModel.onAction(HomeAction.FecharEdicaoModal) },
-            onSalvar = { hora, nsr, motivo, detalhes ->
-                viewModel.onAction(
-                    HomeAction.SalvarEdicaoModal(
-                        pontoId = modalState.ponto.id,
-                        hora = hora,
-                        nsr = nsr,
-                        motivo = motivo,
-                        detalhes = detalhes
-                    )
-                )
+            isSaving = modalState.isSaving,
+            onConfirmar = { hora, nsr, motivo, detalhes ->
+                viewModel.onAction(HomeAction.SalvarEdicaoModal(modalState.ponto.id, hora, nsr, motivo, detalhes))
             },
-            mostrarNsr = uiState.nsrHabilitado
+            onDismiss = { viewModel.onAction(HomeAction.FecharEdicaoModal) }
         )
     }
 
     // Modal de Exclusão
     uiState.exclusaoModal?.let { modalState ->
-        ExcluirPontoDialog(
+        ExclusaoModal(
             ponto = modalState.ponto,
             tipoDescricao = modalState.tipoDescricao,
-            onDismiss = { viewModel.onAction(HomeAction.FecharExclusaoModal) },
-            onConfirmar = { motivo ->
-                viewModel.onAction(
-                    HomeAction.ConfirmarExclusaoModal(
-                        pontoId = modalState.ponto.id,
-                        motivo = motivo
-                    )
-                )
-            },
-            isLoading = modalState.isDeleting
+            isDeleting = modalState.isDeleting,
+            onConfirmar = { viewModel.onAction(HomeAction.ConfirmarExclusaoModal(modalState.ponto.id, "Removido pelo usuário")) },
+            onDismiss = { viewModel.onAction(HomeAction.FecharExclusaoModal) }
         )
     }
 
@@ -304,6 +286,28 @@ fun HomeScreen(
             tipoDescricao = modalState.tipoDescricao,
             fotoPath = modalState.fotoPath,
             onDismiss = { viewModel.onAction(HomeAction.FecharFotoModal) }
+        )
+    }
+
+    // Modal de Registro Unificado
+    uiState.registrarPontoModal?.let { modalState ->
+        RegistrarPontoModal(
+            state = modalState,
+            proximoTipo = uiState.proximoTipo,
+            nsrHabilitado = uiState.nsrHabilitado,
+            tipoNsr = uiState.tipoNsr,
+            fotoHabilitada = uiState.fotoHabilitada,
+            fotoObrigatoria = uiState.fotoObrigatoria,
+            configLocalizacaoHabilitada = uiState.localizacaoHabilitada,
+            onNsrChange = { viewModel.onAction(HomeAction.AtualizarNsrRegistroModal(it)) },
+            onCapturarFoto = { viewModel.onAction(HomeAction.AbrirFotoSourceDialog) },
+            onRemoverFoto = { viewModel.onAction(HomeAction.AtualizarFotoRegistroModal(null)) },
+            onCapturarLocalizacao = { viewModel.onAction(HomeAction.CapturarLocalizacaoRegistroModal) },
+            onAbrirTimePicker = { viewModel.onAction(HomeAction.AbrirTimePickerRegistroModal) },
+            onFecharTimePicker = { viewModel.onAction(HomeAction.FecharTimePickerRegistroModal) },
+            onHoraSelecionada = { viewModel.onAction(HomeAction.AtualizarHoraRegistroModal(it)) },
+            onConfirmar = { viewModel.onAction(HomeAction.ConfirmarRegistroPontoModal) },
+            onDismiss = { viewModel.onAction(HomeAction.FecharRegistrarPontoModal) }
         )
     }
 
@@ -345,6 +349,12 @@ fun HomeScreen(
     }
 }
 
+private fun Context.findActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 @Composable
 internal fun HomeContent(
     uiState: HomeUiState,
@@ -365,253 +375,113 @@ internal fun HomeContent(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            if (!uiState.temEmpregoAtivo || uiState.temMultiplosEmpregos) {
-                EmpregoSelectorChip(
-                    empregoAtivo = uiState.empregoAtivo,
-                    temMultiplosEmpregos = uiState.temMultiplosEmpregos,
-                    showMenu = uiState.showEmpregoMenu,
-                    onClick = {
-                        if (uiState.empregoAtivo == null) {
-                            onAction(HomeAction.NavegarParaNovoEmprego)
-                        } else if (uiState.temMultiplosEmpregos) {
-                            onAction(HomeAction.AbrirSeletorEmprego)
-                        }
-                    },
-                    onLongClick = { onAction(HomeAction.AbrirMenuEmprego) },
-                    onNovoEmprego = { onAction(HomeAction.NavegarParaNovoEmprego) },
-                    onEditarEmprego = { onAction(HomeAction.NavegarParaEditarEmprego) },
-                    onDismissMenu = { onAction(HomeAction.FecharMenuEmprego) }
-                )
+            // Data selecionada
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = { onAction(HomeAction.AbrirDatePicker) }) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = when {
+                            uiState.isHoje -> "Hoje, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCurta)}"
+                            uiState.isOntem -> "Ontem, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCurta)}"
+                            uiState.isAmanha -> "Amanhã, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCurta)}"
+                            else -> uiState.dataSelecionada.format(HomeUiState.formatterDataCompleta)
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
-            DateNavigator(
-                dataFormatada = uiState.dataFormatada,
-                dataFormatadaCurta = uiState.dataFormatadaCurta,
-                isHoje = uiState.isHoje,
-                podeNavegarAnterior = uiState.podeNavegaAnterior,
-                podeNavegarProximo = uiState.podeNavegarProximo,
-                onDiaAnterior = { onAction(HomeAction.DiaAnterior) },
-                onProximoDia = { onAction(HomeAction.ProximoDia) },
-                onSelecionarData = { onAction(HomeAction.AbrirDatePicker) }
-            )
-
+            // Resumo do Dia
             ResumoCard(
-                horaAtual = uiState.horaAtual,
                 resumoDia = uiState.resumoDia,
                 bancoHoras = uiState.bancoHoras,
-                versaoJornada = uiState.versaoJornadaAtual,
-                dataHoraInicioContador = uiState.dataHoraInicioContador,
-                mostrarContador = uiState.deveExibirContador
+                modifier = Modifier.fillMaxWidth()
             )
 
-            // Banner de fechamento de ciclo anterior
-            if (uiState.deveExibirBannerFechamentoCiclo) {
-                uiState.fechamentoCicloAnterior?.let { fechamento ->
-                    FechamentoCicloBanner(fechamento = fechamento)
-                }
-            }
-
-            if (uiState.temAusencia) {
-                uiState.ausenciaDoDia?.let { ausencia ->
-                    AusenciaBanner(ausencia = ausencia)
-                }
-            }
-
-            // Seletor de foto de comprovante
-            if (uiState.fotoHabilitada) {
-                ComprovanteImagePicker(
-                    showSourceDialog = uiState.showFotoSourceDialog,
-                    onDismissSourceDialog = { onAction(HomeAction.FecharFotoSourceDialog) },
-                    cameraUri = uiState.cameraUri,
-                    onCameraResult = { success ->
-                        if (success) {
-                            onAction(HomeAction.ConfirmarFotoCamera)
-                        } else {
-                            onAction(HomeAction.FecharFotoSourceDialog)
-                        }
-                    },
-                    onGalleryResult = { uri ->
-                        if (uri != null) {
-                            onAction(HomeAction.SelecionarFotoComprovante(uri))
-                        } else {
-                            onAction(HomeAction.FecharFotoSourceDialog)
-                        }
-                    },
-                    onPermissionDenied = { mensagem ->
-                        onAction(HomeAction.FecharFotoSourceDialog)
+            // Próximo Ponto (Botão Registrar)
+            ProximoPontoCard(
+                proximo = uiState.proximoTipo,
+                horaAtual = uiState.horaAtual,
+                onClick = {
+                    if (!uiState.isFuturo) {
+                        onAction(HomeAction.RegistrarPontoAgora)
                     }
-                )
-            }
+                },
+                habilitado = !uiState.isFuturo && uiState.empregoAtivo != null,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            if (uiState.podeRegistrarPontoAutomatico) {
-                RegistrarPontoButton(
-                    proximoTipo = uiState.proximoTipo,
-                    horaAtual = uiState.horaAtual,
-                    onRegistrarAgora = { onAction(HomeAction.RegistrarPontoAgora) },
-                    onRegistrarManual = { onAction(HomeAction.AbrirTimePickerDialog) }
-                )
-            } else if (uiState.podeRegistrarPontoManual) {
-                RegistrarPontoManualButton(
-                    proximoTipo = uiState.proximoTipo,
-                    dataFormatada = uiState.dataFormatadaCurta,
-                    onRegistrarManual = { onAction(HomeAction.AbrirTimePickerDialog) }
-                )
-            }
-
-            if (uiState.isFeriado) {
-                FeriadoBanner(feriados = uiState.feriadosDoDia)
-            }
-
-            if (uiState.isFuturo) {
-                FutureDateWarning()
-            }
-
-            if (!uiState.temEmpregoAtivo) {
-                NoEmpregoWarning()
+            // Banners de feriado ou ausência (abaixo dos cards principais)
+            FeriadoBanner(feriados = uiState.feriadosDoDia)
+            uiState.ausenciaDoDia?.let { ausencia ->
+                AusenciaBanner(ausencia = ausencia)
             }
         }
 
-        // Conteúdo scrollável
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            if (uiState.temPontos) {
-                item(key = "registros_header") {
-                    Column {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Registros ${if (uiState.isHoje) "de Hoje" else "do Dia"}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
 
-                items(
-                    items = uiState.resumoDia.intervalos,
-                    key = { "intervalo_${it.entrada.id}" }
-                ) { intervalo ->
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn() + slideInVertically(),
-                        exit = fadeOut() + slideOutVertically()
-                    ) {
+        // Lista de pontos (Scrollable)
+        Box(modifier = Modifier.weight(1f)) {
+            if (uiState.pontosHoje.isEmpty() && !uiState.isLoading) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Nenhum registro para esta data",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.outline,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(
+                        items = uiState.resumoDia.intervalos,
+                        key = { it.entrada.id }
+                    ) { intervalo ->
                         IntervaloCard(
                             intervalo = intervalo,
-                            mostrarContadorTempoReal = uiState.isHoje && !uiState.temModalAberto,
+                            mostrarContadorTempoReal = uiState.isHoje,
                             mostrarNsr = uiState.nsrHabilitado,
-                            onEditar = { ponto ->
-                                onAction(HomeAction.AbrirEdicaoModal(ponto))
-                            },
-                            onExcluir = { ponto ->
-                                onAction(HomeAction.AbrirExclusaoModal(ponto))
-                            },
-                            onVerFoto = { ponto ->
-                                onAction(HomeAction.AbrirFotoModal(ponto))
-                            },
-                            onVerLocalizacao = { ponto ->
-                                onAction(HomeAction.AbrirLocalizacaoModal(ponto))
-                            }
+                            onEditar = { onAction(HomeAction.AbrirEdicaoModal(it)) },
+                            onExcluir = { onAction(HomeAction.AbrirExclusaoModal(it)) },
+                            onVerFoto = { onAction(HomeAction.AbrirFotoModal(it)) },
+                            onVerLocalizacao = { onAction(HomeAction.AbrirLocalizacaoModal(it)) }
                         )
                     }
                 }
-            } else if (uiState.temEmpregoAtivo && !uiState.isFuturo) {
-                item(key = "empty_state") {
-                    EmptyPontosState()
-                }
             }
         }
-    }
-}
-
-@Composable
-private fun FutureDateWarning() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp)
-    ) {
-        Text(
-            text = "📅",
-            style = MaterialTheme.typography.displaySmall
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Data futura",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = "Não é possível registrar pontos em datas futuras",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-private fun NoEmpregoWarning() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp)
-    ) {
-        Text(
-            text = "🏢",
-            style = MaterialTheme.typography.displaySmall
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Nenhum emprego configurado",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = "Configure um emprego nas Configurações para começar",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-private fun EmptyPontosState() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 32.dp)
-    ) {
-        Text(
-            text = "😴",
-            style = MaterialTheme.typography.displaySmall
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Nenhum ponto registrado",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "Toque no botão acima para começar",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
-        )
     }
 }
