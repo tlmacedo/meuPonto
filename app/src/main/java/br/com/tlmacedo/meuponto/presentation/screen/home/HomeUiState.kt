@@ -75,7 +75,9 @@ sealed class EstadoCiclo {
 data class EdicaoModalState(
     val ponto: Ponto,
     val indicePonto: Int = 0,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val fotoUri: Uri? = null,
+    val fotoRemovida: Boolean = false
 ) {
     /** Determina o tipo do ponto baseado no índice (ímpar = entrada, par = saída) */
     val tipoPonto: TipoPonto

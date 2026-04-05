@@ -556,22 +556,25 @@ data class ResumoDia(
         // Segundo passo: determinar qual é a pausa principal (almoço)
         // Critérios em ordem de prioridade:
         // 1. Se houver saidaIntervaloIdeal: a pausa mais próxima desse horário (que tenha >= intervaloMinimoMinutos)
-        // 2. Se não houver: a primeira pausa com duração >= intervaloMinimoMinutos
+        // 2. Se não houver: a pausa com duração mais próxima do intervaloMinimoMinutos (global)
         val indicePausaPrincipal: Int? = if (infoPausas.isNotEmpty()) {
-            val pausasLongas = infoPausas.filter { it.pausaRealMinutos >= intervaloMinimoMinutos }
+            val pausasLongas = infoPausas.filter { it.pausaRealMinutos >= (intervaloMinimoMinutos - toleranciaIntervaloMinutos) }
 
             if (saidaIntervaloIdeal != null && pausasLongas.isNotEmpty()) {
-                // Seleciona a pausa mais próxima do horário ideal
+                // Seleciona a pausa mais próxima do horário ideal (comportamento para dias úteis)
                 pausasLongas.minByOrNull { pausa ->
                     val horaSaida = pausa.horaSaidaParaIntervalo.toLocalTime()
                     abs(Duration.between(horaSaida, saidaIntervaloIdeal).toMinutes())
                 }?.indice
             } else if (pausasLongas.isNotEmpty()) {
-                // Sem horário ideal: primeira pausa longa
-                pausasLongas.firstOrNull()?.indice
+                // Sem horário ideal (ex: Sábado): seleciona a pausa que MAIS SE APROXIMA do intervalo mínimo configurado
+                // Isso garante que a tolerância global seja aplicada na pausa que parece ser o almoço
+                pausasLongas.minByOrNull { pausa ->
+                    abs(pausa.pausaRealMinutos - intervaloMinimoMinutos)
+                }?.indice
             } else {
-                // Nenhuma pausa longa: não há almoço
-                null
+                // Nenhuma pausa na faixa de tolerância: seleciona a maior pausa do dia
+                infoPausas.maxByOrNull { it.pausaRealMinutos }?.indice
             }
         } else {
             null

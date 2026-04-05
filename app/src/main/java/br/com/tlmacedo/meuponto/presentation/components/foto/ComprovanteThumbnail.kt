@@ -73,6 +73,8 @@ fun ComprovanteThumbnail(
         SubcomposeAsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(imageFile)
+                .diskCacheKey("${imageFile.absolutePath}_${imageFile.lastModified()}")
+                .memoryCacheKey("${imageFile.absolutePath}_${imageFile.lastModified()}")
                 .crossfade(true)
                 .size(size.value.toInt() * 2) // 2x para melhor qualidade
                 .build(),

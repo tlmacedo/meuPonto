@@ -3,10 +3,14 @@
 package br.com.tlmacedo.meuponto.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.RotateLeft
+import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -28,6 +33,12 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import java.io.File
 import java.time.format.DateTimeFormatter
+import android.graphics.Bitmap
+import android.graphics.Matrix
+import android.graphics.BitmapFactory
+import java.io.FileOutputStream
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
 
 /**
  * Modal para visualização da foto de comprovante de um registro de ponto.
@@ -38,6 +49,7 @@ import java.time.format.DateTimeFormatter
  * @param tipoDescricao Descrição do tipo (Entrada/Saída) - calculada dinamicamente pelo índice
  * @param fotoPath Caminho do arquivo da foto
  * @param onDismiss Callback ao fechar o modal
+ * @param onSalvarFoto Callback para salvar a foto editada (opcional)
  *
  * @author Thiago
  * @since 7.2.0
@@ -47,7 +59,8 @@ fun FotoPontoModal(
     ponto: Ponto,
     tipoDescricao: String,
     fotoPath: String?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSalvarFoto: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -55,15 +68,26 @@ fun FotoPontoModal(
 
     val temFoto = !fotoPath.isNullOrBlank() && File(fotoPath).exists()
 
-    // Estados para zoom e pan
+    // Estados para zoom, pan e rotação visual
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+    var rotationVisual by remember { mutableFloatStateOf(0f) }
+    var isSaving by remember { mutableStateOf(false) }
+
+    // Estado para o bitmap carregado (usado para salvar edições)
+    var bitmapOriginal by remember { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(fotoPath) {
+        if (temFoto) {
+            bitmapOriginal = BitmapFactory.decodeFile(fotoPath)
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true,
+            dismissOnBackPress = !isSaving,
+            dismissOnClickOutside = !isSaving,
             usePlatformDefaultWidth = false
         )
     ) {
@@ -124,7 +148,7 @@ fun FotoPontoModal(
                         }
                     }
 
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = onDismiss, enabled = !isSaving) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Fechar",
@@ -139,79 +163,102 @@ fun FotoPontoModal(
                 // CONTEÚDO (FOTO OU MENSAGEM)
                 // ══════════════════════════════════════════════════════════
                 if (temFoto) {
-                    // Controles de zoom
+                    // Controles de zoom e rotação
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.Center,
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
-                            onClick = {
-                                scale = (scale - 0.5f).coerceAtLeast(0.5f)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = { scale = (scale - 0.2f).coerceAtLeast(0.5f) },
+                                enabled = !isSaving
+                            ) {
+                                Icon(imageVector = Icons.Default.ZoomOut, contentDescription = "Diminuir zoom")
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ZoomOut,
-                                contentDescription = "Diminuir zoom"
+
+                            Text(
+                                text = "${(scale * 100).toInt()}%",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.width(44.dp),
+                                textAlign = TextAlign.Center
                             )
+
+                            IconButton(
+                                onClick = { scale = (scale + 0.2f).coerceAtMost(5f) },
+                                enabled = !isSaving
+                            ) {
+                                Icon(imageVector = Icons.Default.ZoomIn, contentDescription = "Aumentar zoom")
+                            }
                         }
 
-                        Text(
-                            text = "${(scale * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
+                        VerticalDivider(modifier = Modifier.height(24.dp))
 
-                        IconButton(
-                            onClick = {
-                                scale = (scale + 0.5f).coerceAtMost(4f)
+                        Row {
+                            IconButton(
+                                onClick = { rotationVisual = (rotationVisual - 90f) % 360f },
+                                enabled = !isSaving
+                            ) {
+                                Icon(imageVector = Icons.AutoMirrored.Filled.RotateLeft, contentDescription = "Girar para esquerda")
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ZoomIn,
-                                contentDescription = "Aumentar zoom"
-                            )
+                            IconButton(
+                                onClick = { rotationVisual = (rotationVisual + 90f) % 360f },
+                                enabled = !isSaving
+                            ) {
+                                Icon(imageVector = Icons.AutoMirrored.Filled.RotateRight, contentDescription = "Girar para direita")
+                            }
                         }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                        VerticalDivider(modifier = Modifier.height(24.dp))
 
                         IconButton(
                             onClick = {
                                 scale = 1f
                                 offset = Offset.Zero
-                            }
+                                rotationVisual = 0f
+                            },
+                            enabled = !isSaving
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Resetar zoom"
-                            )
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Resetar")
                         }
                     }
 
-                    // Imagem com zoom e pan
+                    // Imagem com zoom, pan e rotação
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .background(Color.Black)
+                            .clip(RoundedCornerShape(0.dp))
                             .pointerInput(Unit) {
                                 detectTransformGestures { _, pan, zoom, _ ->
-                                    scale = (scale * zoom).coerceIn(0.5f, 4f)
-                                    offset = Offset(
-                                        x = offset.x + pan.x,
-                                        y = offset.y + pan.y
-                                    )
+                                    if (!isSaving) {
+                                        scale = (scale * zoom).coerceIn(0.5f, 5f)
+                                        offset = Offset(x = offset.x + pan.x, y = offset.y + pan.y)
+                                    }
                                 }
+                            }
+                            .pointerInput(Unit) {
+                                detectTapGestures(onDoubleTap = {
+                                    if (scale > 1f) {
+                                        scale = 1f
+                                        offset = Offset.Zero
+                                    } else {
+                                        scale = 2.5f
+                                    }
+                                })
                             },
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
                             model = ImageRequest.Builder(context)
                                 .data(File(fotoPath!!))
+                                .diskCacheKey("${fotoPath}_${File(fotoPath).lastModified()}")
+                                .memoryCacheKey("${fotoPath}_${File(fotoPath).lastModified()}")
                                 .crossfade(true)
                                 .build(),
                             contentDescription = "Foto do comprovante",
@@ -222,9 +269,19 @@ fun FotoPontoModal(
                                     scaleX = scale,
                                     scaleY = scale,
                                     translationX = offset.x,
-                                    translationY = offset.y
+                                    translationY = offset.y,
+                                    rotationZ = rotationVisual
                                 )
                         )
+
+                        if (isSaving) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color.White)
+                            }
+                        }
                     }
                 } else {
                     // Sem foto
@@ -269,10 +326,41 @@ fun FotoPontoModal(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(onClick = onDismiss) {
-                        Text("Fechar")
+                    TextButton(onClick = onDismiss, enabled = !isSaving) {
+                        Text("Cancelar")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (rotationVisual != 0f && bitmapOriginal != null) {
+                                isSaving = true
+                                val matrix = Matrix().apply { postRotate(rotationVisual) }
+                                val rotatedBitmap = Bitmap.createBitmap(
+                                    bitmapOriginal!!, 0, 0,
+                                    bitmapOriginal!!.width, bitmapOriginal!!.height,
+                                    matrix, true
+                                )
+                                try {
+                                    FileOutputStream(fotoPath!!).use { out ->
+                                        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                                    }
+                                    onSalvarFoto(fotoPath)
+                                    onDismiss()
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                } finally {
+                                    isSaving = false
+                                }
+                            } else {
+                                onDismiss()
+                            }
+                        },
+                        enabled = !isSaving && temFoto
+                    ) {
+                        Text(if (rotationVisual != 0f) "Salvar" else "Fechar")
                     }
                 }
             }

@@ -291,7 +291,7 @@ class HistoryViewModel @Inject constructor(
                 ausencias = ausenciasDoDia,
                 feriado = feriadoDoDia,
                 horarioDia = horarioDia,
-                cargaHorariaPadrao = cargaPadrao
+                cargaHorariaBasePadrao = cargaPadrao
             )
 
             val resumoDia = resumoCompleto.resumoDia

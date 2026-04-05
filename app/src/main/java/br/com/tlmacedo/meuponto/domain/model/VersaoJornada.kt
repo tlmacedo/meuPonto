@@ -31,10 +31,10 @@ data class VersaoJornada(
     val jornadaMaximaDiariaMinutos: Int = 600,
     /** Intervalo mínimo entre jornadas (interjornada). Default: 660min (11h) */
     val intervaloMinimoInterjornadaMinutos: Int = 660,
-    /** Tolerância para mais no intervalo de almoço. Default: 0min */
-    val toleranciaIntervaloMaisMinutos: Int = 0,
     /** Turno máximo (tempo entre entrada e saída de um turno). Default: 360min (6h) */
     val turnoMaximoMinutos: Int = 360,
+    /** Tolerância de intervalo para mais (Global). Default: 0min */
+    val toleranciaIntervaloMaisMinutos: Int = 0,
 
     // ════════════════════════════════════════════════════════════════════════
     // CARGA HORÁRIA (migrados de ConfiguracaoEmprego)
@@ -134,11 +134,18 @@ data class VersaoJornada(
     val cargaHorariaEfetivaDiariaMinutos: Int
         get() = cargaHorariaDiariaMinutos + acrescimoMinutosDiasPontes
 
+    /** Carga horária de trabalho diária (Total a ser cumprido no dia) */
+    val jornadaTrabalhoDiariaMinutos: Int
+        get() = cargaHorariaEfetivaDiariaMinutos
+
     val cargaHorariaDiariaFormatada: String
         get() = formatarMinutosComoHora(cargaHorariaDiariaMinutos)
 
     val cargaHorariaEfetivaDiariaFormatada: String
         get() = formatarMinutosComoHora(cargaHorariaEfetivaDiariaMinutos)
+
+    val jornadaTrabalhoDiariaFormatada: String
+        get() = formatarMinutosComoHora(jornadaTrabalhoDiariaMinutos)
 
     val cargaHorariaSemanalFormatada: String
         get() = formatarMinutosComoHora(cargaHorariaSemanalMinutos)

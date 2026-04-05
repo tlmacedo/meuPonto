@@ -112,7 +112,7 @@ class HomeViewModel @Inject constructor(
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.RecarregarConfiguracaoEmprego -> recarregarConfiguracaoEmprego()
-            is HomeAction.RegistrarPontoAgora -> abrirRegistrarPontoModal(LocalDateTime.now())
+            is HomeAction.RegistrarPontoAgora -> abrirRegistrarPontoModal(LocalDateTime.of(_uiState.value.dataSelecionada, LocalTime.now()))
             is HomeAction.AbrirTimePickerDialog -> abrirTimePicker()
             is HomeAction.FecharTimePickerDialog -> fecharTimePicker()
             is HomeAction.RegistrarPontoManual -> abrirRegistrarPontoModal(LocalDateTime.of(_uiState.value.dataSelecionada, action.hora))
@@ -122,6 +122,8 @@ class HomeViewModel @Inject constructor(
             // ══════════════════════════════════════════════════════════════════════
             is HomeAction.AbrirEdicaoModal -> abrirEdicaoModal(action.ponto)
             is HomeAction.FecharEdicaoModal -> fecharEdicaoModal()
+            is HomeAction.AtualizarFotoEdicaoModal -> atualizarFotoEdicaoModal(action.uri)
+            is HomeAction.RemoverFotoEdicaoModal -> removerFotoEdicaoModal()
             is HomeAction.SalvarEdicaoModal -> salvarEdicaoModal(
                 action.pontoId, action.hora, action.nsr, action.motivo, action.detalhes
             )
@@ -132,6 +134,7 @@ class HomeViewModel @Inject constructor(
             is HomeAction.FecharLocalizacaoModal -> fecharLocalizacaoModal()
             is HomeAction.AbrirFotoModal -> abrirFotoModal(action.ponto)
             is HomeAction.FecharFotoModal -> fecharFotoModal()
+            is HomeAction.SalvarFotoModal -> salvarFotoModal(action.path)
 
             // Editar ponto (navegação para tela completa)
             is HomeAction.EditarPonto -> {
@@ -178,8 +181,24 @@ class HomeViewModel @Inject constructor(
             // FOTO DE COMPROVANTE
             is HomeAction.AbrirFotoSourceDialog -> abrirFotoSourceDialog()
             is HomeAction.FecharFotoSourceDialog -> fecharFotoSourceDialog()
-            is HomeAction.ConfirmarFotoCamera -> confirmarFotoCamera()
-            is HomeAction.SelecionarFotoComprovante -> selecionarFotoComprovante(action.uri)
+            is HomeAction.ConfirmarFotoCamera -> {
+                if (_uiState.value.registrarPontoModal != null) {
+                    atualizarFotoRegistroModal(_uiState.value.cameraUri)
+                } else if (_uiState.value.edicaoModal != null) {
+                    atualizarFotoEdicaoModal(_uiState.value.cameraUri)
+                } else {
+                    confirmarFotoCamera()
+                }
+            }
+            is HomeAction.SelecionarFotoComprovante -> {
+                if (_uiState.value.registrarPontoModal != null) {
+                    atualizarFotoRegistroModal(action.uri)
+                } else if (_uiState.value.edicaoModal != null) {
+                    atualizarFotoEdicaoModal(action.uri)
+                } else {
+                    selecionarFotoComprovante(action.uri)
+                }
+            }
         }
     }
 
@@ -217,6 +236,28 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(edicaoModal = null) }
     }
 
+    private fun atualizarFotoEdicaoModal(uri: Uri?) {
+        _uiState.update { state ->
+            state.copy(
+                edicaoModal = state.edicaoModal?.copy(
+                    fotoUri = uri,
+                    fotoRemovida = uri == null
+                )
+            )
+        }
+    }
+
+    private fun removerFotoEdicaoModal() {
+        _uiState.update { state ->
+            state.copy(
+                edicaoModal = state.edicaoModal?.copy(
+                    fotoUri = null,
+                    fotoRemovida = true
+                )
+            )
+        }
+    }
+
     private fun salvarEdicaoModal(
         pontoId: Long,
         hora: LocalTime,
@@ -225,6 +266,8 @@ class HomeViewModel @Inject constructor(
         detalhes: String?
     ) {
         viewModelScope.launch {
+            val modalState = _uiState.value.edicaoModal ?: return@launch
+            
             _uiState.update { state ->
                 state.copy(
                     edicaoModal = state.edicaoModal?.copy(isSaving = true)
@@ -243,10 +286,31 @@ class HomeViewModel @Inject constructor(
                 val pontoAtual = _uiState.value.pontosHoje.find { it.id == pontoId }
 
                 if (pontoAtual != null) {
+                    var novoPath = pontoAtual.fotoComprovantePath
+                    
+                    // Lógica de foto
+                    if (modalState.fotoRemovida) {
+                        novoPath = null
+                    }
+                    
+                    modalState.fotoUri?.let { uri ->
+                        val dataHoraPonto = LocalDateTime.of(pontoAtual.data, hora)
+                        val relativePath = comprovanteImageStorage.saveFromUri(
+                            uri = uri,
+                            empregoId = _uiState.value.empregoAtivo?.id ?: 0L,
+                            pontoId = pontoId,
+                            dataHora = dataHoraPonto
+                        )
+                        if (relativePath != null) {
+                            novoPath = relativePath
+                        }
+                    }
+
                     val pontoAtualizado = pontoAtual.copy(
                         dataHora = LocalDateTime.of(pontoAtual.data, hora),
                         horaConsiderada = hora,
                         nsr = nsr,
+                        fotoComprovantePath = novoPath,
                         isEditadoManualmente = true,
                         observacao = buildString {
                             pontoAtual.observacao?.let { append(it).append(" | ") }
@@ -395,6 +459,17 @@ class HomeViewModel @Inject constructor(
 
     private fun fecharFotoModal() {
         _uiState.update { it.copy(fotoModal = null) }
+    }
+
+    private fun salvarFotoModal(path: String) {
+        viewModelScope.launch {
+            // Ao salvar no modal, o arquivo já é sobrescrito no disco.
+            // Precisamos apenas notificar o UI state para recarregar as imagens.
+            // Coil geralmente lida com cache, mas podemos forçar uma atualização
+            // recarregando os pontos.
+            _uiEvent.emit(HomeUiEvent.MostrarMensagem("Foto salva com sucesso"))
+            carregarPontosDoDia()
+        }
     }
 
     // ── NOVO MODAL DE REGISTRO (UNIFICADO) ──────────────────────────────────

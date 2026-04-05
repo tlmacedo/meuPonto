@@ -80,6 +80,12 @@ sealed interface HomeAction {
     /** Fecha o modal de edição */
     data object FecharEdicaoModal : HomeAction
 
+    /** Atualiza a foto no modal de edição */
+    data class AtualizarFotoEdicaoModal(val uri: Uri?) : HomeAction
+
+    /** Remove a foto no modal de edição */
+    data object RemoverFotoEdicaoModal : HomeAction
+
     /** Salva as alterações do modal de edição */
     data class SalvarEdicaoModal(
         val pontoId: Long,
@@ -112,6 +118,9 @@ sealed interface HomeAction {
 
     /** Fecha o modal de foto */
     data object FecharFotoModal : HomeAction
+
+    /** Salva a foto editada no modal */
+    data class SalvarFotoModal(val path: String) : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
     // AÇÕES DE NAVEGAÇÃO POR DATA

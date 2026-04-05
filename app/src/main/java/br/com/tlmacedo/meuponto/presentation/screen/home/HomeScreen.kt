@@ -5,7 +5,6 @@ import android.Manifest
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.activity.ComponentActivity
-import androidx.core.app.ActivityCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -17,25 +16,28 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -53,12 +55,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import br.com.tlmacedo.meuponto.domain.model.TipoPonto
+import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
+import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.domain.model.Ponto
+import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
 import br.com.tlmacedo.meuponto.presentation.components.EdicaoModal
@@ -71,9 +79,9 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.ProximoPontoCard
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoModal
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
-import br.com.tlmacedo.meuponto.presentation.components.TimePickerDialog
 import br.com.tlmacedo.meuponto.presentation.components.foto.ComprovanteImagePicker
 import br.com.tlmacedo.meuponto.presentation.screen.home.components.FechamentoCicloDialog
+import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -252,6 +260,11 @@ fun HomeScreen(
             ponto = modalState.ponto,
             tipoDescricao = modalState.tipoDescricao,
             isSaving = modalState.isSaving,
+            nsrHabilitado = uiState.nsrHabilitado,
+            tipoNsr = uiState.tipoNsr,
+            fotoHabilitada = uiState.fotoHabilitada,
+            onCapturarFoto = { viewModel.onAction(HomeAction.AbrirFotoSourceDialog) },
+            onRemoverFoto = { viewModel.onAction(HomeAction.RemoverFotoEdicaoModal) },
             onConfirmar = { hora, nsr, motivo, detalhes ->
                 viewModel.onAction(HomeAction.SalvarEdicaoModal(modalState.ponto.id, hora, nsr, motivo, detalhes))
             },
@@ -285,7 +298,8 @@ fun HomeScreen(
             ponto = modalState.ponto,
             tipoDescricao = modalState.tipoDescricao,
             fotoPath = modalState.fotoPath,
-            onDismiss = { viewModel.onAction(HomeAction.FecharFotoModal) }
+            onDismiss = { viewModel.onAction(HomeAction.FecharFotoModal) },
+            onSalvarFoto = { path -> viewModel.onAction(HomeAction.SalvarFotoModal(path)) }
         )
     }
 
@@ -380,10 +394,25 @@ internal fun HomeContent(
             // Data selecionada
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = { onAction(HomeAction.AbrirDatePicker) }) {
+                IconButton(
+                    onClick = { onAction(HomeAction.DiaAnterior) },
+                    enabled = uiState.podeNavegaAnterior
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBackIos,
+                        contentDescription = "Dia anterior",
+                        modifier = Modifier.size(20.dp),
+                        tint = if (uiState.podeNavegaAnterior) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    )
+                }
+
+                TextButton(
+                    onClick = { onAction(HomeAction.AbrirDatePicker) },
+                    modifier = Modifier.weight(1f)
+                ) {
                     Icon(
                         imageVector = Icons.Default.CalendarToday,
                         contentDescription = null,
@@ -398,7 +427,20 @@ internal fun HomeContent(
                             else -> uiState.dataSelecionada.format(HomeUiState.formatterDataCompleta)
                         },
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                IconButton(
+                    onClick = { onAction(HomeAction.ProximoDia) },
+                    enabled = uiState.podeNavegarProximo
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = "Próximo dia",
+                        modifier = Modifier.size(20.dp),
+                        tint = if (uiState.podeNavegarProximo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     )
                 }
             }
@@ -483,5 +525,64 @@ internal fun HomeContent(
                 }
             }
         }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PREVIEWS
+// ══════════════════════════════════════════════════════════════════════
+
+@Preview(showBackground = true, name = "Home - Dia com Pontos", group = "Home")
+@Composable
+private fun HomeScreenPreview() {
+    val hoje = LocalDate.now()
+    val empregoId = 1L
+    
+    val pontos = listOf(
+        Ponto.criar(empregoId, hoje.atTime(8, 0), nsr = "12345").copy(id = 1L),
+        Ponto.criar(empregoId, hoje.atTime(12, 0)).copy(id = 2L),
+        Ponto.criar(empregoId, hoje.atTime(13, 0)).copy(id = 3L),
+        Ponto.criar(empregoId, hoje.atTime(17, 0)).copy(id = 4L)
+    )
+
+    val uiState = HomeUiState(
+        dataSelecionada = hoje,
+        empregoAtivo = Emprego(id = empregoId, nome = "Empresa Exemplo"),
+        configuracaoEmprego = ConfiguracaoEmprego(empregoId = empregoId, habilitarNsr = true),
+        pontosHoje = pontos,
+        resumoDia = ResumoDia(
+            data = hoje,
+            pontos = pontos
+        ),
+        proximoTipo = ProximoPonto(isEntrada = true, descricao = "Entrada", indice = 4),
+        isLoading = false
+    )
+
+    MeuPontoTheme {
+        HomeContent(
+            uiState = uiState,
+            onAction = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Home - Dia Vazio", group = "Home")
+@Composable
+private fun HomeScreenEmptyPreview() {
+    val hoje = LocalDate.now()
+    val uiState = HomeUiState(
+        dataSelecionada = hoje,
+        empregoAtivo = Emprego(id = 1L, nome = "Empresa Exemplo"),
+        pontosHoje = emptyList(),
+        resumoDia = ResumoDia(data = hoje),
+        proximoTipo = ProximoPonto(isEntrada = true, descricao = "Entrada", indice = 0),
+        isLoading = false
+    )
+
+    MeuPontoTheme {
+        HomeContent(
+            uiState = uiState,
+            onAction = {}
+        )
     }
 }

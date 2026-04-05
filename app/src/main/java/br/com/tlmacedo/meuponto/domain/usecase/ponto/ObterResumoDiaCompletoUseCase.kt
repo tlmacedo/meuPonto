@@ -80,17 +80,19 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             .filter { it.tipo == TipoAusencia.DECLARACAO }
             .sumOf { it.duracaoAbonoMinutos ?: 0 }
 
-        // Buscar carga da versão de jornada
-        val cargaHoraria = horarioDia?.cargaHorariaMinutos
+        // Buscar carga e acréscimo da versão de jornada
+        val cargaHorariaBase = horarioDia?.cargaHorariaMinutos
             ?: versaoJornada?.cargaHorariaDiariaMinutos
             ?: 480
+        val acrescimoPontes = versaoJornada?.acrescimoMinutosDiasPontes ?: 0
+        val cargaHorariaEfetiva = cargaHorariaBase + acrescimoPontes
 
         val resumoDia = ResumoDia(
             data = data,
             pontos = pontos.sortedBy { it.dataHora },
-            cargaHorariaDiaria = Duration.ofMinutes(cargaHoraria.toLong()),
+            cargaHorariaDiaria = Duration.ofMinutes(cargaHorariaEfetiva.toLong()),
             intervaloMinimoMinutos = horarioDia?.intervaloMinimoMinutos ?: 60,
-            toleranciaIntervaloMinutos = horarioDia?.toleranciaIntervaloMaisMinutos ?: 15,
+            toleranciaIntervaloMinutos = versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0,
             tipoDiaEspecial = tipoDiaEspecial,
             saidaIntervaloIdeal = horarioDia?.saidaIntervaloIdeal,
             tempoAbonadoMinutos = tempoAbonadoMinutos
@@ -106,19 +108,23 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         feriado: Feriado?,
         feriados: List<Feriado> = listOfNotNull(feriado),
         horarioDia: HorarioDiaSemana?,
-        cargaHorariaPadrao: Int = 480
+        cargaHorariaBasePadrao: Int = 480,
+        acrescimoPontes: Int = 0,
+        toleranciaIntervaloGlobal: Int = 0
     ): ResumoDiaCompleto {
         val (tipoDiaEspecial, descricao) = determinarTipoDiaEspecial(ausencias, feriado)
         val tempoAbonadoMinutos = ausencias
             .filter { it.tipo == TipoAusencia.DECLARACAO }
             .sumOf { it.duracaoAbonoMinutos ?: 0 }
 
+        val cargaHorariaEfetiva = (horarioDia?.cargaHorariaMinutos ?: cargaHorariaBasePadrao) + acrescimoPontes
+
         val resumoDia = ResumoDia(
             data = data,
             pontos = pontos.sortedBy { it.dataHora },
-            cargaHorariaDiaria = Duration.ofMinutes((horarioDia?.cargaHorariaMinutos ?: cargaHorariaPadrao).toLong()),
+            cargaHorariaDiaria = Duration.ofMinutes(cargaHorariaEfetiva.toLong()),
             intervaloMinimoMinutos = horarioDia?.intervaloMinimoMinutos ?: 60,
-            toleranciaIntervaloMinutos = horarioDia?.toleranciaIntervaloMaisMinutos ?: 15,
+            toleranciaIntervaloMinutos = toleranciaIntervaloGlobal,
             tipoDiaEspecial = tipoDiaEspecial,
             saidaIntervaloIdeal = horarioDia?.saidaIntervaloIdeal,
             tempoAbonadoMinutos = tempoAbonadoMinutos
@@ -143,9 +149,11 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
                 horarioDiaSemanaRepository.buscarPorVersaoEDia(it.id, diaSemana)
             } ?: horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
 
-            val cargaPadrao = versaoJornada?.cargaHorariaDiariaMinutos ?: 480
+            val cargaBasePadrao = versaoJornada?.cargaHorariaDiariaMinutos ?: 480
+            val acrescimoPontes = versaoJornada?.acrescimoMinutosDiasPontes ?: 0
+            val toleranciaGlobal = versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0
 
-            invokeComDados(data, pontos, ausenciasAtivas, feriado, feriados, horarioDia, cargaPadrao)
+            invokeComDados(data, pontos, ausenciasAtivas, feriado, feriados, horarioDia, cargaBasePadrao, acrescimoPontes, toleranciaGlobal)
         }
     }
 

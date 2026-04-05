@@ -49,19 +49,22 @@ class CalcularResumoDiaUseCase @Inject constructor() {
         pontos: List<Ponto>,
         data: LocalDate = LocalDate.now(),
         horarioDiaSemana: HorarioDiaSemana? = null,
+        toleranciaIntervaloGlobal: Int? = null,
+        acrescimoDiasPontes: Int = 0,
         tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL,
         tempoAbonadoMinutos: Int = 0
     ): ResumoDia {
         // Valores padrão se não houver configuração
-        val cargaHoraria = horarioDiaSemana?.cargaHorariaMinutos ?: 480
+        val cargaHorariaBase = horarioDiaSemana?.cargaHorariaMinutos ?: 480
+        val cargaHorariaEfetiva = cargaHorariaBase + acrescimoDiasPontes
         val intervaloMinimo = horarioDiaSemana?.intervaloMinimoMinutos ?: 60
-        val toleranciaIntervalo = horarioDiaSemana?.toleranciaIntervaloMaisMinutos ?: 15
+        val toleranciaIntervalo = toleranciaIntervaloGlobal ?: 0
         val saidaIntervaloIdeal = horarioDiaSemana?.saidaIntervaloIdeal
 
         return ResumoDia(
             data = data,
             pontos = pontos.sortedBy { it.dataHora },
-            cargaHorariaDiaria = Duration.ofMinutes(cargaHoraria.toLong()),
+            cargaHorariaDiaria = Duration.ofMinutes(cargaHorariaEfetiva.toLong()),
             intervaloMinimoMinutos = intervaloMinimo,
             toleranciaIntervaloMinutos = toleranciaIntervalo,
             tipoDiaEspecial = tipoDiaEspecial,

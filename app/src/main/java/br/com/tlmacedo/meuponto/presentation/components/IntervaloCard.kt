@@ -141,6 +141,8 @@ fun IntervaloCard(
                             horaReal = intervalo.entrada.hora.format(formatadorHora),
                             horaConsiderada = if (intervalo.temHoraEntradaConsiderada) {
                                 intervalo.horaEntradaConsiderada!!.toLocalTime().format(formatadorHora)
+                            } else if (intervalo.entrada.temAjusteTolerancia) {
+                                intervalo.entrada.horaConsiderada.format(formatadorHora)
                             } else null,
                             nsr = if (mostrarNsr) intervalo.entrada.nsr else null,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
@@ -193,7 +195,7 @@ fun IntervaloCard(
                                 )
                             } else {
                                 Text(
-                                    text = intervalo.formatarDuracao(),
+                                    text = intervalo.formatarDuracaoCompacta(),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = if (intervalo.aberto) Warning else MaterialTheme.colorScheme.onPrimaryContainer
@@ -330,16 +332,6 @@ private fun PontoContent(
                 fontWeight = FontWeight.Medium,
                 color = corPrimaria
             )
-            
-            if (ponto.temAjusteTolerancia) {
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Com corte",
-                    tint = corPrimaria.copy(alpha = 0.6f),
-                    modifier = Modifier.size(10.dp)
-                )
-            }
         }
 
         Spacer(modifier = Modifier.height(2.dp))
@@ -348,21 +340,22 @@ private fun PontoContent(
         if (horaConsiderada != null) {
             Text(
                 text = horaReal,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                fontWeight = FontWeight.Medium,
                 textDecoration = TextDecoration.LineThrough
             )
             Text(
                 text = horaConsiderada,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = corPrimaria
+                fontWeight = FontWeight.Black,
+                color = if (isEntrada) Color(0xFF34D399) else corPrimaria
             )
         } else {
             Text(
                 text = horaReal,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Black,
                 color = if (ponto.temAjusteTolerancia) corPrimaria else MaterialTheme.colorScheme.onSurface
             )
         }
@@ -371,7 +364,7 @@ private fun PontoContent(
         if (!nsr.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "NSR $nsr",
+                text = "# $nsr",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -460,7 +453,7 @@ private fun PausaEntreIntervalos(
     ) {
         HorizontalDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
         )
 
         Column(
@@ -468,45 +461,85 @@ private fun PausaEntreIntervalos(
             modifier = Modifier
                 .padding(horizontal = 12.dp)
                 .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(20.dp)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(24.dp)
                 )
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 20.dp, vertical = 6.dp)
         ) {
-            // Linha do intervalo real (se houver tolerância, mostra cortado)
+            // Tempo Real (Tachado) - Aparece apenas se houver tolerância aplicada
             if (textoConsiderado != null) {
                 Text(
                     text = textoReal,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     textDecoration = TextDecoration.LineThrough
                 )
             }
 
-            // Linha principal com ícone, tipo e tempo
+            // Linha Principal: Ícone + Descrição + Tempo Considerado
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
                     imageVector = icone,
-                    contentDescription = "Intervalo de ${tipoPausa.descricao}",
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = "${tipoPausa.descricao} ${textoConsiderado ?: textoReal}",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                    text = buildString {
+                        append(tipoPausa.descricao)
+                        append(" ")
+                        append(textoConsiderado ?: textoReal)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
         HorizontalDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
         )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, name = "Intervalo com Tolerância Aplicada")
+@Composable
+private fun IntervaloComToleranciaPreview() {
+    val hoje = java.time.LocalDate.now()
+    val empregoId = 1L
+    
+    // Simula uma pausa de 68 minutos (mínimo 60, tolerância 15)
+    // A tolerância deve "puxar" para 60min e marcar a entrada seguinte como considerada
+    val ponto1 = br.com.tlmacedo.meuponto.domain.model.Ponto.criar(empregoId, hoje.atTime(8, 0)).copy(id = 1L)
+    val ponto2 = br.com.tlmacedo.meuponto.domain.model.Ponto.criar(empregoId, hoje.atTime(12, 0)).copy(id = 2L)
+    val ponto3 = br.com.tlmacedo.meuponto.domain.model.Ponto.criar(empregoId, hoje.atTime(13, 8)).copy(id = 3L) // 68min de pausa
+    val ponto4 = br.com.tlmacedo.meuponto.domain.model.Ponto.criar(empregoId, hoje.atTime(17, 0)).copy(id = 4L)
+
+    val resumo = br.com.tlmacedo.meuponto.domain.model.ResumoDia(
+        data = hoje,
+        pontos = listOf(ponto1, ponto2, ponto3, ponto4),
+        intervaloMinimoMinutos = 60,
+        toleranciaIntervaloMinutos = 15,
+        saidaIntervaloIdeal = null // Força a lógica de proximidade (global)
+    )
+
+    br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme {
+        androidx.compose.foundation.layout.Column(
+            modifier = androidx.compose.ui.Modifier.padding(16.dp), 
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+        ) {
+            Text("Exemplo de Tolerância Global (Sábado/Sem Horário Fixo)", style = MaterialTheme.typography.titleSmall)
+            // Exibimos o segundo intervalo, que contém a pausa de almoço antes dele
+            IntervaloCard(
+                intervalo = resumo.intervalos[1],
+                mostrarNsr = true
+            )
+        }
     }
 }

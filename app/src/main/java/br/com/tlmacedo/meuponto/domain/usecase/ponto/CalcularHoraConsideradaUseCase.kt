@@ -70,7 +70,6 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
         // Busca configuração do dia para esta versão específica
         val diaSemana = DiaSemana.fromJavaDayOfWeek(dataHora.dayOfWeek)
         val horarioDia = horarioDiaSemanaRepository.buscarPorVersaoEDia(versao.id, diaSemana)
-            ?: return horaReal // Sem configuração = sem tolerância
 
         // Saídas não têm tolerância
         val isSaida = indicePonto % 2 != 0
@@ -78,8 +77,16 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
 
         // Determina qual tolerância aplicar baseado no índice
         return when (indicePonto) {
-            0 -> calcularToleranciaEntrada(dataHora, horarioDia)
-            else -> calcularToleranciaVoltaIntervalo(empregoId, dataHora, versao, horarioDia, indicePonto)
+            0 -> {
+                // Se não há horário configurado para o dia (ex: Sábado), não há tolerância de entrada (atraso/adiantado)
+                if (horarioDia == null) return horaReal
+                calcularToleranciaEntrada(dataHora, horarioDia)
+            }
+            else -> {
+                // Para volta de intervalo, usamos o intervalo mínimo do dia OU o padrão de 60 min se for sábado
+                val intervaloMinimo = horarioDia?.intervaloMinimoMinutos ?: 60
+                calcularToleranciaVoltaIntervalo(empregoId, dataHora, versao, intervaloMinimo, indicePonto)
+            }
         }
     }
 
@@ -117,7 +124,7 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
         empregoId: Long,
         dataHora: LocalDateTime,
         versao: VersaoJornada,
-        horarioDia: HorarioDiaSemana,
+        intervaloMinimoMinutos: Int,
         indicePonto: Int
     ): LocalTime {
         val horaReal = dataHora.toLocalTime()
@@ -143,8 +150,8 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
         val horaSaidaReal = pontoSaidaAnterior.horaConsiderada
 
         // Calcula hora ideal de volta = hora da saída + intervalo mínimo
-        val intervaloMinimoMinutos = horarioDia.intervaloMinimoMinutos.toLong()
-        val horaIdealVolta = horaSaidaReal.plusMinutes(intervaloMinimoMinutos)
+        val intervaloMinimoLong = intervaloMinimoMinutos.toLong()
+        val horaIdealVolta = horaSaidaReal.plusMinutes(intervaloMinimoLong)
 
         val diferencaMinutos = Duration.between(horaIdealVolta, horaReal).toMinutes()
 

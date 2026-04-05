@@ -187,9 +187,8 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val versaoCache = mutableMapOf<Long, VersaoCache>()
         val horarioSemVersaoCache = mutableMapOf<DiaSemana, HorarioDiaSemana?>()
 
-        // Buscar carga padrão da versão vigente
+        // Buscar versão vigente para dados genéricos se necessário
         val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
-        val cargaPadrao = versaoVigente?.cargaHorariaDiariaMinutos ?: 480
 
         var saldoTotal = Duration.ZERO
         var diasTrabalhados = 0
@@ -219,13 +218,19 @@ class CalcularBancoHorasUseCase @Inject constructor(
                 }
             }
 
+            val cargaBasePadrao = versaoJornada?.cargaHorariaDiariaMinutos ?: 480
+            val acrescimoPontes = versaoJornada?.acrescimoMinutosDiasPontes ?: 0
+            val toleranciaGlobal = versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0
+
             val resumoCompleto = obterResumoDiaCompletoUseCase.invokeComDados(
                 data = dataAtual,
                 pontos = pontosNoDia,
                 ausencias = ausenciasDoDia,
                 feriado = feriadoDoDia,
                 horarioDia = horarioDia,
-                cargaHorariaPadrao = cargaPadrao
+                cargaHorariaBasePadrao = cargaBasePadrao,
+                acrescimoPontes = acrescimoPontes,
+                toleranciaIntervaloGlobal = toleranciaGlobal
             )
 
             if (resumoCompleto.jornadaCompleta) diasTrabalhados++
