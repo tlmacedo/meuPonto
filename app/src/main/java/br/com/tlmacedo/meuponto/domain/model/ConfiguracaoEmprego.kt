@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/ConfiguracaoEmprego.kt
 package br.com.tlmacedo.meuponto.domain.model
 
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
@@ -70,6 +71,28 @@ data class ConfiguracaoEmprego(
 
     /** Sincronizar apenas em Wi-Fi */
     val fotoBackupApenasWifi: Boolean = true,
+
+    /** Local de salvamento da foto */
+    val fotoLocalArmazenamento: String? = null,
+
+    /** Registrar ponto automaticamente através de OCR da foto */
+    val fotoRegistrarPontoOcr: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CONFIGURAÇÃO RH E BANCO DE HORAS (Geral do Emprego)
+    // ════════════════════════════════════════════════════════════════════════
+
+    val diaInicioFechamentoRH: Int = 11,
+    val bancoHorasHabilitado: Boolean = false,
+    val bancoHorasCicloMeses: Int = 6,
+    val bancoHorasDataInicioCiclo: LocalDate? = null,
+    val bancoHorasZerarAoFinalCiclo: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // VALIDAÇÃO
+    // ════════════════════════════════════════════════════════════════════════
+
+    val exigeJustificativaInconsistencia: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════
     // EXIBIÇÃO

@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/entity/ConfiguracaoEmpregoEntity.kt
 package br.com.tlmacedo.meuponto.data.local.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -8,19 +9,11 @@ import androidx.room.PrimaryKey
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.FotoFormato
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
  * Entidade Room para configurações de emprego.
- *
- * Contém configurações de exibição, comportamento e captura de dados
- * específicas de cada emprego.
- *
- * @author Thiago
- * @since 2.0.0
- * @updated 8.0.0 - Simplificado: campos de jornada/banco migrados para VersaoJornada
- * @updated 9.0.0 - Adicionado fotoObrigatoria
- * @updated 10.0.0 - Adicionados campos completos de configuração de foto
  */
 @Entity(
     tableName = "configuracoes_emprego",
@@ -43,94 +36,80 @@ data class ConfiguracaoEmpregoEntity(
     // NSR (Número Sequencial de Registro)
     // ════════════════════════════════════════════════════════════════════════
 
+    @ColumnInfo(defaultValue = "0")
     val habilitarNsr: Boolean = false,
+    @ColumnInfo(defaultValue = "NUMERICO")
     val tipoNsr: TipoNsr = TipoNsr.NUMERICO,
 
     // ════════════════════════════════════════════════════════════════════════
     // LOCALIZAÇÃO
     // ════════════════════════════════════════════════════════════════════════
 
+    @ColumnInfo(defaultValue = "0")
     val habilitarLocalizacao: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
     val localizacaoAutomatica: Boolean = false,
+    @ColumnInfo(defaultValue = "1")
     val exibirLocalizacaoDetalhes: Boolean = true,
 
     // ════════════════════════════════════════════════════════════════════════
     // FOTO DE COMPROVANTE
     // ════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Habilita a funcionalidade de foto de comprovante.
-     * Quando true, o usuário será solicitado a capturar/selecionar uma foto
-     * após o registro do ponto.
-     */
+    @ColumnInfo(defaultValue = "0")
     val fotoHabilitada: Boolean = false,
-
-    /**
-     * Torna a foto obrigatória para concluir o registro do ponto.
-     * Só tem efeito se fotoHabilitada = true.
-     */
+    @ColumnInfo(defaultValue = "0")
     val fotoObrigatoria: Boolean = false,
-
-    /**
-     * Formato de salvamento da foto.
-     * JPEG: Menor tamanho, boa qualidade (recomendado)
-     * PNG: Maior qualidade, sem perdas, maior tamanho
-     */
+    @ColumnInfo(defaultValue = "JPEG")
     val fotoFormato: FotoFormato = FotoFormato.JPEG,
-
-    /**
-     * Qualidade de compressão da foto (1-100).
-     * Apenas para formato JPEG.
-     * Recomendado: 85 (bom equilíbrio entre qualidade e tamanho)
-     */
+    @ColumnInfo(defaultValue = "85")
     val fotoQualidade: Int = 85,
-
-    /**
-     * Resolução máxima da foto em pixels (largura).
-     * A altura é calculada proporcionalmente.
-     * Ex: 1920 = Full HD, 1280 = HD, 0 = sem limite
-     */
+    @ColumnInfo(defaultValue = "1920")
     val fotoResolucaoMaxima: Int = 1920,
-
-    /**
-     * Tamanho máximo do arquivo em KB.
-     * Se a foto exceder, será recomprimida.
-     * 0 = sem limite
-     */
+    @ColumnInfo(defaultValue = "1024")
     val fotoTamanhoMaximoKb: Int = 1024,
-
-    /**
-     * Corrigir automaticamente a orientação da foto baseado em EXIF.
-     */
+    @ColumnInfo(defaultValue = "1")
     val fotoCorrecaoOrientacao: Boolean = true,
-
-    /**
-     * Permitir apenas captura via câmera.
-     * Quando true, desabilita a opção de selecionar da galeria.
-     */
+    @ColumnInfo(defaultValue = "0")
     val fotoApenasCamera: Boolean = false,
-
-    /**
-     * Incluir localização GPS nos metadados EXIF da foto.
-     * Requer habilitarLocalizacao = true.
-     */
+    @ColumnInfo(defaultValue = "1")
     val fotoIncluirLocalizacaoExif: Boolean = true,
-
-    /**
-     * Habilitar backup automático das fotos na nuvem.
-     */
+    @ColumnInfo(defaultValue = "0")
     val fotoBackupNuvemHabilitado: Boolean = false,
-
-    /**
-     * Sincronizar fotos apenas quando conectado a Wi-Fi.
-     */
+    @ColumnInfo(defaultValue = "1")
     val fotoBackupApenasWifi: Boolean = true,
+    val fotoLocalArmazenamento: String? = null,
+    @ColumnInfo(defaultValue = "0")
+    val fotoRegistrarPontoOcr: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CONFIGURAÇÃO RH E BANCO DE HORAS
+    // ════════════════════════════════════════════════════════════════════════
+
+    @ColumnInfo(defaultValue = "11")
+    val diaInicioFechamentoRH: Int = 11,
+    @ColumnInfo(defaultValue = "0")
+    val bancoHorasHabilitado: Boolean = false,
+    @ColumnInfo(defaultValue = "6")
+    val bancoHorasCicloMeses: Int = 6,
+    val bancoHorasDataInicioCiclo: LocalDate? = null,
+    @ColumnInfo(defaultValue = "0")
+    val bancoHorasZerarAoFinalCiclo: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
+    // VALIDAÇÃO
+    // ════════════════════════════════════════════════════════════════════════
+
+    @ColumnInfo(defaultValue = "0")
+    val exigeJustificativaInconsistencia: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════
     // EXIBIÇÃO
     // ════════════════════════════════════════════════════════════════════════
 
+    @ColumnInfo(defaultValue = "1")
     val exibirDuracaoTurno: Boolean = true,
+    @ColumnInfo(defaultValue = "1")
     val exibirDuracaoIntervalo: Boolean = true,
 
     // ════════════════════════════════════════════════════════════════════════
@@ -141,9 +120,6 @@ data class ConfiguracaoEmpregoEntity(
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 )
 
-/**
- * Converte Entity para Domain Model.
- */
 fun ConfiguracaoEmpregoEntity.toDomain(): ConfiguracaoEmprego =
     ConfiguracaoEmprego(
         id = id,
@@ -164,15 +140,20 @@ fun ConfiguracaoEmpregoEntity.toDomain(): ConfiguracaoEmprego =
         fotoIncluirLocalizacaoExif = fotoIncluirLocalizacaoExif,
         fotoBackupNuvemHabilitado = fotoBackupNuvemHabilitado,
         fotoBackupApenasWifi = fotoBackupApenasWifi,
+        fotoLocalArmazenamento = fotoLocalArmazenamento,
+        fotoRegistrarPontoOcr = fotoRegistrarPontoOcr,
+        diaInicioFechamentoRH = diaInicioFechamentoRH,
+        bancoHorasHabilitado = bancoHorasHabilitado,
+        bancoHorasCicloMeses = bancoHorasCicloMeses,
+        bancoHorasDataInicioCiclo = bancoHorasDataInicioCiclo,
+        bancoHorasZerarAoFinalCiclo = bancoHorasZerarAoFinalCiclo,
+        exigeJustificativaInconsistencia = exigeJustificativaInconsistencia,
         exibirDuracaoTurno = exibirDuracaoTurno,
         exibirDuracaoIntervalo = exibirDuracaoIntervalo,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )
 
-/**
- * Converte Domain Model para Entity.
- */
 fun ConfiguracaoEmprego.toEntity(): ConfiguracaoEmpregoEntity =
     ConfiguracaoEmpregoEntity(
         id = id,
@@ -193,6 +174,14 @@ fun ConfiguracaoEmprego.toEntity(): ConfiguracaoEmpregoEntity =
         fotoIncluirLocalizacaoExif = fotoIncluirLocalizacaoExif,
         fotoBackupNuvemHabilitado = fotoBackupNuvemHabilitado,
         fotoBackupApenasWifi = fotoBackupApenasWifi,
+        fotoLocalArmazenamento = fotoLocalArmazenamento,
+        fotoRegistrarPontoOcr = fotoRegistrarPontoOcr,
+        diaInicioFechamentoRH = diaInicioFechamentoRH,
+        bancoHorasHabilitado = bancoHorasHabilitado,
+        bancoHorasCicloMeses = bancoHorasCicloMeses,
+        bancoHorasDataInicioCiclo = bancoHorasDataInicioCiclo,
+        bancoHorasZerarAoFinalCiclo = bancoHorasZerarAoFinalCiclo,
+        exigeJustificativaInconsistencia = exigeJustificativaInconsistencia,
         exibirDuracaoTurno = exibirDuracaoTurno,
         exibirDuracaoIntervalo = exibirDuracaoIntervalo,
         criadoEm = criadoEm,

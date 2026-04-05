@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/entity/VersaoJornadaEntity.kt
 package br.com.tlmacedo.meuponto.data.local.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -42,67 +43,88 @@ data class VersaoJornadaEntity(
     val dataInicio: LocalDate,
     val dataFim: LocalDate? = null,
     val descricao: String? = null,
+    @ColumnInfo(defaultValue = "1")
     val numeroVersao: Int = 1,
+    @ColumnInfo(defaultValue = "1")
     val vigente: Boolean = true,
 
     // ════════════════════════════════════════════════════════════════════════
     // JORNADA (campos existentes)
     // ════════════════════════════════════════════════════════════════════════
     /** Jornada máxima diária total (soma de todos os turnos). Default: 600min (10h) */
+    @ColumnInfo(defaultValue = "600")
     val jornadaMaximaDiariaMinutos: Int = 600,
     /** Intervalo mínimo entre jornadas (interjornada). Default: 660min (11h) */
+    @ColumnInfo(defaultValue = "660")
     val intervaloMinimoInterjornadaMinutos: Int = 660,
     /** Tolerância para mais no intervalo de almoço. Default: 0min */
+    @ColumnInfo(defaultValue = "0")
     val toleranciaIntervaloMaisMinutos: Int = 0,
     /** Turno máximo (tempo entre entrada e saída de um turno). Default: 360min (6h) */
+    @ColumnInfo(defaultValue = "360")
     val turnoMaximoMinutos: Int = 360,
 
     // ════════════════════════════════════════════════════════════════════════
     // CARGA HORÁRIA (migrados de ConfiguracaoEmprego)
     // ════════════════════════════════════════════════════════════════════════
     /** Carga horária base diária. Default: 480min (8h) */
+    @ColumnInfo(defaultValue = "480")
     val cargaHorariaDiariaMinutos: Int = 480,
     /** Acréscimo diário para compensar dias ponte. Default: 12min (2026) */
+    @ColumnInfo(defaultValue = "12")
     val acrescimoMinutosDiasPontes: Int = 12,
     /** Carga horária semanal total. Default: 2460min (41h = 5 × 492) */
+    @ColumnInfo(defaultValue = "2460")
     val cargaHorariaSemanalMinutos: Int = 2460,
 
     // ════════════════════════════════════════════════════════════════════════
     // PERÍODO/SALDO (migrados de ConfiguracaoEmprego)
     // ════════════════════════════════════════════════════════════════════════
     /** Primeiro dia da semana para cálculos. Default: SEGUNDA */
+    @ColumnInfo(defaultValue = "SEGUNDA")
     val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
     /** Dia do mês para fechamento RH. Default: 1 */
+    @ColumnInfo(defaultValue = "1")
     val diaInicioFechamentoRH: Int = 1,
     /** Zerar saldo ao fim de cada semana. Default: false */
+    @ColumnInfo(defaultValue = "0")
     val zerarSaldoSemanal: Boolean = false,
     /** Zerar saldo ao fim do período RH. Default: false */
+    @ColumnInfo(defaultValue = "0")
     val zerarSaldoPeriodoRH: Boolean = false,
     /** Ocultar saldo total na interface. Default: false */
+    @ColumnInfo(defaultValue = "0")
     val ocultarSaldoTotal: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════
     // BANCO DE HORAS (migrados de ConfiguracaoEmprego)
     // ════════════════════════════════════════════════════════════════════════
     /** Flag que indica se banco de horas está habilitado. Default: false */
+    @ColumnInfo(defaultValue = "0")
     val bancoHorasHabilitado: Boolean = false,
     /** Período do ciclo em semanas (1-3). Default: 0 (usa meses) */
+    @ColumnInfo(defaultValue = "0")
     val periodoBancoSemanas: Int = 0,
     /** Período do ciclo em meses. Default: 0 (usa semanas) */
+    @ColumnInfo(defaultValue = "0")
     val periodoBancoMeses: Int = 0,
     /** Data de início do ciclo atual. Null se não configurado */
     val dataInicioCicloBancoAtual: LocalDate? = null,
     /** Dias úteis antes do fim para lembrete. Default: 3 */
+    @ColumnInfo(defaultValue = "3")
     val diasUteisLembreteFechamento: Int = 3,
     /** Habilitar sugestão de ajuste automático. Default: false */
+    @ColumnInfo(defaultValue = "0")
     val habilitarSugestaoAjuste: Boolean = false,
     /** Ignorar registros antes do início do banco. Default: false */
+    @ColumnInfo(defaultValue = "0")
     val zerarBancoAntesPeriodo: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════
     // VALIDAÇÃO (migrado de ConfiguracaoEmprego)
     // ════════════════════════════════════════════════════════════════════════
     /** Exige justificativa para inconsistências. Default: false */
+    @ColumnInfo(defaultValue = "0")
     val exigeJustificativaInconsistencia: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════

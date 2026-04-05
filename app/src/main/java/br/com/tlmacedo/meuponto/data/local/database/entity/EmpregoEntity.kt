@@ -21,7 +21,10 @@ data class EmpregoEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val nome: String,
+    val apelido: String? = null,
+    val endereco: String? = null,
     val dataInicioTrabalho: LocalDate? = null,
+    val dataTerminoTrabalho: LocalDate? = null,
     val descricao: String? = null,
     val ativo: Boolean = true,
     val arquivado: Boolean = false,
@@ -34,7 +37,10 @@ fun EmpregoEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.Emprego =
     br.com.tlmacedo.meuponto.domain.model.Emprego(
         id = id,
         nome = nome,
+        apelido = apelido,
+        endereco = endereco,
         dataInicioTrabalho = dataInicioTrabalho,
+        dataTerminoTrabalho = dataTerminoTrabalho,
         descricao = descricao,
         ativo = ativo,
         arquivado = arquivado,
@@ -47,7 +53,10 @@ fun br.com.tlmacedo.meuponto.domain.model.Emprego.toEntity(): EmpregoEntity =
     EmpregoEntity(
         id = id,
         nome = nome,
+        apelido = apelido,
+        endereco = endereco,
         dataInicioTrabalho = dataInicioTrabalho,
+        dataTerminoTrabalho = dataTerminoTrabalho,
         descricao = descricao,
         ativo = ativo,
         arquivado = arquivado,

@@ -10,6 +10,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.*
 
 @Database(
     entities = [
+        AjusteSalarialEntity::class,
         AjusteSaldoEntity::class,
         AuditLogEntity::class,
         ConfiguracaoEmpregoEntity::class,
@@ -18,6 +19,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.*
         FechamentoPeriodoEntity::class,
         FeriadoEntity::class,
         FotoComprovanteEntity::class,
+        HistoricoCargoEntity::class,
         HorarioDiaSemanaEntity::class,
         MarcadorEntity::class,
         PontoEntity::class,
@@ -25,11 +27,12 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.*
         UsuarioEntity::class,
         AusenciaEntity::class
     ],
-    version = 27, // Ajuste a versão conforme necessário para suas migrações
+    version = 28, // Ajuste a versão conforme necessário para suas migrações
     exportSchema = true // Mantenha como true para gerar o schema.json
 )
 @TypeConverters(Converters::class)
 abstract class MeuPontoDatabase : RoomDatabase() {
+    abstract fun ajusteSalarialDao(): AjusteSalarialDao
     abstract fun ajusteSaldoDao(): AjusteSaldoDao
     abstract fun auditLogDao(): AuditLogDao
     abstract fun configuracaoEmpregoDao(): ConfiguracaoEmpregoDao
@@ -38,6 +41,7 @@ abstract class MeuPontoDatabase : RoomDatabase() {
     abstract fun fechamentoPeriodoDao(): FechamentoPeriodoDao
     abstract fun feriadoDao(): FeriadoDao
     abstract fun fotoComprovanteDao(): FotoComprovanteDao
+    abstract fun historicoCargoDao(): HistoricoCargoDao
     abstract fun horarioDiaSemanaDao(): HorarioDiaSemanaDao
     abstract fun marcadorDao(): MarcadorDao
     abstract fun pontoDao(): PontoDao

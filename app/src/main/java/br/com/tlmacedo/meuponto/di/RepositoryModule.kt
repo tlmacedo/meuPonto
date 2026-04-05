@@ -24,4 +24,5 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindVersaoJornadaRepository(impl: VersaoJornadaRepositoryImpl): VersaoJornadaRepository
     @Binds @Singleton abstract fun bindAusenciaRepository(impl: AusenciaRepositoryImpl): AusenciaRepository
     @Binds @Singleton abstract fun bindLixeiraRepository(impl: LixeiraRepositoryImpl): LixeiraRepository
+    @Binds @Singleton abstract fun bindHistoricoCargoRepository(impl: HistoricoCargoRepositoryImpl): HistoricoCargoRepository
 }
