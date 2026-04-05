@@ -179,20 +179,7 @@ fun SwipeablePontoRow(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ver Localização (se disponível)
-                if (temLocalizacao) {
-                    SwipePontoActionButton(
-                        icon = Icons.Default.LocationOn,
-                        contentDescription = "Ver Localização",
-                        iconColor = MaterialTheme.colorScheme.onTertiary,
-                        backgroundColor = MaterialTheme.colorScheme.tertiary,
-                        revealed = currentOffset.absoluteValue >= leftSwipeRevealPx * 0.5f,
-                        onClick = { executeAction { onVerLocalizacao(ponto) } },
-                        modifier = Modifier.width(actionButtonWidthDp)
-                    )
-                }
-
-                // Ver Foto (se disponível)
+                // Ver Foto (se disponível) - Agora primeiro (mais à esquerda no conjunto da direita)
                 if (temFoto) {
                     SwipePontoActionButton(
                         icon = Icons.Default.Photo,
@@ -201,6 +188,19 @@ fun SwipeablePontoRow(
                         backgroundColor = MaterialTheme.colorScheme.secondary,
                         revealed = currentOffset.absoluteValue >= leftSwipeRevealPx * 0.5f,
                         onClick = { executeAction { onVerFoto(ponto) } },
+                        modifier = Modifier.width(actionButtonWidthDp)
+                    )
+                }
+
+                // Ver Localização (se disponível) - Agora segundo
+                if (temLocalizacao) {
+                    SwipePontoActionButton(
+                        icon = Icons.Default.LocationOn,
+                        contentDescription = "Ver Localização",
+                        iconColor = MaterialTheme.colorScheme.onTertiary,
+                        backgroundColor = MaterialTheme.colorScheme.tertiary,
+                        revealed = currentOffset.absoluteValue >= leftSwipeRevealPx * 0.5f,
+                        onClick = { executeAction { onVerLocalizacao(ponto) } },
                         modifier = Modifier.width(actionButtonWidthDp)
                     )
                 }

@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,11 +22,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -275,15 +279,46 @@ private fun PontoContent(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(36.dp)
-                .clip(CircleShape)
-                .background(corFundo)
         ) {
-            Icon(
-                imageVector = icone,
-                contentDescription = label,
-                tint = corPrimaria,
-                modifier = Modifier.size(18.dp)
-            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(corFundo)
+            ) {
+                Icon(
+                    imageVector = icone,
+                    contentDescription = label,
+                    tint = corPrimaria,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            // Identificador de foto (se houver)
+            if (ponto.temFotoComprovante) {
+                val isCamera = ponto.fotoComprovantePath?.contains("camera", ignoreCase = true) == true
+                val iconeFoto = if (isCamera) Icons.Default.CameraAlt else Icons.Default.Image
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 2.dp, y = 2.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(1.dp)
+                        .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = iconeFoto,
+                        contentDescription = "Tem foto",
+                        tint = MaterialTheme.colorScheme.onSecondary,
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
