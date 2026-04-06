@@ -3,8 +3,12 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.domain.model.HistoricoCargo
+import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
+import br.com.tlmacedo.meuponto.domain.repository.HistoricoCargoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.presentation.navigation.MeuPontoDestinations
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,26 +18,30 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**
  * ViewModel para a tela de detalhes/configurações de um emprego específico.
  *
  * Gerencia o carregamento dos dados do emprego e navegação para sub-telas
- * de configuração (versões de jornada, ausências, ajustes de saldo).
+ * de configuração (versões de jornada, cargos, configuração geral, ausências, ajustes de saldo).
  *
  * @author Thiago
  * @since 4.0.0
- * @updated 9.1.0 - Migração para MeuPontoDestinations
+ * @updated 29.0.0 - Adicionado suporte a cargos, configuração geral e novos eventos de navegação
  */
 @HiltViewModel
 class EmpregoSettingsDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val empregoRepository: EmpregoRepository,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val historicoCargoRepository: HistoricoCargoRepository,
+    private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository
 ) : ViewModel() {
 
     private val empregoId: Long =
@@ -58,6 +66,9 @@ class EmpregoSettingsDetailViewModel @Inject constructor(
             is EmpregoSettingsDetailAction.NavegarParaVersoes -> navegarParaVersoes()
             is EmpregoSettingsDetailAction.NavegarParaAusencias -> navegarParaAusencias()
             is EmpregoSettingsDetailAction.NavegarParaAjustesSaldo -> navegarParaAjustesSaldo()
+            is EmpregoSettingsDetailAction.NavegarParaEditar -> navegarParaEditar()
+            is EmpregoSettingsDetailAction.NavegarParaCargos -> navegarParaCargos()
+            is EmpregoSettingsDetailAction.NavegarParaConfiguracaoGeral -> navegarParaConfiguracaoGeral()
             is EmpregoSettingsDetailAction.LimparErro -> limparErro()
         }
     }
@@ -92,13 +103,23 @@ class EmpregoSettingsDetailViewModel @Inject constructor(
                 val totalVersoes = versaoJornadaRepository.contarPorEmprego(empregoId)
                 val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
 
+                // Carregar cargos
+                val cargos = historicoCargoRepository.listarPorEmprego(empregoId).first()
+                val cargoAtual = cargos.firstOrNull { it.dataFim == null || !it.dataFim.isBefore(LocalDate.now()) }
+
+                // Carregar configuração
+                val configuracao = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         empregoId = empregoId,
                         emprego = emprego,
                         totalVersoes = totalVersoes,
-                        versaoVigenteDescricao = versaoVigente?.titulo
+                        versaoVigenteDescricao = versaoVigente?.titulo,
+                        cargos = cargos,
+                        cargoAtual = cargoAtual?.funcao,
+                        configuracao = configuracao
                     )
                 }
             } catch (e: Exception) {
@@ -131,6 +152,24 @@ class EmpregoSettingsDetailViewModel @Inject constructor(
         }
     }
 
+    private fun navegarParaEditar() {
+        viewModelScope.launch {
+            _eventos.emit(EmpregoSettingsDetailEvent.NavegarParaEditar(empregoId))
+        }
+    }
+
+    private fun navegarParaCargos() {
+        viewModelScope.launch {
+            _eventos.emit(EmpregoSettingsDetailEvent.NavegarParaCargos(empregoId))
+        }
+    }
+
+    private fun navegarParaConfiguracaoGeral() {
+        viewModelScope.launch {
+            _eventos.emit(EmpregoSettingsDetailEvent.NavegarParaConfiguracaoGeral(empregoId))
+        }
+    }
+
     private fun limparErro() {
         _uiState.update { it.copy(errorMessage = null) }
     }
@@ -145,6 +184,9 @@ data class EmpregoSettingsDetailUiState(
     val emprego: Emprego? = null,
     val totalVersoes: Int = 0,
     val versaoVigenteDescricao: String? = null,
+    val cargos: List<HistoricoCargo> = emptyList(),
+    val cargoAtual: String? = null,
+    val configuracao: ConfiguracaoEmprego? = null,
     val errorMessage: String? = null
 ) {
     val nomeEmprego: String
@@ -152,6 +194,9 @@ data class EmpregoSettingsDetailUiState(
 
     val empregoAtivo: Boolean
         get() = emprego?.ativo == true
+
+    val totalCargos: Int
+        get() = cargos.size
 }
 
 /**
@@ -162,6 +207,9 @@ sealed interface EmpregoSettingsDetailAction {
     data object NavegarParaVersoes : EmpregoSettingsDetailAction
     data object NavegarParaAusencias : EmpregoSettingsDetailAction
     data object NavegarParaAjustesSaldo : EmpregoSettingsDetailAction
+    data object NavegarParaEditar : EmpregoSettingsDetailAction
+    data object NavegarParaCargos : EmpregoSettingsDetailAction
+    data object NavegarParaConfiguracaoGeral : EmpregoSettingsDetailAction
     data object LimparErro : EmpregoSettingsDetailAction
 }
 
@@ -172,5 +220,8 @@ sealed interface EmpregoSettingsDetailEvent {
     data class NavegarParaVersoes(val empregoId: Long) : EmpregoSettingsDetailEvent
     data class NavegarParaAusencias(val empregoId: Long) : EmpregoSettingsDetailEvent
     data class NavegarParaAjustesSaldo(val empregoId: Long) : EmpregoSettingsDetailEvent
+    data class NavegarParaEditar(val empregoId: Long) : EmpregoSettingsDetailEvent
+    data class NavegarParaCargos(val empregoId: Long) : EmpregoSettingsDetailEvent
+    data class NavegarParaConfiguracaoGeral(val empregoId: Long) : EmpregoSettingsDetailEvent
     data class MostrarMensagem(val mensagem: String) : EmpregoSettingsDetailEvent
 }

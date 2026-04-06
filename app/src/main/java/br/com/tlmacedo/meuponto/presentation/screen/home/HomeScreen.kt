@@ -421,9 +421,9 @@ internal fun HomeContent(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = when {
-                            uiState.isHoje -> "Hoje, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCurta)}"
-                            uiState.isOntem -> "Ontem, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCurta)}"
-                            uiState.isAmanha -> "Amanhã, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCurta)}"
+                            uiState.isHoje -> "Hoje, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCompleta)}"
+                            uiState.isOntem -> "Ontem, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCompleta)}"
+                            uiState.isAmanha -> "Amanhã, ${uiState.dataSelecionada.format(HomeUiState.formatterDataCompleta)}"
                             else -> uiState.dataSelecionada.format(HomeUiState.formatterDataCompleta)
                         },
                         style = MaterialTheme.typography.titleMedium,

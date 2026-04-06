@@ -1,7 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/main/SettingsMainScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.main
 
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,6 +20,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
@@ -50,11 +50,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.components.TrocarEmpregoBottomSheet
+import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -70,15 +73,14 @@ import kotlinx.coroutines.launch
  *
  * @author Thiago
  * @since 9.0.0
- * @updated 9.1.0 - Removido card de Emprego Atual (agora exibido apenas em Gerenciar Empregos)
+ * @updated 9.2.0 - Refatorado para separar Content e adicionar Previews
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsMainScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEmpregoEdit: (Long) -> Unit,
     onNavigateToGerenciarEmpregos: () -> Unit,
-    onNavigateToVersoes: (Long) -> Unit,
+    onNavigateToEmpregoSettings: (Long) -> Unit,
     onNavigateToCalendario: () -> Unit,
     onNavigateToAparencia: () -> Unit,
     onNavigateToNotificacoes: () -> Unit,
@@ -87,16 +89,10 @@ fun SettingsMainScreen(
     onNavigateToSobre: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
-    modifier: Modifier = Modifier,
     viewModel: SettingsMainViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-
-    // Estado do BottomSheet
-    var showTrocarEmpregoSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Coleta eventos do ViewModel
     LaunchedEffect(Unit) {
@@ -105,6 +101,7 @@ fun SettingsMainScreen(
                 is SettingsMainEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 is SettingsMainEvent.EmpregoTrocado -> {
                     snackbarHostState.showSnackbar("Emprego alterado para ${evento.nomeEmprego}")
                 }
@@ -112,15 +109,61 @@ fun SettingsMainScreen(
         }
     }
 
+    SettingsMainContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onNavigateToEmpregoEdit = onNavigateToEmpregoEdit,
+        onNavigateToGerenciarEmpregos = onNavigateToGerenciarEmpregos,
+        onNavigateToEmpregoSettings = onNavigateToEmpregoSettings,
+        onNavigateToCalendario = onNavigateToCalendario,
+        onNavigateToAparencia = onNavigateToAparencia,
+        onNavigateToNotificacoes = onNavigateToNotificacoes,
+        onNavigateToPrivacidade = onNavigateToPrivacidade,
+        onNavigateToBackup = onNavigateToBackup,
+        onNavigateToSobre = onNavigateToSobre,
+        onNavigateToLixeira = onNavigateToLixeira,
+        onNavigateToAuditoria = onNavigateToAuditoria,
+        onTrocarEmprego = { viewModel.onAction(SettingsMainAction.TrocarEmprego(it)) },
+        snackbarHostState = snackbarHostState
+    )
+}
+
+/**
+ * Conteúdo da tela principal de configurações, desacoplado do ViewModel.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsMainContent(
+    uiState: SettingsMainUiState,
+    onNavigateBack: () -> Unit,
+    onNavigateToEmpregoEdit: (Long) -> Unit,
+    onNavigateToGerenciarEmpregos: () -> Unit,
+    onNavigateToEmpregoSettings: (Long) -> Unit,
+    onNavigateToCalendario: () -> Unit,
+    onNavigateToAparencia: () -> Unit,
+    onNavigateToNotificacoes: () -> Unit,
+    onNavigateToPrivacidade: () -> Unit,
+    onNavigateToBackup: () -> Unit,
+    onNavigateToSobre: () -> Unit,
+    onNavigateToLixeira: () -> Unit,
+    onNavigateToAuditoria: () -> Unit,
+    onTrocarEmprego: (Emprego) -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+) {
+    val scope = rememberCoroutineScope()
+
+    // Estado do BottomSheet
+    var showTrocarEmpregoSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     // BottomSheet de troca de emprego
     if (showTrocarEmpregoSheet) {
         TrocarEmpregoBottomSheet(
             empregos = uiState.empregosDisponiveis,
             empregoAtivoId = uiState.empregoAtualId,
             sheetState = sheetState,
-            onEmpregoSelecionado = { emprego ->
-                viewModel.onAction(SettingsMainAction.TrocarEmprego(emprego))
-            },
+            onEmpregoSelecionado = onTrocarEmprego,
             onGerenciarEmpregos = onNavigateToGerenciarEmpregos,
             onDismiss = {
                 scope.launch {
@@ -157,7 +200,7 @@ fun SettingsMainScreen(
                     ActiveEmploymentCard(
                         nomeEmprego = emprego.nome,
                         versaoVigente = uiState.versaoVigenteDescricao ?: "Nenhuma versão ativa",
-                        onClick = { onNavigateToVersoes(emprego.id) }
+                        onClick = { onNavigateToEmpregoSettings(emprego.id) }
                     )
                 }
             }
@@ -459,5 +502,35 @@ private fun SettingsNavigationItem(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PREVIEWS
+// ════════════════════════════════════════════════════════════════════════════════
+
+@Preview(showBackground = true)
+@Composable
+private fun SettingsMainContentPreview() {
+    MeuPontoTheme {
+        SettingsMainContent(
+            uiState = SettingsMainUiState(
+                empregoAtual = Emprego(id = 1, nome = "Empresa de Exemplo"),
+                versaoVigenteDescricao = "Regra Geral 2024"
+            ),
+            onNavigateBack = {},
+            onNavigateToEmpregoEdit = {},
+            onNavigateToGerenciarEmpregos = {},
+            onNavigateToEmpregoSettings = {},
+            onNavigateToCalendario = {},
+            onNavigateToAparencia = {},
+            onNavigateToNotificacoes = {},
+            onNavigateToPrivacidade = {},
+            onNavigateToBackup = {},
+            onNavigateToSobre = {},
+            onNavigateToLixeira = {},
+            onNavigateToAuditoria = {},
+            onTrocarEmprego = {}
+        )
     }
 }

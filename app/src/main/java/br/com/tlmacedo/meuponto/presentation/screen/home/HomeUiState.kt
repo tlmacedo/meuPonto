@@ -286,6 +286,8 @@ data class HomeUiState(
     val temAusencia: Boolean
         get() = ausenciaDoDia != null
 
+    val isDescanso: Boolean
+        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.DESCANSO
     val isFerias: Boolean
         get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FERIAS
 
@@ -471,8 +473,12 @@ data class HomeUiState(
     val isFeriadoTrabalhado: Boolean
         get() = resumoDia.isFeriado && resumoDia.pontos.isNotEmpty()
 
+//    val isDescanso: Boolean
+//        get() = resumoDia.isDescanso
+
     val mensagemTipoDia: String?
         get() = when {
+            isDescanso -> "Descanso - sem jornada obrigatória"
             isFerias -> "Férias - sem jornada obrigatória"
             isAtestado -> "Atestado médico - sem jornada obrigatória"
             isLicenca -> "Licença - sem jornada obrigatória"
@@ -492,6 +498,7 @@ data class HomeUiState(
 
     val iconeTipoDia: String
         get() = when {
+            isDescanso -> "😴"
             isFerias -> "🏖️"
             isAtestado -> "🏥"
             isLicenca -> "📋"

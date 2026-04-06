@@ -1,24 +1,38 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.versoes
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import kotlinx.coroutines.flow.collectLatest
 import java.time.Instant
 import java.time.LocalDate
@@ -182,31 +196,7 @@ fun EditarVersaoScreen(
             else -> {
                 EditarVersaoContent(
                     uiState = uiState,
-                    onDescricaoChange = { viewModel.onAction(EditarVersaoAction.AlterarDescricao(it)) },
-                    onDataInicioClick = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioPicker(true)) },
-                    onDataFimClick = { viewModel.onAction(EditarVersaoAction.MostrarDataFimPicker(true)) },
-                    onJornadaMaximaChange = { viewModel.onAction(EditarVersaoAction.AlterarJornadaMaxima(it)) },
-                    onIntervaloInterjornadaChange = { viewModel.onAction(EditarVersaoAction.AlterarIntervaloInterjornada(it)) },
-                    onToleranciaIntervaloChange = { viewModel.onAction(EditarVersaoAction.AlterarToleranciaIntervalo(it)) },
-                    onTurnoMaximoChange = { viewModel.onAction(EditarVersaoAction.AlterarTurnoMaximo(it)) },
-                    onCargaHorariaDiariaChange = { viewModel.onAction(EditarVersaoAction.AlterarCargaHorariaDiaria(it)) },
-                    onAcrescimoDiasPontesChange = { viewModel.onAction(EditarVersaoAction.AlterarAcrescimoDiasPontes(it)) },
-                    onCargaHorariaSemanalChange = { viewModel.onAction(EditarVersaoAction.AlterarCargaHorariaSemanal(it)) },
-                    onPrimeiroDiaSemanaChange = { viewModel.onAction(EditarVersaoAction.AlterarPrimeiroDiaSemana(it)) },
-                    onDiaInicioFechamentoRHChange = { viewModel.onAction(EditarVersaoAction.AlterarDiaInicioFechamentoRH(it)) },
-                    onZerarSaldoSemanalChange = { viewModel.onAction(EditarVersaoAction.AlterarZerarSaldoSemanal(it)) },
-                    onZerarSaldoPeriodoRHChange = { viewModel.onAction(EditarVersaoAction.AlterarZerarSaldoPeriodoRH(it)) },
-                    onOcultarSaldoTotalChange = { viewModel.onAction(EditarVersaoAction.AlterarOcultarSaldoTotal(it)) },
-                    onBancoHorasHabilitadoChange = { viewModel.onAction(EditarVersaoAction.AlterarBancoHorasHabilitado(it)) },
-                    onPeriodoBancoSemanasChange = { viewModel.onAction(EditarVersaoAction.AlterarPeriodoBancoSemanas(it)) },
-                    onPeriodoBancoMesesChange = { viewModel.onAction(EditarVersaoAction.AlterarPeriodoBancoMeses(it)) },
-                    onDataInicioCicloBancoAtualClick = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(true)) },
-                    onZerarBancoAntesPeriodoChange = { viewModel.onAction(EditarVersaoAction.AlterarZerarBancoAntesPeriodo(it)) },
-                    onHabilitarSugestaoAjusteChange = { viewModel.onAction(EditarVersaoAction.AlterarHabilitarSugestaoAjuste(it)) },
-                    onDiasUteisLembreteFechamentoChange = { viewModel.onAction(EditarVersaoAction.AlterarDiasUteisLembreteFechamento(it)) },
-                    onExigeJustificativaInconsistenciaChange = { viewModel.onAction(EditarVersaoAction.AlterarExigeJustificativaInconsistencia(it)) },
-                    onSalvar = { viewModel.onAction(EditarVersaoAction.Salvar) },
-                    onGerenciarHorarios = { viewModel.onAction(EditarVersaoAction.ConfigurarHorarios) },
+                    onAction = viewModel::onAction,
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -218,31 +208,7 @@ fun EditarVersaoScreen(
 @Composable
 private fun EditarVersaoContent(
     uiState: EditarVersaoUiState,
-    onDescricaoChange: (String) -> Unit,
-    onDataInicioClick: () -> Unit,
-    onDataFimClick: () -> Unit,
-    onJornadaMaximaChange: (Int) -> Unit,
-    onIntervaloInterjornadaChange: (Int) -> Unit,
-    onToleranciaIntervaloChange: (Int) -> Unit,
-    onTurnoMaximoChange: (Int) -> Unit,
-    onCargaHorariaDiariaChange: (Int) -> Unit,
-    onAcrescimoDiasPontesChange: (Int) -> Unit,
-    onCargaHorariaSemanalChange: (Int) -> Unit,
-    onPrimeiroDiaSemanaChange: (DiaSemana) -> Unit,
-    onDiaInicioFechamentoRHChange: (Int) -> Unit,
-    onZerarSaldoSemanalChange: (Boolean) -> Unit,
-    onZerarSaldoPeriodoRHChange: (Boolean) -> Unit,
-    onOcultarSaldoTotalChange: (Boolean) -> Unit,
-    onBancoHorasHabilitadoChange: (Boolean) -> Unit,
-    onPeriodoBancoSemanasChange: (Int) -> Unit,
-    onPeriodoBancoMesesChange: (Int) -> Unit,
-    onDataInicioCicloBancoAtualClick: () -> Unit,
-    onZerarBancoAntesPeriodoChange: (Boolean) -> Unit,
-    onHabilitarSugestaoAjusteChange: (Boolean) -> Unit,
-    onDiasUteisLembreteFechamentoChange: (Int) -> Unit,
-    onExigeJustificativaInconsistenciaChange: (Boolean) -> Unit,
-    onSalvar: () -> Unit,
-    onGerenciarHorarios: () -> Unit,
+    onAction: (EditarVersaoAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -250,332 +216,295 @@ private fun EditarVersaoContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Informações básicas
-        Card(
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+        // Informações Básicas
+        ConfiguracaoSection(
+            title = "Informações Básicas",
+            icon = Icons.Default.Info,
+            subtitle = uiState.descricao.ifBlank { "Versão ${uiState.numeroVersao}" },
+            expanded = uiState.secaoExpandida == SecaoVersao.INFORMACOES_BASICAS,
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.INFORMACOES_BASICAS)) }
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            OutlinedTextField(
+                value = uiState.descricao,
+                onValueChange = { onAction(EditarVersaoAction.AlterarDescricao(it)) },
+                label = { Text("Descrição da versão") },
+                placeholder = { Text("Ex: Jornada 2024") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Versão: ${uiState.numeroVersao}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (uiState.vigente) {
                 Text(
-                    text = "Informações Básicas",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = uiState.descricao,
-                    onValueChange = onDescricaoChange,
-                    label = { Text("Descrição da versão") },
-                    placeholder = { Text("Ex: Jornada 2024") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Versão: ${uiState.numeroVersao}",
+                    text = "✓ Versão vigente",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.primary
                 )
-
-                if (uiState.vigente) {
-                    Text(
-                        text = "✓ Versão vigente",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
             }
         }
 
-        // Período de vigência
-        Card(
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+        // Período de Vigência
+        ConfiguracaoSection(
+            title = "Período de Vigência",
+            icon = Icons.Default.CalendarMonth,
+            subtitle = "${uiState.dataInicioFormatada} até ${uiState.dataFimFormatada ?: "Indefinido"}",
+            expanded = uiState.secaoExpandida == SecaoVersao.PERIODO_VIGENCIA,
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.PERIODO_VIGENCIA)) }
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Período de Vigência",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = uiState.dataInicioFormatada,
+                    onValueChange = { },
+                    label = { Text("Data início") },
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { onAction(EditarVersaoAction.MostrarDataInicioPicker(true)) }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar data início")
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = uiState.dataInicioFormatada,
-                        onValueChange = { },
-                        label = { Text("Data início") },
-                        readOnly = true,
-                        trailingIcon = {
-                            IconButton(onClick = onDataInicioClick) {
-                                Icon(Icons.Default.Edit, contentDescription = "Editar data início")
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    OutlinedTextField(
-                        value = uiState.dataFimFormatada ?: "Indefinido",
-                        onValueChange = { },
-                        label = { Text("Data fim") },
-                        readOnly = true,
-                        trailingIcon = {
-                            IconButton(onClick = onDataFimClick) {
-                                Icon(Icons.Default.Edit, contentDescription = "Editar data fim")
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                OutlinedTextField(
+                    value = uiState.dataFimFormatada ?: "Indefinido",
+                    onValueChange = { },
+                    label = { Text("Data fim") },
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { onAction(EditarVersaoAction.MostrarDataFimPicker(true)) }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar data fim")
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
-        // Configurações de jornada
-        Card(
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+        // Configurações de Jornada
+        ConfiguracaoSection(
+            title = "Configurações de Jornada",
+            icon = Icons.Default.Schedule,
+            subtitle = "Máx: ${uiState.jornadaMaximaFormatada} | Int: ${uiState.intervaloInterjornadaFormatado}",
+            expanded = uiState.secaoExpandida == SecaoVersao.CONFIGURACOES_JORNADA,
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.CONFIGURACOES_JORNADA)) }
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Schedule, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Configurações de Jornada",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+            OutlinedTextField(
+                value = uiState.jornadaMaximaDiariaMinutos.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarJornadaMaxima(it)) }
+                },
+                label = { Text("Jornada máx. diária (minutos)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = { Text("Atual: ${uiState.jornadaMaximaFormatada}") }
+            )
 
-                Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
-                    value = uiState.jornadaMaximaDiariaMinutos.toString(),
-                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onJornadaMaximaChange(value) },
-                    label = { Text("Jornada máx. diária (minutos)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text("Atual: ${uiState.jornadaMaximaFormatada}") }
-                )
+            OutlinedTextField(
+                value = uiState.intervaloMinimoInterjornadaMinutos.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarIntervaloInterjornada(it)) }
+                },
+                label = { Text("Intervalo interjornada (minutos)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = { Text("Atual: ${uiState.intervaloInterjornadaFormatado}") }
+            )
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
-                    value = uiState.intervaloMinimoInterjornadaMinutos.toString(),
-                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onIntervaloInterjornadaChange(value) },
-                    label = { Text("Intervalo interjornada (minutos)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text("Atual: ${uiState.intervaloInterjornadaFormatado}") }
-                )
+            OutlinedTextField(
+                value = uiState.toleranciaIntervaloMaisMinutos.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarToleranciaIntervalo(it)) }
+                },
+                label = { Text("Tolerância intervalo (minutos)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = { Text("Tolerância além do intervalo mínimo") }
+            )
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
-                    value = uiState.toleranciaIntervaloMaisMinutos.toString(),
-                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onToleranciaIntervaloChange(value) },
-                    label = { Text("Tolerância intervalo (minutos)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = uiState.turnoMaximoMinutos.toString(),
-                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onTurnoMaximoChange(value) },
-                    label = { Text("Turno máximo (minutos)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            OutlinedTextField(
+                value = uiState.turnoMaximoMinutos.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarTurnoMaximo(it)) }
+                },
+                label = { Text("Turno máximo (minutos)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = { Text("Tempo máximo de trabalho contínuo") }
+            )
         }
 
         // Carga Horária
-        Card(
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+        ConfiguracaoSection(
+            title = "Carga Horária",
+            icon = Icons.Default.Schedule,
+            subtitle = "${uiState.cargaHorariaDiariaMinutos} min/dia | ${uiState.cargaHorariaSemanalMinutos} min/sem",
+            expanded = uiState.secaoExpandida == SecaoVersao.CARGA_HORARIA,
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.CARGA_HORARIA)) }
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "Carga Horária",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            OutlinedTextField(
+                value = uiState.cargaHorariaDiariaMinutos.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarCargaHorariaDiaria(it)) }
+                },
+                label = { Text("Carga horária diária (minutos)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
-                    value = uiState.cargaHorariaDiariaMinutos.toString(),
-                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onCargaHorariaDiariaChange(value) },
-                    label = { Text("Carga horária diária (minutos)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
+            OutlinedTextField(
+                value = uiState.acrescimoMinutosDiasPontes.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarAcrescimoDiasPontes(it)) }
+                },
+                label = { Text("Acréscimo dias ponte (minutos)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = { Text("Compensação para feriados 'ponte'") }
+            )
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
-                    value = uiState.acrescimoMinutosDiasPontes.toString(),
-                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onAcrescimoDiasPontesChange(value) },
-                    label = { Text("Acréscimo dias ponte (minutos)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = uiState.cargaHorariaSemanalMinutos.toString(),
-                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onCargaHorariaSemanalChange(value) },
-                    label = { Text("Carga horária semanal (minutos)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            OutlinedTextField(
+                value = uiState.cargaHorariaSemanalMinutos.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarCargaHorariaSemanal(it)) }
+                },
+                label = { Text("Carga horária semanal (minutos)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         // Período e Saldo
-        Card(
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+        ConfiguracaoSection(
+            title = "Período e Saldo",
+            icon = Icons.Default.CalendarMonth,
+            subtitle = "Início RH: Dia ${uiState.diaInicioFechamentoRH} | ${uiState.primeiroDiaSemana.descricaoCurta}",
+            expanded = uiState.secaoExpandida == SecaoVersao.PERIODO_SALDO,
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.PERIODO_SALDO)) }
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "Período e Saldo",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            Text(
+                text = "Primeiro dia da semana",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                var expanded by remember { mutableStateOf(false) }
-
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = uiState.primeiroDiaSemana.descricao,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Primeiro dia da semana") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                DiaSemana.entries.forEach { dia ->
+                    val selecionado = uiState.primeiroDiaSemana == dia
+                    FilterChip(
+                        selected = selecionado,
+                        onClick = { onAction(EditarVersaoAction.AlterarPrimeiroDiaSemana(dia)) },
+                        label = { Text(dia.descricaoCurta) }
                     )
-
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        DiaSemana.entries.forEach { dia ->
-                            DropdownMenuItem(
-                                text = { Text(dia.descricao) },
-                                onClick = {
-                                    onPrimeiroDiaSemanaChange(dia)
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = uiState.diaInicioFechamentoRH.toString(),
-                    onValueChange = { val value = it.toIntOrNull(); if (value != null) onDiaInicioFechamentoRHChange(value) },
-                    label = { Text("Dia início fechamento RH") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = uiState.zerarSaldoSemanal, onCheckedChange = onZerarSaldoSemanalChange)
-                    Text("Zerar saldo semanalmente")
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = uiState.zerarSaldoPeriodoRH, onCheckedChange = onZerarSaldoPeriodoRHChange)
-                    Text("Zerar saldo no período RH")
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = uiState.ocultarSaldoTotal, onCheckedChange = onOcultarSaldoTotalChange)
-                    Text("Ocultar saldo total")
                 }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = uiState.diaInicioFechamentoRH.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarDiaInicioFechamentoRH(it)) }
+                },
+                label = { Text("Dia início fechamento RH") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = { Text("Dia do mês em que inicia o fechamento") }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            SwitchListItem(
+                text = "Zerar saldo semanalmente",
+                checked = uiState.zerarSaldoSemanal,
+                onCheckedChange = { onAction(EditarVersaoAction.AlterarZerarSaldoSemanal(it)) }
+            )
+
+            SwitchListItem(
+                text = "Zerar saldo no período RH",
+                checked = uiState.zerarSaldoPeriodoRH,
+                onCheckedChange = { onAction(EditarVersaoAction.AlterarZerarSaldoPeriodoRH(it)) }
+            )
+
+            SwitchListItem(
+                text = "Ocultar saldo total",
+                checked = uiState.ocultarSaldoTotal,
+                onCheckedChange = { onAction(EditarVersaoAction.AlterarOcultarSaldoTotal(it)) }
+            )
         }
 
         // Banco de Horas
-        Card(
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+        ConfiguracaoSection(
+            title = "Banco de Horas",
+            icon = Icons.Default.Schedule,
+            subtitle = if (uiState.bancoHorasHabilitado) "Ativo" else "Desativado",
+            expanded = uiState.secaoExpandida == SecaoVersao.BANCO_HORAS,
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.BANCO_HORAS)) }
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Banco de Horas",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(checked = uiState.bancoHorasHabilitado, onCheckedChange = onBancoHorasHabilitadoChange)
-                }
+            SwitchListItem(
+                text = "Habilitar Banco de Horas",
+                checked = uiState.bancoHorasHabilitado,
+                onCheckedChange = { onAction(EditarVersaoAction.AlterarBancoHorasHabilitado(it)) }
+            )
 
-                if (uiState.bancoHorasHabilitado) {
-                    Spacer(modifier = Modifier.height(16.dp))
+            AnimatedVisibility(
+                visible = uiState.bancoHorasHabilitado,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = uiState.periodoBancoSemanas.toString(),
-                        onValueChange = { val value = it.toIntOrNull(); if (value != null) onPeriodoBancoSemanasChange(value) },
-                        label = { Text("Período (semanas)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                        OutlinedTextField(
+                            value = uiState.periodoBancoSemanas.toString(),
+                            onValueChange = {
+                                it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarPeriodoBancoSemanas(it)) }
+                            },
+                            label = { Text("Semanas") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = uiState.periodoBancoMeses.toString(),
-                        onValueChange = { val value = it.toIntOrNull(); if (value != null) onPeriodoBancoMesesChange(value) },
-                        label = { Text("Período (meses)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = uiState.periodoBancoMeses.toString(),
+                            onValueChange = {
+                                it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarPeriodoBancoMeses(it)) }
+                            },
+                            label = { Text("Meses") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
                     OutlinedTextField(
                         value = uiState.dataInicioCicloBancoAtual?.toString() ?: "Não definida",
@@ -583,79 +512,83 @@ private fun EditarVersaoContent(
                         label = { Text("Data início ciclo atual") },
                         readOnly = true,
                         trailingIcon = {
-                            IconButton(onClick = onDataInicioCicloBancoAtualClick) {
+                            IconButton(onClick = { onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(true)) }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Editar data")
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    SwitchListItem(
+                        text = "Ignorar registros anteriores",
+                        checked = uiState.zerarBancoAntesPeriodo,
+                        onCheckedChange = { onAction(EditarVersaoAction.AlterarZerarBancoAntesPeriodo(it)) }
+                    )
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = uiState.zerarBancoAntesPeriodo, onCheckedChange = onZerarBancoAntesPeriodoChange)
-                        Text("Ignorar registros antes do início do banco")
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = uiState.habilitarSugestaoAjuste, onCheckedChange = onHabilitarSugestaoAjusteChange)
-                        Text("Habilitar sugestão de ajuste automático")
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
+                    SwitchListItem(
+                        text = "Sugestão de ajuste automático",
+                        checked = uiState.habilitarSugestaoAjuste,
+                        onCheckedChange = { onAction(EditarVersaoAction.AlterarHabilitarSugestaoAjuste(it)) }
+                    )
 
                     OutlinedTextField(
                         value = uiState.diasUteisLembreteFechamento.toString(),
-                        onValueChange = { val value = it.toIntOrNull(); if (value != null) onDiasUteisLembreteFechamentoChange(value) },
-                        label = { Text("Dias úteis para lembrete de fechamento") },
+                        onValueChange = {
+                            it.toIntOrNull()?.let { onAction(EditarVersaoAction.AlterarDiasUteisLembreteFechamento(it)) }
+                        },
+                        label = { Text("Dias úteis para lembrete") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = { Text("Lembrete antes do fechamento") }
                     )
                 }
             }
         }
 
         // Validação
+        ConfiguracaoSection(
+            title = "Validação",
+            icon = Icons.Default.Info,
+            subtitle = if (uiState.exigeJustificativaInconsistencia) "Exige justificativa" else "Flexível",
+            expanded = uiState.secaoExpandida == SecaoVersao.VALIDACAO,
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.VALIDACAO)) }
+        ) {
+            SwitchListItem(
+                text = "Exigir justificativa para inconsistências",
+                checked = uiState.exigeJustificativaInconsistencia,
+                onCheckedChange = { onAction(EditarVersaoAction.AlterarExigeJustificativaInconsistencia(it)) }
+            )
+        }
+
+        // Horários
         Card(
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+            ),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "Validação",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = uiState.exigeJustificativaInconsistencia,
-                        onCheckedChange = onExigeJustificativaInconsistenciaChange
+            ListItem(
+                headlineContent = { Text("Configurar Horários", fontWeight = FontWeight.Bold) },
+                supportingContent = { Text("Defina as entradas e saídas padrão") },
+                leadingContent = {
+                    Icon(
+                        Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                    Text("Exigir justificativa para inconsistências")
-                }
-            }
-        }
-
-        // Botão para gerenciar horários (se não for nova versão)
-        if (!uiState.isNovaVersao && uiState.versaoId != null) {
-            OutlinedButton(
-                onClick = onGerenciarHorarios,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Gerenciar Horários (${uiState.horarios.size})")
-            }
+                },
+                trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+                modifier = Modifier.clickable { onAction(EditarVersaoAction.ConfigurarHorarios) }
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // Botão salvar
         Button(
-            onClick = onSalvar,
+            onClick = { onAction(EditarVersaoAction.Salvar) },
             enabled = uiState.podeSalvar,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -671,5 +604,144 @@ private fun EditarVersaoContent(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun ConfiguracaoSection(
+    title: String,
+    icon: ImageVector,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    subtitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() }
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (!expanded && !subtitle.isNullOrBlank()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Recolher" else "Expandir"
+                )
+            }
+
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    content()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SwitchListItem(
+    text: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 4.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PREVIEWS
+// ════════════════════════════════════════════════════════════════════════════════
+
+@Preview(showBackground = true)
+@Composable
+private fun EditarVersaoContentPreview() {
+    val uiState = EditarVersaoUiState(
+        isLoading = false,
+        isNovaVersao = false,
+        descricao = "Jornada Padrão 2024",
+        numeroVersao = 1,
+        vigente = true,
+        empregoId = 1L,
+        bancoHorasHabilitado = true,
+        secaoExpandida = SecaoVersao.BANCO_HORAS
+    )
+
+    MeuPontoTheme {
+        Surface {
+            EditarVersaoContent(
+                uiState = uiState,
+                onAction = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun EditarVersaoNovaPreview() {
+    val uiState = EditarVersaoUiState(
+        isLoading = false,
+        isNovaVersao = true,
+        descricao = "",
+        numeroVersao = 2,
+        empregoId = 1L,
+        secaoExpandida = SecaoVersao.INFORMACOES_BASICAS
+    )
+
+    MeuPontoTheme {
+        Surface {
+            EditarVersaoContent(
+                uiState = uiState,
+                onAction = {}
+            )
+        }
     }
 }

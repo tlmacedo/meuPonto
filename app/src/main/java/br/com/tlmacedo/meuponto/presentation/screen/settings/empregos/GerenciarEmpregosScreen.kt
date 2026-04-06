@@ -74,7 +74,7 @@ import kotlin.math.roundToInt
 @Composable
 fun GerenciarEmpregosScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToEditarEmprego: (Long) -> Unit,
+    onNavigateToEmpregoSettings: (Long) -> Unit,
     onNavigateToNovoEmprego: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GerenciarEmpregosViewModel = hiltViewModel()
@@ -156,7 +156,7 @@ fun GerenciarEmpregosScreen(
                             onArquivar = {
                                 viewModel.onAction(GerenciarEmpregosAction.Arquivar(emprego))
                             },
-                            onEditar = { onNavigateToEditarEmprego(emprego.id) }
+                            onEditar = { onNavigateToEmpregoSettings(emprego.id) }
                         )
                     }
                 }

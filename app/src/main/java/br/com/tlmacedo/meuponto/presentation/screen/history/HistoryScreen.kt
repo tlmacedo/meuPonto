@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -75,6 +76,7 @@ import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
 import br.com.tlmacedo.meuponto.presentation.components.LoadingIndicator
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import java.time.LocalDate
@@ -87,7 +89,7 @@ import java.util.Locale
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 7.8.0 - Adicionado filtro de dias futuros no resumo secundário
+ * @updated 9.2.0 - Refatorado para separar Content e adicionar Previews
  */
 @Composable
 fun HistoryScreen(
@@ -105,6 +107,37 @@ fun HistoryScreen(
         }
     }
 
+    HistoryContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onNavigateToDay = onNavigateToDay,
+        onPeriodoAnterior = viewModel::periodoAnterior,
+        onProximoPeriodo = viewModel::proximoPeriodo,
+        onIrParaAtual = viewModel::irParaPeriodoAtual,
+        onFiltroSelecionado = viewModel::alterarFiltro,
+        onToggleDiaExpandido = viewModel::toggleDiaExpandido,
+        onLimparFiltro = { viewModel.alterarFiltro(FiltroHistorico.TODOS) },
+        snackbarHostState = snackbarHostState
+    )
+}
+
+/**
+ * Conteúdo da tela de histórico, desacoplado do ViewModel.
+ */
+@Composable
+fun HistoryContent(
+    uiState: HistoryUiState,
+    onNavigateBack: () -> Unit,
+    onNavigateToDay: (LocalDate) -> Unit,
+    onPeriodoAnterior: () -> Unit,
+    onProximoPeriodo: () -> Unit,
+    onIrParaAtual: () -> Unit,
+    onFiltroSelecionado: (FiltroHistorico) -> Unit,
+    onToggleDiaExpandido: (LocalDate) -> Unit,
+    onLimparFiltro: () -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+) {
     Scaffold(
         topBar = {
             MeuPontoTopBar(
@@ -113,7 +146,8 @@ fun HistoryScreen(
                 onBackClick = onNavigateBack
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        modifier = modifier
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -125,9 +159,9 @@ fun HistoryScreen(
                 podeIrProximo = uiState.podeIrProximoPeriodo,
                 isPeriodoAtual = uiState.isPeriodoAtual,
                 periodoSubtitulo = uiState.periodoSubtitulo,
-                onPeriodoAnterior = viewModel::periodoAnterior,
-                onProximoPeriodo = viewModel::proximoPeriodo,
-                onIrParaAtual = viewModel::irParaPeriodoAtual
+                onPeriodoAnterior = onPeriodoAnterior,
+                onProximoPeriodo = onProximoPeriodo,
+                onIrParaAtual = onIrParaAtual
             )
 
             if (uiState.hasRegistros && !uiState.isLoading) {
@@ -138,7 +172,7 @@ fun HistoryScreen(
                     saldoAcumuladoTotal = uiState.saldoAcumuladoTotal,
                     filtroAtivo = uiState.filtroAtivo,
                     isPeriodoFuturo = uiState.periodoSelecionado.isFuturo,
-                    onFiltroClick = viewModel::alterarFiltro
+                    onFiltroClick = onFiltroSelecionado
                 )
             }
 
@@ -146,13 +180,13 @@ fun HistoryScreen(
                 FiltroAtivoIndicator(
                     filtro = uiState.filtroAtivo,
                     quantidadeResultados = uiState.registrosFiltrados.size,
-                    onLimparFiltro = { viewModel.alterarFiltro(FiltroHistorico.TODOS) }
+                    onLimparFiltro = onLimparFiltro
                 )
             }
 
             FiltrosChips(
                 filtroAtivo = uiState.filtroAtivo,
-                onFiltroSelecionado = viewModel::alterarFiltro
+                onFiltroSelecionado = onFiltroSelecionado
             )
 
             when {
@@ -182,7 +216,8 @@ fun HistoryScreen(
                 else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
                         items(
                             items = uiState.registrosFiltrados,
@@ -192,7 +227,7 @@ fun HistoryScreen(
                                 infoDia = infoDia,
                                 isExpandido = uiState.diaExpandido == infoDia.data,
                                 saldoBancoAcumulado = uiState.saldoAcumuladoAte(infoDia.data),
-                                onToggleExpansao = { viewModel.toggleDiaExpandido(infoDia.data) },
+                                onToggleExpansao = { onToggleDiaExpandido(infoDia.data) },
                                 onNavigateToDay = { onNavigateToDay(infoDia.data) }
                             )
                         }
@@ -202,6 +237,10 @@ fun HistoryScreen(
         }
     }
 }
+
+// ════════════════════════════════════════════════════════════════════════════════
+// COMPONENTES INTERNOS
+// ════════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun FiltroAtivoIndicator(
@@ -1408,6 +1447,7 @@ private fun Int.minutosParaSaldoFormatado(): String = this.toLong().minutosParaS
 
 private fun getStatusColor(status: StatusDiaResumo): Color {
     return when (status) {
+        StatusDiaResumo.DESCANSO -> Color(0xFF9C27B0)
         StatusDiaResumo.COMPLETO -> Color(0xFF4CAF50)
         StatusDiaResumo.EM_ANDAMENTO -> Color(0xFF2196F3)
         StatusDiaResumo.INCOMPLETO -> Color(0xFFFF9800)
@@ -1416,5 +1456,51 @@ private fun getStatusColor(status: StatusDiaResumo): Color {
         StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)
         StatusDiaResumo.FERIADO_TRABALHADO -> Color(0xFFFF9800)
         StatusDiaResumo.FUTURO -> Color(0xFF78909C)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PREVIEWS
+// ════════════════════════════════════════════════════════════════════════════════
+
+@Preview(showBackground = true)
+@Composable
+private fun HistoryContentPreview() {
+    MeuPontoTheme {
+        HistoryContent(
+            uiState = HistoryUiState(
+                isLoading = false,
+                periodoSelecionado = PeriodoHistorico.periodoAtual()
+            ),
+            onNavigateBack = {},
+            onNavigateToDay = {},
+            onPeriodoAnterior = {},
+            onProximoPeriodo = {},
+            onIrParaAtual = {},
+            onFiltroSelecionado = {},
+            onToggleDiaExpandido = {},
+            onLimparFiltro = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HistoryContentEmptyPreview() {
+    MeuPontoTheme {
+        HistoryContent(
+            uiState = HistoryUiState(
+                isLoading = false,
+                diasHistorico = emptyList()
+            ),
+            onNavigateBack = {},
+            onNavigateToDay = {},
+            onPeriodoAnterior = {},
+            onProximoPeriodo = {},
+            onIrParaAtual = {},
+            onFiltroSelecionado = {},
+            onToggleDiaExpandido = {},
+            onLimparFiltro = {}
+        )
     }
 }

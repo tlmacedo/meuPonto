@@ -352,6 +352,7 @@ private fun ResumoItemPrincipal(
     modifier: Modifier = Modifier
 ) {
     val (titulo, icone, corIconeEspecial) = when (tipoDiaEspecial) {
+        TipoDiaEspecial.DESCANSO -> Triple("Descanso", Icons.Default.EventBusy, Color(0xFF42A5F5))
         TipoDiaEspecial.FERIAS -> Triple("Férias", Icons.Default.BeachAccess, Color(0xFF00BCD4))
         TipoDiaEspecial.ATESTADO -> Triple("Atestado", Icons.Default.LocalHospital, Color(0xFFEF5350))
         TipoDiaEspecial.FOLGA -> Triple("Folga", Icons.Default.Home, Color(0xFF66BB6A))
@@ -622,6 +623,7 @@ private fun ResumoItemBanco(
 
 // Extensões
 private fun TipoDiaEspecial.getIcon(): ImageVector = when (this) {
+    TipoDiaEspecial.DESCANSO -> Icons.Default.EventBusy
     TipoDiaEspecial.FERIAS -> Icons.Default.BeachAccess
     TipoDiaEspecial.ATESTADO -> Icons.Default.LocalHospital
     TipoDiaEspecial.FOLGA -> Icons.Default.Home
@@ -634,6 +636,7 @@ private fun TipoDiaEspecial.getIcon(): ImageVector = when (this) {
 }
 
 private fun TipoDiaEspecial.getCor(): Color = when (this) {
+    TipoDiaEspecial.DESCANSO -> Color(0xFF42A5F5)
     TipoDiaEspecial.FERIAS -> Color(0xFF00BCD4)
     TipoDiaEspecial.ATESTADO -> Color(0xFFEF5350)
     TipoDiaEspecial.FOLGA -> Color(0xFF66BB6A)
@@ -647,6 +650,7 @@ private fun TipoDiaEspecial.getCor(): Color = when (this) {
 
 private val TipoDiaEspecial.descricaoCurta: String
     get() = when (this) {
+        TipoDiaEspecial.DESCANSO -> "Descanso"
         TipoDiaEspecial.FERIAS -> "Férias"
         TipoDiaEspecial.ATESTADO -> "Atestado"
         TipoDiaEspecial.FOLGA -> "Folga"

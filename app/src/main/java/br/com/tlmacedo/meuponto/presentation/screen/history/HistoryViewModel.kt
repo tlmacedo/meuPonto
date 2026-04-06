@@ -230,7 +230,6 @@ class HistoryViewModel @Inject constructor(
 
         val versaoCache = mutableMapOf<Long, VersaoCache>()
         val horarioSemVersaoCache = mutableMapOf<DiaSemana, HorarioDiaSemana?>()
-        val cargaPadrao = versaoVigenteAtual?.cargaHorariaDiariaMinutos ?: 480
 
         var totalMinutosTrabalhados = 0
         var saldoPeriodoMinutos = 0
@@ -272,6 +271,10 @@ class HistoryViewModel @Inject constructor(
             val diaSemana = DiaSemana.fromJavaDayOfWeek(dataAtual.dayOfWeek)
             val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, dataAtual)
 
+            val cargaBasePadrao = versaoJornada?.cargaHorariaDiariaMinutos ?: 480
+            val acrescimoPontes = versaoJornada?.acrescimoMinutosDiasPontes ?: 0
+            val toleranciaGlobal = versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0
+
             val horarioDia = if (versaoJornada != null) {
                 val cached = versaoCache[versaoJornada.id] ?: run {
                     val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
@@ -291,7 +294,9 @@ class HistoryViewModel @Inject constructor(
                 ausencias = ausenciasDoDia,
                 feriado = feriadoDoDia,
                 horarioDia = horarioDia,
-                cargaHorariaBasePadrao = cargaPadrao
+                cargaHorariaBasePadrao = cargaBasePadrao,
+                acrescimoPontes = acrescimoPontes,
+                toleranciaIntervaloGlobal = toleranciaGlobal
             )
 
             val resumoDia = resumoCompleto.resumoDia
@@ -335,9 +340,6 @@ class HistoryViewModel @Inject constructor(
                 if (isSemJornada && pontosNoDia.isEmpty() && feriadoDoDia == null && ausenciasDoDia.isEmpty()) diasDescanso++
                 if (feriadoDoDia != null) diasFeriado++
 
-                var temFolgaCompensacao = false
-                var temFaltaInjustificada = false
-
                 for (ausencia in ausenciasDoDia) {
                     when (ausencia.tipo) {
                         TipoAusencia.FERIAS -> diasFerias++
@@ -347,7 +349,6 @@ class HistoryViewModel @Inject constructor(
                                 TipoFolga.DAY_OFF -> diasFolgaDayOff++
                                 TipoFolga.COMPENSACAO, null -> {
                                     diasFolgaCompensacao++
-                                    temFolgaCompensacao = true
                                 }
                             }
                         }
@@ -357,7 +358,7 @@ class HistoryViewModel @Inject constructor(
                             totalMinutosDeclaracoes += ausencia.duracaoAbonoMinutos ?: 0
                         }
                         TipoAusencia.FALTA_JUSTIFICADA -> diasFaltaJustificada++
-                        TipoAusencia.FALTA_INJUSTIFICADA -> { diasFaltaInjustificada++; temFaltaInjustificada = true }
+                        TipoAusencia.FALTA_INJUSTIFICADA -> { diasFaltaInjustificada++ }
                     }
                 }
 
@@ -378,14 +379,9 @@ class HistoryViewModel @Inject constructor(
                     totalMinutosTolerancia += abs(resumoDia.minutosIntervaloReal - resumoDia.minutosIntervaloTotal)
                 }
 
-                val deveAcumularSaldo = resumoDia.jornadaCompleta || resumoDia.isJornadaZerada ||
-                        (isSemJornada && pontosNoDia.isEmpty()) || temFolgaCompensacao || temFaltaInjustificada
-
-                if (deveAcumularSaldo) {
-                    saldoAcumulado += resumoDia.saldoDiaMinutos
-                    saldoAcumulado += ajustesPorData[dataAtual] ?: 0
-                    saldoPeriodoMinutos += resumoDia.saldoDiaMinutos
-                }
+                saldoAcumulado += resumoDia.saldoDiaMinutos
+                saldoAcumulado += ajustesPorData[dataAtual] ?: 0
+                saldoPeriodoMinutos += resumoDia.saldoDiaMinutos
             }
 
             saldosAcumulados[dataAtual] = saldoAcumulado
@@ -434,24 +430,15 @@ class HistoryViewModel @Inject constructor(
 
     private suspend fun calcularSaldoInicialDoPeriodo(empregoId: Long, dataInicioPeriodo: LocalDate): Int {
         val hoje = LocalDate.now()
-        if (dataInicioPeriodo.isAfter(hoje)) {
-            return try {
-                val resultado = calcularBancoHorasUseCase.calcularAteData(empregoId, hoje)
-                resultado.saldoTotal.toMinutes().toInt()
-            } catch (e: Exception) {
-                Timber.e(e, "Erro ao calcular saldo inicial do período")
-                0
-            }
-        }
+        val dataReferencia = if (dataInicioPeriodo.isAfter(hoje)) hoje else dataInicioPeriodo.minusDays(1)
 
-        val dataFimCalculo = dataInicioPeriodo.minusDays(1)
-        if (dataFimCalculo.isBefore(LocalDate.of(2020, 1, 1))) return 0
+        if (dataReferencia.isBefore(LocalDate.of(2020, 1, 1))) return 0
 
         return try {
-            val resultado = calcularBancoHorasUseCase.calcularAteData(empregoId, dataFimCalculo)
+            val resultado = calcularBancoHorasUseCase.calcularAteData(empregoId, dataReferencia)
             resultado.saldoTotal.toMinutes().toInt()
         } catch (e: Exception) {
-            Timber.e(e, "Erro ao calcular saldo inicial do período")
+            Timber.e(e, "Erro ao calcular saldo inicial do período para $dataReferencia")
             0
         }
     }

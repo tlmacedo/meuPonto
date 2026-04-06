@@ -34,6 +34,9 @@ import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsDetailScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.CargosScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.EditarCargoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracao.ConfiguracaoGeralEmpregoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.versoes.VersoesJornadaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
@@ -183,8 +186,8 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNavigateToGerenciarEmpregos = {
                 navController.navigate(MeuPontoDestinations.GERENCIAR_EMPREGOS)
             },
-            onNavigateToVersoes = { empregoId ->
-                navController.navigate(MeuPontoDestinations.versoesJornada(empregoId))
+            onNavigateToEmpregoSettings = { empregoId ->
+                navController.navigate(MeuPontoDestinations.empregoSettings(empregoId))
             },
             onNavigateToCalendario = {
                 navController.navigate(MeuPontoDestinations.FERIADOS)
@@ -227,7 +230,88 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNavigateBack = { navController.popBackStack() },
             onNavigateToVersoes = { id ->
                 navController.navigate(MeuPontoDestinations.versoesJornada(id))
+            },
+            onNavigateToEditarEmprego = { id ->
+                navController.navigate(MeuPontoDestinations.editarEmprego(id))
+            },
+            onNavigateToCargos = { id ->
+                navController.navigate(MeuPontoDestinations.cargosEmprego(id))
+            },
+            onNavigateToConfiguracaoGeral = { id ->
+                navController.navigate(MeuPontoDestinations.configuracaoGeralEmprego(id))
+            },
+            onNavigateToAusencias = { id ->
+                navController.navigate(MeuPontoDestinations.ausenciasEmprego(id))
+            },
+            onNavigateToAjustesSaldo = { id ->
+                navController.navigate(MeuPontoDestinations.ajustesSaldo(id))
             }
+        )
+    }
+
+    // ===== CARGOS E SALÁRIOS =====
+
+    composable(
+        route = MeuPontoDestinations.CARGOS_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        CargosScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToEditarCargo = { empId, cargoId ->
+                navController.navigate(MeuPontoDestinations.editarCargoEmprego(empId, cargoId))
+            },
+            onNavigateToNovoCargo = { empId ->
+                navController.navigate(MeuPontoDestinations.novoCargoEmprego(empId))
+            }
+        )
+    }
+
+    composable(
+        route = MeuPontoDestinations.NOVO_CARGO_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        EditarCargoScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(
+        route = MeuPontoDestinations.EDITAR_CARGO_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            },
+            navArgument(MeuPontoDestinations.ARG_CARGO_ID) {
+                type = NavType.LongType
+                defaultValue = -1L
+            }
+        )
+    ) {
+        EditarCargoScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    // ===== CONFIGURAÇÃO GERAL DO EMPREGO =====
+
+    composable(
+        route = MeuPontoDestinations.CONFIGURACAO_GERAL_EMPREGO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        ConfiguracaoGeralEmpregoScreen(
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 
@@ -359,8 +443,8 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
     composable(MeuPontoDestinations.GERENCIAR_EMPREGOS) {
         GerenciarEmpregosScreen(
             onNavigateBack = { navController.popBackStack() },
-            onNavigateToEditarEmprego = { empregoId ->
-                navController.navigate(MeuPontoDestinations.editarEmprego(empregoId))
+            onNavigateToEmpregoSettings = { empregoId ->
+                navController.navigate(MeuPontoDestinations.empregoSettings(empregoId))
             },
             onNavigateToNovoEmprego = {
                 navController.navigate(MeuPontoDestinations.editarEmprego(-1L))

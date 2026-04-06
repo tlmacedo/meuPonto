@@ -117,7 +117,8 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             .filter { it.tipo == TipoAusencia.DECLARACAO }
             .sumOf { it.duracaoAbonoMinutos ?: 0 }
 
-        val cargaHorariaEfetiva = (horarioDia?.cargaHorariaMinutos ?: cargaHorariaBasePadrao) + acrescimoPontes
+        val cargaHorariaEfetiva = ((horarioDia?.cargaHorariaMinutos
+            ?: (cargaHorariaBasePadrao + acrescimoPontes)))
 
         val resumoDia = ResumoDia(
             data = data,

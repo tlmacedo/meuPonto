@@ -19,6 +19,7 @@ import kotlin.math.abs
  * @since 3.0.0
  */
 enum class StatusDiaResumo(val descricao: String, val isConsistente: Boolean) {
+    DESCANSO("Descanso", true),
     COMPLETO("Completo", true),
     EM_ANDAMENTO("Em andamento", true),
     INCOMPLETO("Incompleto", false),
@@ -44,6 +45,9 @@ enum class StatusDiaResumo(val descricao: String, val isConsistente: Boolean) {
  * @since 4.0.0
  */
 enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
+    /** Dia de descanso semanal */
+    DESCANSO("Descanso", "😴"),
+
     /** Dia normal de trabalho */
     NORMAL("Dia normal", "📅"),
 
@@ -51,7 +55,7 @@ enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
     FERIADO("Feriado", "🎉"),
 
     /** Ponte (dia entre feriado e fim de semana) - jornada zerada */
-    PONTE("Ponte", "🌉"),
+    PONTE("Ponte", "⛱️"),
 
     /** Ponto facultativo - jornada zerada */
     FACULTATIVO("Ponto Facultativo", "📋"),
@@ -66,7 +70,7 @@ enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
     FALTA_JUSTIFICADA("Falta Justificada", "📝"),
 
     /** Folga - jornada normal (gera débito) */
-    FOLGA("Folga", "😴"),
+    FOLGA("Folga", "🏴‍☠️"),
 
     /** Falta injustificada - jornada normal (gera débito) */
     FALTA_INJUSTIFICADA("Falta Injustificada", "❌");
@@ -79,6 +83,7 @@ enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
      */
     val zeraJornada: Boolean
         get() = this in listOf(
+            DESCANSO,
             FERIADO,
             PONTE,
             FACULTATIVO,
@@ -349,6 +354,8 @@ data class ResumoDia(
     val isJornadaZerada: Boolean
         get() = isFuturo || tipoDiaEspecial.zeraJornada
 
+    val isDescanso: Boolean
+        get() = tipoDiaEspecial == TipoDiaEspecial.DESCANSO
     /** Verifica se é um dia de feriado (inclui ponte e facultativo) */
     val isFeriado: Boolean
         get() = tipoDiaEspecial.isTipoFeriado
@@ -444,6 +451,8 @@ data class ResumoDia(
             // Dias com jornada zerada (feriado, férias, atestado, etc.)
             tipoDiaEspecial.zeraJornada && pontos.isNotEmpty() -> StatusDiaResumo.FERIADO_TRABALHADO
             tipoDiaEspecial.zeraJornada -> StatusDiaResumo.FERIADO
+            // Dia de descanso
+            cargaHorariaDiaria == Duration.ZERO -> StatusDiaResumo.DESCANSO
             // Dias com jornada normal (normal, folga, falta injustificada)
             pontos.isEmpty() -> StatusDiaResumo.SEM_REGISTRO
             !jornadaCompleta && pontos.size == 1 && data == LocalDate.now() -> StatusDiaResumo.EM_ANDAMENTO
