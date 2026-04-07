@@ -75,18 +75,30 @@ class OcrService @Inject constructor(
      * Para os modelos Inner REP Plus, o NSR costuma ter 9 dígitos.
      */
     private fun extrairNsr(text: String): String? {
+        // Normaliza o texto para tratar erros comuns de leitura do label
+        val textNormalizado = text.replace(Regex("(?:N[S\\s]R|MSR|N5R|N\\s*S\\s*R)", RegexOption.IGNORE_CASE), "NSR")
+        
+        // Identifica o número do REP (17 dígitos) para evitar que ele seja confundido com o NSR
+        val repPattern = Pattern.compile("\\b(\\d{17})\\b")
+        val repMatcher = repPattern.matcher(textNormalizado)
+        val repEncontrado = if (repMatcher.find()) repMatcher.group(1) else null
+
         val patterns = listOf(
-            // Prioridade 1: "NSR:" seguido de 9 a 17 dígitos
+            // Prioridade 1: Label "NSR:" seguido de exatamente 9 dígitos (modelo do usuário)
+            Pattern.compile("NSR[:\\s]*(\\d{9})\\b", Pattern.CASE_INSENSITIVE),
+            // Prioridade 2: Label "NSR:" seguido de 9 a 17 dígitos
             Pattern.compile("NSR[:\\s]*(\\d{9,17})", Pattern.CASE_INSENSITIVE),
-            // Prioridade 2: Apenas a sequência de 9 dígitos (comum nesse modelo)
+            // Prioridade 3: Sequência isolada de 9 dígitos que NÃO faça parte do número do REP
             Pattern.compile("\\b(\\d{9})\\b")
         )
 
         for (pattern in patterns) {
-            val matcher = pattern.matcher(text)
-            if (matcher.find()) {
-                // Se houver grupo de captura (parênteses), pega ele, senão pega o match todo
-                return matcher.group(1) ?: matcher.group()
+            val matcher = pattern.matcher(textNormalizado)
+            while (matcher.find()) {
+                val match = matcher.group(1) ?: matcher.group()
+                // Validação: se o que encontramos é apenas parte do número do REP, ignoramos
+                if (repEncontrado != null && repEncontrado.contains(match)) continue
+                return match
             }
         }
         return null
@@ -150,28 +162,55 @@ class OcrService @Inject constructor(
 
     /**
      * Busca um padrão de hora (HH:mm ou HH:mm:ss) no texto.
-     * Faz uma varredura melhorada comparando com horários habituais.
+     * Faz uma varredura melhorada comparando com horários habituais e aceitando erros de separador.
      */
     private fun extrairHoraMelhorada(text: String, horariosHabituais: List<LocalTime>): LocalTime? {
-        val pattern = Pattern.compile("\\b([01]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?\\b")
-        val matcher = pattern.matcher(text)
-        
-        val formatters = listOf(
-            DateTimeFormatter.ofPattern("HH:mm:ss"),
-            DateTimeFormatter.ofPattern("HH:mm"),
-            DateTimeFormatter.ofPattern("H:mm")
-        )
+        // Remove as datas do texto para não confundir "11/03" com "11:03"
+        val textoSemDatas = text.replace(Regex("\\b\\d{2}[/.-]\\d{2}[/.-]\\d{4}\\b"), " [DATA] ")
 
+        // Regex para capturar horas, dando preferência para aquelas que estão perto de "REP" ou "PIS"
+        // Ou que estão no formato HH:mm isolado
+        val pattern = Pattern.compile("\\b([01]?[0-9]|2[0-3])[:.,\\s]([0-5][0-9])(?:[:.,\\s]([0-5][0-9]))?\\b")
+        val matcher = pattern.matcher(textoSemDatas)
+        
         val horasEncontradas = mutableListOf<LocalTime>()
         
+        // Também vamos buscar especificamente o que vem antes de "REP"
+        val patternRep = Pattern.compile("(\\d{2}[:.,\\s]\\d{2})\\s*REP", Pattern.CASE_INSENSITIVE)
+        val matcherRep = patternRep.matcher(textoSemDatas)
+        if (matcherRep.find()) {
+            val horaStr = matcherRep.group(1)
+            try {
+                val partes = horaStr!!.split(Regex("[:.,\\s]"))
+                if (partes.size >= 2) {
+                    val h = partes[0].toInt()
+                    val m = partes[1].toInt()
+                    return LocalTime.of(h, m)
+                }
+            } catch (e: Exception) { /* ignora e segue para busca geral */ }
+        }
+
         while (matcher.find()) {
-            val horaStr = matcher.group()
-            for (formatter in formatters) {
-                try {
-                    horasEncontradas.add(LocalTime.parse(horaStr, formatter))
-                    break
-                } catch (e: Exception) { continue }
-            }
+            try {
+                val hStr = matcher.group(1)
+                val mStr = matcher.group(2)
+                if (hStr != null && mStr != null) {
+                    val h = hStr.toInt()
+                    val m = mStr.toInt()
+                    val s = matcher.group(3)?.toInt() ?: 0
+                    
+                    // Validação simples: evitar horários que foram pegos de pedaços de outros números
+                    // Se o match for parte de uma sequência muito maior, ignoramos
+                    val start = matcher.start()
+                    val end = matcher.end()
+                    val charAntes = if (start > 0) textoSemDatas[start - 1] else ' '
+                    val charDepois = if (end < textoSemDatas.length) textoSemDatas[end] else ' '
+                    
+                    if (charAntes.isDigit() || charDepois.isDigit()) continue
+
+                    horasEncontradas.add(LocalTime.of(h, m, s))
+                }
+            } catch (e: Exception) { continue }
         }
 
         if (horasEncontradas.isEmpty()) return null
@@ -180,21 +219,19 @@ class OcrService @Inject constructor(
         if (horariosHabituais.isNotEmpty()) {
             val melhorMatch = horasEncontradas.minByOrNull { encontrada ->
                 horariosHabituais.minOf { habitual ->
-                    val diff = java.time.Duration.between(encontrada, habitual).abs().toMinutes()
-                    diff
+                    java.time.Duration.between(encontrada, habitual).abs().toMinutes()
                 }
             }
             
             melhorMatch?.let { encontrada ->
-                val menorDiff = horariosHabituais.minOf { habitual ->
+                val menorDiffHoras = horariosHabituais.minOf { habitual ->
                     java.time.Duration.between(encontrada, habitual).abs().toHours()
                 }
-                if (menorDiff <= 3) return encontrada
+                if (menorDiffHoras <= 3) return encontrada
             }
         }
 
-        // Se não houver habitual ou nenhum for próximo, retorna o primeiro ou o que parece mais provável
-        // Em modelos Inner REP, a hora do registro costuma ser a que aparece após a data
-        return horasEncontradas.firstOrNull()
+        // Se não houver habitual, pega o primeiro que não seja meia-noite (comum de erro)
+        return horasEncontradas.find { it != LocalTime.MIDNIGHT } ?: horasEncontradas.firstOrNull()
     }
 }
