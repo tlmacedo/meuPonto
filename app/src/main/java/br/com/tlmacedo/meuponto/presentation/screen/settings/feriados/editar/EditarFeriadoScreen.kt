@@ -57,6 +57,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,7 +82,6 @@ import java.util.Locale
  * @since 3.4.0
  * @updated 5.3.0 - Corrigido seletor de UF
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarFeriadoScreen(
     feriadoId: Long?,
@@ -116,25 +117,83 @@ fun EditarFeriadoScreen(
         }
     }
 
+    EditarFeriadoContent(
+        uiState = uiState,
+        onNavigateBack = {
+            if (uiState.hasChanges) {
+                viewModel.showDiscardConfirmation()
+            } else {
+                onNavigateBack()
+            }
+        },
+        onDeleteClick = viewModel::showDeleteConfirmation,
+        onSalvarClick = viewModel::salvar,
+        onNomeChange = viewModel::onNomeChange,
+        onTipoChange = viewModel::onTipoChange,
+        onRecorrenciaChange = viewModel::onRecorrenciaChange,
+        onDiaMesChange = viewModel::onDiaMesChange,
+        onDataEspecificaChange = viewModel::onDataEspecificaChange,
+        onUfChange = viewModel::onUfChange,
+        onMunicipioChange = viewModel::onMunicipioChange,
+        onAbrangenciaChange = viewModel::onAbrangenciaChange,
+        onEmpregoSelected = viewModel::onEmpregoSelecionado,
+        onObservacaoChange = viewModel::onObservacaoChange,
+        onAtivoChange = viewModel::onAtivoChange,
+        onShowDatePicker = viewModel::showDatePicker,
+        onHideDatePicker = viewModel::hideDatePicker,
+        onShowEmpregoSelector = viewModel::showEmpregoSelector,
+        onHideEmpregoSelector = viewModel::hideEmpregoSelector,
+        onHideDeleteConfirmation = viewModel::hideDeleteConfirmation,
+        onConfirmDelete = viewModel::excluir,
+        onHideDiscardConfirmation = viewModel::hideDiscardConfirmation,
+        onConfirmDiscard = onNavigateBack,
+        snackbarHostState = snackbarHostState,
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditarFeriadoContent(
+    uiState: EditarFeriadoUiState,
+    onNavigateBack: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onSalvarClick: () -> Unit,
+    onNomeChange: (String) -> Unit,
+    onTipoChange: (TipoFeriado) -> Unit,
+    onRecorrenciaChange: (RecorrenciaFeriado) -> Unit,
+    onDiaMesChange: (MonthDay) -> Unit,
+    onDataEspecificaChange: (LocalDate) -> Unit,
+    onUfChange: (String) -> Unit,
+    onMunicipioChange: (String) -> Unit,
+    onAbrangenciaChange: (AbrangenciaFeriado) -> Unit,
+    onEmpregoSelected: (br.com.tlmacedo.meuponto.domain.model.Emprego) -> Unit,
+    onObservacaoChange: (String) -> Unit,
+    onAtivoChange: (Boolean) -> Unit,
+    onShowDatePicker: () -> Unit,
+    onHideDatePicker: () -> Unit,
+    onShowEmpregoSelector: () -> Unit,
+    onHideEmpregoSelector: () -> Unit,
+    onHideDeleteConfirmation: () -> Unit,
+    onConfirmDelete: () -> Unit,
+    onHideDiscardConfirmation: () -> Unit,
+    onConfirmDiscard: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(uiState.screenTitle) },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (uiState.hasChanges) {
-                            viewModel.showDiscardConfirmation()
-                        } else {
-                            onNavigateBack()
-                        }
-                    }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 },
                 actions = {
                     if (uiState.isEditing) {
                         IconButton(
-                            onClick = { viewModel.showDeleteConfirmation() },
+                            onClick = onDeleteClick,
                             enabled = !uiState.isDeleting
                         ) {
                             Icon(
@@ -160,163 +219,24 @@ fun EditarFeriadoScreen(
                 CircularProgressIndicator()
             }
         } else {
-            Column(
+            EditarFeriadoForm(
+                uiState = uiState,
+                onNomeChange = onNomeChange,
+                onTipoChange = onTipoChange,
+                onRecorrenciaChange = onRecorrenciaChange,
+                onDiaMesChange = onDiaMesChange,
+                onUfChange = onUfChange,
+                onMunicipioChange = onMunicipioChange,
+                onAbrangenciaChange = onAbrangenciaChange,
+                onObservacaoChange = onObservacaoChange,
+                onAtivoChange = onAtivoChange,
+                onShowDatePicker = onShowDatePicker,
+                onShowEmpregoSelector = onShowEmpregoSelector,
+                onSalvarClick = onSalvarClick,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Nome do feriado
-                OutlinedTextField(
-                    value = uiState.nome,
-                    onValueChange = viewModel::onNomeChange,
-                    label = { Text("Nome do feriado") },
-                    placeholder = { Text("Ex: Natal, Carnaval...") },
-                    isError = uiState.nomeError != null,
-                    supportingText = uiState.nomeError?.let { { Text(it) } },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Tipo do feriado
-                SectionTitle("Tipo")
-                TipoFeriadoSelector(
-                    tipoSelecionado = uiState.tipo,
-                    onTipoChange = viewModel::onTipoChange
-                )
-
-                Text(
-                    text = uiState.tipoDescricao,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                // Recorrência
-                SectionTitle("Recorrência")
-                RecorrenciaSelector(
-                    recorrenciaSelecionada = uiState.recorrencia,
-                    onRecorrenciaChange = viewModel::onRecorrenciaChange
-                )
-
-                // Data
-                when (uiState.recorrencia) {
-                    RecorrenciaFeriado.ANUAL -> {
-                        DiaMesSelector(
-                            diaMes = uiState.diaMes,
-                            onDiaMesChange = viewModel::onDiaMesChange,
-                            error = uiState.dataError
-                        )
-                    }
-                    RecorrenciaFeriado.UNICO -> {
-                        DataEspecificaSelector(
-                            data = uiState.dataEspecifica,
-                            onShowDatePicker = viewModel::showDatePicker,
-                            error = uiState.dataError
-                        )
-                    }
-                }
-
-                // Campos geográficos (se aplicável)
-                if (uiState.showUfField) {
-                    HorizontalDivider()
-                    SectionTitle("Localização")
-
-                    UfSelector(
-                        ufSelecionada = uiState.uf,
-                        ufList = uiState.ufList,
-                        onUfChange = viewModel::onUfChange,
-                        error = uiState.ufError
-                    )
-
-                    if (uiState.showMunicipioField) {
-                        OutlinedTextField(
-                            value = uiState.municipio ?: "",
-                            onValueChange = viewModel::onMunicipioChange,
-                            label = { Text("Município") },
-                            placeholder = { Text("Nome da cidade") },
-                            isError = uiState.municipioError != null,
-                            supportingText = uiState.municipioError?.let { { Text(it) } },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                // Abrangência
-                HorizontalDivider()
-                SectionTitle("Abrangência")
-                AbrangenciaSelector(
-                    abrangenciaSelecionada = uiState.abrangencia,
-                    onAbrangenciaChange = viewModel::onAbrangenciaChange
-                )
-
-                // Seletor de emprego (se específico)
-                if (uiState.showEmpregoField) {
-                    EmpregoSelector(
-                        empregoSelecionado = uiState.empregoSelecionado,
-                        empregosDisponiveis = uiState.empregosDisponiveis,
-                        onShowSelector = viewModel::showEmpregoSelector,
-                        error = uiState.empregoError
-                    )
-                }
-
-                // Observação
-                HorizontalDivider()
-                OutlinedTextField(
-                    value = uiState.observacao,
-                    onValueChange = viewModel::onObservacaoChange,
-                    label = { Text("Observação (opcional)") },
-                    placeholder = { Text("Anotações adicionais...") },
-                    minLines = 2,
-                    maxLines = 4,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Ativo
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Feriado ativo",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Text(
-                            text = if (uiState.ativo) "Será considerado nos cálculos" else "Ignorado nos cálculos",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = uiState.ativo,
-                        onCheckedChange = viewModel::onAtivoChange
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Botão salvar
-                androidx.compose.material3.Button(
-                    onClick = viewModel::salvar,
-                    enabled = uiState.isFormValid && !uiState.isSaving,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (uiState.isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    Text(if (uiState.isEditing) "Salvar Alterações" else "Criar Feriado")
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-            }
+            )
         }
     }
 
@@ -324,29 +244,26 @@ fun EditarFeriadoScreen(
     if (uiState.showDatePicker) {
         DatePickerDialogWrapper(
             initialDate = uiState.dataEspecifica,
-            onDateSelected = { date ->
-                viewModel.onDataEspecificaChange(date)
-                viewModel.hideDatePicker()
-            },
-            onDismiss = viewModel::hideDatePicker
+            onDateSelected = onDataEspecificaChange,
+            onDismiss = onHideDatePicker
         )
     }
 
     if (uiState.showDeleteConfirmation) {
         AlertDialog(
-            onDismissRequest = viewModel::hideDeleteConfirmation,
+            onDismissRequest = onHideDeleteConfirmation,
             title = { Text("Excluir feriado?") },
             text = { Text("Esta ação não pode ser desfeita. O feriado \"${uiState.nome}\" será removido permanentemente.") },
             confirmButton = {
                 TextButton(
-                    onClick = viewModel::excluir,
+                    onClick = onConfirmDelete,
                     enabled = !uiState.isDeleting
                 ) {
                     Text("Excluir", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::hideDeleteConfirmation) {
+                TextButton(onClick = onHideDeleteConfirmation) {
                     Text("Cancelar")
                 }
             }
@@ -355,16 +272,16 @@ fun EditarFeriadoScreen(
 
     if (uiState.showDiscardConfirmation) {
         AlertDialog(
-            onDismissRequest = viewModel::hideDiscardConfirmation,
+            onDismissRequest = onHideDiscardConfirmation,
             title = { Text("Descartar alterações?") },
             text = { Text("Você tem alterações não salvas. Deseja descartá-las?") },
             confirmButton = {
-                TextButton(onClick = onNavigateBack) {
+                TextButton(onClick = onConfirmDiscard) {
                     Text("Descartar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::hideDiscardConfirmation) {
+                TextButton(onClick = onHideDiscardConfirmation) {
                     Text("Continuar editando")
                 }
             }
@@ -375,11 +292,189 @@ fun EditarFeriadoScreen(
         EmpregoSelectorDialog(
             empregos = uiState.empregosDisponiveis,
             empregoSelecionadoId = uiState.empregoSelecionado?.id,
-            onEmpregoSelected = viewModel::onEmpregoSelecionado,
-            onDismiss = viewModel::hideEmpregoSelector
+            onEmpregoSelected = {
+                onEmpregoSelected(it)
+                onHideEmpregoSelector()
+            },
+            onDismiss = onHideEmpregoSelector
         )
     }
 }
+
+@Composable
+fun EditarFeriadoForm(
+    uiState: EditarFeriadoUiState,
+    onNomeChange: (String) -> Unit,
+    onTipoChange: (TipoFeriado) -> Unit,
+    onRecorrenciaChange: (RecorrenciaFeriado) -> Unit,
+    onDiaMesChange: (MonthDay) -> Unit,
+    onUfChange: (String) -> Unit,
+    onMunicipioChange: (String) -> Unit,
+    onAbrangenciaChange: (AbrangenciaFeriado) -> Unit,
+    onObservacaoChange: (String) -> Unit,
+    onAtivoChange: (Boolean) -> Unit,
+    onShowDatePicker: () -> Unit,
+    onShowEmpregoSelector: () -> Unit,
+    onSalvarClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Nome do feriado
+        OutlinedTextField(
+            value = uiState.nome,
+            onValueChange = onNomeChange,
+            label = { Text("Nome do feriado") },
+            placeholder = { Text("Ex: Natal, Carnaval...") },
+            isError = uiState.nomeError != null,
+            supportingText = uiState.nomeError?.let { { Text(it) } },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Tipo do feriado
+        SectionTitle("Tipo")
+        TipoFeriadoSelector(
+            tipoSelecionado = uiState.tipo,
+            onTipoChange = onTipoChange
+        )
+
+        Text(
+            text = uiState.tipoDescricao,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        // Recorrência
+        SectionTitle("Recorrência")
+        RecorrenciaSelector(
+            recorrenciaSelecionada = uiState.recorrencia,
+            onRecorrenciaChange = onRecorrenciaChange
+        )
+
+        // Data
+        when (uiState.recorrencia) {
+            RecorrenciaFeriado.ANUAL -> {
+                DiaMesSelector(
+                    diaMes = uiState.diaMes,
+                    onDiaMesChange = onDiaMesChange,
+                    error = uiState.dataError
+                )
+            }
+            RecorrenciaFeriado.UNICO -> {
+                DataEspecificaSelector(
+                    data = uiState.dataEspecifica,
+                    onShowDatePicker = onShowDatePicker,
+                    error = uiState.dataError
+                )
+            }
+        }
+
+        // Campos geográficos (se aplicável)
+        if (uiState.showUfField) {
+            HorizontalDivider()
+            SectionTitle("Localização")
+
+            UfSelector(
+                ufSelecionada = uiState.uf,
+                ufList = uiState.ufList,
+                onUfChange = onUfChange,
+                error = uiState.ufError
+            )
+
+            if (uiState.showMunicipioField) {
+                OutlinedTextField(
+                    value = uiState.municipio ?: "",
+                    onValueChange = onMunicipioChange,
+                    label = { Text("Município") },
+                    placeholder = { Text("Nome da cidade") },
+                    isError = uiState.municipioError != null,
+                    supportingText = uiState.municipioError?.let { { Text(it) } },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Abrangência
+        HorizontalDivider()
+        SectionTitle("Abrangência")
+        AbrangenciaSelector(
+            abrangenciaSelecionada = uiState.abrangencia,
+            onAbrangenciaChange = onAbrangenciaChange
+        )
+
+        // Seletor de emprego (se específico)
+        if (uiState.showEmpregoField) {
+            EmpregoSelector(
+                empregoSelecionado = uiState.empregoSelecionado,
+                empregosDisponiveis = uiState.empregosDisponiveis,
+                onShowSelector = onShowEmpregoSelector,
+                error = uiState.empregoError
+            )
+        }
+
+        // Observação
+        HorizontalDivider()
+        OutlinedTextField(
+            value = uiState.observacao,
+            onValueChange = onObservacaoChange,
+            label = { Text("Observação (opcional)") },
+            placeholder = { Text("Anotações adicionais...") },
+            minLines = 2,
+            maxLines = 4,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Ativo
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Feriado ativo",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = if (uiState.ativo) "Será considerado nos cálculos" else "Ignorado nos cálculos",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = uiState.ativo,
+                onCheckedChange = onAtivoChange
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Botão salvar
+        androidx.compose.material3.Button(
+            onClick = onSalvarClick,
+            enabled = uiState.isFormValid && !uiState.isSaving,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (uiState.isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(if (uiState.isEditing) "Salvar Alterações" else "Criar Feriado")
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
 
 @Composable
 private fun SectionTitle(title: String) {
@@ -849,3 +944,40 @@ private fun DatePickerDialogWrapper(
         DatePicker(state = datePickerState)
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+private fun EditarFeriadoContentPreview() {
+    MeuPontoTheme {
+        EditarFeriadoContent(
+            uiState = EditarFeriadoUiState(
+                nome = "Feriado de Teste",
+                tipo = TipoFeriado.NACIONAL
+            ),
+            onNavigateBack = {},
+            onDeleteClick = {},
+            onSalvarClick = {},
+            onNomeChange = {},
+            onTipoChange = {},
+            onRecorrenciaChange = {},
+            onDiaMesChange = {},
+            onDataEspecificaChange = {},
+            onUfChange = {},
+            onMunicipioChange = {},
+            onAbrangenciaChange = {},
+            onEmpregoSelected = {},
+            onObservacaoChange = {},
+            onAtivoChange = {},
+            onShowDatePicker = {},
+            onHideDatePicker = {},
+            onShowEmpregoSelector = {},
+            onHideEmpregoSelector = {},
+            onHideDeleteConfirmation = {},
+            onConfirmDelete = {},
+            onHideDiscardConfirmation = {},
+            onConfirmDiscard = {},
+            snackbarHostState = remember { SnackbarHostState() }
+        )
+    }
+}
+

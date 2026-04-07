@@ -161,6 +161,7 @@ sealed interface HomeAction {
     data object AtualizarHora : HomeAction
     data object LimparErro : HomeAction
     data object RecarregarDados : HomeAction
+    data class MostrarMensagem(val mensagem: String) : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
     // AÇÕES DE CICLO DE BANCO DE HORAS

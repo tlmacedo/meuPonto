@@ -39,7 +39,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarVersaoScreen(
     onNavigateBack: () -> Unit,
@@ -69,25 +68,46 @@ fun EditarVersaoScreen(
         }
     }
 
+    EditarVersaoContent(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+        onNavigateBack = onNavigateBack,
+        modifier = modifier,
+        snackbarHostState = snackbarHostState
+    )
+}
+
+/**
+ * Conteúdo da tela de edição de versão, desacoplado do ViewModel.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditarVersaoContent(
+    uiState: EditarVersaoUiState,
+    onAction: (EditarVersaoAction) -> Unit,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+) {
     if (uiState.showDataInicioPicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = uiState.dataInicio.atStartOfDay()
                 .toInstant(ZoneOffset.UTC).toEpochMilli()
         )
         DatePickerDialog(
-            onDismissRequest = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) },
+            onDismissRequest = { onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
                         val selectedDate = Instant.ofEpochMilli(it)
                             .atZone(ZoneId.systemDefault())
                             .toLocalDate()
-                        viewModel.onAction(EditarVersaoAction.AlterarDataInicio(selectedDate))
+                        onAction(EditarVersaoAction.AlterarDataInicio(selectedDate))
                     }
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) }) {
+                TextButton(onClick = { onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) }) {
                     Text("Cancelar")
                 }
             }
@@ -102,22 +122,22 @@ fun EditarVersaoScreen(
                 .toInstant(ZoneOffset.UTC).toEpochMilli()
         )
         DatePickerDialog(
-            onDismissRequest = { viewModel.onAction(EditarVersaoAction.MostrarDataFimPicker(false)) },
+            onDismissRequest = { onAction(EditarVersaoAction.MostrarDataFimPicker(false)) },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
                         val selectedDate = Instant.ofEpochMilli(it)
                             .atZone(ZoneId.systemDefault())
                             .toLocalDate()
-                        viewModel.onAction(EditarVersaoAction.AlterarDataFim(selectedDate))
+                        onAction(EditarVersaoAction.AlterarDataFim(selectedDate))
                     }
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.AlterarDataFim(null)) }) {
+                TextButton(onClick = { onAction(EditarVersaoAction.AlterarDataFim(null)) }) {
                     Text("Limpar")
                 }
-                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.MostrarDataFimPicker(false)) }) {
+                TextButton(onClick = { onAction(EditarVersaoAction.MostrarDataFimPicker(false)) }) {
                     Text("Cancelar")
                 }
             }
@@ -132,22 +152,22 @@ fun EditarVersaoScreen(
                 .toInstant(ZoneOffset.UTC).toEpochMilli()
         )
         DatePickerDialog(
-            onDismissRequest = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) },
+            onDismissRequest = { onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
                         val selectedDate = Instant.ofEpochMilli(it)
                             .atZone(ZoneId.systemDefault())
                             .toLocalDate()
-                        viewModel.onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(selectedDate))
+                        onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(selectedDate))
                     }
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(null)) }) {
+                TextButton(onClick = { onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(null)) }) {
                     Text("Limpar")
                 }
-                TextButton(onClick = { viewModel.onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) }) {
+                TextButton(onClick = { onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) }) {
                     Text("Cancelar")
                 }
             }
@@ -161,7 +181,7 @@ fun EditarVersaoScreen(
             MeuPontoTopBar(
                 title = if (uiState.isNovaVersao) "Nova Versão" else "Editar Versão",
                 showBackButton = true,
-                onBackClick = { viewModel.onAction(EditarVersaoAction.Cancelar) }
+                onBackClick = onNavigateBack
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -194,9 +214,9 @@ fun EditarVersaoScreen(
             }
 
             else -> {
-                EditarVersaoContent(
+                EditarVersaoForm(
                     uiState = uiState,
-                    onAction = viewModel::onAction,
+                    onAction = onAction,
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -206,7 +226,7 @@ fun EditarVersaoScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditarVersaoContent(
+private fun EditarVersaoForm(
     uiState: EditarVersaoUiState,
     onAction: (EditarVersaoAction) -> Unit,
     modifier: Modifier = Modifier
@@ -718,7 +738,8 @@ private fun EditarVersaoContentPreview() {
         Surface {
             EditarVersaoContent(
                 uiState = uiState,
-                onAction = {}
+                onAction = {},
+                onNavigateBack = {}
             )
         }
     }
@@ -740,7 +761,8 @@ private fun EditarVersaoNovaPreview() {
         Surface {
             EditarVersaoContent(
                 uiState = uiState,
-                onAction = {}
+                onAction = {},
+                onNavigateBack = {}
             )
         }
     }

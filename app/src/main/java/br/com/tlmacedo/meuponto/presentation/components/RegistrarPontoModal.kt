@@ -2,6 +2,7 @@
 package br.com.tlmacedo.meuponto.presentation.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -60,7 +61,7 @@ fun RegistrarPontoModal(
     val corPrincipal = if (proximoTipo.isEntrada) EntradaColor else SaidaColor
     val temDadosLocalizacao = state.latitude != null || state.longitude != null || state.isCapturingLocation || state.erroLocalizacao != null
 
-    val podeConfirmar = !state.isSaving && 
+    val podeConfirmar = !state.isSaving && !state.isProcessingOcr &&
             (!fotoObrigatoria || state.fotoUri != null) &&
             (!nsrHabilitado || state.nsr.isNotBlank())
 
@@ -190,7 +191,7 @@ fun RegistrarPontoModal(
                                     .padding(8.dp)
                                     .size(32.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .clickable { onRemoverFoto() },
+                                    .clickable(!state.isProcessingOcr) { onRemoverFoto() },
                             ) {
                                 Icon(
                                     Icons.Default.Delete,
@@ -198,6 +199,29 @@ fun RegistrarPontoModal(
                                     tint = MaterialTheme.colorScheme.onErrorContainer,
                                     modifier = Modifier.padding(6.dp)
                                 )
+                            }
+
+                            if (state.isProcessingOcr) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(32.dp),
+                                            color = corPrincipal
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Analisando comprovante...",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = corPrincipal,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
                         }
                     } else {

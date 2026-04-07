@@ -2,11 +2,6 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.RadioButton
-import androidx.compose.ui.semantics.Role
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
@@ -23,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
@@ -56,6 +52,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
@@ -73,15 +70,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import kotlinx.coroutines.flow.collectLatest
@@ -152,12 +152,12 @@ fun EditarEmpregoScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditarEmpregoContent(
+internal fun EditarEmpregoContent(
     uiState: EditarEmpregoUiState,
     onAction: (EditarEmpregoAction) -> Unit,
     onSetShowInicioTrabalhoPicker: (Boolean) -> Unit,
     onSetShowDataInicioCicloPicker: (Boolean) -> Unit,
-    onNavigateToVersoes: (() -> Unit)? = null,  // ← Adicionar
+    onNavigateToVersoes: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // DATE PICKER - Data Início Trabalho
@@ -853,49 +853,36 @@ private fun SwitchOption(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
 @Composable
-private fun DiaSemanaSelector(
-    label: String,
-    selected: DiaSemana,
-    onSelect: (DiaSemana) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(bottom = 4.dp)
+private fun EditarEmpregoContentPreview() {
+    MeuPontoTheme {
+        EditarEmpregoContent(
+            uiState = EditarEmpregoUiState(
+                isNovoEmprego = true,
+                isLoading = false
+            ),
+            onAction = {},
+            onSetShowInicioTrabalhoPicker = {},
+            onSetShowDataInicioCicloPicker = {}
         )
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = selected.descricao,
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-            )
+    }
+}
 
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                DiaSemana.entries.forEach { dia ->
-                    DropdownMenuItem(
-                        text = { Text(dia.descricao) },
-                        onClick = {
-                            onSelect(dia)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
+@Preview(showBackground = true)
+@Composable
+private fun EditarEmpregoContentEditingPreview() {
+    MeuPontoTheme {
+        EditarEmpregoContent(
+            uiState = EditarEmpregoUiState(
+                isNovoEmprego = false,
+                nome = "Empresa de Teste",
+                isLoading = false,
+                bancoHorasHabilitado = true
+            ),
+            onAction = {},
+            onSetShowInicioTrabalhoPicker = {},
+            onSetShowDataInicioCicloPicker = {}
+        )
     }
 }

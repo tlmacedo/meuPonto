@@ -22,10 +22,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -56,12 +56,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import kotlinx.coroutines.flow.collectLatest
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 
@@ -77,7 +80,6 @@ import java.time.ZoneOffset
  * @author Thiago
  * @since 29.0.0
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarCargoScreen(
     onNavigateBack: () -> Unit,
@@ -94,14 +96,32 @@ fun EditarCargoScreen(
                     snackbarHostState.showSnackbar(evento.mensagem)
                     onNavigateBack()
                 }
+
                 is EditarCargoEvent.MostrarErro -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 is EditarCargoEvent.Voltar -> onNavigateBack()
             }
         }
     }
 
+    EditarCargoContent(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+        snackbarHostState = snackbarHostState,
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun EditarCargoContent(
+    uiState: EditarCargoUiState,
+    onAction: (EditarCargoAction) -> Unit,
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier = Modifier
+) {
     // Date Pickers
     if (uiState.showDataInicioPicker) {
         val datePickerState = rememberDatePickerState(
@@ -109,11 +129,11 @@ fun EditarCargoScreen(
                 ?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
         )
         DatePickerDialog(
-            onDismissRequest = { viewModel.onAction(EditarCargoAction.FecharDataInicioPicker) },
+            onDismissRequest = { onAction(EditarCargoAction.FecharDataInicioPicker) },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        viewModel.onAction(
+                        onAction(
                             EditarCargoAction.AlterarDataInicio(
                                 Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
                             )
@@ -122,7 +142,7 @@ fun EditarCargoScreen(
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onAction(EditarCargoAction.FecharDataInicioPicker) }) {
+                TextButton(onClick = { onAction(EditarCargoAction.FecharDataInicioPicker) }) {
                     Text("Cancelar")
                 }
             }
@@ -135,11 +155,11 @@ fun EditarCargoScreen(
                 ?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
         )
         DatePickerDialog(
-            onDismissRequest = { viewModel.onAction(EditarCargoAction.FecharDataFimPicker) },
+            onDismissRequest = { onAction(EditarCargoAction.FecharDataFimPicker) },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        viewModel.onAction(
+                        onAction(
                             EditarCargoAction.AlterarDataFim(
                                 Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
                             )
@@ -148,10 +168,10 @@ fun EditarCargoScreen(
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onAction(EditarCargoAction.AlterarDataFim(null)) }) {
+                TextButton(onClick = { onAction(EditarCargoAction.AlterarDataFim(null)) }) {
                     Text("Limpar")
                 }
-                TextButton(onClick = { viewModel.onAction(EditarCargoAction.FecharDataFimPicker) }) {
+                TextButton(onClick = { onAction(EditarCargoAction.FecharDataFimPicker) }) {
                     Text("Cancelar")
                 }
             }
@@ -161,14 +181,15 @@ fun EditarCargoScreen(
     // Date Pickers para ajustes
     uiState.ajustePickerIndex?.let { idx ->
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.ajustes.getOrNull(idx)?.dataAjusteStr?.let { null }
+            initialSelectedDateMillis = uiState.ajustes.getOrNull(idx)?.dataAjuste?.atStartOfDay()
+                ?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
         )
         DatePickerDialog(
-            onDismissRequest = { viewModel.onAction(EditarCargoAction.FecharAjusteDatePicker) },
+            onDismissRequest = { onAction(EditarCargoAction.FecharAjusteDatePicker) },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        viewModel.onAction(
+                        onAction(
                             EditarCargoAction.AlterarDataAjuste(
                                 idx,
                                 Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -178,7 +199,7 @@ fun EditarCargoScreen(
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onAction(EditarCargoAction.FecharAjusteDatePicker) }) {
+                TextButton(onClick = { onAction(EditarCargoAction.FecharAjusteDatePicker) }) {
                     Text("Cancelar")
                 }
             }
@@ -191,7 +212,7 @@ fun EditarCargoScreen(
                 title = if (uiState.isNovoCargo) "Novo Cargo" else "Editar Cargo",
                 subtitle = uiState.nomeEmprego,
                 showBackButton = true,
-                onBackClick = { viewModel.onAction(EditarCargoAction.Cancelar) }
+                onBackClick = { onAction(EditarCargoAction.Cancelar) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -200,245 +221,270 @@ fun EditarCargoScreen(
         if (uiState.isLoading) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize().padding(paddingValues)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) { CircularProgressIndicator() }
         } else {
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize().padding(paddingValues)
+            EditarCargoForm(
+                uiState = uiState,
+                onAction = onAction,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditarCargoForm(
+    uiState: EditarCargoUiState,
+    onAction: (EditarCargoAction) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier
+    ) {
+        // ── DADOS DO CARGO ──────────────────────────────────────────
+        item {
+            Card(
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
             ) {
-                // ── DADOS DO CARGO ──────────────────────────────────────────
-                item {
-                    Card(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Work, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Work, contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Dados do Cargo",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Dados do Cargo",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = uiState.funcao,
+                        onValueChange = { onAction(EditarCargoAction.AlterarFuncao(it)) },
+                        label = { Text("Função / Cargo") },
+                        placeholder = { Text("Ex: Analista Pleno, Gerente...") },
+                        isError = uiState.funcaoErro != null,
+                        supportingText = uiState.funcaoErro?.let { { Text(it) } },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = uiState.salarioInicialStr,
+                        onValueChange = { onAction(EditarCargoAction.AlterarSalarioInicial(it)) },
+                        label = { Text("Salário Inicial (R$)") },
+                        placeholder = { Text("Ex: 3500.00") },
+                        isError = uiState.salarioErro != null,
+                        supportingText = uiState.salarioErro?.let { { Text(it) } },
+                        leadingIcon = {
+                            Icon(Icons.Default.AttachMoney, contentDescription = null)
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Next
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        // ── PERÍODO ─────────────────────────────────────────────────
+        item {
+            Card(
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.CalendarMonth, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Período",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = uiState.dataInicioFormatada,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Data de Início") },
+                        isError = uiState.dataInicioErro != null,
+                        supportingText = uiState.dataInicioErro?.let { { Text(it) } },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                onAction(EditarCargoAction.AbrirDataInicioPicker)
+                            }) {
+                                Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onAction(EditarCargoAction.AbrirDataInicioPicker) }
+                    )
 
-                            OutlinedTextField(
-                                value = uiState.funcao,
-                                onValueChange = { viewModel.onAction(EditarCargoAction.AlterarFuncao(it)) },
-                                label = { Text("Função / Cargo") },
-                                placeholder = { Text("Ex: Analista Pleno, Gerente...") },
-                                isError = uiState.funcaoErro != null,
-                                supportingText = uiState.funcaoErro?.let { { Text(it) } },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    capitalization = KeyboardCapitalization.Words,
-                                    imeAction = ImeAction.Next
-                                ),
-                                modifier = Modifier.fillMaxWidth()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Toggle cargo atual
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Cargo atual",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
                             )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            OutlinedTextField(
-                                value = uiState.salarioInicialStr,
-                                onValueChange = { viewModel.onAction(EditarCargoAction.AlterarSalarioInicial(it)) },
-                                label = { Text("Salário Inicial (R$)") },
-                                placeholder = { Text("Ex: 3500.00") },
-                                isError = uiState.salarioErro != null,
-                                supportingText = uiState.salarioErro?.let { { Text(it) } },
-                                leadingIcon = {
-                                    Icon(Icons.Default.AttachMoney, contentDescription = null)
-                                },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                    imeAction = ImeAction.Next
-                                ),
-                                modifier = Modifier.fillMaxWidth()
+                            Text(
+                                text = "Sem data de término (cargo em exercício)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                }
-
-                // ── PERÍODO ─────────────────────────────────────────────────
-                item {
-                    Card(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        Switch(
+                            checked = uiState.isCargoAtual,
+                            onCheckedChange = { onAction(EditarCargoAction.ToggleCargoAtual(it)) }
                         )
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.CalendarMonth, contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Período",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
+                    }
 
+                    AnimatedVisibility(
+                        visible = !uiState.isCargoAtual,
+                        enter = expandVertically(),
+                        exit = shrinkVertically()
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(12.dp))
                             OutlinedTextField(
-                                value = uiState.dataInicioFormatada,
+                                value = uiState.dataFimFormatada ?: "",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Data de Início") },
-                                isError = uiState.dataInicioErro != null,
-                                supportingText = uiState.dataInicioErro?.let { { Text(it) } },
+                                label = { Text("Data de Término") },
                                 trailingIcon = {
                                     IconButton(onClick = {
-                                        viewModel.onAction(EditarCargoAction.AbrirDataInicioPicker)
+                                        onAction(EditarCargoAction.AbrirDataFimPicker)
                                     }) {
                                         Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
                                     }
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { viewModel.onAction(EditarCargoAction.AbrirDataInicioPicker) }
+                                    .clickable { onAction(EditarCargoAction.AbrirDataFimPicker) }
                             )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Toggle cargo atual
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Cargo atual",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Text(
-                                        text = "Sem data de término (cargo em exercício)",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Switch(
-                                    checked = uiState.isCargoAtual,
-                                    onCheckedChange = { viewModel.onAction(EditarCargoAction.ToggleCargoAtual(it)) }
-                                )
-                            }
-
-                            AnimatedVisibility(
-                                visible = !uiState.isCargoAtual,
-                                enter = expandVertically(),
-                                exit = shrinkVertically()
-                            ) {
-                                Column {
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    OutlinedTextField(
-                                        value = uiState.dataFimFormatada ?: "",
-                                        onValueChange = {},
-                                        readOnly = true,
-                                        label = { Text("Data de Término") },
-                                        trailingIcon = {
-                                            IconButton(onClick = {
-                                                viewModel.onAction(EditarCargoAction.AbrirDataFimPicker)
-                                            }) {
-                                                Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { viewModel.onAction(EditarCargoAction.AbrirDataFimPicker) }
-                                    )
-                                }
-                            }
                         }
                     }
-                }
-
-                // ── AJUSTES E DISSÍDIOS ─────────────────────────────────────
-                item {
-                    Card(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.BarChart, contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.tertiary)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Ajustes e Dissídios",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                TextButton(
-                                    onClick = { viewModel.onAction(EditarCargoAction.AdicionarAjuste) }
-                                ) {
-                                    Icon(Icons.Default.Add, contentDescription = null,
-                                        modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Adicionar")
-                                }
-                            }
-
-                            if (uiState.ajustes.isEmpty()) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "Nenhum ajuste salarial registrado. Adicione dissídios ou reajustes.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Ajustes individuais
-                itemsIndexed(uiState.ajustes) { index, ajuste ->
-                    AjusteFormCard(
-                        index = index,
-                        ajuste = ajuste,
-                        onAlterarData = { viewModel.onAction(EditarCargoAction.AbrirAjusteDatePicker(index)) },
-                        onAlterarSalario = { viewModel.onAction(EditarCargoAction.AlterarSalarioAjuste(index, it)) },
-                        onRemover = { viewModel.onAction(EditarCargoAction.RemoverAjuste(index)) }
-                    )
-                }
-
-                // ── SALVAR ──────────────────────────────────────────────────
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = { viewModel.onAction(EditarCargoAction.Salvar) },
-                        enabled = uiState.formularioValido && !uiState.isSaving,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (uiState.isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Icon(Icons.Default.Check, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (uiState.isNovoCargo) "Criar Cargo" else "Salvar Alterações")
-                    }
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
+        }
+
+        // ── AJUSTES E DISSÍDIOS ─────────────────────────────────────
+        item {
+            Card(
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.BarChart, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Ajustes e Dissídios",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            onClick = { onAction(EditarCargoAction.AdicionarAjuste) }
+                        ) {
+                            Icon(
+                                Icons.Default.Add, contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Adicionar")
+                        }
+                    }
+
+                    if (uiState.ajustes.isEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Nenhum ajuste salarial registrado. Adicione dissídios ou reajustes.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // Ajustes individuais
+        itemsIndexed(uiState.ajustes) { index, ajuste ->
+            AjusteFormCard(
+                index = index,
+                ajuste = ajuste,
+                onAlterarData = { onAction(EditarCargoAction.AbrirAjusteDatePicker(index)) },
+                onAlterarSalario = { onAction(EditarCargoAction.AlterarSalarioAjuste(index, it)) },
+                onRemover = { onAction(EditarCargoAction.RemoverAjuste(index)) }
+            )
+        }
+
+        // ── SALVAR ──────────────────────────────────────────────────
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = { onAction(EditarCargoAction.Salvar) },
+                enabled = uiState.formularioValido && !uiState.isSaving,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (uiState.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Icon(Icons.Default.Check, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (uiState.isNovoCargo) "Criar Cargo" else "Salvar Alterações")
+            }
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -521,5 +567,37 @@ private fun AjusteFormCard(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun EditarCargoContentPreview() {
+    val uiState = EditarCargoUiState(
+        isLoading = false,
+        isNovoCargo = false,
+        nomeEmprego = "Empresa de Tecnologia",
+        funcao = "Desenvolvedor Android",
+        salarioInicialStr = "5000.00",
+        dataInicio = LocalDate.of(2023, 1, 1),
+        dataInicioFormatada = "01/01/2023",
+        isCargoAtual = true,
+        ajustes = listOf(
+            AjusteFormItem(
+                id = 1,
+                dataAjuste = LocalDate.of(2023, 7, 1),
+                dataAjusteStr = "01/07/2023",
+                novoSalarioStr = "5500.00"
+            )
+        ),
+        formularioValido = true
+    )
+
+    MeuPontoTheme {
+        EditarCargoContent(
+            uiState = uiState,
+            onAction = {},
+            snackbarHostState = remember { SnackbarHostState() }
+        )
     }
 }

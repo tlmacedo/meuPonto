@@ -68,6 +68,24 @@ fun VersoesJornadaScreen(
         }
     }
 
+    VersoesJornadaContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onNovaVersaoClick = viewModel::criarNovaVersao,
+        modifier = modifier
+    )
+}
+
+/**
+ * Conteúdo da tela de histórico de versões de jornada, desacoplado do ViewModel.
+ */
+@Composable
+fun VersoesJornadaContent(
+    uiState: VersoesJornadaUiState,
+    onNavigateBack: () -> Unit,
+    onNovaVersaoClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         topBar = {
             MeuPontoTopBar(
@@ -78,7 +96,7 @@ fun VersoesJornadaScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.criarNovaVersao() }
+                onClick = onNovaVersaoClick
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Nova Versão")
             }
@@ -95,7 +113,7 @@ fun VersoesJornadaScreen(
                 CircularProgressIndicator()
             }
         } else {
-            VersoesJornadaContent(
+            VersoesJornadaList(
                 uiState = uiState,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -104,7 +122,7 @@ fun VersoesJornadaScreen(
 }
 
 @Composable
-private fun VersoesJornadaContent(
+private fun VersoesJornadaList(
     uiState: VersoesJornadaUiState,
     modifier: Modifier = Modifier
 ) {

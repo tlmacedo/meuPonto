@@ -55,18 +55,16 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components
  * @author Thiago
  * @since 3.0.0
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeriadosListScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEditar: (Long) -> Unit,
     onNavigateToNovo: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: FeriadosListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-
-    var searchActive by remember { mutableStateOf(false) }
 
     // Mostrar mensagens
     LaunchedEffect(uiState.mensagemSucesso, uiState.mensagemErro) {
@@ -80,12 +78,39 @@ fun FeriadosListScreen(
         }
     }
 
+    FeriadosListContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onNavigateToEditar = onNavigateToEditar,
+        onNavigateToNovo = onNavigateToNovo,
+        onEvent = viewModel::onEvent,
+        modifier = modifier,
+        snackbarHostState = snackbarHostState
+    )
+}
+
+/**
+ * Conteúdo da tela de listagem de feriados, desacoplado do ViewModel.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FeriadosListContent(
+    uiState: FeriadosListUiState,
+    onNavigateBack: () -> Unit,
+    onNavigateToEditar: (Long) -> Unit,
+    onNavigateToNovo: () -> Unit,
+    onEvent: (FeriadosListEvent) -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+) {
+    var searchActive by remember { mutableStateOf(false) }
+
     // Dialog de importação
     if (uiState.showImportDialog || uiState.importacaoEmAndamento) {
         ImportarFeriadosDialog(
             isLoading = uiState.importacaoEmAndamento,
-            onConfirmar = { viewModel.onEvent(FeriadosListEvent.OnImportarFeriados) },
-            onDismiss = { viewModel.onEvent(FeriadosListEvent.OnDismissImportDialog) }
+            onConfirmar = { onEvent(FeriadosListEvent.OnImportarFeriados) },
+            onDismiss = { onEvent(FeriadosListEvent.OnDismissImportDialog) }
         )
     }
 
@@ -93,7 +118,7 @@ fun FeriadosListScreen(
     if (uiState.showDeleteDialog && uiState.feriadoParaExcluir != null) {
         AlertDialog(
             onDismissRequest = {
-                viewModel.onEvent(FeriadosListEvent.OnDismissDeleteDialog)
+                onEvent(FeriadosListEvent.OnDismissDeleteDialog)
             },
             title = { Text("Excluir Feriado") },
             text = {
@@ -101,14 +126,14 @@ fun FeriadosListScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = { viewModel.onEvent(FeriadosListEvent.OnConfirmarExclusao) }
+                    onClick = { onEvent(FeriadosListEvent.OnConfirmarExclusao) }
                 ) {
                     Text("Excluir", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { viewModel.onEvent(FeriadosListEvent.OnDismissDeleteDialog) }
+                    onClick = { onEvent(FeriadosListEvent.OnDismissDeleteDialog) }
                 ) {
                     Text("Cancelar")
                 }
@@ -132,7 +157,7 @@ fun FeriadosListScreen(
                     }
                     // Botão de importar
                     IconButton(
-                        onClick = { viewModel.onEvent(FeriadosListEvent.OnShowImportDialog) }
+                        onClick = { onEvent(FeriadosListEvent.OnShowImportDialog) }
                     ) {
                         Icon(
                             imageVector = Icons.Default.CloudDownload,
@@ -149,7 +174,8 @@ fun FeriadosListScreen(
                 text = { Text("Novo Feriado") }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        modifier = modifier
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -167,7 +193,7 @@ fun FeriadosListScreen(
                         SearchBarDefaults.InputField(
                             query = uiState.searchQuery,
                             onQueryChange = {
-                                viewModel.onEvent(FeriadosListEvent.OnSearchQueryChange(it))
+                                onEvent(FeriadosListEvent.OnSearchQueryChange(it))
                             },
                             onSearch = { searchActive = false },
                             expanded = false,
@@ -177,7 +203,7 @@ fun FeriadosListScreen(
                                 if (uiState.searchQuery.isNotBlank()) {
                                     IconButton(
                                         onClick = {
-                                            viewModel.onEvent(
+                                            onEvent(
                                                 FeriadosListEvent.OnSearchQueryChange("")
                                             )
                                         }
@@ -205,10 +231,10 @@ fun FeriadosListScreen(
                 anoSelecionado = uiState.filtroAno,
                 anosDisponiveis = uiState.anosDisponiveis,
                 ordemData = uiState.ordemData,
-                onToggleTipo = { viewModel.onEvent(FeriadosListEvent.OnToggleTipo(it)) },
-                onAnoChange = { viewModel.onEvent(FeriadosListEvent.OnFiltroAnoChange(it)) },
-                onToggleOrdem = { viewModel.onEvent(FeriadosListEvent.OnToggleOrdem) },
-                onLimparFiltros = { viewModel.onEvent(FeriadosListEvent.OnLimparFiltros) }
+                onToggleTipo = { onEvent(FeriadosListEvent.OnToggleTipo(it)) },
+                onAnoChange = { onEvent(FeriadosListEvent.OnFiltroAnoChange(it)) },
+                onToggleOrdem = { onEvent(FeriadosListEvent.OnToggleOrdem) },
+                onLimparFiltros = { onEvent(FeriadosListEvent.OnLimparFiltros) }
             )
 
             // Conteúdo
@@ -225,10 +251,10 @@ fun FeriadosListScreen(
                     EmptyState(
                         temFiltros = uiState.temFiltrosAtivos,
                         onImportar = {
-                            viewModel.onEvent(FeriadosListEvent.OnShowImportDialog)
+                            onEvent(FeriadosListEvent.OnShowImportDialog)
                         },
                         onLimparFiltros = {
-                            viewModel.onEvent(FeriadosListEvent.OnLimparFiltros)
+                            onEvent(FeriadosListEvent.OnLimparFiltros)
                         }
                     )
                 }
@@ -260,10 +286,10 @@ fun FeriadosListScreen(
                                 feriado = feriado,
                                 onEditar = { onNavigateToEditar(feriado.id) },
                                 onExcluir = {
-                                    viewModel.onEvent(FeriadosListEvent.OnShowDeleteDialog(feriado))
+                                    onEvent(FeriadosListEvent.OnShowDeleteDialog(feriado))
                                 },
                                 onToggleAtivo = {
-                                    viewModel.onEvent(FeriadosListEvent.OnToggleAtivo(feriado))
+                                    onEvent(FeriadosListEvent.OnToggleAtivo(feriado))
                                 }
                             )
                         }

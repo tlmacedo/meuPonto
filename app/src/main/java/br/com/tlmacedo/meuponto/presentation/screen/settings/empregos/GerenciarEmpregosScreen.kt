@@ -58,6 +58,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -92,6 +93,30 @@ fun GerenciarEmpregosScreen(
         }
     }
 
+    GerenciarEmpregosContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onNavigateToEmpregoSettings = onNavigateToEmpregoSettings,
+        onNavigateToNovoEmprego = onNavigateToNovoEmprego,
+        onAction = viewModel::onAction,
+        modifier = modifier,
+        snackbarHostState = snackbarHostState
+    )
+}
+
+/**
+ * Conteúdo da tela de gerenciamento de empregos, desacoplado do ViewModel.
+ */
+@Composable
+fun GerenciarEmpregosContent(
+    uiState: GerenciarEmpregosUiState,
+    onNavigateBack: () -> Unit,
+    onNavigateToEmpregoSettings: (Long) -> Unit,
+    onNavigateToNovoEmprego: () -> Unit,
+    onAction: (GerenciarEmpregosAction) -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+) {
     Scaffold(
         topBar = {
             MeuPontoTopBar(
@@ -134,13 +159,26 @@ fun GerenciarEmpregosScreen(
                 // Seção: Empregos ativos
                 if (uiState.empregos.isNotEmpty()) {
                     item {
-                        Text(
-                            text = "Empregos Ativos",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Business,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Empregos Ativos",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
 
                     items(
@@ -151,10 +189,10 @@ fun GerenciarEmpregosScreen(
                             emprego = emprego,
                             isAtivo = emprego.id == uiState.empregoAtivoId,
                             onDefinirAtivo = {
-                                viewModel.onAction(GerenciarEmpregosAction.DefinirAtivo(emprego))
+                                onAction(GerenciarEmpregosAction.DefinirAtivo(emprego))
                             },
                             onArquivar = {
-                                viewModel.onAction(GerenciarEmpregosAction.Arquivar(emprego))
+                                onAction(GerenciarEmpregosAction.Arquivar(emprego))
                             },
                             onEditar = { onNavigateToEmpregoSettings(emprego.id) }
                         )
@@ -179,7 +217,7 @@ fun GerenciarEmpregosScreen(
                             )
                             TextButton(
                                 onClick = {
-                                    viewModel.onAction(GerenciarEmpregosAction.ToggleMostrarArquivados)
+                                    onAction(GerenciarEmpregosAction.ToggleMostrarArquivados)
                                 }
                             ) {
                                 Text(if (uiState.mostrarArquivados) "Ocultar" else "Mostrar")
@@ -195,10 +233,10 @@ fun GerenciarEmpregosScreen(
                             EmpregoArquivadoCard(
                                 emprego = emprego,
                                 onRestaurar = {
-                                    viewModel.onAction(GerenciarEmpregosAction.Desarquivar(emprego))
+                                    onAction(GerenciarEmpregosAction.Desarquivar(emprego))
                                 },
                                 onExcluir = {
-                                    viewModel.onAction(GerenciarEmpregosAction.SolicitarExclusao(emprego))
+                                    onAction(GerenciarEmpregosAction.SolicitarExclusao(emprego))
                                 }
                             )
                         }
@@ -219,8 +257,8 @@ fun GerenciarEmpregosScreen(
     uiState.dialogConfirmacaoExclusao?.let { emprego ->
         ConfirmacaoExclusaoDialog(
             nomeEmprego = emprego.nome,
-            onConfirmar = { viewModel.onAction(GerenciarEmpregosAction.ConfirmarExclusao) },
-            onCancelar = { viewModel.onAction(GerenciarEmpregosAction.CancelarExclusao) }
+            onConfirmar = { onAction(GerenciarEmpregosAction.ConfirmarExclusao) },
+            onCancelar = { onAction(GerenciarEmpregosAction.CancelarExclusao) }
         )
     }
 }
@@ -578,4 +616,58 @@ private fun ConfirmacaoExclusaoDialog(
             }
         }
     )
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PREVIEWS
+// ════════════════════════════════════════════════════════════════════════════════
+
+@Preview(showBackground = true)
+@Composable
+private fun GerenciarEmpregosContentPreview() {
+    val uiState = GerenciarEmpregosUiState(
+        isLoading = false,
+        empregos = listOf(
+            Emprego(id = 1, nome = "Empresa A", ativo = true),
+            Emprego(id = 2, nome = "Empresa B", ativo = false)
+        ),
+        empregoAtivoId = 1,
+        mostrarArquivados = true,
+        empregosArquivados = listOf(
+            Emprego(id = 3, nome = "Empresa C Antiga", arquivado = true)
+        )
+    )
+
+    br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme {
+        androidx.compose.material3.Surface {
+            GerenciarEmpregosContent(
+                uiState = uiState,
+                onNavigateBack = {},
+                onNavigateToEmpregoSettings = {},
+                onNavigateToNovoEmprego = {},
+                onAction = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun GerenciarEmpregosEmptyPreview() {
+    val uiState = GerenciarEmpregosUiState(
+        isLoading = false,
+        empregos = emptyList()
+    )
+
+    br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme {
+        androidx.compose.material3.Surface {
+            GerenciarEmpregosContent(
+                uiState = uiState,
+                onNavigateBack = {},
+                onNavigateToEmpregoSettings = {},
+                onNavigateToNovoEmprego = {},
+                onAction = {}
+            )
+        }
+    }
 }

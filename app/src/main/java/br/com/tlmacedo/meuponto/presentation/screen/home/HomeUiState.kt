@@ -155,6 +155,7 @@ data class RegistrarPontoModalState(
     val endereco: String? = null,
     val isSaving: Boolean = false,
     val isCapturingLocation: Boolean = false,
+    val isProcessingOcr: Boolean = false,
     val showTimePicker: Boolean = false,
     val erroLocalizacao: String? = null
 ) {

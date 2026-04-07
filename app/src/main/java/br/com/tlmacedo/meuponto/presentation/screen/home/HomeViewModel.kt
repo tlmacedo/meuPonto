@@ -6,13 +6,16 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.data.service.LocationService
+import br.com.tlmacedo.meuponto.data.service.OcrService
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+import br.com.tlmacedo.meuponto.domain.model.Usuario
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
+import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
@@ -88,7 +91,9 @@ class HomeViewModel @Inject constructor(
     private val reverterFechamentoIncorretoUseCase: ReverterFechamentoIncorretoUseCase,
     private val fechamentoPeriodoRepository: FechamentoPeriodoRepository,
     private val pontoRepository: PontoRepository,
-    private val locationService: LocationService
+    private val authRepository: AuthRepository,
+    private val locationService: LocationService,
+    private val ocrService: OcrService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -101,7 +106,10 @@ class HomeViewModel @Inject constructor(
     private var bancoHorasCollectionJob: Job? = null
     private var versaoJornadaCollectionJob: Job? = null
 
+    private var usuarioLogado: Usuario? = null
+
     init {
+        carregarUsuarioLogado()
         carregarEmpregoAtivo()
         carregarEmpregos()
         carregarPontosDoDia()
@@ -156,6 +164,11 @@ class HomeViewModel @Inject constructor(
             is HomeAction.AtualizarHora -> atualizarHora()
             is HomeAction.LimparErro -> limparErro()
             is HomeAction.RecarregarDados -> recarregarDados()
+            is HomeAction.MostrarMensagem -> {
+                viewModelScope.launch {
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem(action.mensagem))
+                }
+            }
             is HomeAction.AbrirDatePicker -> abrirDatePicker()
             is HomeAction.FecharDatePicker -> fecharDatePicker()
             is HomeAction.NavegarParaNovoEmprego -> navegarParaNovoEmprego()
@@ -506,9 +519,71 @@ class HomeViewModel @Inject constructor(
     private fun atualizarFotoRegistroModal(uri: Uri?) {
         _uiState.update { state ->
             state.copy(
-                registrarPontoModal = state.registrarPontoModal?.copy(fotoUri = uri),
+                registrarPontoModal = state.registrarPontoModal?.copy(
+                    fotoUri = uri,
+                    isProcessingOcr = uri != null && state.configuracaoEmprego?.fotoRegistrarPontoOcr == true
+                ),
                 showFotoSourceDialog = false
             )
+        }
+
+        // OCR Real com Validações
+        if (uri != null && _uiState.value.configuracaoEmprego?.fotoRegistrarPontoOcr == true) {
+            viewModelScope.launch {
+                val resultado = ocrService.extrairDadosComprovante(uri)
+                
+                if (resultado != null) {
+                    val dataSelecionada = _uiState.value.dataSelecionada
+                    val nomeUsuario = usuarioLogado?.nome ?: ""
+                    
+                    // 1. Validação de Data
+                    if (resultado.data != null && resultado.data != dataSelecionada) {
+                        _uiState.update { it.copy(registrarPontoModal = it.registrarPontoModal?.copy(isProcessingOcr = false)) }
+                        val dataFormatada = resultado.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        _uiEvent.emit(HomeUiEvent.MostrarErro("Comprovante inválido: Data extraída ($dataFormatada) não corresponde ao dia selecionado."))
+                        return@launch
+                    }
+
+                    // 2. Validação de Usuário (Nome ou PIS se disponível)
+                    val nomeValido = resultado.nomeTrabalhador?.let { nomeExtraido ->
+                        // Compara se o nome do usuário está contido no nome extraído (case insensitive)
+                        nomeExtraido.contains(nomeUsuario, ignoreCase = true) || 
+                        nomeUsuario.contains(nomeExtraido, ignoreCase = true)
+                    } ?: true // Se não extraiu o nome, não bloqueia por aqui
+
+                    if (!nomeValido) {
+                        _uiState.update { it.copy(registrarPontoModal = it.registrarPontoModal?.copy(isProcessingOcr = false)) }
+                        _uiEvent.emit(HomeUiEvent.MostrarErro("Comprovante inválido: Este comprovante pertence a outro trabalhador (${resultado.nomeTrabalhador})."))
+                        return@launch
+                    }
+
+                    // 3. Sucesso nas validações -> Preencher campos
+                    // Para o NSR, removemos os zeros à esquerda conforme solicitado
+                    val nsrFormatado = resultado.nsr?.replaceFirst("^0+".toRegex(), "")
+
+                    _uiState.update { state ->
+                        state.copy(
+                            registrarPontoModal = state.registrarPontoModal?.copy(
+                                nsr = nsrFormatado ?: state.registrarPontoModal.nsr,
+                                dataHora = resultado.hora?.let { 
+                                    LocalDateTime.of(state.registrarPontoModal.dataHora.toLocalDate(), it)
+                                } ?: state.registrarPontoModal.dataHora,
+                                isProcessingOcr = false
+                            )
+                        )
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Dados validados e extraídos com sucesso!"))
+                } else {
+                    _uiState.update { state ->
+                        state.copy(
+                            registrarPontoModal = state.registrarPontoModal?.copy(
+                                isProcessingOcr = false
+                            )
+                        )
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Não foi possível extrair dados automaticamente."))
+                }
+            }
         }
     }
 
@@ -880,6 +955,14 @@ class HomeViewModel @Inject constructor(
     // ══════════════════════════════════════════════════════════════════════
     // CARREGAMENTO DE DADOS
     // ══════════════════════════════════════════════════════════════════════
+
+    private fun carregarUsuarioLogado() {
+        viewModelScope.launch {
+            authRepository.observarUsuarioLogado().collect { usuario ->
+                usuarioLogado = usuario
+            }
+        }
+    }
 
     private fun carregarEmpregoAtivo() {
         viewModelScope.launch {

@@ -51,6 +51,26 @@ fun VersoesJornadaScreen(
         }
     }
 
+    VersoesJornadaContent(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+        onNavigateBack = onNavigateBack,
+        modifier = modifier,
+        snackbarHostState = snackbarHostState
+    )
+}
+
+/**
+ * Conteúdo da tela de listagem de versões de jornada, desacoplado do ViewModel.
+ */
+@Composable
+fun VersoesJornadaContent(
+    uiState: VersoesJornadaUiState,
+    onAction: (VersoesJornadaAction) -> Unit,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+) {
     Scaffold(
         topBar = {
             MeuPontoTopBar(
@@ -62,7 +82,7 @@ fun VersoesJornadaScreen(
         floatingActionButton = {
             if (!uiState.isLoading) {
                 ExtendedFloatingActionButton(
-                    onClick = { viewModel.onAction(VersoesJornadaAction.CriarNovaVersao) },
+                    onClick = { onAction(VersoesJornadaAction.CriarNovaVersao) },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
                     text = { Text("Nova Versão") }
                 )
@@ -99,7 +119,7 @@ fun VersoesJornadaScreen(
             !uiState.temVersoes -> {
                 EmptyStateVersoesModern(
                     onCriarVersao = {
-                        viewModel.onAction(VersoesJornadaAction.CriarNovaVersao)
+                        onAction(VersoesJornadaAction.CriarNovaVersao)
                     },
                     modifier = Modifier.padding(paddingValues)
                 )
@@ -134,7 +154,7 @@ fun VersoesJornadaScreen(
                                 versao = vigente,
                                 isVigente = true,
                                 onEditar = {
-                                    viewModel.onAction(VersoesJornadaAction.EditarVersao(vigente.id))
+                                    onAction(VersoesJornadaAction.EditarVersao(vigente.id))
                                 },
                                 onDefinirVigente = {},
                                 onExcluir = {}
@@ -158,13 +178,13 @@ fun VersoesJornadaScreen(
                                 versao = versao,
                                 isVigente = false,
                                 onEditar = {
-                                    viewModel.onAction(VersoesJornadaAction.EditarVersao(versao.id))
+                                    onAction(VersoesJornadaAction.EditarVersao(versao.id))
                                 },
                                 onDefinirVigente = {
-                                    viewModel.onAction(VersoesJornadaAction.DefinirComoVigente(versao.id))
+                                    onAction(VersoesJornadaAction.DefinirComoVigente(versao.id))
                                 },
                                 onExcluir = {
-                                    viewModel.onAction(VersoesJornadaAction.AbrirDialogExcluir(versao))
+                                    onAction(VersoesJornadaAction.AbrirDialogExcluir(versao))
                                 }
                             )
                         }
@@ -181,24 +201,24 @@ fun VersoesJornadaScreen(
                 descricao = uiState.descricaoNovaVersao,
                 copiarHorarios = uiState.copiarHorariosNovaVersao,
                 isSaving = uiState.isCriando,
-                onDataInicioChange = { viewModel.onAction(VersoesJornadaAction.AlterarDataInicioNovaVersao(it)) },
-                onDescricaoChange = { viewModel.onAction(VersoesJornadaAction.AlterarDescricaoNovaVersao(it)) },
-                onCopiarHorariosToggle = { viewModel.onAction(VersoesJornadaAction.ToggleCopiarHorariosNovaVersao(it)) },
-                onConfirmar = { viewModel.onAction(VersoesJornadaAction.ConfirmarNovaVersao) },
-                onDismiss = { viewModel.onAction(VersoesJornadaAction.FecharDialogNovaVersao) }
+                onDataInicioChange = { onAction(VersoesJornadaAction.AlterarDataInicioNovaVersao(it)) },
+                onDescricaoChange = { onAction(VersoesJornadaAction.AlterarDescricaoNovaVersao(it)) },
+                onCopiarHorariosToggle = { onAction(VersoesJornadaAction.ToggleCopiarHorariosNovaVersao(it)) },
+                onConfirmar = { onAction(VersoesJornadaAction.ConfirmarNovaVersao) },
+                onDismiss = { onAction(VersoesJornadaAction.FecharDialogNovaVersao) }
             )
         }
 
         uiState.versaoParaExcluir?.let { versao ->
             AlertDialog(
-                onDismissRequest = { viewModel.onAction(VersoesJornadaAction.FecharDialogExcluir) },
+                onDismissRequest = { onAction(VersoesJornadaAction.FecharDialogExcluir) },
                 title = { Text("Excluir Versão") },
                 text = {
                     Text("Tem certeza que deseja excluir a versão \"${versao.titulo}\"? Esta ação não pode ser desfeita.")
                 },
                 confirmButton = {
                     Button(
-                        onClick = { viewModel.onAction(VersoesJornadaAction.ConfirmarExclusao) },
+                        onClick = { onAction(VersoesJornadaAction.ConfirmarExclusao) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
                         )
@@ -215,7 +235,7 @@ fun VersoesJornadaScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.onAction(VersoesJornadaAction.FecharDialogExcluir) }) {
+                    TextButton(onClick = { onAction(VersoesJornadaAction.FecharDialogExcluir) }) {
                         Text("Cancelar")
                     }
                 }

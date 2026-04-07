@@ -112,7 +112,7 @@ fun CargosScreen(
 }
 
 @Composable
-private fun CargosContent(
+internal fun CargosContent(
     uiState: CargosUiState,
     onAction: (CargosAction) -> Unit,
     onNavigateBack: () -> Unit,
