@@ -31,8 +31,10 @@ class OcrService @Inject constructor(
 
     /**
      * Extrai NSR, Data, Hora e Usuário de uma imagem.
+     * @param uri URI da imagem
+     * @param horariosHabituais Lista de horários de trabalho do usuário para ajudar no "check" da hora
      */
-    suspend fun extrairDadosComprovante(uri: Uri): PontoOcrResult? {
+    suspend fun extrairDadosComprovante(uri: Uri, horariosHabituais: List<LocalTime> = emptyList()): PontoOcrResult? {
         return suspendCancellableCoroutine { continuation ->
             try {
                 val image = InputImage.fromFilePath(context, uri)
@@ -41,7 +43,7 @@ class OcrService @Inject constructor(
                         val text = visionText.text
                         val nsr = extrairNsr(text)
                         val data = extrairData(text)
-                        val hora = extrairHora(text)
+                        val hora = extrairHoraMelhorada(text, horariosHabituais)
                         val nome = extrairNomeTrabalhador(text)
                         val pis = extrairPis(text)
                         
@@ -148,33 +150,51 @@ class OcrService @Inject constructor(
 
     /**
      * Busca um padrão de hora (HH:mm ou HH:mm:ss) no texto.
+     * Faz uma varredura melhorada comparando com horários habituais.
      */
-    private fun extrairHora(text: String): LocalTime? {
-        // Regex para HH:mm:ss ou HH:mm
-        val patterns = listOf(
-            Pattern.compile("\\b([01]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?\\b")
-        )
-
+    private fun extrairHoraMelhorada(text: String, horariosHabituais: List<LocalTime>): LocalTime? {
+        val pattern = Pattern.compile("\\b([01]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?\\b")
+        val matcher = pattern.matcher(text)
+        
         val formatters = listOf(
             DateTimeFormatter.ofPattern("HH:mm:ss"),
             DateTimeFormatter.ofPattern("HH:mm"),
             DateTimeFormatter.ofPattern("H:mm")
         )
 
-        for (pattern in patterns) {
-            val matcher = pattern.matcher(text)
-            
-            // Em comprovantes Inner, a hora do registro costuma aparecer 
-            // após a data ou isolada. Vamos tentar validar cada match.
-            while (matcher.find()) {
-                val horaStr = matcher.group()
-                for (formatter in formatters) {
-                    try {
-                        return LocalTime.parse(horaStr, formatter)
-                    } catch (e: Exception) { continue }
-                }
+        val horasEncontradas = mutableListOf<LocalTime>()
+        
+        while (matcher.find()) {
+            val horaStr = matcher.group()
+            for (formatter in formatters) {
+                try {
+                    horasEncontradas.add(LocalTime.parse(horaStr, formatter))
+                    break
+                } catch (e: Exception) { continue }
             }
         }
-        return null
+
+        if (horasEncontradas.isEmpty()) return null
+
+        // Se houver horários habituais, busca o que tem menor diferença (até 3h)
+        if (horariosHabituais.isNotEmpty()) {
+            val melhorMatch = horasEncontradas.minByOrNull { encontrada ->
+                horariosHabituais.minOf { habitual ->
+                    val diff = java.time.Duration.between(encontrada, habitual).abs().toMinutes()
+                    diff
+                }
+            }
+            
+            melhorMatch?.let { encontrada ->
+                val menorDiff = horariosHabituais.minOf { habitual ->
+                    java.time.Duration.between(encontrada, habitual).abs().toHours()
+                }
+                if (menorDiff <= 3) return encontrada
+            }
+        }
+
+        // Se não houver habitual ou nenhum for próximo, retorna o primeiro ou o que parece mais provável
+        // Em modelos Inner REP, a hora do registro costuma ser a que aparece após a data
+        return horasEncontradas.firstOrNull()
     }
 }

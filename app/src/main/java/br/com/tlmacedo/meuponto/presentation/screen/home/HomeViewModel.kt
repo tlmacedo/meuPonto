@@ -7,7 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.data.service.LocationService
 import br.com.tlmacedo.meuponto.data.service.OcrService
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
@@ -530,35 +532,45 @@ class HomeViewModel @Inject constructor(
         // OCR Real com Validações
         if (uri != null && _uiState.value.configuracaoEmprego?.fotoRegistrarPontoOcr == true) {
             viewModelScope.launch {
-                val resultado = ocrService.extrairDadosComprovante(uri)
+                val dataSelecionada = _uiState.value.dataSelecionada
+                val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
+                
+                // Busca horários habituais para o triplo-check de hora
+                val diaSemana = DiaSemana.fromJavaDayOfWeek(dataSelecionada.dayOfWeek)
+                val horarioDia = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+                val habituais = listOfNotNull(
+                    horarioDia?.entradaIdeal,
+                    horarioDia?.saidaIntervaloIdeal,
+                    horarioDia?.voltaIntervaloIdeal,
+                    horarioDia?.saidaIdeal
+                )
+
+                val resultado = ocrService.extrairDadosComprovante(uri, habituais)
                 
                 if (resultado != null) {
-                    val dataSelecionada = _uiState.value.dataSelecionada
                     val nomeUsuario = usuarioLogado?.nome ?: ""
                     
                     // 1. Validação de Data
                     if (resultado.data != null && resultado.data != dataSelecionada) {
-                        _uiState.update { it.copy(registrarPontoModal = it.registrarPontoModal?.copy(isProcessingOcr = false)) }
+                        limparFotoOcrInvalida()
                         val dataFormatada = resultado.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                        _uiEvent.emit(HomeUiEvent.MostrarErro("Comprovante inválido: Data extraída ($dataFormatada) não corresponde ao dia selecionado."))
+                        _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nA data extraída ($dataFormatada) não corresponde ao dia selecionado."))
                         return@launch
                     }
 
-                    // 2. Validação de Usuário (Nome ou PIS se disponível)
+                    // 2. Validação de Usuário
                     val nomeValido = resultado.nomeTrabalhador?.let { nomeExtraido ->
-                        // Compara se o nome do usuário está contido no nome extraído (case insensitive)
                         nomeExtraido.contains(nomeUsuario, ignoreCase = true) || 
                         nomeUsuario.contains(nomeExtraido, ignoreCase = true)
-                    } ?: true // Se não extraiu o nome, não bloqueia por aqui
+                    } ?: true
 
                     if (!nomeValido) {
-                        _uiState.update { it.copy(registrarPontoModal = it.registrarPontoModal?.copy(isProcessingOcr = false)) }
-                        _uiEvent.emit(HomeUiEvent.MostrarErro("Comprovante inválido: Este comprovante pertence a outro trabalhador (${resultado.nomeTrabalhador})."))
+                        limparFotoOcrInvalida()
+                        _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nEste comprovante pertence a outro trabalhador (${resultado.nomeTrabalhador})."))
                         return@launch
                     }
 
                     // 3. Sucesso nas validações -> Preencher campos
-                    // Para o NSR, removemos os zeros à esquerda conforme solicitado
                     val nsrFormatado = resultado.nsr?.replaceFirst("^0+".toRegex(), "")
 
                     _uiState.update { state ->
@@ -584,6 +596,17 @@ class HomeViewModel @Inject constructor(
                     _uiEvent.emit(HomeUiEvent.MostrarMensagem("Não foi possível extrair dados automaticamente."))
                 }
             }
+        }
+    }
+
+    private fun limparFotoOcrInvalida() {
+        _uiState.update { state ->
+            state.copy(
+                registrarPontoModal = state.registrarPontoModal?.copy(
+                    fotoUri = null,
+                    isProcessingOcr = false
+                )
+            )
         }
     }
 
