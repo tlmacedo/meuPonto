@@ -66,9 +66,9 @@ class EmpregoSettingsDetailViewModel @Inject constructor(
             is EmpregoSettingsDetailAction.NavegarParaVersoes -> navegarParaVersoes()
             is EmpregoSettingsDetailAction.NavegarParaAusencias -> navegarParaAusencias()
             is EmpregoSettingsDetailAction.NavegarParaAjustesSaldo -> navegarParaAjustesSaldo()
-            is EmpregoSettingsDetailAction.NavegarParaEditar -> navegarParaEditar()
+            is EmpregoSettingsDetailAction.NavegarParaEditar,
+            is EmpregoSettingsDetailAction.NavegarParaConfiguracaoGeral -> navegarParaEditar()
             is EmpregoSettingsDetailAction.NavegarParaCargos -> navegarParaCargos()
-            is EmpregoSettingsDetailAction.NavegarParaConfiguracaoGeral -> navegarParaConfiguracaoGeral()
             is EmpregoSettingsDetailAction.LimparErro -> limparErro()
         }
     }
@@ -164,12 +164,6 @@ class EmpregoSettingsDetailViewModel @Inject constructor(
         }
     }
 
-    private fun navegarParaConfiguracaoGeral() {
-        viewModelScope.launch {
-            _eventos.emit(EmpregoSettingsDetailEvent.NavegarParaConfiguracaoGeral(empregoId))
-        }
-    }
-
     private fun limparErro() {
         _uiState.update { it.copy(errorMessage = null) }
     }
@@ -222,6 +216,5 @@ sealed interface EmpregoSettingsDetailEvent {
     data class NavegarParaAjustesSaldo(val empregoId: Long) : EmpregoSettingsDetailEvent
     data class NavegarParaEditar(val empregoId: Long) : EmpregoSettingsDetailEvent
     data class NavegarParaCargos(val empregoId: Long) : EmpregoSettingsDetailEvent
-    data class NavegarParaConfiguracaoGeral(val empregoId: Long) : EmpregoSettingsDetailEvent
     data class MostrarMensagem(val mensagem: String) : EmpregoSettingsDetailEvent
 }

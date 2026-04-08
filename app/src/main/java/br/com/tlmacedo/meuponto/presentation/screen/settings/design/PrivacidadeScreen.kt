@@ -27,10 +27,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,12 +51,12 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 @Composable
 fun PrivacidadeScreen(
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: PrivacidadeViewModel = hiltViewModel()
 ) {
-    // TODO: Implementar ViewModel com persistência real
-    var biometriaHabilitada by remember { mutableStateOf(false) }
-    var ocultarPreview by remember { mutableStateOf(false) }
-    var bloqueioAutomatico by remember { mutableStateOf(false) }
+    val biometriaHabilitada by viewModel.biometriaHabilitada.collectAsState()
+    val ocultarPreview by viewModel.ocultarPreview.collectAsState()
+    val bloqueioAutomatico by viewModel.bloqueioAutomatico.collectAsState()
 
     Scaffold(
         topBar = {
@@ -92,7 +91,7 @@ fun PrivacidadeScreen(
                     subtitle = "Exigir impressão digital ou reconhecimento facial para abrir o app",
                     icon = Icons.Outlined.Fingerprint,
                     checked = biometriaHabilitada,
-                    onCheckedChange = { biometriaHabilitada = it }
+                    onCheckedChange = { viewModel.toggleBiometria(it) }
                 )
             }
 
@@ -102,7 +101,7 @@ fun PrivacidadeScreen(
                     subtitle = "Bloquear o app após ficar em segundo plano",
                     icon = Icons.Outlined.Lock,
                     checked = bloqueioAutomatico,
-                    onCheckedChange = { bloqueioAutomatico = it },
+                    onCheckedChange = { viewModel.toggleBloqueioAutomatico(it) },
                     enabled = biometriaHabilitada
                 )
             }
@@ -127,7 +126,7 @@ fun PrivacidadeScreen(
                     subtitle = "Esconder conteúdo do app quando alternar entre aplicativos",
                     icon = Icons.Outlined.VisibilityOff,
                     checked = ocultarPreview,
-                    onCheckedChange = { ocultarPreview = it }
+                    onCheckedChange = { viewModel.toggleOcultarPreview(it) }
                 )
             }
 

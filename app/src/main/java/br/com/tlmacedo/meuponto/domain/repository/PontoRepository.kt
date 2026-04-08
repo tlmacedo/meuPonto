@@ -93,4 +93,8 @@ interface PontoRepository {
     suspend fun contarDeletados(): Int
 
     suspend fun restaurar(pontoId: Long)
+
+    // === Manutenção ===
+
+    suspend fun excluirPontosAnterioresA(data: LocalDate): Int
 }

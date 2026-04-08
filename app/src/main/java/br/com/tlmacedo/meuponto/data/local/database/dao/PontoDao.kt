@@ -149,4 +149,7 @@ interface PontoDao {
 
     @Query("UPDATE pontos SET is_deleted = 0, deleted_at = NULL, updated_at = :updatedAt WHERE id = :pontoId")
     suspend fun restaurar(pontoId: Long, updatedAt: Long)
+
+    @Query("DELETE FROM pontos WHERE data < :data")
+    suspend fun excluirPontosAnterioresA(data: LocalDate): Int
 }

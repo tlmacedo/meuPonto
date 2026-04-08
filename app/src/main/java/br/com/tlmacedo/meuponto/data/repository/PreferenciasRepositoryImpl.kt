@@ -45,6 +45,8 @@ class PreferenciasRepositoryImpl @Inject constructor(
         val LEMBRAR_ME = booleanPreferencesKey("lembrar_me")
         val ULTIMO_EMAIL_LOGADO = stringPreferencesKey("ultimo_email_logado")
         val BIOMETRIA_HABILITADA = booleanPreferencesKey("biometria_habilitada")
+        val BLOQUEIO_AUTOMATICO_HABILITADO = booleanPreferencesKey("bloqueio_automatico_habilitada")
+        val OCULTAR_PREVIEW_HABILITADO = booleanPreferencesKey("ocultar_preview_habilitada")
     }
 
     private object Defaults {
@@ -53,6 +55,8 @@ class PreferenciasRepositoryImpl @Inject constructor(
         const val PRIMEIRA_EXECUCAO = true
         const val LEMBRAR_ME = false
         const val BIOMETRIA_HABILITADA = false
+        const val BLOQUEIO_AUTOMATICO_HABILITADA = false
+        const val OCULTAR_PREVIEW_HABILITADA = false
     }
 
     // ========================================================================
@@ -99,6 +103,42 @@ class PreferenciasRepositoryImpl @Inject constructor(
     override fun observarBiometriaHabilitada(): Flow<Boolean> {
         return context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.BIOMETRIA_HABILITADA] ?: Defaults.BIOMETRIA_HABILITADA
+        }
+    }
+
+    override suspend fun isBloqueioAutomaticoHabilitado(): Boolean {
+        return context.dataStore.data.first()[PreferencesKeys.BLOQUEIO_AUTOMATICO_HABILITADO]
+            ?: Defaults.BLOQUEIO_AUTOMATICO_HABILITADA
+    }
+
+    override suspend fun definirBloqueioAutomaticoHabilitado(habilitado: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BLOQUEIO_AUTOMATICO_HABILITADO] = habilitado
+        }
+    }
+
+    override fun observarBloqueioAutomaticoHabilitado(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.BLOQUEIO_AUTOMATICO_HABILITADO]
+                ?: Defaults.BLOQUEIO_AUTOMATICO_HABILITADA
+        }
+    }
+
+    override suspend fun isOcultarPreviewHabilitado(): Boolean {
+        return context.dataStore.data.first()[PreferencesKeys.OCULTAR_PREVIEW_HABILITADO]
+            ?: Defaults.OCULTAR_PREVIEW_HABILITADA
+    }
+
+    override suspend fun definirOcultarPreviewHabilitado(habilitado: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.OCULTAR_PREVIEW_HABILITADO] = habilitado
+        }
+    }
+
+    override fun observarOcultarPreviewHabilitado(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.OCULTAR_PREVIEW_HABILITADO]
+                ?: Defaults.OCULTAR_PREVIEW_HABILITADA
         }
     }
 

@@ -63,6 +63,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import kotlinx.coroutines.flow.collectLatest
+import br.com.tlmacedo.meuponto.util.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -125,8 +127,7 @@ internal fun EditarCargoContent(
     // Date Pickers
     if (uiState.showDataInicioPicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dataInicio?.atStartOfDay()
-                ?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
+            initialSelectedDateMillis = uiState.dataInicio?.toDatePickerMillis()
         )
         DatePickerDialog(
             onDismissRequest = { onAction(EditarCargoAction.FecharDataInicioPicker) },
@@ -135,7 +136,7 @@ internal fun EditarCargoContent(
                     datePickerState.selectedDateMillis?.let {
                         onAction(
                             EditarCargoAction.AlterarDataInicio(
-                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                                it.toLocalDateFromDatePicker()
                             )
                         )
                     }
@@ -151,8 +152,7 @@ internal fun EditarCargoContent(
 
     if (uiState.showDataFimPicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dataFim?.atStartOfDay()
-                ?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
+            initialSelectedDateMillis = uiState.dataFim?.toDatePickerMillis()
         )
         DatePickerDialog(
             onDismissRequest = { onAction(EditarCargoAction.FecharDataFimPicker) },
@@ -161,7 +161,7 @@ internal fun EditarCargoContent(
                     datePickerState.selectedDateMillis?.let {
                         onAction(
                             EditarCargoAction.AlterarDataFim(
-                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                                it.toLocalDateFromDatePicker()
                             )
                         )
                     }
@@ -181,8 +181,7 @@ internal fun EditarCargoContent(
     // Date Pickers para ajustes
     uiState.ajustePickerIndex?.let { idx ->
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.ajustes.getOrNull(idx)?.dataAjuste?.atStartOfDay()
-                ?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
+            initialSelectedDateMillis = uiState.ajustes.getOrNull(idx)?.dataAjuste?.toDatePickerMillis()
         )
         DatePickerDialog(
             onDismissRequest = { onAction(EditarCargoAction.FecharAjusteDatePicker) },
@@ -192,7 +191,7 @@ internal fun EditarCargoContent(
                         onAction(
                             EditarCargoAction.AlterarDataAjuste(
                                 idx,
-                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                                it.toLocalDateFromDatePicker()
                             )
                         )
                     }

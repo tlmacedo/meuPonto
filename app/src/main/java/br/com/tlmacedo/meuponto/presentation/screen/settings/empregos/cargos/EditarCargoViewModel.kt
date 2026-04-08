@@ -96,7 +96,9 @@ class EditarCargoViewModel @Inject constructor(
                                 funcao = cargo.funcao,
                                 salarioInicialStr = cargo.salarioInicial.toString(),
                                 dataInicio = cargo.dataInicio,
+                                dataInicioFormatada = cargo.dataInicio.format(dateFormatter),
                                 dataFim = cargo.dataFim,
+                                dataFimFormatada = cargo.dataFim?.format(dateFormatter),
                                 isCargoAtual = cargo.dataFim == null,
                                 ajustes = ajustes.map { aj ->
                                     AjusteFormItem(
@@ -208,9 +210,15 @@ class EditarCargoViewModel @Inject constructor(
     private fun validarFormulario() {
         val state = _uiState.value
         val funcaoValida = state.funcao.isNotBlank()
-        val salarioValido = state.salarioInicialStr.toDoubleOrNull()?.let { it > 0 } == true
+        val salarioValido = state.salarioInicialStr.replace(",", ".").toDoubleOrNull()?.let { it > 0 } == true
         val dataInicioValida = state.dataInicio != null
-        _uiState.update { it.copy(formularioValido = funcaoValida && salarioValido && dataInicioValida) }
+        
+        // Validar ajustes
+        val ajustesValidos = state.ajustes.all { aj ->
+            aj.novoSalarioStr.replace(",", ".").toDoubleOrNull()?.let { it > 0 } == true
+        }
+        
+        _uiState.update { it.copy(formularioValido = funcaoValida && salarioValido && dataInicioValida && ajustesValidos) }
     }
 
     private fun salvar() {
@@ -222,7 +230,7 @@ class EditarCargoViewModel @Inject constructor(
             _uiState.update { it.copy(funcaoErro = "Informe a função/cargo") }
             hasError = true
         }
-        val salario = state.salarioInicialStr.toDoubleOrNull()
+        val salario = state.salarioInicialStr.replace(",", ".").toDoubleOrNull()
         if (salario == null || salario <= 0) {
             _uiState.update { it.copy(salarioErro = "Informe um salário válido") }
             hasError = true
@@ -231,6 +239,15 @@ class EditarCargoViewModel @Inject constructor(
             _uiState.update { it.copy(dataInicioErro = "Informe a data de início") }
             hasError = true
         }
+        
+        // Validar se as datas dos ajustes são posteriores à data de início do cargo
+        state.ajustes.forEachIndexed { index, ajuste ->
+            if (ajuste.dataAjuste.isBefore(state.dataInicio)) {
+                viewModelScope.launch { _eventos.emit(EditarCargoEvent.MostrarErro("O ajuste ${index+1} não pode ser anterior ao início do cargo")) }
+                hasError = true
+            }
+        }
+
         if (hasError) return
 
         viewModelScope.launch {
@@ -245,14 +262,34 @@ class EditarCargoViewModel @Inject constructor(
                     dataFim = if (state.isCargoAtual) null else state.dataFim
                 )
 
-                val savedCargoId = historicoCargoRepository.salvar(cargo)
+                val savedCargoId = if (state.isNovoCargo) {
+                    historicoCargoRepository.salvar(cargo)
+                } else {
+                    historicoCargoRepository.salvar(cargo)
+                    state.cargoId
+                }
 
-                // Salvar ajustes
+                // Ajustes no banco de dados para este cargo
+                val ajustesAtuais = if (!state.isNovoCargo) {
+                    historicoCargoRepository.listarAjustes(state.cargoId).first()
+                } else emptyList()
+
+                // IDs dos ajustes que permaneceram na UI
+                val idsAjustesUI = state.ajustes.map { it.id }.toSet()
+
+                // Excluir ajustes que foram removidos na UI
+                ajustesAtuais.forEach { ajusteBD ->
+                    if (ajusteBD.id !in idsAjustesUI) {
+                        historicoCargoRepository.excluirAjuste(ajusteBD)
+                    }
+                }
+
+                // Salvar/Atualizar ajustes da UI
                 state.ajustes.forEach { ajusteForm ->
-                    val novoSalario = ajusteForm.novoSalarioStr.toDoubleOrNull() ?: return@forEach
+                    val novoSalario = ajusteForm.novoSalarioStr.replace(",", ".").toDoubleOrNull() ?: return@forEach
                     val ajuste = AjusteSalarial(
                         id = ajusteForm.id,
-                        historicoCargoId = savedCargoId,
+                        historicoCargoId = if (state.isNovoCargo) savedCargoId else state.cargoId,
                         dataAjuste = ajusteForm.dataAjuste,
                         novoSalario = novoSalario
                     )

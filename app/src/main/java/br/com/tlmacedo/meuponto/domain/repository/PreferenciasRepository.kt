@@ -76,6 +76,48 @@ interface PreferenciasRepository {
      */
     fun observarBiometriaHabilitada(): Flow<Boolean>
 
+    /**
+     * Verifica se o bloqueio automático está habilitado.
+     *
+     * @return true se habilitado
+     */
+    suspend fun isBloqueioAutomaticoHabilitado(): Boolean
+
+    /**
+     * Define se o bloqueio automático está habilitado.
+     *
+     * @param habilitado Novo status
+     */
+    suspend fun definirBloqueioAutomaticoHabilitado(habilitado: Boolean)
+
+    /**
+     * Observa o status do bloqueio automático de forma reativa.
+     *
+     * @return Flow com o status
+     */
+    fun observarBloqueioAutomaticoHabilitado(): Flow<Boolean>
+
+    /**
+     * Verifica se o preview na tela de recentes deve ser ocultado.
+     *
+     * @return true se deve ocultar
+     */
+    suspend fun isOcultarPreviewHabilitado(): Boolean
+
+    /**
+     * Define se o preview na tela de recentes deve ser ocultado.
+     *
+     * @param habilitado Novo status
+     */
+    suspend fun definirOcultarPreviewHabilitado(habilitado: Boolean)
+
+    /**
+     * Observa o status de ocultar preview de forma reativa.
+     *
+     * @return Flow com o status
+     */
+    fun observarOcultarPreviewHabilitado(): Flow<Boolean>
+
     // ========================================================================
     // Emprego Ativo
     // ========================================================================

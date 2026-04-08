@@ -247,6 +247,20 @@ class PontoRepositoryImpl @Inject constructor(
         )
     }
 
+    // === Manutenção ===
+
+    override suspend fun excluirPontosAnterioresA(data: LocalDate): Int {
+        val count = pontoDao.excluirPontosAnterioresA(data)
+        if (count > 0) {
+            auditService.logPermanentDelete(
+                entidade = ENTIDADE,
+                entidadeId = 0L,
+                motivo = "Exclusão em massa de $count pontos anteriores a ${data.format(dateFormatter)}"
+            )
+        }
+        return count
+    }
+
     // === Helpers ===
 
     private fun Ponto.toAuditMap(): Map<String, Any?> = mapOf(

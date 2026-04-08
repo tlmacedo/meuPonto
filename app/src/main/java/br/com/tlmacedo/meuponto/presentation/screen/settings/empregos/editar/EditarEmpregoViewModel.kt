@@ -10,6 +10,7 @@ import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.AtualizarEmpregoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.AtualizarEmpregoUseCase.Parametros
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.CriarEmpregoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoComConfiguracaoUseCase
 import br.com.tlmacedo.meuponto.presentation.navigation.MeuPontoDestinations
@@ -61,8 +62,11 @@ class EditarEmpregoViewModel @Inject constructor(
     fun onAction(action: EditarEmpregoAction) {
         when (action) {
             is EditarEmpregoAction.AlterarNome -> alterarNome(action.nome)
+            is EditarEmpregoAction.AlterarApelido -> _uiState.update { it.copy(apelido = action.apelido) }
+            is EditarEmpregoAction.AlterarEndereco -> _uiState.update { it.copy(endereco = action.endereco) }
             is EditarEmpregoAction.AlterarDataInicioTrabalho -> alterarDataInicioTrabalho(action.data)
-            
+            is EditarEmpregoAction.AlterarDataTerminoTrabalho -> _uiState.update { it.copy(dataTerminoTrabalho = action.data, showTerminoTrabalhoPicker = false) }
+
             is EditarEmpregoAction.AlterarCargaHorariaDiaria -> alterarCargaHorariaDiaria(action.duracao)
             is EditarEmpregoAction.AlterarAcrescimoDiasPontes -> alterarAcrescimoDiasPontes(action.minutos)
             is EditarEmpregoAction.AlterarJornadaMaximaDiaria -> alterarJornadaMaximaDiaria(action.minutos)
@@ -84,17 +88,21 @@ class EditarEmpregoViewModel @Inject constructor(
             is EditarEmpregoAction.AlterarBancoHorasHabilitado -> alterarBancoHorasHabilitado(action.habilitado)
             is EditarEmpregoAction.AlterarPeriodoBancoHoras -> alterarPeriodoBancoHoras(action.valor)
             is EditarEmpregoAction.AlterarDataInicioCicloBanco -> alterarDataInicioCicloBanco(action.data)
+            is EditarEmpregoAction.AlterarZerarSaldoPeriodoRH -> _uiState.update { it.copy(zerarSaldoPeriodoRH = action.zerar) }
             is EditarEmpregoAction.AlterarZerarBancoAntesPeriodo -> alterarZerarBancoAntesPeriodo(action.zerar)
             
+            is EditarEmpregoAction.AlterarFuncaoInicial -> _uiState.update { it.copy(funcaoInicial = action.funcao) }
+            is EditarEmpregoAction.AlterarSalarioInicial -> _uiState.update { it.copy(salarioInicial = action.valor) }
+
             is EditarEmpregoAction.ToggleSecao -> toggleSecao(action.secao)
             is EditarEmpregoAction.Salvar -> salvar()
             is EditarEmpregoAction.Cancelar -> cancelar()
             is EditarEmpregoAction.LimparErro -> limparErro()
-            else -> {} // Para ações que não precisam de lógica no VM ou ainda não implementadas
         }
     }
 
     fun setShowInicioTrabalhoPicker(show: Boolean) = _uiState.update { it.copy(showInicioTrabalhoPicker = show) }
+    fun setShowTerminoTrabalhoPicker(show: Boolean) = _uiState.update { it.copy(showTerminoTrabalhoPicker = show) }
     fun setShowDataInicioCicloPicker(show: Boolean) = _uiState.update { it.copy(showDataInicioCicloPicker = show) }
 
     private fun carregarEmprego(id: Long) {
@@ -119,7 +127,10 @@ class EditarEmpregoViewModel @Inject constructor(
                             empregoId = emprego.id,
                             isNovoEmprego = false,
                             nome = emprego.nome,
+                            apelido = emprego.apelido ?: "",
+                            endereco = emprego.endereco ?: "",
                             dataInicioTrabalho = emprego.dataInicioTrabalho,
+                            dataTerminoTrabalho = emprego.dataTerminoTrabalho,
                             
                             cargaHorariaDiaria = Duration.ofMinutes((versaoVigente?.cargaHorariaDiariaMinutos ?: 480).toLong()),
                             acrescimoMinutosDiasPontes = versaoVigente?.acrescimoMinutosDiasPontes ?: 0,
@@ -223,7 +234,12 @@ class EditarEmpregoViewModel @Inject constructor(
                 if (state.isNovoEmprego) {
                     val params = CriarEmpregoUseCase.Parametros(
                         nome = state.nome,
+                        apelido = state.apelido,
+                        endereco = state.endereco,
                         dataInicioTrabalho = state.dataInicioTrabalho ?: LocalDate.now(),
+                        dataTerminoTrabalho = state.dataTerminoTrabalho,
+                        funcao = state.funcaoInicial,
+                        salarioInicial = state.salarioInicial ?: 0.0,
                         cargaHorariaDiariaMinutos = state.cargaHorariaDiaria.toMinutes().toInt(),
                         acrescimoMinutosDiasPontes = state.acrescimoMinutosDiasPontes,
                         jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,
@@ -232,8 +248,10 @@ class EditarEmpregoViewModel @Inject constructor(
                         turnoMaximoMinutos = state.turnoMaximoMinutos,
                         toleranciaIntervaloMaisMinutos = state.toleranciaIntervaloMaisMinutos,
                         diaInicioFechamentoRH = state.diaInicioFechamentoRH,
+                        zerarSaldoPeriodoRH = state.zerarSaldoPeriodoRH,
                         primeiroDiaSemana = state.primeiroDiaSemana,
                         bancoHorasHabilitado = state.bancoHorasHabilitado,
+                        periodoBancoSemanas = state.periodoBancoSemanas,
                         periodoBancoMeses = state.periodoBancoMeses,
                         dataInicioCicloBanco = state.dataInicioCicloBanco,
                         zerarBancoAoFecharCiclo = state.zerarBancoAntesPeriodo,
@@ -261,7 +279,10 @@ class EditarEmpregoViewModel @Inject constructor(
                     val params = AtualizarEmpregoUseCase.Parametros(
                         empregoId = state.empregoId!!,
                         nome = state.nome,
+                        apelido = state.apelido,
+                        endereco = state.endereco,
                         dataInicioTrabalho = state.dataInicioTrabalho ?: LocalDate.now(),
+                        dataTerminoTrabalho = state.dataTerminoTrabalho,
                         habilitarNsr = state.habilitarNsr,
                         tipoNsr = state.tipoNsr,
                         habilitarLocalizacao = state.habilitarLocalizacao,
@@ -271,13 +292,16 @@ class EditarEmpregoViewModel @Inject constructor(
                         cargaHorariaDiariaMinutos = state.cargaHorariaDiaria.toMinutes().toInt(),
                         acrescimoMinutosDiasPontes = state.acrescimoMinutosDiasPontes,
                         jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,
+                        intervaloMinimoMinutos = state.intervaloMinimoMinutos,
                         intervaloMinimoInterjornadaMinutos = state.intervaloInterjornadaMinutos,
                         turnoMaximoMinutos = state.turnoMaximoMinutos,
                         toleranciaIntervaloMaisMinutos = state.toleranciaIntervaloMaisMinutos,
                         exigeJustificativaInconsistencia = state.exigeJustificativaInconsistencia,
                         diaInicioFechamentoRH = state.diaInicioFechamentoRH,
+                        zerarSaldoPeriodoRH = state.zerarSaldoPeriodoRH,
                         primeiroDiaSemana = state.primeiroDiaSemana,
                         bancoHorasHabilitado = state.bancoHorasHabilitado,
+                        periodoBancoSemanas = state.periodoBancoSemanas,
                         periodoBancoMeses = state.periodoBancoMeses,
                         dataInicioCicloBanco = state.dataInicioCicloBanco,
                         zerarBancoAoFecharCiclo = state.zerarBancoAntesPeriodo

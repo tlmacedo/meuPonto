@@ -17,7 +17,10 @@ import java.time.LocalDate
 sealed class EditarEmpregoAction {
     // Dados básicos
     data class AlterarNome(val nome: String) : EditarEmpregoAction()
+    data class AlterarApelido(val apelido: String) : EditarEmpregoAction()
+    data class AlterarEndereco(val endereco: String) : EditarEmpregoAction()
     data class AlterarDataInicioTrabalho(val data: LocalDate?) : EditarEmpregoAction()
+    data class AlterarDataTerminoTrabalho(val data: LocalDate?) : EditarEmpregoAction()
 
     // Jornada
     data class AlterarCargaHorariaDiaria(val duracao: Duration) : EditarEmpregoAction()
@@ -53,6 +56,10 @@ sealed class EditarEmpregoAction {
     data class AlterarPeriodoBancoHoras(val valor: Int) : EditarEmpregoAction()
     data class AlterarDataInicioCicloBanco(val data: LocalDate?) : EditarEmpregoAction()
     data class AlterarZerarBancoAntesPeriodo(val zerar: Boolean) : EditarEmpregoAction()
+
+    // Cargo Inicial (para criação)
+    data class AlterarFuncaoInicial(val funcao: String) : EditarEmpregoAction()
+    data class AlterarSalarioInicial(val valor: Double?) : EditarEmpregoAction()
 
     // UI
     data class ToggleSecao(val secao: SecaoFormulario) : EditarEmpregoAction()

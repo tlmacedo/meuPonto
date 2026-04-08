@@ -5,6 +5,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,6 +38,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -999,6 +1002,10 @@ private fun DiaCard(
                 exit = shrinkVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
+                    if (resumo.listaInconsistencias.isNotEmpty()) {
+                        InconsistenciasSection(resumo.listaInconsistencias)
+                        Spacer(Modifier.height(8.dp))
+                    }
                     infoDia.feriado?.let {
                         FeriadoInfoSection(it)
                         Spacer(Modifier.height(8.dp))
@@ -1037,6 +1044,48 @@ private fun DiaCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun InconsistenciasSection(inconsistencias: List<String>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                RoundedCornerShape(8.dp)
+            )
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
+                RoundedCornerShape(8.dp)
+            )
+            .padding(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Atenção: Inconsistências",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        inconsistencias.forEach { erro ->
+            Text(
+                "• $erro",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

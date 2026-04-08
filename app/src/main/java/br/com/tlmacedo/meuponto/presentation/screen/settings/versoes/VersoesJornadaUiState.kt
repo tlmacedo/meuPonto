@@ -19,8 +19,11 @@ data class VersoesJornadaUiState(
     val dataInicioNovaVersao: LocalDate = LocalDate.now(),
     val descricaoNovaVersao: String = "",
     val copiarHorariosNovaVersao: Boolean = true,
+    val versoesSelecionadas: Set<Long> = emptySet(),
     val errorMessage: String? = null
 ) {
+    val modoSelecao: Boolean
+        get() = versoesSelecionadas.isNotEmpty()
     val temVersoes: Boolean
         get() = versoes.isNotEmpty()
     val totalVersoes: Int

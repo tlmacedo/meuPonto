@@ -64,6 +64,9 @@ class VersoesJornadaViewModel @Inject constructor(
             is VersoesJornadaAction.FecharDialogExcluir -> fecharDialogExcluir()
             is VersoesJornadaAction.ConfirmarExclusao -> confirmarExclusao()
             is VersoesJornadaAction.DefinirComoVigente -> definirComoVigente(action.versaoId)
+            is VersoesJornadaAction.AlternarSelecaoVersao -> alternarSelecao(action.versaoId)
+            is VersoesJornadaAction.CompararSelecionadas -> compararSelecionadas()
+            is VersoesJornadaAction.LimparSelecao -> limparSelecao()
             is VersoesJornadaAction.LimparErro -> limparErro()
         }
     }
@@ -288,6 +291,37 @@ class VersoesJornadaViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun alternarSelecao(versaoId: Long) {
+        _uiState.update { state ->
+            val novas = if (state.versoesSelecionadas.contains(versaoId)) {
+                state.versoesSelecionadas - versaoId
+            } else {
+                if (state.versoesSelecionadas.size < 2) {
+                    state.versoesSelecionadas + versaoId
+                } else {
+                    state.versoesSelecionadas
+                }
+            }
+            state.copy(versoesSelecionadas = novas)
+        }
+    }
+
+    private fun compararSelecionadas() {
+        val selecionadas = _uiState.value.versoesSelecionadas.toList()
+        if (selecionadas.size == 2) {
+            viewModelScope.launch {
+                val v1 = selecionadas[0]
+                val v2 = selecionadas[1]
+                _eventos.emit(VersoesJornadaEvent.NavegarParaComparar(empregoId, v1, v2))
+                limparSelecao()
+            }
+        }
+    }
+
+    private fun limparSelecao() {
+        _uiState.update { it.copy(versoesSelecionadas = emptySet()) }
     }
 
     private fun limparErro() {

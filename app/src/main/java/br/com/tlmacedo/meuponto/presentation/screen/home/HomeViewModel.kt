@@ -571,12 +571,13 @@ class HomeViewModel @Inject constructor(
                     }
 
                     // 3. Sucesso nas validações -> Preencher campos
-                    val nsrFormatado = resultado.nsr?.replaceFirst("^0+".toRegex(), "")
+                    // Remove prefixos, espaços e zeros à esquerda para o NSR
+                    val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
 
                     _uiState.update { state ->
                         state.copy(
                             registrarPontoModal = state.registrarPontoModal?.copy(
-                                nsr = nsrFormatado ?: state.registrarPontoModal.nsr,
+                                nsr = nsrLimpissimo ?: state.registrarPontoModal.nsr,
                                 dataHora = resultado.hora?.let { 
                                     LocalDateTime.of(state.registrarPontoModal.dataHora.toLocalDate(), it)
                                 } ?: state.registrarPontoModal.dataHora,

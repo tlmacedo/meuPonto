@@ -80,7 +80,6 @@ fun EmpregoSettingsDetailScreen(
     onNavigateToVersoes: (Long) -> Unit,
     onNavigateToEditarEmprego: ((Long) -> Unit)? = null,
     onNavigateToCargos: ((Long) -> Unit)? = null,
-    onNavigateToConfiguracaoGeral: ((Long) -> Unit)? = null,
     onNavigateToAusencias: ((Long) -> Unit)? = null,
     onNavigateToAjustesSaldo: ((Long) -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -106,9 +105,6 @@ fun EmpregoSettingsDetailScreen(
                 }
                 is EmpregoSettingsDetailEvent.NavegarParaCargos -> {
                     onNavigateToCargos?.invoke(evento.empregoId)
-                }
-                is EmpregoSettingsDetailEvent.NavegarParaConfiguracaoGeral -> {
-                    onNavigateToConfiguracaoGeral?.invoke(evento.empregoId)
                 }
                 is EmpregoSettingsDetailEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
@@ -172,9 +168,6 @@ fun EmpregoSettingsDetailScreen(
                     onNavigateToCargos = {
                         viewModel.onAction(EmpregoSettingsDetailAction.NavegarParaCargos)
                     },
-                    onNavigateToConfiguracaoGeral = {
-                        viewModel.onAction(EmpregoSettingsDetailAction.NavegarParaConfiguracaoGeral)
-                    },
                     onNavigateToVersoes = {
                         viewModel.onAction(EmpregoSettingsDetailAction.NavegarParaVersoes)
                     },
@@ -196,7 +189,6 @@ private fun EmpregoSettingsDetailContent(
     uiState: EmpregoSettingsDetailUiState,
     onNavigateToEditar: () -> Unit,
     onNavigateToCargos: () -> Unit,
-    onNavigateToConfiguracaoGeral: () -> Unit,
     onNavigateToVersoes: () -> Unit,
     onNavigateToAusencias: () -> Unit,
     onNavigateToAjustesSaldo: () -> Unit,
@@ -297,7 +289,7 @@ private fun EmpregoSettingsDetailContent(
                         }
                     } ?: append("Dia de fechamento, ciclos e banco de horas")
                 },
-                onClick = onNavigateToConfiguracaoGeral
+                onClick = onNavigateToEditar
             )
         }
 
@@ -316,7 +308,7 @@ private fun EmpregoSettingsDetailContent(
                         else append(opcoes.joinToString(" • "))
                     } ?: append("NSR, Localização, Foto e Justificativas")
                 },
-                onClick = onNavigateToConfiguracaoGeral
+                onClick = onNavigateToEditar
             )
         }
 

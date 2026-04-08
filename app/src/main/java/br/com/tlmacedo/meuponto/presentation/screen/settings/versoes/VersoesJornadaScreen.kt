@@ -1,10 +1,13 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.versoes
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
@@ -13,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,6 +25,8 @@ import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.settings.StatusChip
 import kotlinx.coroutines.flow.collectLatest
+import br.com.tlmacedo.meuponto.util.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -28,6 +34,7 @@ import java.time.format.DateTimeFormatter
 fun VersoesJornadaScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEditar: (Long, Long) -> Unit,
+    onNavigateToComparar: (Long, Long, Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VersoesJornadaViewModel = hiltViewModel()
 ) {
@@ -42,6 +49,9 @@ fun VersoesJornadaScreen(
                 }
                 is VersoesJornadaEvent.NavegarParaEditar -> {
                     onNavigateToEditar(uiState.empregoId, evento.versaoId)
+                }
+                is VersoesJornadaEvent.NavegarParaComparar -> {
+                    onNavigateToComparar(evento.empregoId, evento.v1, evento.v2)
                 }
                 is VersoesJornadaEvent.Voltar -> {
                     onNavigateBack()
@@ -73,14 +83,22 @@ fun VersoesJornadaContent(
 ) {
     Scaffold(
         topBar = {
-            MeuPontoTopBar(
-                title = "Versões de Jornada",
-                showBackButton = true,
-                onBackClick = onNavigateBack
-            )
+            if (uiState.modoSelecao) {
+                SelectionTopBar(
+                    count = uiState.versoesSelecionadas.size,
+                    onComparar = { onAction(VersoesJornadaAction.CompararSelecionadas) },
+                    onClose = { onAction(VersoesJornadaAction.LimparSelecao) }
+                )
+            } else {
+                MeuPontoTopBar(
+                    title = "Versões de Jornada",
+                    showBackButton = true,
+                    onBackClick = onNavigateBack
+                )
+            }
         },
         floatingActionButton = {
-            if (!uiState.isLoading) {
+            if (!uiState.isLoading && !uiState.modoSelecao) {
                 ExtendedFloatingActionButton(
                     onClick = { onAction(VersoesJornadaAction.CriarNovaVersao) },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -153,8 +171,19 @@ fun VersoesJornadaContent(
                             VersaoJornadaModernCard(
                                 versao = vigente,
                                 isVigente = true,
+                                isSelected = uiState.versoesSelecionadas.contains(vigente.id),
                                 onEditar = {
                                     onAction(VersoesJornadaAction.EditarVersao(vigente.id))
+                                },
+                                onLongClick = {
+                                    onAction(VersoesJornadaAction.AlternarSelecaoVersao(vigente.id))
+                                },
+                                onClick = {
+                                    if (uiState.modoSelecao) {
+                                        onAction(VersoesJornadaAction.AlternarSelecaoVersao(vigente.id))
+                                    } else {
+                                        onAction(VersoesJornadaAction.EditarVersao(vigente.id))
+                                    }
                                 },
                                 onDefinirVigente = {},
                                 onExcluir = {}
@@ -177,8 +206,19 @@ fun VersoesJornadaContent(
                             VersaoJornadaModernCard(
                                 versao = versao,
                                 isVigente = false,
+                                isSelected = uiState.versoesSelecionadas.contains(versao.id),
                                 onEditar = {
                                     onAction(VersoesJornadaAction.EditarVersao(versao.id))
+                                },
+                                onLongClick = {
+                                    onAction(VersoesJornadaAction.AlternarSelecaoVersao(versao.id))
+                                },
+                                onClick = {
+                                    if (uiState.modoSelecao) {
+                                        onAction(VersoesJornadaAction.AlternarSelecaoVersao(versao.id))
+                                    } else {
+                                        onAction(VersoesJornadaAction.EditarVersao(versao.id))
+                                    }
                                 },
                                 onDefinirVigente = {
                                     onAction(VersoesJornadaAction.DefinirComoVigente(versao.id))
@@ -262,19 +302,14 @@ private fun NovaVersaoDialog(
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = dataInicio.atStartOfDay()
-                .toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
+            initialSelectedDateMillis = dataInicio.toDatePickerMillis()
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        onDataInicioChange(
-                            java.time.Instant.ofEpochMilli(it)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .toLocalDate()
-                        )
+                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
+                        onDataInicioChange(it)
                     }
                     showDatePicker = false
                 }) { Text("OK") }
@@ -391,23 +426,64 @@ private fun VersoesResumoHeader(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopBar(
+    count: Int,
+    onComparar: () -> Unit,
+    onClose: () -> Unit
+) {
+    TopAppBar(
+        title = { Text("$count selecionada(s)") },
+        navigationIcon = {
+            IconButton(onClick = onClose) {
+                Icon(Icons.Default.Close, contentDescription = "Limpar seleção")
+            }
+        },
+        actions = {
+            if (count == 2) {
+                IconButton(onClick = onComparar) {
+                    Icon(Icons.Default.CompareArrows, contentDescription = "Comparar")
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            navigationIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            actionIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+    )
+}
+
 @Composable
 private fun VersaoJornadaModernCard(
     versao: VersaoJornada,
     isVigente: Boolean,
+    isSelected: Boolean = false,
     onEditar: () -> Unit,
     onDefinirVigente: () -> Unit,
-    onExcluir: () -> Unit
+    onExcluir: () -> Unit,
+    onClick: () -> Unit = onEditar,
+    onLongClick: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = if (isVigente)
-                MaterialTheme.colorScheme.secondaryContainer
-            else
-                MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = when {
+                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                isVigente -> MaterialTheme.colorScheme.secondaryContainer
+                else -> MaterialTheme.colorScheme.surfaceContainerHigh
+            }
         ),
         shape = MaterialTheme.shapes.extraLarge,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongClick() },
+                    onTap = { onClick() }
+                )
+            }
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth()) {

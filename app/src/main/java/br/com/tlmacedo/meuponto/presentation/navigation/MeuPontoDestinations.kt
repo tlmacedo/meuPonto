@@ -31,6 +31,8 @@ object MeuPontoDestinations {
     const val ARG_AUSENCIA_ID = "ausenciaId"
     const val ARG_TIPO = "tipo"
     const val ARG_VERSAO_ID = "versaoId"
+    const val ARG_VERSAO_ID_1 = "versaoId1"
+    const val ARG_VERSAO_ID_2 = "versaoId2"
     const val ARG_CARGO_ID = "cargoId"
 
     // Pontos
@@ -52,6 +54,7 @@ object MeuPontoDestinations {
     const val VERSOES_JORNADA_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/versoes"
     const val EDITAR_VERSAO_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/versoes/{$ARG_VERSAO_ID}"
     const val HORARIOS_VERSAO = "emprego/{$ARG_EMPREGO_ID}/versoes/{$ARG_VERSAO_ID}/horarios"
+    const val COMPARAR_VERSOES = "emprego/{$ARG_EMPREGO_ID}/comparar/{$ARG_VERSAO_ID_1}/{$ARG_VERSAO_ID_2}"
 
     // Ajustes de saldo (por emprego)
     const val AJUSTES_SALDO_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/ajustes"
@@ -63,9 +66,6 @@ object MeuPontoDestinations {
     const val CARGOS_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/cargos"
     const val NOVO_CARGO_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/cargos/novo"
     const val EDITAR_CARGO_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/cargos/{$ARG_CARGO_ID}"
-
-    // Configuração Geral (por emprego)
-    const val CONFIGURACAO_GERAL_EMPREGO = "emprego/{$ARG_EMPREGO_ID}/configuracao"
 
     // Feriados
     const val FERIADOS = "feriados"
@@ -116,12 +116,12 @@ object MeuPontoDestinations {
     fun versoesJornada(empregoId: Long) = "emprego/$empregoId/versoes"
     fun editarVersaoEmprego(empregoId: Long, versaoId: Long) = "emprego/$empregoId/versoes/$versaoId"
     fun horariosVersao(empregoId: Long, versaoId: Long) = "emprego/$empregoId/versoes/$versaoId/horarios"
+    fun compararVersoes(empregoId: Long, v1: Long, v2: Long) = "emprego/$empregoId/comparar/$v1/$v2"
     fun ajustesSaldo(empregoId: Long) = "emprego/$empregoId/ajustes"
     fun ausenciasEmprego(empregoId: Long) = "emprego/$empregoId/ausencias"
     fun cargosEmprego(empregoId: Long) = "emprego/$empregoId/cargos"
     fun novoCargoEmprego(empregoId: Long) = "emprego/$empregoId/cargos/novo"
     fun editarCargoEmprego(empregoId: Long, cargoId: Long) = "emprego/$empregoId/cargos/$cargoId"
-    fun configuracaoGeralEmprego(empregoId: Long) = "emprego/$empregoId/configuracao"
 
     fun novaAusencia(tipo: String? = null, data: String? = null): String {
         return buildString {

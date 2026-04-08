@@ -203,6 +203,14 @@ fun SettingsMainContent(
                         onClick = { onNavigateToEmpregoSettings(emprego.id) }
                     )
                 }
+
+                item {
+                    SystemStatusCard(
+                        saldoMensal = uiState.saldoAtualTexto,
+                        ultimoBackup = uiState.dataUltimoBackup,
+                        onBackupClick = onNavigateToBackup
+                    )
+                }
             }
 
             // ══════════════════════════════════════════════════════════════
@@ -364,6 +372,71 @@ fun SettingsMainContent(
 // ════════════════════════════════════════════════════════════════════════════════
 // COMPONENTES INTERNOS
 // ════════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun SystemStatusCard(
+    saldoMensal: String,
+    ultimoBackup: String,
+    onBackupClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        // Card de Saldo
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Saldo no Mês",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = saldoMensal,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = if (saldoMensal.startsWith("-")) MaterialTheme.colorScheme.error 
+                            else MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        // Card de Backup
+        Card(
+            onClick = onBackupClick,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Backup",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = ultimoBackup,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Gerenciar",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun ActiveEmploymentCard(

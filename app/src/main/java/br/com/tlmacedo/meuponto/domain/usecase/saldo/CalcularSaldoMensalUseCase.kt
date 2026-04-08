@@ -2,6 +2,7 @@
 package br.com.tlmacedo.meuponto.domain.usecase.saldo
 
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import java.time.LocalDate
@@ -11,10 +12,10 @@ import javax.inject.Inject
 /**
  * @author Thiago
  * @since 1.0.0
- * @updated 8.0.0 - Migrado para usar VersaoJornada
+ * @updated 8.0.0 - Migrado para usar CalcularBancoHorasUseCase para consistência
  */
 class CalcularSaldoMensalUseCase @Inject constructor(
-    private val calcularSaldoDiaUseCase: CalcularSaldoDiaUseCase,
+    private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase,
     private val versaoJornadaRepository: VersaoJornadaRepository
 ) {
     data class SaldoMensal(
@@ -23,8 +24,7 @@ class CalcularSaldoMensalUseCase @Inject constructor(
         val esperadoMinutos: Long,
         val saldoMinutos: Long,
         val diasTrabalhados: Int,
-        val diasUteis: Int,
-        val saldosDiarios: List<CalcularSaldoDiaUseCase.SaldoDia>
+        val diasUteis: Int
     ) {
         val trabalhadoFormatado: String get() = trabalhadoMinutos.minutosParaHoraMinuto()
         val esperadoFormatado: String get() = esperadoMinutos.minutosParaHoraMinuto()
@@ -35,30 +35,22 @@ class CalcularSaldoMensalUseCase @Inject constructor(
         val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
         val diaInicio = versaoVigente?.diaInicioFechamentoRH ?: 1
 
-        val dataInicio = calcularDataInicio(mes, diaInicio)
-        val dataFim = calcularDataFim(mes, diaInicio)
-
-        val saldosDiarios = mutableListOf<CalcularSaldoDiaUseCase.SaldoDia>()
-        var dataAtual = dataInicio
         val hoje = LocalDate.now()
+        val dataReferencia = if (mes == YearMonth.now()) hoje else mes.atDay(1)
+        val periodo = br.com.tlmacedo.meuponto.domain.model.PeriodoRH.criarPara(dataReferencia, diaInicio)
+        
+        val dataInicio = periodo.dataInicio
+        val dataFim = periodo.dataFim
 
-        while (!dataAtual.isAfter(dataFim) && !dataAtual.isAfter(hoje)) {
-            val saldoDia = calcularSaldoDiaUseCase(empregoId, dataAtual)
-            saldosDiarios.add(saldoDia)
-            dataAtual = dataAtual.plusDays(1)
-        }
+        val resultado = calcularBancoHorasUseCase.calcularParaPeriodo(empregoId, dataInicio, dataFim)
 
-        val trabalhadoMinutos = saldosDiarios.sumOf { it.trabalhadoMinutos }
-        val esperadoMinutos = saldosDiarios.sumOf { it.esperadoMinutos }
-        val diasTrabalhados = saldosDiarios.count { it.trabalhadoMinutos > 0 }
-        val diasUteis = saldosDiarios.count { it.isDiaUtil }
-
-        return SaldoMensal(mes, trabalhadoMinutos, esperadoMinutos, trabalhadoMinutos - esperadoMinutos, diasTrabalhados, diasUteis, saldosDiarios)
+        return SaldoMensal(
+            mes = mes,
+            trabalhadoMinutos = 0, // No momento o dashboard não exige o total trabalhado separado
+            esperadoMinutos = 0,   // No momento o dashboard não exige o esperado separado
+            saldoMinutos = resultado.saldoTotal.toMinutes(),
+            diasTrabalhados = resultado.diasTrabalhados,
+            diasUteis = 0
+        )
     }
-
-    private fun calcularDataInicio(mes: YearMonth, diaInicio: Int): LocalDate =
-        if (diaInicio == 1) mes.atDay(1) else mes.minusMonths(1).atDay(diaInicio)
-
-    private fun calcularDataFim(mes: YearMonth, diaInicio: Int): LocalDate =
-        if (diaInicio == 1) mes.atEndOfMonth() else mes.atDay(diaInicio - 1)
 }

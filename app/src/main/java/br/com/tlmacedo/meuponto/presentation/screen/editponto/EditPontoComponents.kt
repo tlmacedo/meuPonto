@@ -26,10 +26,10 @@ import androidx.compose.ui.res.stringResource
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.util.formatarCurto
 import br.com.tlmacedo.meuponto.util.formatarHora
+import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneOffset
 
 /**
  * Componentes reutilizáveis da tela de edição de ponto.
@@ -84,10 +84,7 @@ fun DatePickerField(
 
     if (mostrarDialog) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate
-                .atStartOfDay(ZoneOffset.UTC)
-                .toInstant()
-                .toEpochMilli()
+            initialSelectedDateMillis = selectedDate.toDatePickerMillis()
         )
 
         DatePickerDialog(

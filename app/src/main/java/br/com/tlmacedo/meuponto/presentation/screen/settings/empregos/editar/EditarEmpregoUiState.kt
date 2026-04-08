@@ -21,9 +21,12 @@ data class EditarEmpregoUiState(
     val isNovoEmprego: Boolean = true,
     val nome: String = "",
     val nomeErro: String? = null,
+    val apelido: String = "",
+    val endereco: String = "",
     val dataInicioTrabalho: LocalDate? = null,
+    val dataTerminoTrabalho: LocalDate? = null,
 
-    // JORNADA DE TRABALHO
+    // JORNADA DE TRABALHO (Versão atual)
     val cargaHorariaDiaria: Duration = Duration.ofMinutes(480),
     val acrescimoMinutosDiasPontes: Int = 0,
     val jornadaMaximaDiariaMinutos: Int = 600,
@@ -58,6 +61,10 @@ data class EditarEmpregoUiState(
     val dataInicioCicloBanco: LocalDate? = null,
     val zerarBancoAntesPeriodo: Boolean = false,
 
+    // CARGO INICIAL (Apenas para novos empregos)
+    val funcaoInicial: String = "",
+    val salarioInicial: Double? = null,
+
     // ESTADOS DE UI
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
@@ -66,6 +73,7 @@ data class EditarEmpregoUiState(
 
     // Pickers
     val showInicioTrabalhoPicker: Boolean = false,
+    val showTerminoTrabalhoPicker: Boolean = false,
     val showDataInicioCicloPicker: Boolean = false
 ) {
     private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -79,7 +87,8 @@ data class EditarEmpregoUiState(
 
     val formularioValido: Boolean = nome.isNotBlank() &&
             nomeErro == null &&
-            cargaHorariaTotalMinutos <= jornadaMaximaDiariaMinutos
+            cargaHorariaTotalMinutos <= jornadaMaximaDiariaMinutos &&
+            (!isNovoEmprego || (funcaoInicial.isNotBlank() && (salarioInicial ?: 0.0) > 0.0))
 
     // Validações Visuais
     val avisoJornadaExcedida: String?
@@ -101,7 +110,10 @@ data class EditarEmpregoUiState(
 
     // Formatações de data
     val dataInicioTrabalhoFormatada: String
-        get() = dataInicioTrabalho?.format(dateFormatter) ?: "Não informada"
+        get() = dataInicioTrabalho?.format(dateFormatter) ?: ""
+
+    val dataTerminoTrabalhoFormatada: String
+        get() = dataTerminoTrabalho?.format(dateFormatter) ?: ""
 
     val dataInicioCicloFormatada: String
         get() = dataInicioCicloBanco?.format(dateFormatter) ?: "Selecionar data"
@@ -186,9 +198,7 @@ data class EditarEmpregoUiState(
  */
 enum class SecaoFormulario {
     DADOS_BASICOS,
-    JORNADA,
-    TOLERANCIAS,
-    NSR_LOCALIZACAO,
-    BANCO_HORAS,
-    AVANCADO
+    HISTORICO_CARGOS,
+    CONFIGURACOES_GERAIS,
+    JORNADAS_VERSIONADAS
 }

@@ -15,7 +15,10 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -58,6 +61,7 @@ class CargosViewModel @Inject constructor(
         }
     }
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun carregarDados() {
         if (empregoId <= 0L) return
 
@@ -69,59 +73,39 @@ class CargosViewModel @Inject constructor(
                 val emprego = empregoRepository.buscarPorId(empregoId)
                 _uiState.update { it.copy(nomeEmprego = emprego?.nome ?: "") }
 
-                // Observar cargos reativamente
-                historicoCargoRepository.listarPorEmprego(empregoId).collectLatest { cargos ->
-                    val hoje = LocalDate.now()
-                    val cargoAtual = cargos.firstOrNull {
-                        it.dataFim == null || !it.dataFim.isBefore(hoje)
-                    }
-
-                    // Carregar ajustes para cada cargo
-                    val ajustesPorCargo = mutableMapOf<Long, List<AjusteSalarial>>()
-                    cargos.forEach { cargo ->
-                        try {
-                            historicoCargoRepository.listarAjustes(cargo.id).collectLatest { ajustes ->
-                                ajustesPorCargo[cargo.id] = ajustes
+                // Observar cargos e seus ajustes reativamente
+                historicoCargoRepository.listarPorEmprego(empregoId)
+                    .flatMapLatest { cargos ->
+                        if (cargos.isEmpty()) {
+                            flowOf(cargos to emptyMap<Long, List<AjusteSalarial>>())
+                        } else {
+                            val adjustmentFlows = cargos.map { cargo ->
+                                historicoCargoRepository.listarAjustes(cargo.id)
+                                    .map { cargo.id to it }
                             }
-                        } catch (e: Exception) {
-                            Timber.w(e, "Erro ao carregar ajustes do cargo %d", cargo.id)
+                            combine(adjustmentFlows) { pairs ->
+                                pairs.toMap()
+                            }.map { cargos to it }
                         }
                     }
+                    .collect { (cargos, ajustesMap) ->
+                        val hoje = LocalDate.now()
+                        val cargoAtual = cargos.firstOrNull {
+                            it.dataFim == null || !it.dataFim.isAfter(hoje) // Simplificação: assume o último sem data fim ou vigente hoje
+                        }
 
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            cargos = cargos.sortedByDescending { c -> c.dataInicio },
-                            cargoAtual = cargoAtual,
-                            ajustesPorCargo = ajustesPorCargo
-                        )
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                cargos = cargos.sortedByDescending { c -> c.dataInicio },
+                                cargoAtual = cargoAtual,
+                                ajustesPorCargo = ajustesMap
+                            )
+                        }
                     }
-                }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao carregar cargos do emprego %d", empregoId)
                 _uiState.update { it.copy(isLoading = false) }
-            }
-        }
-
-        // Carregar ajustes separadamente de forma reativa
-        carregarAjustes()
-    }
-
-    private fun carregarAjustes() {
-        viewModelScope.launch {
-            _uiState.collect { state ->
-                val ajustesPorCargo = mutableMapOf<Long, List<AjusteSalarial>>()
-                state.cargos.forEach { cargo ->
-                    try {
-                        val ajustes = historicoCargoRepository.listarAjustes(cargo.id)
-                        ajustes.collectLatest { lista ->
-                            ajustesPorCargo[cargo.id] = lista
-                            _uiState.update { it.copy(ajustesPorCargo = ajustesPorCargo.toMap()) }
-                        }
-                    } catch (e: Exception) {
-                        Timber.w(e, "Erro ao carregar ajustes do cargo %d", cargo.id)
-                    }
-                }
             }
         }
     }

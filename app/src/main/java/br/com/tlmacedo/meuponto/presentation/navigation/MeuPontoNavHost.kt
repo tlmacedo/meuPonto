@@ -36,7 +36,6 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSet
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.CargosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.EditarCargoScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracao.ConfiguracaoGeralEmpregoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.versoes.VersoesJornadaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
@@ -47,6 +46,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.main.SettingsMainSc
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.comparar.CompararVersoesScreen
 
 /**
  * Extensão para definir as rotas principais da aplicação MeuPonto.
@@ -237,9 +237,6 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNavigateToCargos = { id ->
                 navController.navigate(MeuPontoDestinations.cargosEmprego(id))
             },
-            onNavigateToConfiguracaoGeral = { id ->
-                navController.navigate(MeuPontoDestinations.configuracaoGeralEmprego(id))
-            },
             onNavigateToAusencias = { id ->
                 navController.navigate(MeuPontoDestinations.ausenciasEmprego(id))
             },
@@ -300,21 +297,6 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
         )
     }
 
-    // ===== CONFIGURAÇÃO GERAL DO EMPREGO =====
-
-    composable(
-        route = MeuPontoDestinations.CONFIGURACAO_GERAL_EMPREGO,
-        arguments = listOf(
-            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
-                type = NavType.LongType
-            }
-        )
-    ) {
-        ConfiguracaoGeralEmpregoScreen(
-            onNavigateBack = { navController.popBackStack() }
-        )
-    }
-
     // ===== VERSÕES DE JORNADA =====
 
     // Lista de versões (por emprego)
@@ -330,6 +312,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNavigateBack = { navController.popBackStack() },
             onNavigateToEditar = { empId, versaoId ->
                 navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empId, versaoId))
+            },
+            onNavigateToComparar = { empId, v1, v2 ->
+                navController.navigate(MeuPontoDestinations.compararVersoes(empId, v1, v2))
             }
         )
     }
@@ -373,12 +358,35 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
         )
     }
 
+    // Comparar versões
+    composable(
+        route = MeuPontoDestinations.COMPARAR_VERSOES,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            },
+            navArgument(MeuPontoDestinations.ARG_VERSAO_ID_1) {
+                type = NavType.LongType
+            },
+            navArgument(MeuPontoDestinations.ARG_VERSAO_ID_2) {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        CompararVersoesScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
     // Lista de versões (legacy - sem emprego específico)
     composable(MeuPontoDestinations.VERSOES_JORNADA) {
         VersoesJornadaScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToEditar = { empregoId, versaoId ->
                 navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
+            },
+            onNavigateToComparar = { empId, v1, v2 ->
+                navController.navigate(MeuPontoDestinations.compararVersoes(empId, v1, v2))
             }
         )
     }
@@ -411,29 +419,25 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
     // ===== APARÊNCIA, NOTIFICAÇÕES, PRIVACIDADE E BACKUP =====
 
     composable(MeuPontoDestinations.APARENCIA) {
-        PlaceholderScreen(
-            titulo = "Aparência",
+        br.com.tlmacedo.meuponto.presentation.screen.settings.design.AparenciaScreen(
             onNavigateBack = { navController.popBackStack() }
         )
     }
 
     composable(MeuPontoDestinations.NOTIFICACOES) {
-        PlaceholderScreen(
-            titulo = "Notificações",
+        br.com.tlmacedo.meuponto.presentation.screen.settings.design.NotificacoesScreen(
             onNavigateBack = { navController.popBackStack() }
         )
     }
 
     composable(MeuPontoDestinations.PRIVACIDADE) {
-        PlaceholderScreen(
-            titulo = "Privacidade & Segurança",
+        br.com.tlmacedo.meuponto.presentation.screen.settings.design.PrivacidadeScreen(
             onNavigateBack = { navController.popBackStack() }
         )
     }
 
     composable(MeuPontoDestinations.BACKUP) {
-        PlaceholderScreen(
-            titulo = "Backup & Dados",
+        br.com.tlmacedo.meuponto.presentation.screen.settings.backup.BackupScreen(
             onNavigateBack = { navController.popBackStack() }
         )
     }
@@ -468,6 +472,11 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNavigateToVersoes = {
                 if (empregoId > 0) {
                     navController.navigate(MeuPontoDestinations.versoesJornada(empregoId))
+                }
+            },
+            onNavigateToCargos = {
+                if (empregoId > 0) {
+                    navController.navigate(MeuPontoDestinations.cargosEmprego(empregoId))
                 }
             }
         )

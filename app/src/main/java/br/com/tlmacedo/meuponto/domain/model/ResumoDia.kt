@@ -424,22 +424,39 @@ data class ResumoDia(
             .sum()
 
     /**
+     * Lista de problemas/inconsistências encontrados no dia.
+     */
+    val listaInconsistencias: List<String>
+        get() {
+            if (isFuturo) return emptyList()
+            val inconsistencias = mutableListOf<String>()
+
+            if (temInconsistenciaPontoAberto) {
+                inconsistencias.add("Ponto em aberto em dia passado")
+            }
+
+            if (!jornadaCompleta && pontos.size > 1) {
+                inconsistencias.add("Jornada incompleta (${pontos.size} pontos registrados)")
+            }
+
+            if (pontos.size >= 4 && !tipoDiaEspecial.zeraJornada) {
+                val todasAsPausas = intervalos.drop(1).mapNotNull { it.pausaAntesMinutos }
+                val algumaPausaAtingiuMinimo = todasAsPausas.any { it >= (intervaloMinimoMinutos - 10) }
+                
+                if (!algumaPausaAtingiuMinimo && todasAsPausas.isNotEmpty()) {
+                    val maiorPausa = todasAsPausas.maxOrNull() ?: 0
+                    inconsistencias.add("Nenhum intervalo atingiu o mínimo de ${intervaloMinimoMinutos.minutosParaIntervalo()} (maior pausa: ${maiorPausa.minutosParaIntervalo()})")
+                }
+            }
+
+            return inconsistencias
+        }
+
+    /**
      * Verifica se o dia tem problemas.
      */
     val temProblemas: Boolean
-        get() {
-            // Dias futuros não têm problemas
-            if (isFuturo) return false
-
-            if (temInconsistenciaPontoAberto) return true
-            if (!jornadaCompleta && pontos.size > 1) return true
-            if (pontos.size >= 4 && !tipoDiaEspecial.zeraJornada) {
-                val intervaloReal = intervalos.getOrNull(1)?.pausaAntesMinutos ?: 0
-                val toleranciaProblema = 10
-                if (intervaloReal < intervaloMinimoMinutos - toleranciaProblema) return true
-            }
-            return false
-        }
+        get() = listaInconsistencias.isNotEmpty()
 
     /**
      * Status do dia para exibição no histórico.

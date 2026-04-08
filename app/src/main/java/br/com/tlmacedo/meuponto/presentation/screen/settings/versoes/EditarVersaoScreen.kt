@@ -34,10 +34,10 @@ import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import kotlinx.coroutines.flow.collectLatest
-import java.time.Instant
+import br.com.tlmacedo.meuponto.util.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import java.time.Duration
 import java.time.LocalDate
-import java.time.ZoneId
-import java.time.ZoneOffset
 
 @Composable
 fun EditarVersaoScreen(
@@ -91,18 +91,14 @@ fun EditarVersaoContent(
 ) {
     if (uiState.showDataInicioPicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dataInicio.atStartOfDay()
-                .toInstant(ZoneOffset.UTC).toEpochMilli()
+            initialSelectedDateMillis = uiState.dataInicio.toDatePickerMillis()
         )
         DatePickerDialog(
             onDismissRequest = { onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        val selectedDate = Instant.ofEpochMilli(it)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDate()
-                        onAction(EditarVersaoAction.AlterarDataInicio(selectedDate))
+                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
+                        onAction(EditarVersaoAction.AlterarDataInicio(it))
                     }
                 }) { Text("OK") }
             },
@@ -118,18 +114,14 @@ fun EditarVersaoContent(
 
     if (uiState.showDataFimPicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = (uiState.dataFim ?: LocalDate.now()).atStartOfDay()
-                .toInstant(ZoneOffset.UTC).toEpochMilli()
+            initialSelectedDateMillis = uiState.dataFim?.toDatePickerMillis()
         )
         DatePickerDialog(
             onDismissRequest = { onAction(EditarVersaoAction.MostrarDataFimPicker(false)) },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        val selectedDate = Instant.ofEpochMilli(it)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDate()
-                        onAction(EditarVersaoAction.AlterarDataFim(selectedDate))
+                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
+                        onAction(EditarVersaoAction.AlterarDataFim(it))
                     }
                 }) { Text("OK") }
             },
@@ -148,18 +140,14 @@ fun EditarVersaoContent(
 
     if (uiState.showDataInicioCicloBancoPicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = (uiState.dataInicioCicloBancoAtual ?: LocalDate.now()).atStartOfDay()
-                .toInstant(ZoneOffset.UTC).toEpochMilli()
+            initialSelectedDateMillis = uiState.dataInicioCicloBancoAtual?.toDatePickerMillis()
         )
         DatePickerDialog(
             onDismissRequest = { onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        val selectedDate = Instant.ofEpochMilli(it)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDate()
-                        onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(selectedDate))
+                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
+                        onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(it))
                     }
                 }) { Text("OK") }
             },

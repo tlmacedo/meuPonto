@@ -20,5 +20,8 @@ sealed interface VersoesJornadaAction {
     data class AlterarDescricaoNovaVersao(val descricao: String) : VersoesJornadaAction
     data class ToggleCopiarHorariosNovaVersao(val copiar: Boolean) : VersoesJornadaAction
     data object ConfirmarNovaVersao : VersoesJornadaAction
+    data class AlternarSelecaoVersao(val versaoId: Long) : VersoesJornadaAction
+    data object CompararSelecionadas : VersoesJornadaAction
+    data object LimparSelecao : VersoesJornadaAction
     data object LimparErro : VersoesJornadaAction
 }

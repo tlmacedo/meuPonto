@@ -27,8 +27,11 @@ class AtualizarEmpregoUseCase @Inject constructor(
     data class Parametros(
         val empregoId: Long,
         val nome: String,
+        val apelido: String? = null,
+        val endereco: String? = null,
         val descricao: String? = null,
         val dataInicioTrabalho: LocalDate,
+        val dataTerminoTrabalho: LocalDate? = null,
         
         // Configurações Fixas
         val habilitarNsr: Boolean,
@@ -42,6 +45,7 @@ class AtualizarEmpregoUseCase @Inject constructor(
         val cargaHorariaDiariaMinutos: Int,
         val acrescimoMinutosDiasPontes: Int,
         val jornadaMaximaDiariaMinutos: Int,
+        val intervaloMinimoMinutos: Int,
         val intervaloMinimoInterjornadaMinutos: Int,
         val turnoMaximoMinutos: Int,
         val toleranciaIntervaloMaisMinutos: Int,
@@ -49,8 +53,10 @@ class AtualizarEmpregoUseCase @Inject constructor(
         
         // RH e Banco
         val diaInicioFechamentoRH: Int,
+        val zerarSaldoPeriodoRH: Boolean,
         val primeiroDiaSemana: DiaSemana,
         val bancoHorasHabilitado: Boolean,
+        val periodoBancoSemanas: Int,
         val periodoBancoMeses: Int,
         val dataInicioCicloBanco: LocalDate?,
         val zerarBancoAoFecharCiclo: Boolean
@@ -73,8 +79,11 @@ class AtualizarEmpregoUseCase @Inject constructor(
             empregoRepository.atualizar(
                 empregoExistente.copy(
                     nome = parametros.nome.trim(),
+                    apelido = parametros.apelido?.trim(),
+                    endereco = parametros.endereco?.trim(),
                     descricao = parametros.descricao?.trim(),
                     dataInicioTrabalho = parametros.dataInicioTrabalho,
+                    dataTerminoTrabalho = parametros.dataTerminoTrabalho,
                     atualizadoEm = agora
                 )
             )
@@ -108,8 +117,10 @@ class AtualizarEmpregoUseCase @Inject constructor(
                         toleranciaIntervaloMaisMinutos = parametros.toleranciaIntervaloMaisMinutos,
                         exigeJustificativaInconsistencia = parametros.exigeJustificativaInconsistencia,
                         diaInicioFechamentoRH = parametros.diaInicioFechamentoRH,
+                        zerarSaldoPeriodoRH = parametros.zerarSaldoPeriodoRH,
                         primeiroDiaSemana = parametros.primeiroDiaSemana,
                         bancoHorasHabilitado = parametros.bancoHorasHabilitado,
+                        periodoBancoSemanas = parametros.periodoBancoSemanas,
                         periodoBancoMeses = parametros.periodoBancoMeses,
                         dataInicioCicloBancoAtual = parametros.dataInicioCicloBanco,
                         zerarBancoAntesPeriodo = parametros.zerarBancoAoFecharCiclo,

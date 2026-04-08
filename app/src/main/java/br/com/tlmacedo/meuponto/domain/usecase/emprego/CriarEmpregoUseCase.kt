@@ -6,10 +6,12 @@ import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.FotoFormato
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
+import br.com.tlmacedo.meuponto.domain.model.HistoricoCargo
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
+import br.com.tlmacedo.meuponto.domain.repository.HistoricoCargoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.validacao.ValidarEmpregoUseCase
@@ -30,12 +32,20 @@ class CriarEmpregoUseCase @Inject constructor(
     private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
+    private val historicoCargoRepository: HistoricoCargoRepository,
     private val validarEmpregoUseCase: ValidarEmpregoUseCase
 ) {
     data class Parametros(
         val nome: String,
+        val apelido: String? = null,
+        val endereco: String? = null,
         val descricao: String? = null,
         val dataInicioTrabalho: LocalDate = LocalDate.now(),
+        val dataTerminoTrabalho: LocalDate? = null,
+
+        // Cargo Inicial
+        val funcao: String,
+        val salarioInicial: Double,
         
         // Jornada
         val cargaHorariaDiariaMinutos: Int = 480, // 8h
@@ -48,8 +58,10 @@ class CriarEmpregoUseCase @Inject constructor(
         
         // RH e Banco
         val diaInicioFechamentoRH: Int = 1,
+        val zerarSaldoPeriodoRH: Boolean = false,
         val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
         val bancoHorasHabilitado: Boolean = false,
+        val periodoBancoSemanas: Int = 0,
         val periodoBancoMeses: Int = 0,
         val dataInicioCicloBanco: LocalDate? = null,
         val zerarBancoAoFecharCiclo: Boolean = false,
@@ -73,8 +85,11 @@ class CriarEmpregoUseCase @Inject constructor(
     suspend operator fun invoke(parametros: Parametros): Resultado {
         val emprego = Emprego(
             nome = parametros.nome.trim(),
+            apelido = parametros.apelido?.trim(),
+            endereco = parametros.endereco?.trim(),
             descricao = parametros.descricao?.trim(),
             dataInicioTrabalho = parametros.dataInicioTrabalho,
+            dataTerminoTrabalho = parametros.dataTerminoTrabalho,
             ativo = true,
             arquivado = false,
             ordem = empregoRepository.buscarProximaOrdem()
@@ -123,7 +138,9 @@ class CriarEmpregoUseCase @Inject constructor(
                 // RH e Banco
                 primeiroDiaSemana = parametros.primeiroDiaSemana,
                 diaInicioFechamentoRH = parametros.diaInicioFechamentoRH,
+                zerarSaldoPeriodoRH = parametros.zerarSaldoPeriodoRH,
                 bancoHorasHabilitado = parametros.bancoHorasHabilitado,
+                periodoBancoSemanas = parametros.periodoBancoSemanas,
                 periodoBancoMeses = parametros.periodoBancoMeses,
                 dataInicioCicloBancoAtual = parametros.dataInicioCicloBanco,
                 zerarBancoAntesPeriodo = parametros.zerarBancoAoFecharCiclo,
@@ -136,6 +153,17 @@ class CriarEmpregoUseCase @Inject constructor(
 
             // 4. Criar Horários por Dia da Semana (Sugestão baseada nos parâmetros)
             criarHorariosIniciais(empregoId, versaoJornadaId, parametros)
+
+            // 5. Criar Cargo Inicial
+            val historicoCargo = HistoricoCargo(
+                empregoId = empregoId,
+                funcao = parametros.funcao.trim(),
+                salarioInicial = parametros.salarioInicial,
+                dataInicio = parametros.dataInicioTrabalho,
+                criadoEm = agora,
+                atualizadoEm = agora
+            )
+            historicoCargoRepository.salvar(historicoCargo)
 
             Resultado.Sucesso(empregoId)
         } catch (e: Exception) {

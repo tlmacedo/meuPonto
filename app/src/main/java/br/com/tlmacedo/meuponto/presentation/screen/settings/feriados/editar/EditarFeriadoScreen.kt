@@ -911,14 +911,8 @@ private fun DatePickerDialogWrapper(
     onDateSelected: (LocalDate) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val initialMillis = initialDate?.let {
-        it.atTime(LocalTime.NOON)
-            .toInstant(ZoneOffset.UTC)
-            .toEpochMilli()
-    }
-
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialMillis
+        initialSelectedDateMillis = initialDate?.toDatePickerMillis()
     )
 
     DatePickerDialog(

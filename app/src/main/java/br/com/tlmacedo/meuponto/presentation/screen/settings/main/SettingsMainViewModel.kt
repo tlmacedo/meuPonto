@@ -7,6 +7,8 @@ import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.preferencias.ObterPreferenciasGlobaisUseCase
+import br.com.tlmacedo.meuponto.util.toRelativeDateTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 
 /**
@@ -32,7 +36,9 @@ data class SettingsMainUiState(
     val empregoAtual: Emprego? = null,
     val empregosDisponiveis: List<Emprego> = emptyList(),
     val versaoVigenteDescricao: String? = null,
-    val totalVersoes: Int = 0
+    val totalVersoes: Int = 0,
+    val saldoAtualTexto: String = "--:--",
+    val dataUltimoBackup: String = "Nunca realizado"
 ) {
     val empregoAtualId: Long?
         get() = empregoAtual?.id
@@ -74,7 +80,9 @@ class SettingsMainViewModel @Inject constructor(
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
     private val listarEmpregosUseCase: ListarEmpregosUseCase,
     private val trocarEmpregoAtivoUseCase: TrocarEmpregoAtivoUseCase,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val calcularSaldoMensalUseCase: br.com.tlmacedo.meuponto.domain.usecase.saldo.CalcularSaldoMensalUseCase,
+    private val obterPreferenciasGlobaisUseCase: ObterPreferenciasGlobaisUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsMainUiState())
@@ -104,12 +112,17 @@ class SettingsMainViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 obterEmpregoAtivoUseCase.observar(),
-                listarEmpregosUseCase.observarTodos()
-            ) { empregoAtivo, empregosComResumo ->
-                Pair(empregoAtivo, empregosComResumo.map { it.emprego }.filter { !it.arquivado })
-            }.collectLatest { (empregoAtivo, empregosDisponiveis) ->
+                listarEmpregosUseCase.observarTodos(),
+                obterPreferenciasGlobaisUseCase()
+            ) { empregoAtivo, empregosComResumo, preferencias ->
+                Triple(
+                    empregoAtivo,
+                    empregosComResumo.map { it.emprego }.filter { !it.arquivado },
+                    preferencias
+                )
+            }.collectLatest { (empregoAtivo, empregosDisponiveis, preferencias) ->
                 if (empregoAtivo != null) {
-                    carregarDadosEmprego(empregoAtivo, empregosDisponiveis)
+                    carregarDadosEmprego(empregoAtivo, empregosDisponiveis, preferencias.ultimoBackup)
                 } else {
                     _uiState.update {
                         it.copy(
@@ -117,7 +130,8 @@ class SettingsMainViewModel @Inject constructor(
                             empregoAtual = null,
                             empregosDisponiveis = empregosDisponiveis,
                             versaoVigenteDescricao = null,
-                            totalVersoes = 0
+                            totalVersoes = 0,
+                            dataUltimoBackup = formatarDataBackup(preferencias.ultimoBackup)
                         )
                     }
                 }
@@ -130,11 +144,17 @@ class SettingsMainViewModel @Inject constructor(
      */
     private suspend fun carregarDadosEmprego(
         emprego: Emprego,
-        empregosDisponiveis: List<Emprego>
+        empregosDisponiveis: List<Emprego>,
+        ultimoBackupMillis: Long?
     ) {
         try {
             val versaoVigente = versaoJornadaRepository.buscarVigente(emprego.id)
             val totalVersoes = versaoJornadaRepository.contarPorEmprego(emprego.id)
+            
+            // Busca o saldo do mês atual (exemplo simplificado)
+            val agora = java.time.YearMonth.now()
+            val saldoMensal = calcularSaldoMensalUseCase(emprego.id, agora)
+            val saldoTexto = saldoMensal.saldoFormatado
 
             _uiState.update {
                 it.copy(
@@ -144,7 +164,9 @@ class SettingsMainViewModel @Inject constructor(
                     versaoVigenteDescricao = versaoVigente?.let { v ->
                         "Versão ${v.numeroVersao}" + (v.descricao?.let { d -> " - $d" } ?: "")
                     },
-                    totalVersoes = totalVersoes
+                    totalVersoes = totalVersoes,
+                    saldoAtualTexto = saldoTexto,
+                    dataUltimoBackup = formatarDataBackup(ultimoBackupMillis)
                 )
             }
         } catch (e: Exception) {
@@ -155,10 +177,20 @@ class SettingsMainViewModel @Inject constructor(
                     empregoAtual = emprego,
                     empregosDisponiveis = empregosDisponiveis,
                     versaoVigenteDescricao = null,
-                    totalVersoes = 0
+                    totalVersoes = 0,
+                    dataUltimoBackup = formatarDataBackup(ultimoBackupMillis)
                 )
             }
         }
+    }
+
+    private fun formatarDataBackup(millis: Long?): String {
+        if (millis == null || millis == 0L) return "Nunca realizado"
+
+        return Instant.ofEpochMilli(millis)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDateTime()
+            .toRelativeDateTime()
     }
 
     /**

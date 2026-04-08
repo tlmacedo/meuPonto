@@ -2,9 +2,11 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.backup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.tlmacedo.meuponto.domain.repository.BackupRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.usecase.preferencias.SalvarPreferenciasGlobaisUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +18,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.io.InputStream
+import java.io.OutputStream
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /**
@@ -35,8 +41,8 @@ data class BackupUiState(
  * Ações da tela de backup.
  */
 sealed interface BackupAction {
-    data object ExportarBackup : BackupAction
-    data object ImportarBackup : BackupAction
+    data class ExportarBackup(val outputStream: OutputStream) : BackupAction
+    data class ImportarBackup(val inputStream: InputStream) : BackupAction
     data object LimparDadosAntigos : BackupAction
     data object Recarregar : BackupAction
 }
@@ -49,20 +55,24 @@ sealed interface BackupEvent {
     data object ExportacaoConcluida : BackupEvent
     data object ImportacaoConcluida : BackupEvent
     data class LimpezaConcluida(val registrosRemovidos: Int) : BackupEvent
+    data object SolicitarDestinoExportacao : BackupEvent
+    data object SolicitarOrigemImportacao : BackupEvent
 }
 
 /**
  * ViewModel da tela de backup e dados.
  *
  * @author Thiago
- * @since 9.0.0
+ * @since 9.1.0
  */
 @HiltViewModel
 @Suppress("DEPRECATION") // observarTodos é usado intencionalmente para backup completo
 class BackupViewModel @Inject constructor(
+    private val backupRepository: BackupRepository,
     private val empregoRepository: EmpregoRepository,
     private val pontoRepository: PontoRepository,
-    private val feriadoRepository: FeriadoRepository
+    private val feriadoRepository: FeriadoRepository,
+    private val salvarPreferenciasGlobaisUseCase: SalvarPreferenciasGlobaisUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BackupUiState())
@@ -77,10 +87,22 @@ class BackupViewModel @Inject constructor(
 
     fun onAction(action: BackupAction) {
         when (action) {
-            BackupAction.ExportarBackup -> exportarBackup()
-            BackupAction.ImportarBackup -> importarBackup()
+            is BackupAction.ExportarBackup -> exportarBackup(action.outputStream)
+            is BackupAction.ImportarBackup -> importarBackup(action.inputStream)
             BackupAction.LimparDadosAntigos -> limparDadosAntigos()
             BackupAction.Recarregar -> carregarEstatisticas()
+        }
+    }
+
+    fun iniciarExportacao() {
+        viewModelScope.launch {
+            _eventos.emit(BackupEvent.SolicitarDestinoExportacao)
+        }
+    }
+
+    fun iniciarImportacao() {
+        viewModelScope.launch {
+            _eventos.emit(BackupEvent.SolicitarOrigemImportacao)
         }
     }
 
@@ -128,40 +150,39 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    private fun exportarBackup() {
+    private fun exportarBackup(outputStream: OutputStream) {
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessando = true, operacaoAtual = "exportar") }
 
-            try {
-                // TODO: Implementar exportação real usando FileProvider/SAF
-                kotlinx.coroutines.delay(2000) // Simula processamento
+            backupRepository.exportarBanco(outputStream)
+                .onSuccess {
+                    salvarPreferenciasGlobaisUseCase.registrarBackupRealizado()
+                    _eventos.emit(BackupEvent.ExportacaoConcluida)
+                }
+                .onFailure { e ->
+                    Timber.e(e, "Erro ao exportar backup")
+                    _eventos.emit(BackupEvent.MostrarMensagem("Erro ao exportar: ${e.message}"))
+                }
 
-                _eventos.emit(BackupEvent.ExportacaoConcluida)
-            } catch (e: Exception) {
-                Timber.e(e, "Erro ao exportar backup")
-                _eventos.emit(BackupEvent.MostrarMensagem("Erro ao exportar: ${e.message}"))
-            } finally {
-                _uiState.update { it.copy(isProcessando = false, operacaoAtual = null) }
-            }
+            _uiState.update { it.copy(isProcessando = false, operacaoAtual = null) }
         }
     }
 
-    private fun importarBackup() {
+    private fun importarBackup(inputStream: InputStream) {
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessando = true, operacaoAtual = "importar") }
 
-            try {
-                // TODO: Implementar importação real usando SAF
-                kotlinx.coroutines.delay(2000) // Simula processamento
+            backupRepository.importarBanco(inputStream)
+                .onSuccess {
+                    _eventos.emit(BackupEvent.ImportacaoConcluida)
+                    carregarEstatisticas()
+                }
+                .onFailure { e ->
+                    Timber.e(e, "Erro ao importar backup")
+                    _eventos.emit(BackupEvent.MostrarMensagem("Erro ao importar: ${e.message}"))
+                }
 
-                _eventos.emit(BackupEvent.ImportacaoConcluida)
-                carregarEstatisticas() // Atualiza estatísticas após importação
-            } catch (e: Exception) {
-                Timber.e(e, "Erro ao importar backup")
-                _eventos.emit(BackupEvent.MostrarMensagem("Erro ao importar: ${e.message}"))
-            } finally {
-                _uiState.update { it.copy(isProcessando = false, operacaoAtual = null) }
-            }
+            _uiState.update { it.copy(isProcessando = false, operacaoAtual = null) }
         }
     }
 
@@ -170,8 +191,9 @@ class BackupViewModel @Inject constructor(
             _uiState.update { it.copy(isProcessando = true, operacaoAtual = "limpar") }
 
             try {
-                // TODO: Implementar limpeza real no repositório
-                val registrosRemovidos = 0
+                // Limpa pontos com mais de 2 anos (padrão)
+                val dataLimite = LocalDate.now().minus(2, ChronoUnit.YEARS)
+                val registrosRemovidos = pontoRepository.excluirPontosAnterioresA(dataLimite)
 
                 _eventos.emit(BackupEvent.LimpezaConcluida(registrosRemovidos))
                 carregarEstatisticas() // Atualiza estatísticas após limpeza

@@ -1,5 +1,7 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.backup
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -43,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,6 +53,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import kotlinx.coroutines.flow.collectLatest
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * Tela de gerenciamento de backup e dados.
@@ -71,6 +76,28 @@ fun BackupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+
+    // Launchers para SAF
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/x-sqlite3")
+    ) { uri ->
+        uri?.let {
+            context.contentResolver.openOutputStream(it)?.let { outputStream ->
+                viewModel.onAction(BackupAction.ExportarBackup(outputStream))
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            context.contentResolver.openInputStream(it)?.let { inputStream ->
+                viewModel.onAction(BackupAction.ImportarBackup(inputStream))
+            }
+        }
+    }
 
     // Dialogs
     var showConfirmLimpeza by remember { mutableStateOf(false) }
@@ -89,6 +116,15 @@ fun BackupScreen(
                 }
                 is BackupEvent.LimpezaConcluida -> {
                     snackbarHostState.showSnackbar("${evento.registrosRemovidos} registros removidos")
+                }
+                is BackupEvent.SolicitarDestinoExportacao -> {
+                    val fileName = "meuponto_backup_${
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
+                    }.db"
+                    exportLauncher.launch(fileName)
+                }
+                is BackupEvent.SolicitarOrigemImportacao -> {
+                    importLauncher.launch(arrayOf("*/*")) // Permitir qualquer arquivo, o repo trata
                 }
             }
         }
@@ -196,7 +232,7 @@ fun BackupScreen(
 
             item {
                 Button(
-                    onClick = { viewModel.onAction(BackupAction.ExportarBackup) },
+                    onClick = { viewModel.iniciarExportacao() },
                     enabled = !uiState.isProcessando,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -241,7 +277,7 @@ fun BackupScreen(
 
             item {
                 OutlinedButton(
-                    onClick = { viewModel.onAction(BackupAction.ImportarBackup) },
+                    onClick = { viewModel.iniciarImportacao() },
                     enabled = !uiState.isProcessando,
                     modifier = Modifier.fillMaxWidth()
                 ) {

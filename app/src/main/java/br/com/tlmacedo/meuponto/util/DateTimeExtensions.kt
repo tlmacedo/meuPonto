@@ -167,6 +167,19 @@ fun LocalDateTime.formatarHora(): String = this.toLocalTime().formatarHora()
  */
 fun LocalDateTime.formatarData(): String = this.toLocalDate().formatarCurto()
 
+/**
+ * Retorna uma representação amigável de data e hora relativa (Hoje, Ontem ou data completa).
+ *
+ * @return String formatada (ex: "Hoje, 08:30", "Ontem, 19:15" ou "12/02/2026 08:30")
+ */
+fun LocalDateTime.toRelativeDateTime(): String {
+    return when {
+        this.toLocalDate().isHoje() -> "Hoje, ${this.formatarHora()}"
+        this.toLocalDate().isOntem() -> "Ontem, ${this.formatarHora()}"
+        else -> this.formatarDataHora()
+    }
+}
+
 // ============================================================================
 // CONVERSÕES PARA DATEPICKER (Material 3)
 // ============================================================================

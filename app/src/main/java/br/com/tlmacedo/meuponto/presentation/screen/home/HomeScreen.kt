@@ -75,6 +75,7 @@ import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.foto.ComprovanteImagePicker
 import br.com.tlmacedo.meuponto.presentation.screen.home.components.FechamentoCicloDialog
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
+import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -193,7 +194,7 @@ private fun HomeDialogs(
     // 1. Date Picker
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dataSelecionada.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+            initialSelectedDateMillis = uiState.dataSelecionada.toDatePickerMillis()
         )
         DatePickerDialog(
             onDismissRequest = { onAction(HomeAction.FecharDatePicker) },
