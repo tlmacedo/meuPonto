@@ -149,6 +149,7 @@ data class FotoModalState(
 data class RegistrarPontoModalState(
     val dataHora: LocalDateTime,
     val nsr: String = "",
+    val observacao: String = "",
     val fotoUri: Uri? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,

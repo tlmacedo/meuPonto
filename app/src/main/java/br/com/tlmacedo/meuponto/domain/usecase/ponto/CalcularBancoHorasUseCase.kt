@@ -44,6 +44,8 @@ class CalcularBancoHorasUseCase @Inject constructor(
 
     data class ResultadoBancoHoras(
         val saldoTotal: Duration,
+        val trabalhadoTotal: Duration = Duration.ZERO,
+        val esperadoTotal: Duration = Duration.ZERO,
         val dataInicio: LocalDate,
         val dataFim: LocalDate,
         val diasTrabalhados: Int,
@@ -120,7 +122,19 @@ class CalcularBancoHorasUseCase @Inject constructor(
             val saldoBase = if (ultimoFechamento?.tipo?.automatico == true)
                 Duration.ofMinutes(ultimoFechamento.saldoAnteriorMinutos.toLong())
             else Duration.ZERO
-            return ResultadoBancoHoras(saldoBase, ateData, ateData, 0, 0, 0, 0, 0, ultimoFechamento)
+            return ResultadoBancoHoras(
+                saldoTotal = saldoBase,
+                trabalhadoTotal = Duration.ZERO,
+                esperadoTotal = Duration.ZERO,
+                dataInicio = ateData,
+                dataFim = ateData,
+                diasTrabalhados = 0,
+                diasComAusencia = 0,
+                diasUteisSemRegistro = 0,
+                totalAjustesMinutos = 0,
+                totalAbonosMinutos = 0,
+                ultimoFechamento = ultimoFechamento
+            )
         }
 
         val resultadoInterno = calcularBancoHorasInterno(empregoId, pontos, ajustes, ausencias, feriados, dataInicio, ateData)
@@ -191,6 +205,8 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
 
         var saldoTotal = Duration.ZERO
+        var trabalhadoTotal = Duration.ZERO
+        var esperadoTotal = Duration.ZERO
         var diasTrabalhados = 0
         var diasComAusencia = 0
         var diasUteisSemRegistro = 0
@@ -242,6 +258,8 @@ class CalcularBancoHorasUseCase @Inject constructor(
             }
 
             totalAbonosMinutos += resumoCompleto.tempoAbonadoMinutos
+            trabalhadoTotal = trabalhadoTotal.plus(resumoCompleto.horasTrabalhadas)
+            esperadoTotal = esperadoTotal.plus(resumoCompleto.cargaHorariaEfetiva)
             saldoTotal = saldoTotal.plus(resumoCompleto.saldoDia)
             dataAtual = dataAtual.plusDays(1)
         }
@@ -250,8 +268,17 @@ class CalcularBancoHorasUseCase @Inject constructor(
         saldoTotal = saldoTotal.plusMinutes(totalAjustesMinutos.toLong())
 
         return ResultadoBancoHoras(
-            saldoTotal, dataInicio, dataFim, diasTrabalhados, diasComAusencia,
-            diasUteisSemRegistro, totalAjustesMinutos, totalAbonosMinutos, null
+            saldoTotal = saldoTotal,
+            trabalhadoTotal = trabalhadoTotal,
+            esperadoTotal = esperadoTotal,
+            dataInicio = dataInicio,
+            dataFim = dataFim,
+            diasTrabalhados = diasTrabalhados,
+            diasComAusencia = diasComAusencia,
+            diasUteisSemRegistro = diasUteisSemRegistro,
+            totalAjustesMinutos = totalAjustesMinutos,
+            totalAbonosMinutos = totalAbonosMinutos,
+            ultimoFechamento = null
         )
     }
 }

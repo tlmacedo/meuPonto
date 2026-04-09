@@ -46,8 +46,8 @@ class CalcularSaldoMensalUseCase @Inject constructor(
 
         return SaldoMensal(
             mes = mes,
-            trabalhadoMinutos = 0, // No momento o dashboard não exige o total trabalhado separado
-            esperadoMinutos = 0,   // No momento o dashboard não exige o esperado separado
+            trabalhadoMinutos = resultado.trabalhadoTotal.toMinutes(),
+            esperadoMinutos = resultado.esperadoTotal.toMinutes(),
             saldoMinutos = resultado.saldoTotal.toMinutes(),
             diasTrabalhados = resultado.diasTrabalhados,
             diasUteis = 0

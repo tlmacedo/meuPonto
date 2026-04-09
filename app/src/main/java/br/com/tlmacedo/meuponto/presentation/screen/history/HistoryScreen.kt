@@ -76,6 +76,7 @@ import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
+import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
 import br.com.tlmacedo.meuponto.presentation.components.LoadingIndicator
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
@@ -83,6 +84,7 @@ import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -194,6 +196,18 @@ fun HistoryContent(
 
             when {
                 uiState.isLoading -> LoadingIndicator()
+                uiState.filtroAtivo == FiltroHistorico.CALENDARIO -> {
+                    CalendarView(
+                        yearMonth = YearMonth.from(uiState.periodoSelecionado.dataInicio),
+                        holidays = uiState.todosFeriados,
+                        absences = uiState.todasAusencias,
+                        onDateClick = onNavigateToDay,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    )
+                }
+
                 uiState.registrosFiltrados.isEmpty() -> {
                     EmptyState(
                         title = if (uiState.filtroAtivo != FiltroHistorico.TODOS)

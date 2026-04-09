@@ -192,6 +192,7 @@ class HomeViewModel @Inject constructor(
             is HomeAction.FecharTimePickerRegistroModal -> fecharTimePickerRegistroModal()
             is HomeAction.CapturarLocalizacaoRegistroModal -> capturarLocalizacaoRegistroModal()
             is HomeAction.ConfirmarRegistroPontoModal -> confirmarRegistroPontoModal()
+            is HomeAction.AtualizarObservacaoRegistroModal -> atualizarObservacaoRegistroModal(action.observacao)
 
             // FOTO DE COMPROVANTE
             is HomeAction.AbrirFotoSourceDialog -> abrirFotoSourceDialog()
@@ -518,6 +519,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun atualizarObservacaoRegistroModal(observacao: String) {
+        _uiState.update { state ->
+            state.copy(
+                registrarPontoModal = state.registrarPontoModal?.copy(observacao = observacao)
+            )
+        }
+    }
+
     private fun atualizarFotoRegistroModal(uri: Uri?) {
         _uiState.update { state ->
             state.copy(
@@ -726,6 +735,15 @@ class HomeViewModel @Inject constructor(
             return
         }
 
+        // Validar comentário obrigatório
+        val comentarioObrigatorio = _uiState.value.configuracaoEmprego?.comentarioObrigatorioHoraExtra == true && (_uiState.value.resumoDia.saldoDiaMinutos > 0)
+        if (comentarioObrigatorio && modalState.observacao.isBlank()) {
+            viewModelScope.launch {
+                _uiEvent.emit(HomeUiEvent.MostrarErro("A observação é obrigatória quando há horas extras."))
+            }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { state ->
                 state.copy(
@@ -736,6 +754,7 @@ class HomeViewModel @Inject constructor(
             val parametros = RegistrarPontoUseCase.Parametros(
                 empregoId = empregoId,
                 dataHora = modalState.dataHora,
+                observacao = modalState.observacao.takeIf { it.isNotBlank() },
                 nsr = if (_uiState.value.nsrHabilitado) modalState.nsr else null,
                 latitude = modalState.latitude,
                 longitude = modalState.longitude,

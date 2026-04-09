@@ -440,12 +440,11 @@ data class ResumoDia(
             }
 
             if (pontos.size >= 4 && !tipoDiaEspecial.zeraJornada) {
-                val todasAsPausas = intervalos.drop(1).mapNotNull { it.pausaAntesMinutos }
-                val algumaPausaAtingiuMinimo = todasAsPausas.any { it >= (intervaloMinimoMinutos - 10) }
+                val pausaPrincipal = intervalos.find { it.isPausaPrincipal }
+                val pausaPrincipalMinutos = pausaPrincipal?.pausaAntesMinutos ?: 0
                 
-                if (!algumaPausaAtingiuMinimo && todasAsPausas.isNotEmpty()) {
-                    val maiorPausa = todasAsPausas.maxOrNull() ?: 0
-                    inconsistencias.add("Nenhum intervalo atingiu o mínimo de ${intervaloMinimoMinutos.minutosParaIntervalo()} (maior pausa: ${maiorPausa.minutosParaIntervalo()})")
+                if (pausaPrincipalMinutos < (intervaloMinimoMinutos - 10)) {
+                    inconsistencias.add("Intervalo principal não atingiu o mínimo de ${intervaloMinimoMinutos.minutosParaIntervalo()} (pausa: ${pausaPrincipalMinutos.minutosParaIntervalo()})")
                 }
             }
 

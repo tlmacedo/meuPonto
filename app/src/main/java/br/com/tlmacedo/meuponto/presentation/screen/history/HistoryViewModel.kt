@@ -163,6 +163,8 @@ class HistoryViewModel @Inject constructor(
                             saldosAcumuladosPorDia = resultado.saldosAcumulados,
                             saldoInicialPeriodo = saldoInicialPeriodo,
                             resumoPeriodo = resultado.resumoPeriodo,
+                            todasAusencias = resultado.todasAusencias,
+                            todosFeriados = resultado.todosFeriados,
                             isLoading = false
                         )
                     }
@@ -178,7 +180,9 @@ class HistoryViewModel @Inject constructor(
     private data class ResultadoProcessamento(
         val diasHistorico: List<InfoDiaHistorico>,
         val saldosAcumulados: Map<LocalDate, Int>,
-        val resumoPeriodo: ResumoPeriodo
+        val resumoPeriodo: ResumoPeriodo,
+        val todasAusencias: List<Ausencia>,
+        val todosFeriados: List<Feriado>
     )
 
     private suspend fun processarDadosPeriodo(
@@ -424,7 +428,9 @@ class HistoryViewModel @Inject constructor(
         return ResultadoProcessamento(
             diasHistorico = diasHistorico.sortedByDescending { it.data },
             saldosAcumulados = saldosAcumulados,
-            resumoPeriodo = resumoPeriodo
+            resumoPeriodo = resumoPeriodo,
+            todasAusencias = ausencias,
+            todosFeriados = feriados
         )
     }
 

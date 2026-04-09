@@ -35,7 +35,10 @@ enum class FiltroHistorico(
     DAY_OFF("Day-off", "🎁", true),
     ATESTADOS("Atestados", "🏥", true),
     DECLARACOES("Declarações", "📄", true),
-    FALTAS("Faltas", "❌", true);
+    FALTAS("Faltas", "❌", true),
+    
+    // Novo modo de visualização
+    CALENDARIO("Calendário", "📅");
 
     companion object {
         /** Retorna apenas os filtros principais (para exibir nos chips) */
@@ -307,7 +310,9 @@ data class HistoryUiState(
     val diaExpandido: LocalDate? = null,
     val saldosAcumuladosPorDia: Map<LocalDate, Int> = emptyMap(),
     val saldoInicialPeriodo: Int = 0,
-    val resumoPeriodo: ResumoPeriodo = ResumoPeriodo()
+    val resumoPeriodo: ResumoPeriodo = ResumoPeriodo(),
+    val todasAusencias: List<Ausencia> = emptyList(),
+    val todosFeriados: List<Feriado> = emptyList()
 ) {
     val hasRegistros: Boolean get() = diasHistorico.isNotEmpty()
 
@@ -344,6 +349,7 @@ data class HistoryUiState(
                     a.tipo == TipoAusencia.FALTA_JUSTIFICADA || a.tipo == TipoAusencia.FALTA_INJUSTIFICADA
                 }
             }
+            FiltroHistorico.CALENDARIO -> diasHistorico
         }
 
     // Delegações para ResumoPeriodo

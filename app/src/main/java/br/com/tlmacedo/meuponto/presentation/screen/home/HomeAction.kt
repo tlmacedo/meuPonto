@@ -56,6 +56,9 @@ sealed interface HomeAction {
     /** Confirma o registro do ponto a partir do modal */
     data object ConfirmarRegistroPontoModal : HomeAction
 
+    /** Atualiza a observação no modal de registro */
+    data class AtualizarObservacaoRegistroModal(val observacao: String) : HomeAction
+
     // ── FOTO DE COMPROVANTE (Ações globais/fluxo antigo) ─────────────────────
     /** Abre o diálogo de seleção de fonte da foto (Câmera/Galeria) */
     data object AbrirFotoSourceDialog : HomeAction

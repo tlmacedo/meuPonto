@@ -48,7 +48,10 @@ fun RegistrarPontoModal(
     fotoHabilitada: Boolean,
     fotoObrigatoria: Boolean,
     configLocalizacaoHabilitada: Boolean,
+    comentarioHabilitado: Boolean,
+    comentarioObrigatorio: Boolean,
     onNsrChange: (String) -> Unit,
+    onObservacaoChange: (String) -> Unit,
     onCapturarFoto: () -> Unit,
     onRemoverFoto: () -> Unit,
     onCapturarLocalizacao: () -> Unit,
@@ -63,7 +66,8 @@ fun RegistrarPontoModal(
 
     val podeConfirmar = !state.isSaving && !state.isProcessingOcr &&
             (!fotoObrigatoria || state.fotoUri != null) &&
-            (!nsrHabilitado || state.nsr.isNotBlank())
+            (!nsrHabilitado || state.nsr.isNotBlank()) &&
+            (!comentarioObrigatorio || state.observacao.isNotBlank())
 
     if (state.showTimePicker) {
         TimePickerDialog(
@@ -270,6 +274,21 @@ fun RegistrarPontoModal(
                             keyboardType = if (tipoNsr == TipoNsr.NUMERICO) KeyboardType.Number else KeyboardType.Text
                         ),
                         leadingIcon = { Icon(Icons.Default.Pin, contentDescription = null) }
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+
+                // OBSERVAÇÃO (se habilitada)
+                if (comentarioHabilitado) {
+                    OutlinedTextField(
+                        value = state.observacao,
+                        onValueChange = onObservacaoChange,
+                        label = { Text("Observação" + if (comentarioObrigatorio) " *" else "") },
+                        placeholder = { Text("Adicione um comentário opcional") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 4,
+                        leadingIcon = { Icon(Icons.Default.Comment, contentDescription = null) }
                     )
                     Spacer(modifier = Modifier.height(20.dp))
                 }

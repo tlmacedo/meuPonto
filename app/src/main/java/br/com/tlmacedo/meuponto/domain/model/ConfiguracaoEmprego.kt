@@ -95,6 +95,16 @@ data class ConfiguracaoEmprego(
     val exigeJustificativaInconsistencia: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════
+    // COMENTÁRIO DO PONTO (OBSERVAÇÃO)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** Habilita o campo de observação no registro do ponto */
+    val comentarioHabilitado: Boolean = true,
+
+    /** Torna o comentário obrigatório caso haja hora extra no dia */
+    val comentarioObrigatorioHoraExtra: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
     // EXIBIÇÃO
     // ════════════════════════════════════════════════════════════════════════
 
