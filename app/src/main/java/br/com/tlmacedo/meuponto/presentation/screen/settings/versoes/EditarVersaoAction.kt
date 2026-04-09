@@ -11,7 +11,10 @@ sealed interface EditarVersaoAction {
     data class AlterarDataFim(val data: LocalDate?) : EditarVersaoAction
     data class AlterarJornadaMaxima(val minutos: Int) : EditarVersaoAction
     data class AlterarIntervaloInterjornada(val minutos: Int) : EditarVersaoAction
+    data class AlterarIntervaloAlmoco(val minutos: Int) : EditarVersaoAction
+    data class AlterarIntervaloDescanso(val minutos: Int) : EditarVersaoAction
     data class AlterarToleranciaIntervalo(val minutos: Int) : EditarVersaoAction
+    data class AlterarToleranciaRetornoIntervalo(val minutos: Int) : EditarVersaoAction
     data class AlterarTurnoMaximo(val minutos: Int) : EditarVersaoAction
 
     // Carga horária
@@ -28,9 +31,12 @@ sealed interface EditarVersaoAction {
 
     // Banco de Horas
     data class AlterarBancoHorasHabilitado(val habilitar: Boolean) : EditarVersaoAction
+    data class AlterarPeriodoBancoDias(val dias: Int) : EditarVersaoAction
     data class AlterarPeriodoBancoSemanas(val semanas: Int) : EditarVersaoAction
     data class AlterarPeriodoBancoMeses(val meses: Int) : EditarVersaoAction
+    data class AlterarPeriodoBancoAnos(val anos: Int) : EditarVersaoAction
     data class AlterarDataInicioCicloBancoAtual(val data: LocalDate?) : EditarVersaoAction
+    data class AlterarProgressoCicloBanco(val progresso: Float) : EditarVersaoAction
 
     data class AlterarZerarBancoAntesPeriodo(val zerar: Boolean) : EditarVersaoAction
     data class AlterarHabilitarSugestaoAjuste(val habilitar: Boolean) : EditarVersaoAction
@@ -51,12 +57,10 @@ sealed interface EditarVersaoAction {
  * Seções expansíveis na tela de edição de versão.
  */
 enum class SecaoVersao {
-    INFORMACOES_BASICAS,
-    PERIODO_VIGENCIA,
-    CONFIGURACOES_JORNADA,
-    CARGA_HORARIA,
-    PERIODO_SALDO,
+    VIGENCIA_IDENTIFICACAO,
+    JORNADA_CARGA,
+    FECHAMENTO_SALDO,
     BANCO_HORAS,
-    VALIDACAO,
-    HORARIOS
+    VALIDACAO
 }
+

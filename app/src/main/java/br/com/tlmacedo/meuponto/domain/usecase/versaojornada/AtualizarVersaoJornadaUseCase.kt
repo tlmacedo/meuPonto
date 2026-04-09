@@ -75,7 +75,38 @@ class AtualizarVersaoJornadaUseCase @Inject constructor(
                 vigente = params.vigente,
                 jornadaMaximaDiariaMinutos = params.jornadaMaximaDiariaMinutos,
                 intervaloMinimoInterjornadaMinutos = params.intervaloMinimoInterjornadaMinutos,
+                intervaloMinimoAlmocoMinutos = params.intervaloMinimoAlmocoMinutos,
+                intervaloMinimoDescansoMinutos = params.intervaloMinimoDescansoMinutos,
                 toleranciaIntervaloMaisMinutos = params.toleranciaIntervaloMaisMinutos,
+                toleranciaRetornoIntervaloMinutos = params.toleranciaRetornoIntervaloMinutos,
+                turnoMaximoMinutos = params.turnoMaximoMinutos,
+
+                // Carga horária
+                cargaHorariaDiariaMinutos = params.cargaHorariaDiariaMinutos,
+                acrescimoMinutosDiasPontes = params.acrescimoMinutosDiasPontes,
+                cargaHorariaSemanalMinutos = params.cargaHorariaSemanalMinutos,
+
+                // Período/Saldo
+                primeiroDiaSemana = params.primeiroDiaSemana,
+                diaInicioFechamentoRH = params.diaInicioFechamentoRH,
+                zerarSaldoSemanal = params.zerarSaldoSemanal,
+                zerarSaldoPeriodoRH = params.zerarSaldoPeriodoRH,
+                ocultarSaldoTotal = params.ocultarSaldoTotal,
+
+                // Banco de Horas
+                bancoHorasHabilitado = params.bancoHorasHabilitado,
+                periodoBancoDias = params.periodoBancoDias,
+                periodoBancoSemanas = params.periodoBancoSemanas,
+                periodoBancoMeses = params.periodoBancoMeses,
+                periodoBancoAnos = params.periodoBancoAnos,
+                dataInicioCicloBancoAtual = params.dataInicioCicloBancoAtual,
+                diasUteisLembreteFechamento = params.diasUteisLembreteFechamento,
+                habilitarSugestaoAjuste = params.habilitarSugestaoAjuste,
+                zerarBancoAntesPeriodo = params.zerarBancoAntesPeriodo,
+
+                // Validação
+                exigeJustificativaInconsistencia = params.exigeJustificativaInconsistencia,
+
                 atualizadoEm = LocalDateTime.now()
             )
 
@@ -101,6 +132,36 @@ class AtualizarVersaoJornadaUseCase @Inject constructor(
         val vigente: Boolean = true,
         val jornadaMaximaDiariaMinutos: Int = 600,
         val intervaloMinimoInterjornadaMinutos: Int = 660,
-        val toleranciaIntervaloMaisMinutos: Int = 0
+        val intervaloMinimoAlmocoMinutos: Int = 60,
+        val intervaloMinimoDescansoMinutos: Int = 15,
+        val toleranciaIntervaloMaisMinutos: Int = 0,
+        val toleranciaRetornoIntervaloMinutos: Int = 5,
+        val turnoMaximoMinutos: Int = 360,
+
+        // Carga horária
+        val cargaHorariaDiariaMinutos: Int = 480,
+        val acrescimoMinutosDiasPontes: Int = 12,
+        val cargaHorariaSemanalMinutos: Int = 2460,
+
+        // Período/Saldo
+        val primeiroDiaSemana: br.com.tlmacedo.meuponto.domain.model.DiaSemana = br.com.tlmacedo.meuponto.domain.model.DiaSemana.SEGUNDA,
+        val diaInicioFechamentoRH: Int = 1,
+        val zerarSaldoSemanal: Boolean = false,
+        val zerarSaldoPeriodoRH: Boolean = false,
+        val ocultarSaldoTotal: Boolean = false,
+
+        // Banco de Horas
+        val bancoHorasHabilitado: Boolean = false,
+        val periodoBancoDias: Int = 0,
+        val periodoBancoSemanas: Int = 0,
+        val periodoBancoMeses: Int = 0,
+        val periodoBancoAnos: Int = 0,
+        val dataInicioCicloBancoAtual: LocalDate? = null,
+        val diasUteisLembreteFechamento: Int = 3,
+        val habilitarSugestaoAjuste: Boolean = false,
+        val zerarBancoAntesPeriodo: Boolean = false,
+
+        // Validação
+        val exigeJustificativaInconsistencia: Boolean = false
     )
 }

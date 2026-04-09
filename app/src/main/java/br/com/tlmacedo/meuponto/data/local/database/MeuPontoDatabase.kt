@@ -27,7 +27,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.*
         UsuarioEntity::class,
         AusenciaEntity::class
     ],
-    version = 28, // Ajuste a versão conforme necessário para suas migrações
+    version = 31, // Incremented to add new fields in VersaoJornadaEntity
     exportSchema = true // Mantenha como true para gerar o schema.json
 )
 @TypeConverters(Converters::class)

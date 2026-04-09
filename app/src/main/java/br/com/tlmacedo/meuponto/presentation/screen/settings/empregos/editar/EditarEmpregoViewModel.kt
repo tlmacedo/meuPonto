@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.Duration
 import java.time.LocalDate
 import javax.inject.Inject
@@ -67,14 +68,6 @@ class EditarEmpregoViewModel @Inject constructor(
             is EditarEmpregoAction.AlterarDataInicioTrabalho -> alterarDataInicioTrabalho(action.data)
             is EditarEmpregoAction.AlterarDataTerminoTrabalho -> _uiState.update { it.copy(dataTerminoTrabalho = action.data, showTerminoTrabalhoPicker = false) }
 
-            is EditarEmpregoAction.AlterarCargaHorariaDiaria -> alterarCargaHorariaDiaria(action.duracao)
-            is EditarEmpregoAction.AlterarAcrescimoDiasPontes -> alterarAcrescimoDiasPontes(action.minutos)
-            is EditarEmpregoAction.AlterarJornadaMaximaDiaria -> alterarJornadaMaximaDiaria(action.minutos)
-            is EditarEmpregoAction.AlterarTurnoMaximo -> alterarTurnoMaximo(action.minutos)
-            is EditarEmpregoAction.AlterarIntervaloMinimo -> alterarIntervaloMinimo(action.minutos)
-            is EditarEmpregoAction.AlterarIntervaloInterjornada -> alterarIntervaloInterjornada(action.minutos)
-            is EditarEmpregoAction.AlterarToleranciaIntervaloMais -> alterarToleranciaIntervaloMais(action.minutos)
-            
             is EditarEmpregoAction.AlterarHabilitarNsr -> alterarHabilitarNsr(action.habilitado)
             is EditarEmpregoAction.AlterarTipoNsr -> alterarTipoNsr(action.tipo)
             is EditarEmpregoAction.AlterarHabilitarLocalizacao -> alterarHabilitarLocalizacao(action.habilitado)
@@ -82,15 +75,6 @@ class EditarEmpregoViewModel @Inject constructor(
             is EditarEmpregoAction.AlterarHabilitarFotoComprovante -> alterarHabilitarFotoComprovante(action.habilitado)
             is EditarEmpregoAction.AlterarFotoObrigatoria -> alterarFotoObrigatoria(action.obrigatoria)
 
-            is EditarEmpregoAction.AlterarExigeJustificativa -> alterarExigeJustificativa(action.exigir)
-            is EditarEmpregoAction.AlterarPrimeiroDiaSemana -> alterarPrimeiroDiaSemana(action.dia)
-            is EditarEmpregoAction.AlterarDiaInicioFechamentoRH -> alterarDiaInicioFechamentoRH(action.dia)
-            is EditarEmpregoAction.AlterarBancoHorasHabilitado -> alterarBancoHorasHabilitado(action.habilitado)
-            is EditarEmpregoAction.AlterarPeriodoBancoHoras -> alterarPeriodoBancoHoras(action.valor)
-            is EditarEmpregoAction.AlterarDataInicioCicloBanco -> alterarDataInicioCicloBanco(action.data)
-            is EditarEmpregoAction.AlterarZerarSaldoPeriodoRH -> _uiState.update { it.copy(zerarSaldoPeriodoRH = action.zerar) }
-            is EditarEmpregoAction.AlterarZerarBancoAntesPeriodo -> alterarZerarBancoAntesPeriodo(action.zerar)
-            
             is EditarEmpregoAction.AlterarFuncaoInicial -> _uiState.update { it.copy(funcaoInicial = action.funcao) }
             is EditarEmpregoAction.AlterarSalarioInicial -> _uiState.update { it.copy(salarioInicial = action.valor) }
 
@@ -98,12 +82,30 @@ class EditarEmpregoViewModel @Inject constructor(
             is EditarEmpregoAction.Salvar -> salvar()
             is EditarEmpregoAction.Cancelar -> cancelar()
             is EditarEmpregoAction.LimparErro -> limparErro()
+
+            // Ignorar ações migradas para Versão na tela de Emprego
+            is EditarEmpregoAction.AlterarCargaHorariaDiaria,
+            is EditarEmpregoAction.AlterarAcrescimoDiasPontes,
+            is EditarEmpregoAction.AlterarJornadaMaximaDiaria,
+            is EditarEmpregoAction.AlterarTurnoMaximo,
+            is EditarEmpregoAction.AlterarIntervaloMinimo,
+            is EditarEmpregoAction.AlterarIntervaloInterjornada,
+            is EditarEmpregoAction.AlterarToleranciaIntervaloMais,
+            is EditarEmpregoAction.AlterarExigeJustificativa,
+            is EditarEmpregoAction.AlterarPrimeiroDiaSemana,
+            is EditarEmpregoAction.AlterarDiaInicioFechamentoRH,
+            is EditarEmpregoAction.AlterarZerarSaldoPeriodoRH,
+            is EditarEmpregoAction.AlterarBancoHorasHabilitado,
+            is EditarEmpregoAction.AlterarPeriodoBancoHoras,
+            is EditarEmpregoAction.AlterarDataInicioCicloBanco,
+            is EditarEmpregoAction.AlterarZerarBancoAntesPeriodo -> {
+                Timber.w("Ação ${action::class.simpleName} migrada para EditarVersaoViewModel e não deve ser usada aqui.")
+            }
         }
     }
 
     fun setShowInicioTrabalhoPicker(show: Boolean) = _uiState.update { it.copy(showInicioTrabalhoPicker = show) }
     fun setShowTerminoTrabalhoPicker(show: Boolean) = _uiState.update { it.copy(showTerminoTrabalhoPicker = show) }
-    fun setShowDataInicioCicloPicker(show: Boolean) = _uiState.update { it.copy(showDataInicioCicloPicker = show) }
 
     private fun carregarEmprego(id: Long) {
         viewModelScope.launch {
@@ -113,14 +115,6 @@ class EditarEmpregoViewModel @Inject constructor(
                 is ObterEmpregoComConfiguracaoUseCase.Resultado.Sucesso -> {
                     val emprego = resultado.emprego
                     val config = resultado.configuracao
-
-                    val versaoVigente = versaoJornadaRepository.buscarVigente(id)
-
-                    val periodoBancoValor = when {
-                        versaoVigente?.periodoBancoSemanas ?: 0 > 0 -> versaoVigente!!.periodoBancoSemanas
-                        versaoVigente?.periodoBancoMeses ?: 0 > 0 -> versaoVigente!!.periodoBancoMeses + 3
-                        else -> 0
-                    }
 
                     _uiState.update {
                         it.copy(
@@ -132,14 +126,6 @@ class EditarEmpregoViewModel @Inject constructor(
                             dataInicioTrabalho = emprego.dataInicioTrabalho,
                             dataTerminoTrabalho = emprego.dataTerminoTrabalho,
                             
-                            cargaHorariaDiaria = Duration.ofMinutes((versaoVigente?.cargaHorariaDiariaMinutos ?: 480).toLong()),
-                            acrescimoMinutosDiasPontes = versaoVigente?.acrescimoMinutosDiasPontes ?: 0,
-                            jornadaMaximaDiariaMinutos = versaoVigente?.jornadaMaximaDiariaMinutos ?: 600,
-                            turnoMaximoMinutos = versaoVigente?.turnoMaximoMinutos ?: 360,
-                            intervaloMinimoMinutos = 60, // Padrão
-                            intervaloInterjornadaMinutos = versaoVigente?.intervaloMinimoInterjornadaMinutos ?: 660,
-                            toleranciaIntervaloMaisMinutos = versaoVigente?.toleranciaIntervaloMaisMinutos ?: 0,
-                            
                             habilitarNsr = config.habilitarNsr,
                             tipoNsr = config.tipoNsr,
                             habilitarLocalizacao = config.habilitarLocalizacao,
@@ -147,13 +133,6 @@ class EditarEmpregoViewModel @Inject constructor(
                             habilitarFotoComprovante = config.fotoHabilitada,
                             fotoObrigatoria = config.fotoObrigatoria,
 
-                            exigeJustificativaInconsistencia = versaoVigente?.exigeJustificativaInconsistencia ?: false,
-                            primeiroDiaSemana = versaoVigente?.primeiroDiaSemana ?: DiaSemana.SEGUNDA,
-                            diaInicioFechamentoRH = versaoVigente?.diaInicioFechamentoRH ?: 1,
-                            bancoHorasHabilitado = versaoVigente?.bancoHorasHabilitado ?: false,
-                            periodoBancoValor = periodoBancoValor,
-                            dataInicioCicloBanco = versaoVigente?.dataInicioCicloBancoAtual,
-                            zerarBancoAntesPeriodo = versaoVigente?.zerarBancoAntesPeriodo ?: false,
                             isLoading = false
                         )
                     }
@@ -181,37 +160,12 @@ class EditarEmpregoViewModel @Inject constructor(
     }
 
     private fun alterarDataInicioTrabalho(data: LocalDate?) = _uiState.update { it.copy(dataInicioTrabalho = data, showInicioTrabalhoPicker = false) }
-    private fun alterarCargaHorariaDiaria(duracao: Duration) = _uiState.update { it.copy(cargaHorariaDiaria = duracao) }
-    private fun alterarAcrescimoDiasPontes(minutos: Int) = _uiState.update { it.copy(acrescimoMinutosDiasPontes = minutos) }
-    private fun alterarJornadaMaximaDiaria(minutos: Int) = _uiState.update { it.copy(jornadaMaximaDiariaMinutos = minutos) }
-    private fun alterarTurnoMaximo(minutos: Int) = _uiState.update { it.copy(turnoMaximoMinutos = minutos) }
-    private fun alterarIntervaloMinimo(minutos: Int) = _uiState.update { it.copy(intervaloMinimoMinutos = minutos) }
-    private fun alterarIntervaloInterjornada(minutos: Int) = _uiState.update { it.copy(intervaloInterjornadaMinutos = minutos) }
-    private fun alterarToleranciaIntervaloMais(minutos: Int) = _uiState.update { it.copy(toleranciaIntervaloMaisMinutos = minutos) }
     private fun alterarHabilitarNsr(habilitado: Boolean) = _uiState.update { it.copy(habilitarNsr = habilitado) }
     private fun alterarTipoNsr(tipo: TipoNsr) = _uiState.update { it.copy(tipoNsr = tipo) }
     private fun alterarHabilitarLocalizacao(habilitado: Boolean) = _uiState.update { it.copy(habilitarLocalizacao = habilitado) }
     private fun alterarLocalizacaoAutomatica(automatica: Boolean) = _uiState.update { it.copy(localizacaoAutomatica = automatica) }
     private fun alterarHabilitarFotoComprovante(habilitado: Boolean) = _uiState.update { it.copy(habilitarFotoComprovante = habilitado) }
     private fun alterarFotoObrigatoria(obrigatoria: Boolean) = _uiState.update { it.copy(fotoObrigatoria = obrigatoria) }
-    private fun alterarExigeJustificativa(exigir: Boolean) = _uiState.update { it.copy(exigeJustificativaInconsistencia = exigir) }
-    private fun alterarPrimeiroDiaSemana(dia: DiaSemana) = _uiState.update { it.copy(primeiroDiaSemana = dia) }
-    private fun alterarDiaInicioFechamentoRH(dia: Int) = _uiState.update { it.copy(diaInicioFechamentoRH = dia.coerceIn(1, 28)) }
-
-    private fun alterarBancoHorasHabilitado(habilitado: Boolean) = _uiState.update { state ->
-        state.copy(
-            bancoHorasHabilitado = habilitado,
-            periodoBancoValor = if (habilitado) state.periodoBancoValor.coerceAtLeast(1) else 0,
-            dataInicioCicloBanco = if (habilitado && state.dataInicioCicloBanco == null) LocalDate.now() else state.dataInicioCicloBanco
-        )
-    }
-
-    private fun alterarPeriodoBancoHoras(valor: Int) = _uiState.update { state ->
-        state.copy(periodoBancoValor = valor, bancoHorasHabilitado = if (valor > 0) true else state.bancoHorasHabilitado)
-    }
-
-    private fun alterarDataInicioCicloBanco(data: LocalDate?) = _uiState.update { it.copy(dataInicioCicloBanco = data, showDataInicioCicloPicker = false) }
-    private fun alterarZerarBancoAntesPeriodo(zerar: Boolean) = _uiState.update { it.copy(zerarBancoAntesPeriodo = zerar) }
     private fun toggleSecao(secao: SecaoFormulario) = _uiState.update { state -> state.copy(secaoExpandida = if (state.secaoExpandida == secao) null else secao) }
 
     private fun salvar() {
@@ -219,11 +173,6 @@ class EditarEmpregoViewModel @Inject constructor(
 
         if (state.nome.isBlank()) {
             viewModelScope.launch { _eventos.emit(EditarEmpregoEvent.MostrarErro("Nome é obrigatório")) }
-            return
-        }
-
-        if (state.bancoHorasHabilitado && state.periodoBancoValor > 0 && state.dataInicioCicloBanco == null) {
-            viewModelScope.launch { _eventos.emit(EditarEmpregoEvent.MostrarErro("Data de início do ciclo é obrigatória")) }
             return
         }
 
@@ -240,28 +189,14 @@ class EditarEmpregoViewModel @Inject constructor(
                         dataTerminoTrabalho = state.dataTerminoTrabalho,
                         funcao = state.funcaoInicial,
                         salarioInicial = state.salarioInicial ?: 0.0,
-                        cargaHorariaDiariaMinutos = state.cargaHorariaDiaria.toMinutes().toInt(),
-                        acrescimoMinutosDiasPontes = state.acrescimoMinutosDiasPontes,
-                        jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,
-                        intervaloMinimoMinutos = state.intervaloMinimoMinutos,
-                        intervaloMinimoInterjornadaMinutos = state.intervaloInterjornadaMinutos,
-                        turnoMaximoMinutos = state.turnoMaximoMinutos,
-                        toleranciaIntervaloMaisMinutos = state.toleranciaIntervaloMaisMinutos,
-                        diaInicioFechamentoRH = state.diaInicioFechamentoRH,
-                        zerarSaldoPeriodoRH = state.zerarSaldoPeriodoRH,
-                        primeiroDiaSemana = state.primeiroDiaSemana,
-                        bancoHorasHabilitado = state.bancoHorasHabilitado,
-                        periodoBancoSemanas = state.periodoBancoSemanas,
-                        periodoBancoMeses = state.periodoBancoMeses,
-                        dataInicioCicloBanco = state.dataInicioCicloBanco,
-                        zerarBancoAoFecharCiclo = state.zerarBancoAntesPeriodo,
                         habilitarNsr = state.habilitarNsr,
                         tipoNsr = state.tipoNsr,
                         habilitarLocalizacao = state.habilitarLocalizacao,
                         localizacaoAutomatica = state.localizacaoAutomatica,
                         fotoHabilitada = state.habilitarFotoComprovante,
-                        fotoObrigatoria = state.fotoObrigatoria,
-                        exigeJustificativaInconsistencia = state.exigeJustificativaInconsistencia
+                        fotoObrigatoria = state.fotoObrigatoria
+                        // Outros parâmetros de CriarEmpregoUseCase agora têm defaults
+                        // refletindo a configuração inicial padrão para a Versao 1.
                     )
                     
                     when (val resultado = criarEmpregoUseCase(params)) {
@@ -288,23 +223,7 @@ class EditarEmpregoViewModel @Inject constructor(
                         habilitarLocalizacao = state.habilitarLocalizacao,
                         localizacaoAutomatica = state.localizacaoAutomatica,
                         fotoHabilitada = state.habilitarFotoComprovante,
-                        fotoObrigatoria = state.fotoObrigatoria,
-                        cargaHorariaDiariaMinutos = state.cargaHorariaDiaria.toMinutes().toInt(),
-                        acrescimoMinutosDiasPontes = state.acrescimoMinutosDiasPontes,
-                        jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,
-                        intervaloMinimoMinutos = state.intervaloMinimoMinutos,
-                        intervaloMinimoInterjornadaMinutos = state.intervaloInterjornadaMinutos,
-                        turnoMaximoMinutos = state.turnoMaximoMinutos,
-                        toleranciaIntervaloMaisMinutos = state.toleranciaIntervaloMaisMinutos,
-                        exigeJustificativaInconsistencia = state.exigeJustificativaInconsistencia,
-                        diaInicioFechamentoRH = state.diaInicioFechamentoRH,
-                        zerarSaldoPeriodoRH = state.zerarSaldoPeriodoRH,
-                        primeiroDiaSemana = state.primeiroDiaSemana,
-                        bancoHorasHabilitado = state.bancoHorasHabilitado,
-                        periodoBancoSemanas = state.periodoBancoSemanas,
-                        periodoBancoMeses = state.periodoBancoMeses,
-                        dataInicioCicloBanco = state.dataInicioCicloBanco,
-                        zerarBancoAoFecharCiclo = state.zerarBancoAntesPeriodo
+                        fotoObrigatoria = state.fotoObrigatoria
                     )
 
                     when (val resultado = atualizarEmpregoUseCase(params)) {

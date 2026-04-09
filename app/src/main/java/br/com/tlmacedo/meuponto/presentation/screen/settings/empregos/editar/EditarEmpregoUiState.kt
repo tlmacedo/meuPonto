@@ -26,17 +26,6 @@ data class EditarEmpregoUiState(
     val dataInicioTrabalho: LocalDate? = null,
     val dataTerminoTrabalho: LocalDate? = null,
 
-    // JORNADA DE TRABALHO (Versão atual)
-    val cargaHorariaDiaria: Duration = Duration.ofMinutes(480),
-    val acrescimoMinutosDiasPontes: Int = 0,
-    val jornadaMaximaDiariaMinutos: Int = 600,
-    val turnoMaximoMinutos: Int = 360,
-    val intervaloMinimoMinutos: Int = 60,
-    val intervaloInterjornadaMinutos: Int = 660,
-
-    // TOLERÂNCIAS (apenas intervalo - entrada/saída são por dia)
-    val toleranciaIntervaloMaisMinutos: Int = 0,
-
     // NSR E LOCALIZAÇÃO
     val habilitarNsr: Boolean = false,
     val tipoNsr: TipoNsr = TipoNsr.NUMERICO,
@@ -46,20 +35,6 @@ data class EditarEmpregoUiState(
     // FOTO COMPROVANTE
     val habilitarFotoComprovante: Boolean = false,
     val fotoObrigatoria: Boolean = false,
-
-    // VALIDAÇÕES
-    val exigeJustificativaInconsistencia: Boolean = false,
-
-    // PERÍODO RH
-    val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
-    val diaInicioFechamentoRH: Int = 1,
-    val zerarSaldoPeriodoRH: Boolean = false,
-
-    // BANCO DE HORAS - CICLO
-    val bancoHorasHabilitado: Boolean = false,
-    val periodoBancoValor: Int = 0, // 0=desabilitado, 1-3=semanas, 4+=meses
-    val dataInicioCicloBanco: LocalDate? = null,
-    val zerarBancoAntesPeriodo: Boolean = false,
 
     // CARGO INICIAL (Apenas para novos empregos)
     val funcaoInicial: String = "",
@@ -73,8 +48,7 @@ data class EditarEmpregoUiState(
 
     // Pickers
     val showInicioTrabalhoPicker: Boolean = false,
-    val showTerminoTrabalhoPicker: Boolean = false,
-    val showDataInicioCicloPicker: Boolean = false
+    val showTerminoTrabalhoPicker: Boolean = false
 ) {
     private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
@@ -82,31 +56,9 @@ data class EditarEmpregoUiState(
     val tituloTela: String = if (isNovoEmprego) "Novo Emprego" else "Editar Emprego"
     val textoBotaoSalvar: String = if (isNovoEmprego) "Criar Emprego" else "Salvar Alterações"
 
-    val cargaHorariaTotalMinutos: Int
-        get() = cargaHorariaDiaria.toMinutes().toInt() + acrescimoMinutosDiasPontes
-
     val formularioValido: Boolean = nome.isNotBlank() &&
             nomeErro == null &&
-            cargaHorariaTotalMinutos <= jornadaMaximaDiariaMinutos &&
             (!isNovoEmprego || (funcaoInicial.isNotBlank() && (salarioInicial ?: 0.0) > 0.0))
-
-    // Validações Visuais
-    val avisoJornadaExcedida: String?
-        get() = if (cargaHorariaTotalMinutos > jornadaMaximaDiariaMinutos)
-            "A carga horária total ($cargaHorariaTotalMinutos min) excede a jornada máxima permitida."
-        else if (jornadaMaximaDiariaMinutos > 600)
-            "Atenção: Jornada máxima acima de 10h (600 min) pode violar regras trabalhistas."
-        else null
-
-    val avisoTurnoMaximo: String?
-        get() = if (turnoMaximoMinutos > 360)
-            "Atenção: Turnos sem intervalo acima de 6h (360 min) são restritos por lei."
-        else null
-
-    val avisoInterjornada: String?
-        get() = if (intervaloInterjornadaMinutos < 660)
-            "Atenção: O descanso mínimo entre jornadas deve ser de 11h (660 min)."
-        else null
 
     // Formatações de data
     val dataInicioTrabalhoFormatada: String
@@ -114,83 +66,6 @@ data class EditarEmpregoUiState(
 
     val dataTerminoTrabalhoFormatada: String
         get() = dataTerminoTrabalho?.format(dateFormatter) ?: ""
-
-    val dataInicioCicloFormatada: String
-        get() = dataInicioCicloBanco?.format(dateFormatter) ?: "Selecionar data"
-
-    // Conversão do slider para semanas/meses
-    val periodoBancoSemanas: Int
-        get() = if (periodoBancoValor in 1..3) periodoBancoValor else 0
-
-    val periodoBancoMeses: Int
-        get() = if (periodoBancoValor > 3) periodoBancoValor - 3 else 0
-
-    // Verificação se banco está ativo
-    val temBancoHoras: Boolean
-        get() = bancoHorasHabilitado && periodoBancoValor > 0
-
-    // Descrição do período do banco
-    val periodoBancoDescricao: String
-        get() = when (periodoBancoValor) {
-            0 -> "Desabilitado"
-            1 -> "1 semana"
-            2 -> "2 semanas"
-            3 -> "3 semanas"
-            else -> "${periodoBancoValor - 3} mês(es)"
-        }
-
-    // Data de fim do ciclo calculada
-    val dataFimCicloCalculada: String
-        get() {
-            if (!temBancoHoras || dataInicioCicloBanco == null) return "—"
-
-            val dataFim = when {
-                periodoBancoSemanas > 0 ->
-                    dataInicioCicloBanco.plusWeeks(periodoBancoSemanas.toLong()).minusDays(1)
-                periodoBancoMeses > 0 ->
-                    dataInicioCicloBanco.plusMonths(periodoBancoMeses.toLong()).minusDays(1)
-                else -> return "—"
-            }
-
-            return dataFim.format(dateFormatter)
-        }
-
-    // Descrição do ciclo completo
-    val cicloDescricao: String
-        get() {
-            if (!temBancoHoras || dataInicioCicloBanco == null) return "Não configurado"
-            return "${dataInicioCicloFormatada} ~ $dataFimCicloCalculada"
-        }
-
-    // Label dinâmico para zerar saldo
-    val labelZerarSaldoDinamico: String
-        get() = when (periodoBancoValor) {
-            0 -> "Zerar saldo ao fim do período"
-            1 -> "Zerar saldo a cada semana"
-            2 -> "Zerar saldo a cada 2 semanas"
-            3 -> "Zerar saldo a cada 3 semanas"
-            else -> {
-                val meses = periodoBancoValor - 3
-                if (meses == 1) "Zerar saldo mensalmente"
-                else "Zerar saldo a cada $meses meses"
-            }
-        }
-
-    // Exemplo do período RH
-    val exemploPeriodoRH: String
-        get() {
-            val hoje = LocalDate.now()
-            val periodo = PeriodoRH.criarPara(hoje, diaInicioFechamentoRH)
-            return "Ex: ${periodo.periodoDescricao}"
-        }
-
-    // Próximo fechamento RH
-    val proximoFechamentoRH: String
-        get() {
-            val hoje = LocalDate.now()
-            val periodo = PeriodoRH.criarPara(hoje, diaInicioFechamentoRH)
-            return periodo.dataFim.plusDays(1).format(dateFormatter)
-        }
 }
 
 /**

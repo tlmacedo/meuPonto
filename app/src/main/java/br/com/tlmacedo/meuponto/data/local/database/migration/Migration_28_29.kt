@@ -4,14 +4,14 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * Migração da versão 27 para 28:
- * - Adição de tabelas de histórico de cargos e ajustes salariais.
- * - Adição de colunas em 'empregos'.
- * - Adição de colunas em 'configuracoes_emprego'.
- * - Adição de colunas em 'versoes_jornada'.
+ * Migração da versão 28 para 29:
+ * - Esta migração inclui uma verificação "self-healing" para a tabela 'versoes_jornada'.
+ * - Alguns dispositivos podem estar na versão 28 com colunas faltando ou sem valores padrão
+ *   devido a um erro na migração 27 -> 28 original.
+ * - Também garante a existência das tabelas 'historico_cargos' e 'ajustes_salariais'.
  */
-val MIGRATION_27_28 = Migration(27, 28) { database ->
-    // 1. Criar novas tabelas
+val MIGRATION_28_29 = Migration(28, 29) { database ->
+    // 1. Garantir que as tabelas adicionadas na v28 existam (Medida de segurança)
     database.execSQL(
         """
         CREATE TABLE IF NOT EXISTS `historico_cargos` (
@@ -44,22 +44,9 @@ val MIGRATION_27_28 = Migration(27, 28) { database ->
     )
     database.execSQL("CREATE INDEX IF NOT EXISTS `index_ajustes_salariais_historicoCargoId` ON `ajustes_salariais` (`historicoCargoId`)")
 
-    // 2. Atualizar tabela 'empregos'
-    database.execSQL("ALTER TABLE `empregos` ADD COLUMN `apelido` TEXT")
-    database.execSQL("ALTER TABLE `empregos` ADD COLUMN `endereco` TEXT")
-    database.execSQL("ALTER TABLE `empregos` ADD COLUMN `dataTerminoTrabalho` TEXT")
-
-    // 3. Atualizar tabela 'configuracoes_emprego'
-    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `fotoLocalArmazenamento` TEXT")
-    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `fotoRegistrarPontoOcr` INTEGER NOT NULL DEFAULT 0")
-    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `diaInicioFechamentoRH` INTEGER NOT NULL DEFAULT 11")
-    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `bancoHorasHabilitado` INTEGER NOT NULL DEFAULT 0")
-    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `bancoHorasCicloMeses` INTEGER NOT NULL DEFAULT 6")
-    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `bancoHorasDataInicioCiclo` TEXT")
-    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `bancoHorasZerarAoFinalCiclo` INTEGER NOT NULL DEFAULT 0")
-    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `exigeJustificativaInconsistencia` INTEGER NOT NULL DEFAULT 0")
-
-    // 4. Atualizar tabela 'versoes_jornada' (Recriação para aplicar DefaultValues e novas colunas)
+    // 2. Recriação "self-healing" da tabela 'versoes_jornada'
+    // Isso garante que todos os DefaultValues e colunas estejam presentes conforme o esquema v28/v29.
+    
     database.execSQL(
         """
         CREATE TABLE IF NOT EXISTS `versoes_jornada_new` (
@@ -72,9 +59,9 @@ val MIGRATION_27_28 = Migration(27, 28) { database ->
             `vigente` INTEGER NOT NULL DEFAULT 1, 
             `jornadaMaximaDiariaMinutos` INTEGER NOT NULL DEFAULT 600, 
             `intervaloMinimoInterjornadaMinutos` INTEGER NOT NULL DEFAULT 660, 
+            `turnoMaximoMinutos` INTEGER NOT NULL DEFAULT 360, 
             `intervaloMinimoAlmocoMinutos` INTEGER NOT NULL DEFAULT 60, 
             `toleranciaIntervaloMaisMinutos` INTEGER NOT NULL DEFAULT 0, 
-            `turnoMaximoMinutos` INTEGER NOT NULL DEFAULT 360, 
             `cargaHorariaDiariaMinutos` INTEGER NOT NULL DEFAULT 480, 
             `acrescimoMinutosDiasPontes` INTEGER NOT NULL DEFAULT 12, 
             `cargaHorariaSemanalMinutos` INTEGER NOT NULL DEFAULT 2460, 
@@ -87,7 +74,7 @@ val MIGRATION_27_28 = Migration(27, 28) { database ->
             `periodoBancoDias` INTEGER NOT NULL DEFAULT 0, 
             `periodoBancoSemanas` INTEGER NOT NULL DEFAULT 0, 
             `periodoBancoMeses` INTEGER NOT NULL DEFAULT 0, 
-            `periodoBancoAnos` INTEGER NOT NULL DEFAULT 0,
+            `periodoBancoAnos` INTEGER NOT NULL DEFAULT 0, 
             `dataInicioCicloBancoAtual` TEXT, 
             `diasUteisLembreteFechamento` INTEGER NOT NULL DEFAULT 3, 
             `habilitarSugestaoAjuste` INTEGER NOT NULL DEFAULT 0, 
@@ -100,38 +87,45 @@ val MIGRATION_27_28 = Migration(27, 28) { database ->
         """.trimIndent()
     )
 
-    // Copiar dados existentes (apenas colunas que já existiam na v27)
-    // Note: Use os nomes de colunas que existiam na versão anterior. 
-    // Se novas colunas foram adicionadas, elas receberão o DEFAULT.
-    database.execSQL(
-        """
-        INSERT INTO `versoes_jornada_new` (
-            id, empregoId, dataInicio, dataFim, descricao, numeroVersao, vigente, 
-            jornadaMaximaDiariaMinutos, intervaloMinimoInterjornadaMinutos, 
-            toleranciaIntervaloMaisMinutos, turnoMaximoMinutos, 
-            cargaHorariaDiariaMinutos, acrescimoMinutosDiasPontes, cargaHorariaSemanalMinutos, 
-            primeiroDiaSemana, diaInicioFechamentoRH, zerarSaldoSemanal, zerarSaldoPeriodoRH, 
-            ocultarSaldoTotal, bancoHorasHabilitado, periodoBancoSemanas, periodoBancoMeses, 
-            dataInicioCicloBancoAtual, diasUteisLembreteFechamento, habilitarSugestaoAjuste, 
-            zerarBancoAntesPeriodo, exigeJustificativaInconsistencia, criadoEm, atualizadoEm
-        )
-        SELECT 
-            id, empregoId, dataInicio, dataFim, descricao, numeroVersao, vigente, 
-            jornadaMaximaDiariaMinutos, intervaloMinimoInterjornadaMinutos, 
-            toleranciaIntervaloMaisMinutos, turnoMaximoMinutos, 
-            cargaHorariaDiariaMinutos, acrescimoMinutosDiasPontes, cargaHorariaSemanalMinutos, 
-            primeiroDiaSemana, diaInicioFechamentoRH, zerarSaldoSemanal, zerarSaldoPeriodoRH, 
-            ocultarSaldoTotal, bancoHorasHabilitado, periodoBancoSemanas, periodoBancoMeses, 
-            dataInicioCicloBancoAtual, diasUteisLembreteFechamento, habilitarSugestaoAjuste, 
-            zerarBancoAntesPeriodo, exigeJustificativaInconsistencia, criadoEm, atualizadoEm
-        FROM `versoes_jornada`
-        """.trimIndent()
+    // Identificar colunas existentes na tabela atual para evitar erros no INSERT
+    val cursor = database.query("PRAGMA table_info(`versoes_jornada`)")
+    val existingColumns = mutableSetOf<String>()
+    while (cursor.moveToNext()) {
+        existingColumns.add(cursor.getString(cursor.getColumnIndexOrThrow("name")))
+    }
+    cursor.close()
+
+    // Lista de todas as colunas esperadas na v29 (seguindo a ordem do 29.json)
+    val expectedColumns = listOf(
+        "id", "empregoId", "dataInicio", "dataFim", "descricao", "numeroVersao", "vigente",
+        "jornadaMaximaDiariaMinutos", "intervaloMinimoInterjornadaMinutos", "turnoMaximoMinutos",
+        "intervaloMinimoAlmocoMinutos", "toleranciaIntervaloMaisMinutos", "cargaHorariaDiariaMinutos",
+        "acrescimoMinutosDiasPontes", "cargaHorariaSemanalMinutos", "primeiroDiaSemana",
+        "diaInicioFechamentoRH", "zerarSaldoSemanal", "zerarSaldoPeriodoRH", "ocultarSaldoTotal",
+        "bancoHorasHabilitado", "periodoBancoDias", "periodoBancoSemanas", "periodoBancoMeses",
+        "periodoBancoAnos", "dataInicioCicloBancoAtual", "diasUteisLembreteFechamento",
+        "habilitarSugestaoAjuste", "zerarBancoAntesPeriodo", "exigeJustificativaInconsistencia",
+        "criadoEm", "atualizadoEm"
     )
 
+    // Filtrar apenas as colunas que realmente existem na tabela física
+    val columnsToCopy = expectedColumns.filter { existingColumns.contains(it) }
+    val columnsCsv = columnsToCopy.joinToString(", ")
+
+    if (columnsCsv.isNotEmpty()) {
+        database.execSQL(
+            """
+            INSERT INTO `versoes_jornada_new` ($columnsCsv)
+            SELECT $columnsCsv FROM `versoes_jornada`
+            """.trimIndent()
+        )
+    }
+
+    // Substituir a tabela antiga pela nova
     database.execSQL("DROP TABLE `versoes_jornada`")
     database.execSQL("ALTER TABLE `versoes_jornada_new` RENAME TO `versoes_jornada`")
 
-    // Recriar índices
+    // Recriar índices (conforme 29.json)
     database.execSQL("CREATE INDEX IF NOT EXISTS `index_versoes_jornada_empregoId` ON `versoes_jornada` (`empregoId`)")
     database.execSQL("CREATE INDEX IF NOT EXISTS `index_versoes_jornada_empregoId_dataInicio` ON `versoes_jornada` (`empregoId`, `dataInicio`)")
     database.execSQL("CREATE INDEX IF NOT EXISTS `index_versoes_jornada_empregoId_dataFim` ON `versoes_jornada` (`empregoId`, `dataFim`)")

@@ -87,11 +87,6 @@ data class ConfiguracaoEmprego(
     val bancoHorasCicloMeses: Int = 6,
     val bancoHorasDataInicioCiclo: LocalDate? = null,
     val bancoHorasZerarAoFinalCiclo: Boolean = false,
-
-    // ════════════════════════════════════════════════════════════════════════
-    // VALIDAÇÃO
-    // ════════════════════════════════════════════════════════════════════════
-
     val exigeJustificativaInconsistencia: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════

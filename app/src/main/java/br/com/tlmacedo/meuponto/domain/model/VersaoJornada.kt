@@ -33,8 +33,14 @@ data class VersaoJornada(
     val intervaloMinimoInterjornadaMinutos: Int = 660,
     /** Turno máximo (tempo entre entrada e saída de um turno). Default: 360min (6h) */
     val turnoMaximoMinutos: Int = 360,
+    /** Intervalo mínimo de almoço/descanso. Default: 60min */
+    val intervaloMinimoAlmocoMinutos: Int = 60,
+    /** Intervalo mínimo de descanso (curtos). Default: 15min */
+    val intervaloMinimoDescansoMinutos: Int = 15,
     /** Tolerância de intervalo para mais (Global). Default: 0min */
     val toleranciaIntervaloMaisMinutos: Int = 0,
+    /** Tolerância de retorno de intervalo. Default: 5min */
+    val toleranciaRetornoIntervaloMinutos: Int = 5,
 
     // ════════════════════════════════════════════════════════════════════════
     // CARGA HORÁRIA (migrados de ConfiguracaoEmprego)
@@ -65,10 +71,14 @@ data class VersaoJornada(
     // ════════════════════════════════════════════════════════════════════════
     /** Flag que indica se banco de horas está habilitado. Default: false */
     val bancoHorasHabilitado: Boolean = false,
-    /** Período do ciclo em semanas (1-3). Default: 0 (usa meses) */
+    /** Período do ciclo em dias. Default: 0 */
+    val periodoBancoDias: Int = 0,
+    /** Período do ciclo em semanas. Default: 0 */
     val periodoBancoSemanas: Int = 0,
-    /** Período do ciclo em meses. Default: 0 (usa semanas) */
+    /** Período do ciclo em meses. Default: 0 */
     val periodoBancoMeses: Int = 0,
+    /** Período do ciclo em anos. Default: 0 */
+    val periodoBancoAnos: Int = 0,
     /** Data de início do ciclo atual. Null se não configurado */
     val dataInicioCicloBancoAtual: LocalDate? = null,
     /** Dias úteis antes do fim para lembrete. Default: 3 */
@@ -166,6 +176,15 @@ data class VersaoJornada(
     val turnoMaximoFormatado: String
         get() = formatarMinutosComoHora(turnoMaximoMinutos)
 
+    val intervaloAlmocoFormatado: String
+        get() = formatarMinutosComoHora(intervaloMinimoAlmocoMinutos, usarFormatoReduzido = true)
+
+    val intervaloDescansoFormatado: String
+        get() = formatarMinutosComoHora(intervaloMinimoDescansoMinutos, usarFormatoReduzido = true)
+
+    val toleranciaRetornoIntervaloFormatada: String
+        get() = formatarMinutosComoHora(toleranciaRetornoIntervaloMinutos, usarFormatoReduzido = true)
+
     // ════════════════════════════════════════════════════════════════════════
     // PROPRIEDADES COMPUTADAS - BANCO DE HORAS
     // ════════════════════════════════════════════════════════════════════════
@@ -174,13 +193,13 @@ data class VersaoJornada(
      * Verifica se o banco de horas está configurado e ativo.
      */
     val temBancoHoras: Boolean
-        get() = bancoHorasHabilitado && (periodoBancoSemanas > 0 || periodoBancoMeses > 0)
+        get() = bancoHorasHabilitado && (periodoBancoDias > 0 || periodoBancoSemanas > 0 || periodoBancoMeses > 0 || periodoBancoAnos > 0)
 
     /**
      * Calcula o período total do banco em dias para facilitar cálculos.
      */
     val periodoBancoEmDias: Int
-        get() = (periodoBancoSemanas * 7) + (periodoBancoMeses * 30)
+        get() = periodoBancoDias + (periodoBancoSemanas * 7) + (periodoBancoMeses * 30) + (periodoBancoAnos * 365)
 
     /**
      * Retorna uma descrição legível do período do banco.
@@ -188,10 +207,10 @@ data class VersaoJornada(
     val periodoBancoDescricao: String
         get() = when {
             !temBancoHoras -> "Desabilitado"
-            periodoBancoSemanas == 1 -> "1 semana"
-            periodoBancoSemanas in 2..3 -> "$periodoBancoSemanas semanas"
-            periodoBancoMeses == 1 -> "1 mês"
-            periodoBancoMeses > 1 -> "$periodoBancoMeses meses"
+            periodoBancoDias > 0 -> if (periodoBancoDias == 1) "1 dia" else "$periodoBancoDias dias"
+            periodoBancoSemanas > 0 -> if (periodoBancoSemanas == 1) "1 semana" else "$periodoBancoSemanas semanas"
+            periodoBancoMeses > 0 -> if (periodoBancoMeses == 1) "1 mês" else "$periodoBancoMeses meses"
+            periodoBancoAnos > 0 -> if (periodoBancoAnos == 1) "1 ano" else "$periodoBancoAnos anos"
             else -> "Não configurado"
         }
 
@@ -204,8 +223,10 @@ data class VersaoJornada(
         if (!temBancoHoras) return null
 
         return when {
+            periodoBancoDias > 0 -> dataInicioCiclo.plusDays(periodoBancoDias.toLong()).minusDays(1)
             periodoBancoSemanas > 0 -> dataInicioCiclo.plusWeeks(periodoBancoSemanas.toLong()).minusDays(1)
             periodoBancoMeses > 0 -> dataInicioCiclo.plusMonths(periodoBancoMeses.toLong()).minusDays(1)
+            periodoBancoAnos > 0 -> dataInicioCiclo.plusYears(periodoBancoAnos.toLong()).minusDays(1)
             else -> null
         }
     }
@@ -218,8 +239,10 @@ data class VersaoJornada(
         if (!temBancoHoras) return null
 
         return when {
+            periodoBancoDias > 0 -> dataInicioCiclo.plusDays(periodoBancoDias.toLong())
             periodoBancoSemanas > 0 -> dataInicioCiclo.plusWeeks(periodoBancoSemanas.toLong())
             periodoBancoMeses > 0 -> dataInicioCiclo.plusMonths(periodoBancoMeses.toLong())
+            periodoBancoAnos > 0 -> dataInicioCiclo.plusYears(periodoBancoAnos.toLong())
             else -> null
         }
     }
@@ -259,7 +282,10 @@ data class VersaoJornada(
     // UTILITÁRIOS
     // ════════════════════════════════════════════════════════════════════════
 
-    private fun formatarMinutosComoHora(minutos: Int): String {
+    private fun formatarMinutosComoHora(minutos: Int, usarFormatoReduzido: Boolean = false): String {
+        if (usarFormatoReduzido && minutos < 60) {
+            return "${minutos}min"
+        }
         val horas = minutos / 60
         val mins = minutos % 60
         return String.format("%02d:%02d", horas, mins)

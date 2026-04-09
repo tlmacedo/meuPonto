@@ -51,7 +51,7 @@ class CriarEmpregoUseCase @Inject constructor(
         val cargaHorariaDiariaMinutos: Int = 480, // 8h
         val acrescimoMinutosDiasPontes: Int = 0,
         val jornadaMaximaDiariaMinutos: Int = 600, // 10h
-        val intervaloMinimoMinutos: Int = 60, // 1h
+        val intervaloMinimoAlmocoMinutos: Int = 60, // 1h
         val intervaloMinimoInterjornadaMinutos: Int = 660, // 11h
         val turnoMaximoMinutos: Int = 360, // 6h
         val toleranciaIntervaloMaisMinutos: Int = 0,
@@ -61,8 +61,10 @@ class CriarEmpregoUseCase @Inject constructor(
         val zerarSaldoPeriodoRH: Boolean = false,
         val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
         val bancoHorasHabilitado: Boolean = false,
+        val periodoBancoDias: Int = 0,
         val periodoBancoSemanas: Int = 0,
         val periodoBancoMeses: Int = 0,
+        val periodoBancoAnos: Int = 0,
         val dataInicioCicloBanco: LocalDate? = null,
         val zerarBancoAoFecharCiclo: Boolean = false,
         
@@ -132,6 +134,7 @@ class CriarEmpregoUseCase @Inject constructor(
                 cargaHorariaDiariaMinutos = parametros.cargaHorariaDiariaMinutos,
                 acrescimoMinutosDiasPontes = parametros.acrescimoMinutosDiasPontes,
                 jornadaMaximaDiariaMinutos = parametros.jornadaMaximaDiariaMinutos,
+                intervaloMinimoAlmocoMinutos = parametros.intervaloMinimoAlmocoMinutos,
                 intervaloMinimoInterjornadaMinutos = parametros.intervaloMinimoInterjornadaMinutos,
                 turnoMaximoMinutos = parametros.turnoMaximoMinutos,
                 toleranciaIntervaloMaisMinutos = parametros.toleranciaIntervaloMaisMinutos,
@@ -140,8 +143,10 @@ class CriarEmpregoUseCase @Inject constructor(
                 diaInicioFechamentoRH = parametros.diaInicioFechamentoRH,
                 zerarSaldoPeriodoRH = parametros.zerarSaldoPeriodoRH,
                 bancoHorasHabilitado = parametros.bancoHorasHabilitado,
+                periodoBancoDias = parametros.periodoBancoDias,
                 periodoBancoSemanas = parametros.periodoBancoSemanas,
                 periodoBancoMeses = parametros.periodoBancoMeses,
+                periodoBancoAnos = parametros.periodoBancoAnos,
                 dataInicioCicloBancoAtual = parametros.dataInicioCicloBanco,
                 zerarBancoAntesPeriodo = parametros.zerarBancoAoFecharCiclo,
                 // Validação
@@ -185,7 +190,7 @@ class CriarEmpregoUseCase @Inject constructor(
                 // Exemplo Sugerido: 08:00 - 12:30 (4h30) e 13:30 - (fim conforme carga)
                 val entrada = LocalTime.of(8, 0)
                 val saidaIntervalo = LocalTime.of(12, 30)
-                val voltaIntervalo = saidaIntervalo.plusMinutes(parametros.intervaloMinimoMinutos.toLong())
+                val voltaIntervalo = saidaIntervalo.plusMinutes(parametros.intervaloMinimoAlmocoMinutos.toLong())
                 
                 val minutosManha = java.time.Duration.between(entrada, saidaIntervalo).toMinutes()
                 val minutosRestantes = cargaTotalMinutos - minutosManha
@@ -201,7 +206,7 @@ class CriarEmpregoUseCase @Inject constructor(
                     saidaIntervaloIdeal = saidaIntervalo,
                     voltaIntervaloIdeal = voltaIntervalo,
                     saidaIdeal = saidaFinal,
-                    intervaloMinimoMinutos = parametros.intervaloMinimoMinutos,
+                    intervaloMinimoMinutos = parametros.intervaloMinimoAlmocoMinutos,
                     toleranciaIntervaloMaisMinutos = parametros.toleranciaIntervaloMaisMinutos
                 )
             } else {

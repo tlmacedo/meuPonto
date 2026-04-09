@@ -111,4 +111,52 @@ class MigrationTest {
         // Executar migração e validar schema
         helper.runMigrationsAndValidate(TEST_DB, 27, true, MIGRATION_26_27)
     }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate27To28() {
+        helper.createDatabase(TEST_DB, 27).close()
+
+        // Executar migração e validar schema
+        helper.runMigrationsAndValidate(TEST_DB, 28, true, MIGRATION_27_28)
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate28To29() {
+        helper.createDatabase(TEST_DB, 28).close()
+
+        // Executar migração e validar schema
+        helper.runMigrationsAndValidate(TEST_DB, 29, true, MIGRATION_28_29)
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate29To30() {
+        helper.createDatabase(TEST_DB, 29).close()
+
+        // Executar migração e validar schema
+        helper.runMigrationsAndValidate(TEST_DB, 30, true, MIGRATION_29_30)
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate22To30() {
+        // Teste de migração completa desde a 22 até a 30
+        helper.createDatabase(TEST_DB, 22).close()
+
+        helper.runMigrationsAndValidate(
+            TEST_DB,
+            30,
+            true,
+            MIGRATION_22_23,
+            MIGRATION_23_24,
+            MIGRATION_24_25,
+            MIGRATION_25_26,
+            MIGRATION_26_27,
+            MIGRATION_27_28,
+            MIGRATION_28_29,
+            MIGRATION_29_30
+        )
+    }
 }

@@ -57,12 +57,21 @@ data class VersaoJornadaEntity(
     /** Intervalo mínimo entre jornadas (interjornada). Default: 660min (11h) */
     @ColumnInfo(defaultValue = "660")
     val intervaloMinimoInterjornadaMinutos: Int = 660,
-    /** Tolerância para mais no intervalo de almoço. Default: 0min */
-    @ColumnInfo(defaultValue = "0")
-    val toleranciaIntervaloMaisMinutos: Int = 0,
     /** Turno máximo (tempo entre entrada e saída de um turno). Default: 360min (6h) */
     @ColumnInfo(defaultValue = "360")
     val turnoMaximoMinutos: Int = 360,
+    /** Intervalo mínimo de almoço/descanso. Default: 60min */
+    @ColumnInfo(defaultValue = "60")
+    val intervaloMinimoAlmocoMinutos: Int = 60,
+    /** Intervalo mínimo de descanso (curtos). Default: 15min */
+    @ColumnInfo(defaultValue = "15")
+    val intervaloMinimoDescansoMinutos: Int = 15,
+    /** Tolerância para mais no intervalo de almoço. Default: 0min */
+    @ColumnInfo(defaultValue = "0")
+    val toleranciaIntervaloMaisMinutos: Int = 0,
+    /** Tolerância de retorno de intervalo. Default: 5min */
+    @ColumnInfo(defaultValue = "5")
+    val toleranciaRetornoIntervaloMinutos: Int = 5,
 
     // ════════════════════════════════════════════════════════════════════════
     // CARGA HORÁRIA (migrados de ConfiguracaoEmprego)
@@ -102,12 +111,18 @@ data class VersaoJornadaEntity(
     /** Flag que indica se banco de horas está habilitado. Default: false */
     @ColumnInfo(defaultValue = "0")
     val bancoHorasHabilitado: Boolean = false,
-    /** Período do ciclo em semanas (1-3). Default: 0 (usa meses) */
+    /** Período do ciclo em dias. Default: 0 */
+    @ColumnInfo(defaultValue = "0")
+    val periodoBancoDias: Int = 0,
+    /** Período do ciclo em semanas. Default: 0 */
     @ColumnInfo(defaultValue = "0")
     val periodoBancoSemanas: Int = 0,
-    /** Período do ciclo em meses. Default: 0 (usa semanas) */
+    /** Período do ciclo em meses. Default: 0 */
     @ColumnInfo(defaultValue = "0")
     val periodoBancoMeses: Int = 0,
+    /** Período do ciclo em anos. Default: 0 */
+    @ColumnInfo(defaultValue = "0")
+    val periodoBancoAnos: Int = 0,
     /** Data de início do ciclo atual. Null se não configurado */
     val dataInicioCicloBancoAtual: LocalDate? = null,
     /** Dias úteis antes do fim para lembrete. Default: 3 */
@@ -146,7 +161,10 @@ fun VersaoJornadaEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.Versao
         // Jornada
         jornadaMaximaDiariaMinutos = jornadaMaximaDiariaMinutos,
         intervaloMinimoInterjornadaMinutos = intervaloMinimoInterjornadaMinutos,
+        intervaloMinimoAlmocoMinutos = intervaloMinimoAlmocoMinutos,
+        intervaloMinimoDescansoMinutos = intervaloMinimoDescansoMinutos,
         toleranciaIntervaloMaisMinutos = toleranciaIntervaloMaisMinutos,
+        toleranciaRetornoIntervaloMinutos = toleranciaRetornoIntervaloMinutos,
         turnoMaximoMinutos = turnoMaximoMinutos,
         // Carga Horária
         cargaHorariaDiariaMinutos = cargaHorariaDiariaMinutos,
@@ -160,8 +178,10 @@ fun VersaoJornadaEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.Versao
         ocultarSaldoTotal = ocultarSaldoTotal,
         // Banco de Horas
         bancoHorasHabilitado = bancoHorasHabilitado,
+        periodoBancoDias = periodoBancoDias,
         periodoBancoSemanas = periodoBancoSemanas,
         periodoBancoMeses = periodoBancoMeses,
+        periodoBancoAnos = periodoBancoAnos,
         dataInicioCicloBancoAtual = dataInicioCicloBancoAtual,
         diasUteisLembreteFechamento = diasUteisLembreteFechamento,
         habilitarSugestaoAjuste = habilitarSugestaoAjuste,
@@ -185,7 +205,10 @@ fun br.com.tlmacedo.meuponto.domain.model.VersaoJornada.toEntity(): VersaoJornad
         // Jornada
         jornadaMaximaDiariaMinutos = jornadaMaximaDiariaMinutos,
         intervaloMinimoInterjornadaMinutos = intervaloMinimoInterjornadaMinutos,
+        intervaloMinimoAlmocoMinutos = intervaloMinimoAlmocoMinutos,
+        intervaloMinimoDescansoMinutos = intervaloMinimoDescansoMinutos,
         toleranciaIntervaloMaisMinutos = toleranciaIntervaloMaisMinutos,
+        toleranciaRetornoIntervaloMinutos = toleranciaRetornoIntervaloMinutos,
         turnoMaximoMinutos = turnoMaximoMinutos,
         // Carga Horária
         cargaHorariaDiariaMinutos = cargaHorariaDiariaMinutos,
@@ -199,8 +222,10 @@ fun br.com.tlmacedo.meuponto.domain.model.VersaoJornada.toEntity(): VersaoJornad
         ocultarSaldoTotal = ocultarSaldoTotal,
         // Banco de Horas
         bancoHorasHabilitado = bancoHorasHabilitado,
+        periodoBancoDias = periodoBancoDias,
         periodoBancoSemanas = periodoBancoSemanas,
         periodoBancoMeses = periodoBancoMeses,
+        periodoBancoAnos = periodoBancoAnos,
         dataInicioCicloBancoAtual = dataInicioCicloBancoAtual,
         diasUteisLembreteFechamento = diasUteisLembreteFechamento,
         habilitarSugestaoAjuste = habilitarSugestaoAjuste,

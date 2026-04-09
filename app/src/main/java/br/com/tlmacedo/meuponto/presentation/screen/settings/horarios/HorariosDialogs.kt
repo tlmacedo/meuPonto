@@ -33,11 +33,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TimePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,12 +48,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
+import br.com.tlmacedo.meuponto.presentation.components.NumberPicker
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 private val FORMATTER_HORA = DateTimeFormatter.ofPattern("HH:mm")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarHorarioDialog(
     horario: HorarioDiaSemana,
@@ -84,12 +82,6 @@ fun EditarHorarioDialog(
         null -> null
     }
 
-    val timePickerState = rememberTimePickerState(
-        initialHour = horarioAtual?.hour ?: 8,
-        initialMinute = horarioAtual?.minute ?: 0,
-        is24Hour = true
-    )
-
     if (mostrarTimePicker && campoTimePicker != null) {
         TimePickerDialog(
             title = when (campoTimePicker) {
@@ -98,9 +90,10 @@ fun EditarHorarioDialog(
                 CampoHorario.VOLTA_INTERVALO -> "Volta do Intervalo"
                 CampoHorario.SAIDA -> "Horário de Saída"
             },
-            state = timePickerState,
-            onConfirm = {
-                val selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+            initialHour = horarioAtual?.hour ?: 8,
+            initialMinute = horarioAtual?.minute ?: 0,
+            onConfirm = { h, m ->
+                val selectedTime = LocalTime.of(h, m)
                 onSelecionarHorario(selectedTime)
             },
             onDismiss = onFecharTimePicker,
@@ -133,33 +126,19 @@ fun EditarHorarioDialog(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Carga horária
-                Text(
-                    text = "Carga Horária",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
                 DuracaoSelector(
                     valorMinutos = horario.cargaHorariaMinutos,
-                    onValorChange = onAlterarCargaHoraria,
-                    label = "Duração da jornada",
-                    incrementos = listOf(-60, -30, -10, 10, 30, 60)
+                    onValueChange = onAlterarCargaHoraria,
+                    label = "Carga Horária"
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Intervalo mínimo
-                Text(
-                    text = "Intervalo Mínimo",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
                 DuracaoSelector(
                     valorMinutos = horario.intervaloMinimoMinutos,
-                    onValorChange = onAlterarIntervaloMinimo,
-                    label = "Intervalo mínimo para almoço",
-                    incrementos = listOf(-30, -15, -5, 5, 15, 30)
+                    onValueChange = onAlterarIntervaloMinimo,
+                    label = "Intervalo Mínimo"
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -339,14 +318,12 @@ private fun HorarioIdealField(
 @Composable
 private fun DuracaoSelector(
     valorMinutos: Int,
-    onValorChange: (Int) -> Unit,
+    onValueChange: (Int) -> Unit,
     label: String,
-    incrementos: List<Int>,
     modifier: Modifier = Modifier
 ) {
     val horas = valorMinutos / 60
     val minutos = valorMinutos % 60
-    val formatado = String.format("%02d:%02d", horas, minutos)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -354,55 +331,83 @@ private fun DuracaoSelector(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = formatado,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                incrementos.forEach { inc ->
-                    val texto = if (inc > 0) "+$inc" else "$inc"
-                    TextButton(
-                        onClick = { onValorChange(valorMinutos + inc) }
-                    ) {
-                        Text(
-                            text = texto,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = String.format("%02dh %02dmin", horas, minutos),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NumberPicker(
+                    value = horas,
+                    onValueChange = { onValueChange(it * 60 + minutos) },
+                    range = 0..23,
+                    suffix = "h"
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                NumberPicker(
+                    value = minutos,
+                    onValueChange = { onValueChange(horas * 60 + it) },
+                    range = 0..59,
+                    suffix = "m"
+                )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialog(
     title: String,
-    state: TimePickerState,
-    onConfirm: () -> Unit,
+    initialHour: Int,
+    initialMinute: Int,
+    onConfirm: (Int, Int) -> Unit,
     onDismiss: () -> Unit,
     onClear: () -> Unit
 ) {
+    var hour by remember { mutableIntStateOf(initialHour) }
+    var minute by remember { mutableIntStateOf(initialMinute) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            TimePicker(state = state)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NumberPicker(
+                    value = hour,
+                    onValueChange = { hour = it },
+                    range = 0..23,
+                    suffix = "h"
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                NumberPicker(
+                    value = minute,
+                    onValueChange = { minute = it },
+                    range = 0..59,
+                    suffix = "m"
+                )
+            }
         },
         confirmButton = {
-            Button(onClick = onConfirm) {
+            Button(onClick = { onConfirm(hour, minute) }) {
                 Text("OK")
             }
         },

@@ -39,27 +39,7 @@ class AtualizarEmpregoUseCase @Inject constructor(
         val habilitarLocalizacao: Boolean,
         val localizacaoAutomatica: Boolean,
         val fotoHabilitada: Boolean,
-        val fotoObrigatoria: Boolean,
-        
-        // Configurações Versionáveis (da Versão Vigente)
-        val cargaHorariaDiariaMinutos: Int,
-        val acrescimoMinutosDiasPontes: Int,
-        val jornadaMaximaDiariaMinutos: Int,
-        val intervaloMinimoMinutos: Int,
-        val intervaloMinimoInterjornadaMinutos: Int,
-        val turnoMaximoMinutos: Int,
-        val toleranciaIntervaloMaisMinutos: Int,
-        val exigeJustificativaInconsistencia: Boolean,
-        
-        // RH e Banco
-        val diaInicioFechamentoRH: Int,
-        val zerarSaldoPeriodoRH: Boolean,
-        val primeiroDiaSemana: DiaSemana,
-        val bancoHorasHabilitado: Boolean,
-        val periodoBancoSemanas: Int,
-        val periodoBancoMeses: Int,
-        val dataInicioCicloBanco: LocalDate?,
-        val zerarBancoAoFecharCiclo: Boolean
+        val fotoObrigatoria: Boolean
     )
 
     sealed class Resultado {
@@ -99,31 +79,6 @@ class AtualizarEmpregoUseCase @Inject constructor(
                         localizacaoAutomatica = parametros.localizacaoAutomatica,
                         fotoHabilitada = parametros.fotoHabilitada,
                         fotoObrigatoria = parametros.fotoObrigatoria,
-                        atualizadoEm = agora
-                    )
-                )
-            }
-
-            // 3. Atualizar VersaoJornada Vigente
-            val versaoVigente = versaoJornadaRepository.buscarVigente(parametros.empregoId)
-            if (versaoVigente != null) {
-                versaoJornadaRepository.atualizar(
-                    versaoVigente.copy(
-                        cargaHorariaDiariaMinutos = parametros.cargaHorariaDiariaMinutos,
-                        acrescimoMinutosDiasPontes = parametros.acrescimoMinutosDiasPontes,
-                        jornadaMaximaDiariaMinutos = parametros.jornadaMaximaDiariaMinutos,
-                        intervaloMinimoInterjornadaMinutos = parametros.intervaloMinimoInterjornadaMinutos,
-                        turnoMaximoMinutos = parametros.turnoMaximoMinutos,
-                        toleranciaIntervaloMaisMinutos = parametros.toleranciaIntervaloMaisMinutos,
-                        exigeJustificativaInconsistencia = parametros.exigeJustificativaInconsistencia,
-                        diaInicioFechamentoRH = parametros.diaInicioFechamentoRH,
-                        zerarSaldoPeriodoRH = parametros.zerarSaldoPeriodoRH,
-                        primeiroDiaSemana = parametros.primeiroDiaSemana,
-                        bancoHorasHabilitado = parametros.bancoHorasHabilitado,
-                        periodoBancoSemanas = parametros.periodoBancoSemanas,
-                        periodoBancoMeses = parametros.periodoBancoMeses,
-                        dataInicioCicloBancoAtual = parametros.dataInicioCicloBanco,
-                        zerarBancoAntesPeriodo = parametros.zerarBancoAoFecharCiclo,
                         atualizadoEm = agora
                     )
                 )

@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 28,
-    "identityHash": "75358ca9e8a318a2a563441655612705",
+    "version": 31,
+    "identityHash": "b7c9d5daa978bebac8d4dd8ec602784b",
     "entities": [
       {
         "tableName": "ajustes_salariais",
@@ -1806,7 +1806,7 @@
       },
       {
         "tableName": "versoes_jornada",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `dataInicio` TEXT NOT NULL, `dataFim` TEXT, `descricao` TEXT, `numeroVersao` INTEGER NOT NULL DEFAULT 1, `vigente` INTEGER NOT NULL DEFAULT 1, `jornadaMaximaDiariaMinutos` INTEGER NOT NULL DEFAULT 600, `intervaloMinimoInterjornadaMinutos` INTEGER NOT NULL DEFAULT 660, `turnoMaximoMinutos` INTEGER NOT NULL DEFAULT 360, `intervaloMinimoAlmocoMinutos` INTEGER NOT NULL DEFAULT 60, `toleranciaIntervaloMaisMinutos` INTEGER NOT NULL DEFAULT 0, `cargaHorariaDiariaMinutos` INTEGER NOT NULL DEFAULT 480, `acrescimoMinutosDiasPontes` INTEGER NOT NULL DEFAULT 12, `cargaHorariaSemanalMinutos` INTEGER NOT NULL DEFAULT 2460, `primeiroDiaSemana` TEXT NOT NULL DEFAULT 'SEGUNDA', `diaInicioFechamentoRH` INTEGER NOT NULL DEFAULT 1, `zerarSaldoSemanal` INTEGER NOT NULL DEFAULT 0, `zerarSaldoPeriodoRH` INTEGER NOT NULL DEFAULT 0, `ocultarSaldoTotal` INTEGER NOT NULL DEFAULT 0, `bancoHorasHabilitado` INTEGER NOT NULL DEFAULT 0, `periodoBancoDias` INTEGER NOT NULL DEFAULT 0, `periodoBancoSemanas` INTEGER NOT NULL DEFAULT 0, `periodoBancoMeses` INTEGER NOT NULL DEFAULT 0, `periodoBancoAnos` INTEGER NOT NULL DEFAULT 0, `dataInicioCicloBancoAtual` TEXT, `diasUteisLembreteFechamento` INTEGER NOT NULL DEFAULT 3, `habilitarSugestaoAjuste` INTEGER NOT NULL DEFAULT 0, `zerarBancoAntesPeriodo` INTEGER NOT NULL DEFAULT 0, `exigeJustificativaInconsistencia` INTEGER NOT NULL DEFAULT 0, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `dataInicio` TEXT NOT NULL, `dataFim` TEXT, `descricao` TEXT, `numeroVersao` INTEGER NOT NULL DEFAULT 1, `vigente` INTEGER NOT NULL DEFAULT 1, `jornadaMaximaDiariaMinutos` INTEGER NOT NULL DEFAULT 600, `intervaloMinimoInterjornadaMinutos` INTEGER NOT NULL DEFAULT 660, `turnoMaximoMinutos` INTEGER NOT NULL DEFAULT 360, `intervaloMinimoAlmocoMinutos` INTEGER NOT NULL DEFAULT 60, `intervaloMinimoDescansoMinutos` INTEGER NOT NULL DEFAULT 15, `toleranciaIntervaloMaisMinutos` INTEGER NOT NULL DEFAULT 0, `toleranciaRetornoIntervaloMinutos` INTEGER NOT NULL DEFAULT 5, `cargaHorariaDiariaMinutos` INTEGER NOT NULL DEFAULT 480, `acrescimoMinutosDiasPontes` INTEGER NOT NULL DEFAULT 12, `cargaHorariaSemanalMinutos` INTEGER NOT NULL DEFAULT 2460, `primeiroDiaSemana` TEXT NOT NULL DEFAULT 'SEGUNDA', `diaInicioFechamentoRH` INTEGER NOT NULL DEFAULT 1, `zerarSaldoSemanal` INTEGER NOT NULL DEFAULT 0, `zerarSaldoPeriodoRH` INTEGER NOT NULL DEFAULT 0, `ocultarSaldoTotal` INTEGER NOT NULL DEFAULT 0, `bancoHorasHabilitado` INTEGER NOT NULL DEFAULT 0, `periodoBancoDias` INTEGER NOT NULL DEFAULT 0, `periodoBancoSemanas` INTEGER NOT NULL DEFAULT 0, `periodoBancoMeses` INTEGER NOT NULL DEFAULT 0, `periodoBancoAnos` INTEGER NOT NULL DEFAULT 0, `dataInicioCicloBancoAtual` TEXT, `diasUteisLembreteFechamento` INTEGER NOT NULL DEFAULT 3, `habilitarSugestaoAjuste` INTEGER NOT NULL DEFAULT 0, `zerarBancoAntesPeriodo` INTEGER NOT NULL DEFAULT 0, `exigeJustificativaInconsistencia` INTEGER NOT NULL DEFAULT 0, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -1881,11 +1881,25 @@
             "defaultValue": "60"
           },
           {
+            "fieldPath": "intervaloMinimoDescansoMinutos",
+            "columnName": "intervaloMinimoDescansoMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "15"
+          },
+          {
             "fieldPath": "toleranciaIntervaloMaisMinutos",
             "columnName": "toleranciaIntervaloMaisMinutos",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
+          },
+          {
+            "fieldPath": "toleranciaRetornoIntervaloMinutos",
+            "columnName": "toleranciaRetornoIntervaloMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "5"
           },
           {
             "fieldPath": "cargaHorariaDiariaMinutos",
@@ -2309,7 +2323,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '75358ca9e8a318a2a563441655612705')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b7c9d5daa978bebac8d4dd8ec602784b')"
     ]
   }
 }
