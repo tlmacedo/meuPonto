@@ -1,7 +1,8 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/core/util/LocationUtils.kt
 package br.com.tlmacedo.meuponto.core.util
 
-import kotlin.math.PI // Importação explícita de PI
+import br.com.tlmacedo.meuponto.core.util.LocationUtils.toRad
+import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos

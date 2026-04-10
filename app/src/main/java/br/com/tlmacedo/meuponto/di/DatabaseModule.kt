@@ -5,10 +5,56 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import br.com.tlmacedo.meuponto.BuildConfig // Import adicionado
+import br.com.tlmacedo.meuponto.BuildConfig
 import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
-import br.com.tlmacedo.meuponto.data.local.database.dao.*
-import br.com.tlmacedo.meuponto.data.local.database.migration.*
+import br.com.tlmacedo.meuponto.data.local.database.dao.AjusteSalarialDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.AjusteSaldoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.AuditLogDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.AusenciaDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.ConfiguracaoEmpregoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.ConfiguracaoPontesAnoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.EmpregoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.FechamentoPeriodoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.FeriadoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.FotoComprovanteDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.HistoricoCargoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.HorarioDiaSemanaDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.MarcadorDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.UsuarioDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.VersaoJornadaDao
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_10_11
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_11_12
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_12_13
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_13_14
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_14_15
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_15_16
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_16_17
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_17_18
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_18_19
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_19_20
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_1_2
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_20_21
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_21_22
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_22_23
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_23_24
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_24_25
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_25_26
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_26_27
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_27_28
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_28_29
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_29_30
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_2_3
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_30_31
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_31_32
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_32_33
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_3_4
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_4_5
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_5_6
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_6_7
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_7_8
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_8_9
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_9_10
 import br.com.tlmacedo.meuponto.data.local.database.util.DatabaseCheckpointManager
 import dagger.Module
 import dagger.Provides
@@ -36,7 +82,8 @@ object DatabaseModule {
                 MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                 MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
                 MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
-                MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31
+                MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
+                MIGRATION_31_32, MIGRATION_32_33
             )
             .addCallback(createDatabaseCallback())
             .build()

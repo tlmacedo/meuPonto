@@ -172,14 +172,14 @@ class PontoRepositoryImpl @Inject constructor(
 
     // === Atualização de foto ===
 
-    override suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?) {
+    override suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?, fotoOrigem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem) {
         val anterior = pontoDao.buscarPorId(pontoId)?.toDomain()
-        pontoDao.atualizarFotoComprovante(pontoId, fotoPath)
+        pontoDao.atualizarFotoComprovante(pontoId, fotoPath, fotoOrigem.id)
 
         auditService.logUpdate(
             entidade = ENTIDADE,
             entidadeId = pontoId,
-            motivo = if (fotoPath != null) "Foto comprovante adicionada" else "Foto comprovante removida",
+            motivo = if (fotoPath != null) "Foto comprovante adicionada (${fotoOrigem.descricao})" else "Foto comprovante removida",
             valorAntigo = anterior?.fotoComprovantePath,
             valorNovo = fotoPath ?: "",
             serializer = { it }

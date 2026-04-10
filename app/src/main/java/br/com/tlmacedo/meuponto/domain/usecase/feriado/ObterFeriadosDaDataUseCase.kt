@@ -1,9 +1,9 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/feriado/ObterFeriadosDaDataUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.feriado
 
+import br.com.tlmacedo.meuponto.domain.model.feriado.AbrangenciaFeriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
-import br.com.tlmacedo.meuponto.domain.model.feriado.AbrangenciaFeriado
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import java.time.LocalDate
 import javax.inject.Inject

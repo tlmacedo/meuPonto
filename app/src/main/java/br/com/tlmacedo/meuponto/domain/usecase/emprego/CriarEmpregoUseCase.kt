@@ -1,12 +1,13 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/emprego/CriarEmpregoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.emprego
 
+import androidx.core.net.toUri
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.FotoFormato
-import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HistoricoCargo
+import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
@@ -15,6 +16,7 @@ import br.com.tlmacedo.meuponto.domain.repository.HistoricoCargoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.validacao.ValidarEmpregoUseCase
+import br.com.tlmacedo.meuponto.util.LogoImageStorage
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -33,7 +35,8 @@ class CriarEmpregoUseCase @Inject constructor(
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val historicoCargoRepository: HistoricoCargoRepository,
-    private val validarEmpregoUseCase: ValidarEmpregoUseCase
+    private val validarEmpregoUseCase: ValidarEmpregoUseCase,
+    private val logoImageStorage: LogoImageStorage
 ) {
     data class Parametros(
         val nome: String,
@@ -42,6 +45,7 @@ class CriarEmpregoUseCase @Inject constructor(
         val descricao: String? = null,
         val dataInicioTrabalho: LocalDate = LocalDate.now(),
         val dataTerminoTrabalho: LocalDate? = null,
+        val logo: String? = null,
 
         // Cargo Inicial
         val funcao: String,
@@ -92,6 +96,7 @@ class CriarEmpregoUseCase @Inject constructor(
             descricao = parametros.descricao?.trim(),
             dataInicioTrabalho = parametros.dataInicioTrabalho,
             dataTerminoTrabalho = parametros.dataTerminoTrabalho,
+            logo = parametros.logo,
             ativo = true,
             arquivado = false,
             ordem = empregoRepository.buscarProximaOrdem()
@@ -107,6 +112,14 @@ class CriarEmpregoUseCase @Inject constructor(
 
             // 1. Criar Emprego
             val empregoId = empregoRepository.inserir(emprego)
+
+            // 1.1 Processar Logo se necessário
+            if (parametros.logo != null && parametros.logo.startsWith("content://")) {
+                val logoLocal = logoImageStorage.saveFromUri(parametros.logo.toUri(), empregoId)
+                if (logoLocal != null) {
+                    empregoRepository.atualizar(emprego.copy(id = empregoId, logo = logoLocal))
+                }
+            }
 
             // 2. Criar ConfiguracaoEmprego (campos fixos do emprego)
             val configuracao = ConfiguracaoEmprego(

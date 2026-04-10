@@ -2,6 +2,8 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.design
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,12 +31,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 
 /**
@@ -48,6 +50,7 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
  * @author Thiago
  * @since 9.0.0
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PrivacidadeScreen(
     onNavigateBack: () -> Unit,
@@ -69,8 +72,11 @@ fun PrivacidadeScreen(
         modifier = modifier
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(
+                horizontal = 16.dp,
+                vertical = 24.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -86,28 +92,42 @@ fun PrivacidadeScreen(
             }
 
             item {
-                PrivacidadeSwitch(
-                    title = "Bloqueio por biometria",
-                    subtitle = "Exigir impressão digital ou reconhecimento facial para abrir o app",
-                    icon = Icons.Outlined.Fingerprint,
-                    checked = biometriaHabilitada,
-                    onCheckedChange = { viewModel.toggleBiometria(it) }
-                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    PrivacidadeSwitch(
+                        title = "Bloqueio por biometria",
+                        subtitle = "Exigir impressão digital ou reconhecimento facial para abrir o app",
+                        icon = Icons.Outlined.Fingerprint,
+                        checked = biometriaHabilitada,
+                        onCheckedChange = { viewModel.toggleBiometria(it) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    )
+
+                    PrivacidadeSwitch(
+                        title = "Bloqueio automático",
+                        subtitle = "Bloquear o app após ficar em segundo plano",
+                        icon = Icons.Outlined.Lock,
+                        checked = bloqueioAutomatico,
+                        onCheckedChange = { viewModel.toggleBloqueioAutomatico(it) },
+                        enabled = biometriaHabilitada,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    )
+                }
             }
 
             item {
-                PrivacidadeSwitch(
-                    title = "Bloqueio automático",
-                    subtitle = "Bloquear o app após ficar em segundo plano",
-                    icon = Icons.Outlined.Lock,
-                    checked = bloqueioAutomatico,
-                    onCheckedChange = { viewModel.toggleBloqueioAutomatico(it) },
-                    enabled = biometriaHabilitada
+                HorizontalDivider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
                 )
-            }
-
-            item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             }
 
             // ══════════════════════════════════════════════════════════════
@@ -126,7 +146,8 @@ fun PrivacidadeScreen(
                     subtitle = "Esconder conteúdo do app quando alternar entre aplicativos",
                     icon = Icons.Outlined.VisibilityOff,
                     checked = ocultarPreview,
-                    onCheckedChange = { viewModel.toggleOcultarPreview(it) }
+                    onCheckedChange = { viewModel.toggleOcultarPreview(it) },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
@@ -162,6 +183,7 @@ fun PrivacidadeScreen(
                 }
             }
 
+
             item {
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -177,7 +199,9 @@ private fun SectionHeader(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(vertical = 8.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
     ) {
         Icon(
             imageVector = icon,

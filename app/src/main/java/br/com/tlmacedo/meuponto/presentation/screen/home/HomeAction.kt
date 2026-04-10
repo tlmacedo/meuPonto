@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.home
 
 import android.net.Uri
 import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import java.time.LocalDate
@@ -39,7 +40,7 @@ sealed interface HomeAction {
     data class AtualizarNsrRegistroModal(val nsr: String) : HomeAction
 
     /** Atualiza a foto no modal de registro */
-    data class AtualizarFotoRegistroModal(val uri: Uri?) : HomeAction
+    data class AtualizarFotoRegistroModal(val uri: Uri?, val origem: FotoOrigem = FotoOrigem.NENHUMA) : HomeAction
 
     /** Atualiza a hora no modal de registro */
     data class AtualizarHoraRegistroModal(val hora: LocalTime) : HomeAction
@@ -70,7 +71,7 @@ sealed interface HomeAction {
     data object ConfirmarFotoCamera : HomeAction
 
     /** Seleciona uma foto da galeria */
-    data class SelecionarFotoComprovante(val uri: Uri) : HomeAction
+    data class SelecionarFotoComprovante(val uri: Uri, val origem: FotoOrigem) : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
     // MODAIS DE PONTO (Nova implementação 7.2.0)
@@ -84,7 +85,7 @@ sealed interface HomeAction {
     data object FecharEdicaoModal : HomeAction
 
     /** Atualiza a foto no modal de edição */
-    data class AtualizarFotoEdicaoModal(val uri: Uri?) : HomeAction
+    data class AtualizarFotoEdicaoModal(val uri: Uri?, val origem: FotoOrigem = FotoOrigem.NENHUMA) : HomeAction
 
     /** Remove a foto no modal de edição */
     data object RemoverFotoEdicaoModal : HomeAction

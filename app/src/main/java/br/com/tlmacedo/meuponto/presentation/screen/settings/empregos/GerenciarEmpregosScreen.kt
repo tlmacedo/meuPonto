@@ -3,11 +3,12 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,12 +21,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PowerSettingsNew
@@ -46,15 +47,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.presentation.components.LocalImage
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -107,6 +111,7 @@ fun GerenciarEmpregosScreen(
 /**
  * Conteúdo da tela de gerenciamento de empregos, desacoplado do ViewModel.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GerenciarEmpregosContent(
     uiState: GerenciarEmpregosUiState,
@@ -119,8 +124,10 @@ fun GerenciarEmpregosContent(
 ) {
     Scaffold(
         topBar = {
+            val empregoAtivo = uiState.empregos.find { it.id == uiState.empregoAtivoId }
             MeuPontoTopBar(
                 title = "Gerenciar Empregos",
+                subtitle = empregoAtivo?.apelido,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -150,7 +157,10 @@ fun GerenciarEmpregosContent(
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(
+                    horizontal = 16.dp,
+                    vertical = 24.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .fillMaxSize()
@@ -454,15 +464,34 @@ private fun EmpregoCardContent(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Icon(
-                imageVector = if (isAtivo) Icons.Default.CheckCircle else Icons.Default.Business,
-                contentDescription = null,
-                tint = if (isAtivo) {
-                    MaterialTheme.colorScheme.primary
+            // Logo da Empresa
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (emprego.logo != null) {
+                    LocalImage(
+                        imagePath = emprego.logo,
+                        contentDescription = "Logo da empresa",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    Icon(
+                        imageVector = Icons.Default.Business,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = if (isAtivo) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
                 }
-            )
+            }
 
             Column(
                 modifier = Modifier
@@ -513,11 +542,30 @@ private fun EmpregoArquivadoCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Archive,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline
-            )
+            // Logo da Empresa (apagada no arquivado)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .alpha(0.5f)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (emprego.logo != null) {
+                    LocalImage(
+                        imagePath = emprego.logo,
+                        contentDescription = "Logo da empresa",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Archive,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
 
             Text(
                 text = emprego.nome,

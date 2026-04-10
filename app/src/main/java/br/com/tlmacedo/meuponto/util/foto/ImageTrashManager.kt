@@ -2,6 +2,8 @@
 package br.com.tlmacedo.meuponto.util.foto
 
 import android.content.Context
+import br.com.tlmacedo.meuponto.util.formatarTamanho
+import br.com.tlmacedo.meuponto.util.foto.ImageTrashManager.Companion.RETENTION_DAYS
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -13,7 +15,6 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import br.com.tlmacedo.meuponto.util.formatarTamanho
 
 /**
  * Gerenciador de lixeira para imagens de comprovantes de ponto.

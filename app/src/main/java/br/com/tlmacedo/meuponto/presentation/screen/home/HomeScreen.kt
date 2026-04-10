@@ -47,7 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
@@ -55,11 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
-import br.com.tlmacedo.meuponto.domain.model.Emprego
-import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
 import br.com.tlmacedo.meuponto.presentation.components.EdicaoModal
@@ -78,7 +73,6 @@ import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 /**
  * Tela principal do aplicativo Meu Ponto.
@@ -157,7 +151,8 @@ fun HomeScreen(
         topBar = {
             MeuPontoTopBar(
                 title = "Meu Ponto",
-                subtitle = uiState.empregoAtivo?.nome,
+                subtitle = uiState.empregoAtivo?.apelido,
+                logo = uiState.empregoAtivo?.logo,
                 showTodayButton = !uiState.isHoje,
                 showHistoryButton = true,
                 showSettingsButton = true,
@@ -226,8 +221,8 @@ private fun HomeDialogs(
         showSourceDialog = uiState.showFotoSourceDialog,
         onDismissSourceDialog = { onAction(HomeAction.FecharFotoSourceDialog) },
         cameraUri = uiState.cameraUri,
-        onCameraResult = { success -> if (success) onAction(HomeAction.ConfirmarFotoCamera) },
-        onGalleryResult = { uri -> uri?.let { onAction(HomeAction.SelecionarFotoComprovante(it)) } },
+        onCameraResult = { success, origem -> if (success) onAction(HomeAction.ConfirmarFotoCamera) },
+        onGalleryResult = { uri, origem -> uri?.let { onAction(HomeAction.SelecionarFotoComprovante(it, origem)) } },
         onPermissionDenied = { onAction(HomeAction.MostrarMensagem(it)) }
     )
 

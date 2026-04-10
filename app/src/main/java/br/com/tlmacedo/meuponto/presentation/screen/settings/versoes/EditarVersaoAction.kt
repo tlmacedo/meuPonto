@@ -51,6 +51,13 @@ sealed interface EditarVersaoAction {
     data object Cancelar : EditarVersaoAction
     data object LimparErro : EditarVersaoAction
     data object ConfigurarHorarios : EditarVersaoAction
+
+    // Salvar Granular
+    data object SalvarVigencia : EditarVersaoAction
+    data object SalvarJornada : EditarVersaoAction
+    data object SalvarFechamento : EditarVersaoAction
+    data object SalvarBancoHoras : EditarVersaoAction
+    data object SalvarValidacao : EditarVersaoAction
 }
 
 /**

@@ -1,10 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/empregos/editar/EditarEmpregoUiState.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar
 
-import br.com.tlmacedo.meuponto.domain.model.DiaSemana
-import br.com.tlmacedo.meuponto.domain.model.PeriodoRH
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
-import java.time.Duration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -25,6 +22,22 @@ data class EditarEmpregoUiState(
     val endereco: String = "",
     val dataInicioTrabalho: LocalDate? = null,
     val dataTerminoTrabalho: LocalDate? = null,
+    val logo: String? = null,
+
+    // DADOS ORIGINAIS (para comparação e salvamento granular)
+    val originalNome: String = "",
+    val originalApelido: String = "",
+    val originalEndereco: String = "",
+    val originalDataInicioTrabalho: LocalDate? = null,
+    val originalDataTerminoTrabalho: LocalDate? = null,
+    val originalLogo: String? = null,
+
+    val originalHabilitarNsr: Boolean = false,
+    val originalTipoNsr: TipoNsr = TipoNsr.NUMERICO,
+    val originalHabilitarLocalizacao: Boolean = false,
+    val originalLocalizacaoAutomatica: Boolean = false,
+    val originalHabilitarFotoComprovante: Boolean = false,
+    val originalFotoObrigatoria: Boolean = false,
 
     // NSR E LOCALIZAÇÃO
     val habilitarNsr: Boolean = false,
@@ -55,6 +68,24 @@ data class EditarEmpregoUiState(
     // Propriedades computadas básicas
     val tituloTela: String = if (isNovoEmprego) "Novo Emprego" else "Editar Emprego"
     val textoBotaoSalvar: String = if (isNovoEmprego) "Criar Emprego" else "Salvar Alterações"
+
+    val temMudancasDadosBasicos: Boolean = !isNovoEmprego && (
+        nome != originalNome ||
+                apelido != originalApelido ||
+                endereco != originalEndereco ||
+                dataInicioTrabalho != originalDataInicioTrabalho ||
+                dataTerminoTrabalho != originalDataTerminoTrabalho ||
+                logo != originalLogo
+        )
+
+    val temMudancasConfiguracoesGerais: Boolean = !isNovoEmprego && (
+        habilitarNsr != originalHabilitarNsr ||
+                tipoNsr != originalTipoNsr ||
+                habilitarLocalizacao != originalHabilitarLocalizacao ||
+                localizacaoAutomatica != originalLocalizacaoAutomatica ||
+                habilitarFotoComprovante != originalHabilitarFotoComprovante ||
+                fotoObrigatoria != originalFotoObrigatoria
+        )
 
     val formularioValido: Boolean = nome.isNotBlank() &&
             nomeErro == null &&

@@ -1,7 +1,15 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/main/SettingsMainScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.main
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,18 +21,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.QuestionMark
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SwapHoriz
@@ -32,6 +45,7 @@ import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -48,13 +62,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.Emprego
+import br.com.tlmacedo.meuponto.presentation.components.LocalImage
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.components.TrocarEmpregoBottomSheet
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
@@ -81,12 +98,14 @@ fun SettingsMainScreen(
     onNavigateToEmpregoEdit: (Long) -> Unit,
     onNavigateToGerenciarEmpregos: () -> Unit,
     onNavigateToEmpregoSettings: (Long) -> Unit,
+    onNavigateToAusencias: (Long) -> Unit,
     onNavigateToCalendario: () -> Unit,
     onNavigateToAparencia: () -> Unit,
     onNavigateToNotificacoes: () -> Unit,
     onNavigateToPrivacidade: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToSobre: () -> Unit,
+    onNavigateToAjuda: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     viewModel: SettingsMainViewModel = hiltViewModel()
@@ -115,15 +134,18 @@ fun SettingsMainScreen(
         onNavigateToEmpregoEdit = onNavigateToEmpregoEdit,
         onNavigateToGerenciarEmpregos = onNavigateToGerenciarEmpregos,
         onNavigateToEmpregoSettings = onNavigateToEmpregoSettings,
+        onNavigateToAusencias = onNavigateToAusencias,
         onNavigateToCalendario = onNavigateToCalendario,
         onNavigateToAparencia = onNavigateToAparencia,
         onNavigateToNotificacoes = onNavigateToNotificacoes,
         onNavigateToPrivacidade = onNavigateToPrivacidade,
         onNavigateToBackup = onNavigateToBackup,
         onNavigateToSobre = onNavigateToSobre,
+        onNavigateToAjuda = onNavigateToAjuda,
         onNavigateToLixeira = onNavigateToLixeira,
         onNavigateToAuditoria = onNavigateToAuditoria,
         onTrocarEmprego = { viewModel.onAction(SettingsMainAction.TrocarEmprego(it)) },
+        onAlternarSecao = { viewModel.onAction(SettingsMainAction.AlternarExpansaoSecao(it)) },
         snackbarHostState = snackbarHostState
     )
 }
@@ -139,15 +161,18 @@ fun SettingsMainContent(
     onNavigateToEmpregoEdit: (Long) -> Unit,
     onNavigateToGerenciarEmpregos: () -> Unit,
     onNavigateToEmpregoSettings: (Long) -> Unit,
+    onNavigateToAusencias: (Long) -> Unit,
     onNavigateToCalendario: () -> Unit,
     onNavigateToAparencia: () -> Unit,
     onNavigateToNotificacoes: () -> Unit,
     onNavigateToPrivacidade: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToSobre: () -> Unit,
+    onNavigateToAjuda: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     onTrocarEmprego: (Emprego) -> Unit,
+    onAlternarSecao: (String) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
@@ -178,6 +203,7 @@ fun SettingsMainContent(
         topBar = {
             MeuPontoTopBar(
                 title = "Configurações",
+                subtitle = uiState.empregoAtual?.apelido,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -186,8 +212,11 @@ fun SettingsMainContent(
         modifier = modifier
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(
+                horizontal = 16.dp,
+                vertical = 24.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -197,19 +226,21 @@ fun SettingsMainContent(
             // ══════════════════════════════════════════════════════════════
             uiState.empregoAtual?.let { emprego ->
                 item {
-                    ActiveEmploymentCard(
-                        nomeEmprego = emprego.nome,
-                        versaoVigente = uiState.versaoVigenteDescricao ?: "Nenhuma versão ativa",
-                        onClick = { onNavigateToEmpregoSettings(emprego.id) }
-                    )
-                }
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ActiveEmploymentCard(
+                            nomeEmprego = emprego.nome,
+                            logoUri = emprego.logo,
+                            versaoVigente = uiState.versaoVigenteDescricao
+                                ?: "Nenhuma versão ativa",
+                            onClick = { onNavigateToEmpregoSettings(emprego.id) }
+                        )
 
-                item {
-                    SystemStatusCard(
-                        saldoMensal = uiState.saldoAtualTexto,
-                        ultimoBackup = uiState.dataUltimoBackup,
-                        onBackupClick = onNavigateToBackup
-                    )
+                        SystemStatusCard(
+                            saldoMensal = uiState.saldoAtualTexto,
+                            ultimoBackup = uiState.dataUltimoBackup,
+                            onBackupClick = onNavigateToBackup
+                        )
+                    }
                 }
             }
 
@@ -217,31 +248,30 @@ fun SettingsMainContent(
             // SEÇÃO: EMPREGOS
             // ══════════════════════════════════════════════════════════════
             item {
-                SettingsSectionHeader(
+                CollapsibleSettingsSection(
                     title = "Gestão de Empregos",
-                    icon = Icons.Outlined.Work
-                )
-            }
+                    icon = Icons.Outlined.Work,
+                    isExpanded = uiState.secoesExpandidas.contains("Empregos"),
+                    onToggle = { onAlternarSecao("Empregos") }
+                ) {
+                    SettingsItemsLayout {
+                        SettingsNavigationItem(
+                            title = "Meus Empregos",
+                            subtitle = "Adicionar, editar ou arquivar",
+                            icon = Icons.Outlined.Business,
+                            onClick = onNavigateToGerenciarEmpregos
+                        )
 
-            // Gerenciar Empregos
-            item {
-                SettingsNavigationItem(
-                    title = "Meus Empregos",
-                    subtitle = "Adicionar, editar ou arquivar",
-                    icon = Icons.Outlined.Business,
-                    onClick = onNavigateToGerenciarEmpregos
-                )
-            }
-
-            // Trocar Emprego Ativo (apenas se houver mais de um emprego)
-            if (uiState.empregosDisponiveis.size > 1) {
-                item {
-                    SettingsNavigationItem(
-                        title = "Trocar Emprego Ativo",
-                        subtitle = "Alternar rapidamente entre empregos",
-                        icon = Icons.Outlined.SwapHoriz,
-                        onClick = { showTrocarEmpregoSheet = true }
-                    )
+                        // Trocar Emprego Ativo (apenas se houver mais de um emprego)
+                        if (uiState.empregosDisponiveis.size > 1) {
+                            SettingsNavigationItem(
+                                title = "Trocar Emprego Ativo",
+                                subtitle = "Alternar rapidamente entre empregos",
+                                icon = Icons.Outlined.SwapHoriz,
+                                onClick = { showTrocarEmpregoSheet = true }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -249,116 +279,124 @@ fun SettingsMainContent(
             // SEÇÃO: CALENDÁRIO
             // ══════════════════════════════════════════════════════════════
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingsSectionHeader(
+                CollapsibleSettingsSection(
                     title = "Calendário",
-                    icon = Icons.Outlined.CalendarMonth
-                )
-            }
-
-            item {
-                SettingsNavigationItem(
-                    title = "Feriados",
-                    subtitle = "Nacionais, Estaduais e Municipais",
-                    icon = Icons.AutoMirrored.Outlined.EventNote,
-                    onClick = onNavigateToCalendario
-                )
+                    icon = Icons.Outlined.CalendarMonth,
+                    isExpanded = uiState.secoesExpandidas.contains("Calendario"),
+                    onToggle = { onAlternarSecao("Calendario") }
+                ) {
+                    SettingsItemsLayout {
+                        SettingsNavigationItem(
+                            title = "Feriados",
+                            subtitle = "Nacionais, Estaduais e Municipais",
+                            icon = Icons.AutoMirrored.Outlined.EventNote,
+                            onClick = onNavigateToCalendario
+                        )
+                        SettingsNavigationItem(
+                            title = "Ausências",
+                            subtitle = "Gerenciar faltas e afastamentos",
+                            icon = Icons.Outlined.Add,
+                            onClick = {
+                                uiState.empregoAtualId?.let {
+                                    onNavigateToAusencias(it)
+                                }
+                            }
+                        )
+                    }
+                }
             }
 
             // ══════════════════════════════════════════════════════════════
             // SEÇÃO: DESIGN
             // ══════════════════════════════════════════════════════════════
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingsSectionHeader(
-                    title = "Design",
-                    icon = Icons.Outlined.Palette
-                )
-            }
-
-            item {
-                SettingsNavigationItem(
-                    title = "Aparência",
-                    subtitle = "Tema, cores e densidade visual",
-                    icon = Icons.Outlined.DarkMode,
-                    onClick = onNavigateToAparencia
-                )
-            }
-
-            item {
-                SettingsNavigationItem(
-                    title = "Notificações",
-                    subtitle = "Lembretes e alertas de ponto",
-                    icon = Icons.Outlined.Notifications,
-                    onClick = onNavigateToNotificacoes
-                )
-            }
-
-            item {
-                SettingsNavigationItem(
-                    title = "Privacidade",
-                    subtitle = "Proteção do app e biometria",
-                    icon = Icons.Outlined.Security,
-                    onClick = onNavigateToPrivacidade
-                )
+                CollapsibleSettingsSection(
+                    title = "Personalização",
+                    icon = Icons.Outlined.Palette,
+                    isExpanded = uiState.secoesExpandidas.contains("Personalizacao"),
+                    onToggle = { onAlternarSecao("Personalizacao") }
+                ) {
+                    SettingsItemsLayout {
+                        SettingsNavigationItem(
+                            title = "Aparência",
+                            subtitle = "Tema, cores e densidade visual",
+                            icon = Icons.Outlined.DarkMode,
+                            onClick = onNavigateToAparencia
+                        )
+                        SettingsNavigationItem(
+                            title = "Notificações",
+                            subtitle = "Lembretes e alertas de ponto",
+                            icon = Icons.Outlined.Notifications,
+                            onClick = onNavigateToNotificacoes
+                        )
+                        SettingsNavigationItem(
+                            title = "Privacidade",
+                            subtitle = "Proteção do app e biometria",
+                            icon = Icons.Outlined.Security,
+                            onClick = onNavigateToPrivacidade
+                        )
+                    }
+                }
             }
 
             // ══════════════════════════════════════════════════════════════
             // SEÇÃO: BACKUP E DADOS
             // ══════════════════════════════════════════════════════════════
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingsSectionHeader(
-                    title = "Backup e Dados",
-                    icon = Icons.Outlined.CloudSync
-                )
-            }
-
-            item {
-                SettingsNavigationItem(
-                    title = "Gerenciar Dados",
-                    subtitle = "Exportação, importação e manutenção",
-                    icon = Icons.Outlined.Storage,
-                    onClick = onNavigateToBackup
-                )
-            }
-
-            item {
-                SettingsNavigationItem(
-                    icon = Icons.Outlined.Delete,
-                    title = "Lixeira",
-                    subtitle = "Itens excluídos recentemente",
-                    onClick = onNavigateToLixeira
-                )
-            }
-
-            item {
-                SettingsNavigationItem(
-                    icon = Icons.Outlined.History,
-                    title = "Auditoria",
-                    subtitle = "Histórico de alterações no sistema",
-                    onClick = onNavigateToAuditoria
-                )
+                CollapsibleSettingsSection(
+                    title = "Backups e Dados",
+                    icon = Icons.Outlined.CloudSync,
+                    isExpanded = uiState.secoesExpandidas.contains("Dados"),
+                    onToggle = { onAlternarSecao("Dados") }
+                ) {
+                    SettingsItemsLayout {
+                        SettingsNavigationItem(
+                            title = "Gerenciar Dados",
+                            subtitle = "Exportação, importação e manutenção",
+                            icon = Icons.Outlined.Storage,
+                            onClick = onNavigateToBackup
+                        )
+                        SettingsNavigationItem(
+                            icon = Icons.Outlined.Delete,
+                            title = "Lixeira",
+                            subtitle = "Itens excluídos recentemente",
+                            onClick = onNavigateToLixeira
+                        )
+                        SettingsNavigationItem(
+                            icon = Icons.Outlined.History,
+                            title = "Auditoria",
+                            subtitle = "Histórico de alterações no sistema",
+                            onClick = onNavigateToAuditoria
+                        )
+                    }
+                }
             }
 
             // ══════════════════════════════════════════════════════════════
             // SEÇÃO: SOBRE
             // ══════════════════════════════════════════════════════════════
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingsSectionHeader(
+                CollapsibleSettingsSection(
                     title = "Sobre",
-                    icon = Icons.Outlined.Info
-                )
-            }
-
-            item {
-                SettingsNavigationItem(
-                    title = "Sobre o App",
-                    subtitle = "Versão, desenvolvedor e contato",
                     icon = Icons.Outlined.Info,
-                    onClick = onNavigateToSobre
-                )
+                    isExpanded = uiState.secoesExpandidas.contains("Sobre"),
+                    onToggle = { onAlternarSecao("Sobre") }
+                ) {
+                    SettingsItemsLayout {
+                        SettingsNavigationItem(
+                            title = "Sobre o App",
+                            subtitle = "Versão, desenvolvedor e contato",
+                            icon = Icons.Outlined.Info,
+                            onClick = onNavigateToSobre
+                        )
+                        SettingsNavigationItem(
+                            title = "Ajuda",
+                            subtitle = "Suporte técnico e tutoriais",
+                            icon = Icons.Outlined.QuestionMark,
+                            onClick = onNavigateToAjuda
+                        )
+                    }
+                }
             }
 
             // Espaçamento final
@@ -372,6 +410,15 @@ fun SettingsMainContent(
 // ════════════════════════════════════════════════════════════════════════════════
 // COMPONENTES INTERNOS
 // ════════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun SettingsItemsLayout(
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        content()
+    }
+}
 
 @Composable
 private fun SystemStatusCard(
@@ -441,6 +488,7 @@ private fun SystemStatusCard(
 @Composable
 private fun ActiveEmploymentCard(
     nomeEmprego: String,
+    logoUri: String?,
     versaoVigente: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -451,53 +499,150 @@ private fun ActiveEmploymentCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Emprego Ativo",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = nomeEmprego,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.EventNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Logo da Empresa
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (logoUri != null) {
+                        LocalImage(
+                            imagePath = logoUri,
+                            contentDescription = "Logo da empresa",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Outlined.Business,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(20.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = versaoVigente,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "Emprego Ativo",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
+                    Text(
+                        text = nomeEmprego,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.EventNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = versaoVigente,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
                 }
-            }
 
-            Icon(
-                imageVector = Icons.Outlined.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
         }
     }
 }
 
 /**
- * Cabeçalho de seção com ícone e título.
+ * Componente para seções colapsáveis nas configurações.
  */
+@Composable
+private fun CollapsibleSettingsSection(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable { onToggle() }
+                    .padding(vertical = 12.dp, horizontal = 4.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = if (isExpanded) "Recolher" else "Expandir",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(top = 4.dp, bottom = 12.dp)
+                        .fillMaxWidth()
+                ) {
+                    content()
+                }
+            }
+            
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 8.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
 @Composable
 private fun SettingsSectionHeader(
     title: String,
@@ -589,21 +734,25 @@ private fun SettingsMainContentPreview() {
         SettingsMainContent(
             uiState = SettingsMainUiState(
                 empregoAtual = Emprego(id = 1, nome = "Empresa de Exemplo"),
-                versaoVigenteDescricao = "Regra Geral 2024"
+                versaoVigenteDescricao = "Regra Geral 2024",
+                secoesExpandidas = setOf("Empregos", "Calendario")
             ),
             onNavigateBack = {},
             onNavigateToEmpregoEdit = {},
             onNavigateToGerenciarEmpregos = {},
             onNavigateToEmpregoSettings = {},
+            onNavigateToAusencias = {},
             onNavigateToCalendario = {},
             onNavigateToAparencia = {},
             onNavigateToNotificacoes = {},
             onNavigateToPrivacidade = {},
             onNavigateToBackup = {},
             onNavigateToSobre = {},
+            onNavigateToAjuda = {},
             onNavigateToLixeira = {},
             onNavigateToAuditoria = {},
-            onTrocarEmprego = {}
+            onTrocarEmprego = {},
+            onAlternarSecao = {}
         )
     }
 }

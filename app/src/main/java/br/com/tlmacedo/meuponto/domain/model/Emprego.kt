@@ -28,6 +28,7 @@ data class Emprego(
     val ativo: Boolean = true,
     val arquivado: Boolean = false,
     val ordem: Int = 0,
+    val logo: String? = null,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 ) {

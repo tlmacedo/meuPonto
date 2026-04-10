@@ -6,20 +6,65 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.GppGood
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,10 +73,9 @@ import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.NumberPicker
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
-import kotlinx.coroutines.flow.collectLatest
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
-import java.time.LocalDate
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun EditarVersaoScreen(
@@ -222,7 +266,10 @@ private fun EditarVersaoForm(
             icon = Icons.Default.CalendarMonth,
             subtitle = "${uiState.dataInicioFormatada} ~ ${uiState.dataFimFormatada ?: "Indefinido"}",
             expanded = uiState.secaoExpandida == SecaoVersao.VIGENCIA_IDENTIFICACAO,
-            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.VIGENCIA_IDENTIFICACAO)) }
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.VIGENCIA_IDENTIFICACAO)) },
+            showSaveButton = uiState.temMudancasVigencia,
+            onSave = { onAction(EditarVersaoAction.SalvarVigencia) },
+            isSaving = uiState.isSaving
         ) {
             OutlinedTextField(
                 value = uiState.descricao,
@@ -273,7 +320,10 @@ private fun EditarVersaoForm(
             icon = Icons.Default.Schedule,
             subtitle = "Carga: ${uiState.cargaHorariaDiariaMinutos} min | Int: ${uiState.intervaloAlmocoFormatado}",
             expanded = uiState.secaoExpandida == SecaoVersao.JORNADA_CARGA,
-            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.JORNADA_CARGA)) }
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.JORNADA_CARGA)) },
+            showSaveButton = uiState.temMudancasJornada,
+            onSave = { onAction(EditarVersaoAction.SalvarJornada) },
+            isSaving = uiState.isSaving
         ) {
             TimeSelectionRow(
                 label = "Carga Horária Diária",
@@ -361,7 +411,10 @@ private fun EditarVersaoForm(
             icon = Icons.Default.AccountBalance,
             subtitle = "RH: Dia ${uiState.diaInicioFechamentoRH} | ${uiState.primeiroDiaSemana.descricaoCurta}",
             expanded = uiState.secaoExpandida == SecaoVersao.FECHAMENTO_SALDO,
-            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.FECHAMENTO_SALDO)) }
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.FECHAMENTO_SALDO)) },
+            showSaveButton = uiState.temMudancasFechamento,
+            onSave = { onAction(EditarVersaoAction.SalvarFechamento) },
+            isSaving = uiState.isSaving
         ) {
             Text("Início Fechamento RH", style = MaterialTheme.typography.bodyMedium)
             NumberPicker(
@@ -408,7 +461,10 @@ private fun EditarVersaoForm(
             icon = Icons.Default.History,
             subtitle = if (uiState.bancoHorasHabilitado) "Ativo" else "Desativado",
             expanded = uiState.secaoExpandida == SecaoVersao.BANCO_HORAS,
-            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.BANCO_HORAS)) }
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.BANCO_HORAS)) },
+            showSaveButton = uiState.temMudancasBancoHoras,
+            onSave = { onAction(EditarVersaoAction.SalvarBancoHoras) },
+            isSaving = uiState.isSaving
         ) {
             SwitchListItem(
                 text = "Habilitar Banco de Horas",
@@ -452,7 +508,10 @@ private fun EditarVersaoForm(
             icon = Icons.Default.GppGood,
             subtitle = if (uiState.exigeJustificativaInconsistencia) "Rigorosa" else "Flexível",
             expanded = uiState.secaoExpandida == SecaoVersao.VALIDACAO,
-            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.VALIDACAO)) }
+            onToggle = { onAction(EditarVersaoAction.ToggleSecao(SecaoVersao.VALIDACAO)) },
+            showSaveButton = uiState.temMudancasValidacao,
+            onSave = { onAction(EditarVersaoAction.SalvarValidacao) },
+            isSaving = uiState.isSaving
         ) {
             SwitchListItem(
                 text = "Exigir justificativa em inconsistências",
@@ -473,15 +532,17 @@ private fun EditarVersaoForm(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = { onAction(EditarVersaoAction.Salvar) },
-            enabled = uiState.podeSalvar,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (uiState.isSaving) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-            } else {
-                Text(if (uiState.isNovaVersao) "Criar Versão" else "Salvar Alterações")
+        if (uiState.isNovaVersao) {
+            Button(
+                onClick = { onAction(EditarVersaoAction.Salvar) },
+                enabled = uiState.podeSalvar,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (uiState.isSaving) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(if (uiState.isNovaVersao) "Criar Versão" else "Salvar Alterações")
+                }
             }
         }
 
@@ -533,6 +594,9 @@ private fun ConfiguracaoSection(
     expanded: Boolean,
     onToggle: () -> Unit,
     subtitle: String? = null,
+    showSaveButton: Boolean = false,
+    onSave: () -> Unit = {},
+    isSaving: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -569,6 +633,26 @@ private fun ConfiguracaoSection(
                         )
                     }
                 }
+
+                if (showSaveButton && expanded) {
+                    IconButton(
+                        onClick = onSave,
+                        enabled = !isSaving,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Salvar seção",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (expanded) "Recolher" else "Expandir"

@@ -7,8 +7,8 @@ import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
+import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
-import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
@@ -77,6 +77,7 @@ data class EdicaoModalState(
     val indicePonto: Int = 0,
     val isSaving: Boolean = false,
     val fotoUri: Uri? = null,
+    val fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA,
     val fotoRemovida: Boolean = false
 ) {
     /** Determina o tipo do ponto baseado no índice (ímpar = entrada, par = saída) */
@@ -151,6 +152,7 @@ data class RegistrarPontoModalState(
     val nsr: String = "",
     val observacao: String = "",
     val fotoUri: Uri? = null,
+    val fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA,
     val latitude: Double? = null,
     val longitude: Double? = null,
     val endereco: String? = null,

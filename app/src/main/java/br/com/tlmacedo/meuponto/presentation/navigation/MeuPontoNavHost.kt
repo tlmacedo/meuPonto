@@ -1,7 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/navigation/MeuPontoNavHost.kt
 package br.com.tlmacedo.meuponto.presentation.navigation
 
-import br.com.tlmacedo.meuponto.presentation.screen.lixeira.LixeiraScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -32,17 +31,18 @@ import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.historicociclos.HistoricoCiclosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
+import br.com.tlmacedo.meuponto.presentation.screen.lixeira.LixeiraScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsDetailScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.CargosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.EditarCargoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.versoes.VersoesJornadaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista.FeriadosListScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.global.GlobalSettingsScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.horarios.HorariosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.SettingsMainScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.AjudaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
@@ -189,6 +189,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNavigateToEmpregoSettings = { empregoId ->
                 navController.navigate(MeuPontoDestinations.empregoSettings(empregoId))
             },
+            onNavigateToAusencias = { empregoId ->
+                navController.navigate(MeuPontoDestinations.ausenciasEmprego(empregoId))
+            },
             onNavigateToCalendario = {
                 navController.navigate(MeuPontoDestinations.FERIADOS)
             },
@@ -206,6 +209,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToSobre = {
                 navController.navigate(MeuPontoDestinations.SOBRE)
+            },
+            onNavigateToAjuda = {
+                navController.navigate(MeuPontoDestinations.AJUDA)
             },
             onNavigateToLixeira = {
                 navController.navigate(MeuPontoDestinations.LIXEIRA)
@@ -589,6 +595,12 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
 
     composable(MeuPontoDestinations.SOBRE) {
         SobreScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(MeuPontoDestinations.AJUDA) {
+        AjudaScreen(
             onNavigateBack = { navController.popBackStack() }
         )
     }

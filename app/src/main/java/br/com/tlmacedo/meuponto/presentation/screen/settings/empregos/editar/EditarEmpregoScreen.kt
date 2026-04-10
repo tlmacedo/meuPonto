@@ -1,13 +1,18 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/empregos/editar/EditarEmpregoScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,10 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Business
@@ -39,14 +42,10 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,13 +64,12 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -79,14 +77,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
+import br.com.tlmacedo.meuponto.presentation.components.LocalImage
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import kotlinx.coroutines.flow.collectLatest
-import java.time.Duration
 
 /**
  * Tela de edição/criação de emprego.
@@ -123,6 +120,7 @@ fun EditarEmpregoScreen(
         topBar = {
             MeuPontoTopBar(
                 title = uiState.tituloTela,
+                subtitle = uiState.apelido,
                 showBackButton = true,
                 onBackClick = { viewModel.onAction(EditarEmpregoAction.Cancelar) }
             )
@@ -153,7 +151,7 @@ fun EditarEmpregoScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun EditarEmpregoContent(
     uiState: EditarEmpregoUiState,
@@ -208,8 +206,18 @@ internal fun EditarEmpregoContent(
         }
     }
 
+    val logoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            onAction(EditarEmpregoAction.AlterarLogo(uri?.toString()))
+        }
+    )
+
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(
+            horizontal = 16.dp,
+            vertical = 16.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier.fillMaxSize()
     ) {
@@ -219,84 +227,169 @@ internal fun EditarEmpregoContent(
                 title = "Informações Básicas",
                 icon = Icons.Default.Business,
                 isExpanded = uiState.secaoExpandida == SecaoFormulario.DADOS_BASICOS,
-                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.DADOS_BASICOS)) }
+                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.DADOS_BASICOS)) },
+                showSaveButton = uiState.temMudancasDadosBasicos,
+                onSave = { onAction(EditarEmpregoAction.SalvarDadosBasicos) },
+                isSaving = uiState.isSaving,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedTextField(
-                    value = uiState.nome,
-                    onValueChange = { onAction(EditarEmpregoAction.AlterarNome(it)) },
-                    label = { Text("Nome da Empresa") },
-                    placeholder = { Text("Ex: Empresa ABC") },
-                    isError = uiState.nomeErro != null,
-                    supportingText = uiState.nomeErro?.let { { Text(it) } },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        imeAction = ImeAction.Next
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = uiState.apelido,
-                    onValueChange = { onAction(EditarEmpregoAction.AlterarApelido(it)) },
-                    label = { Text("Apelido") },
-                    placeholder = { Text("Ex: Meu Trabalho Principal") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        imeAction = ImeAction.Next
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = uiState.dataInicioTrabalhoFormatada,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Data de Início") },
-                        trailingIcon = {
-                            IconButton(onClick = { onSetShowInicioTrabalhoPicker(true) }) {
-                                Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
-                            }
-                        },
+                // Logo Picker
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .clickable { onSetShowInicioTrabalhoPicker(true) }
-                    )
+                            .size(80.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable {
+                                logoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (uiState.logo != null) {
+                            LocalImage(
+                                imagePath = uiState.logo,
+                                contentDescription = "Logo da empresa",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Business,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
 
-                    OutlinedTextField(
-                        value = uiState.dataTerminoTrabalhoFormatada,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Data de Término") },
-                        trailingIcon = {
-                            IconButton(onClick = { onSetShowTerminoTrabalhoPicker(true) }) {
-                                Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
+                        // Botão de editar sobreposto
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.BottomEnd
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Trocar logo",
+                                tint = Color.White,
+                                modifier = Modifier.padding(4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = "Logotipo da Empresa",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = "Toque para selecionar uma imagem da galeria.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (uiState.logo != null) {
+                            TextButton(
+                                onClick = { onAction(EditarEmpregoAction.AlterarLogo(null)) },
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Text("Remover logo", color = MaterialTheme.colorScheme.error)
                             }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onSetShowTerminoTrabalhoPicker(true) }
-                    )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    OutlinedTextField(
+                        value = uiState.nome,
+                        onValueChange = { onAction(EditarEmpregoAction.AlterarNome(it)) },
+                        label = { Text("Nome da Empresa") },
+                        placeholder = { Text("Ex: Empresa ABC") },
+                        isError = uiState.nomeErro != null,
+                        supportingText = uiState.nomeErro?.let { { Text(it) } },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                OutlinedTextField(
-                    value = uiState.endereco,
-                    onValueChange = { onAction(EditarEmpregoAction.AlterarEndereco(it)) },
-                    label = { Text("Endereço") },
-                    placeholder = { Text("Ex: Av. Paulista, 1000 - São Paulo/SP") },
-                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    OutlinedTextField(
+                        value = uiState.apelido,
+                        onValueChange = { onAction(EditarEmpregoAction.AlterarApelido(it)) },
+                        label = { Text("Apelido") },
+                        placeholder = { Text("Ex: Meu Trabalho Principal") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = uiState.dataInicioTrabalhoFormatada,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Data de Início") },
+                            trailingIcon = {
+                                IconButton(onClick = { onSetShowInicioTrabalhoPicker(true) }) {
+                                    Icon(
+                                        Icons.Default.CalendarMonth,
+                                        contentDescription = "Selecionar data"
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onSetShowInicioTrabalhoPicker(true) }
+                        )
+
+                        OutlinedTextField(
+                            value = uiState.dataTerminoTrabalhoFormatada,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Data de Término") },
+                            trailingIcon = {
+                                IconButton(onClick = { onSetShowTerminoTrabalhoPicker(true) }) {
+                                    Icon(
+                                        Icons.Default.CalendarMonth,
+                                        contentDescription = "Selecionar data"
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onSetShowTerminoTrabalhoPicker(true) }
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = uiState.endereco,
+                        onValueChange = { onAction(EditarEmpregoAction.AlterarEndereco(it)) },
+                        label = { Text("Endereço") },
+                        placeholder = { Text("Ex: Av. Paulista, 1000 - São Paulo/SP") },
+                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
+
 
         // 💼 HISTÓRICO DE CARGOS
         item {
@@ -304,7 +397,8 @@ internal fun EditarEmpregoContent(
                 title = "Histórico de Cargos",
                 icon = Icons.Default.Badge,
                 isExpanded = uiState.secaoExpandida == SecaoFormulario.HISTORICO_CARGOS,
-                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.HISTORICO_CARGOS)) }
+                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.HISTORICO_CARGOS)) },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 if (!uiState.isNovoEmprego && onNavigateToCargos != null) {
                     Card(
@@ -319,7 +413,10 @@ internal fun EditarEmpregoContent(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Gerenciar Cargos e Salários", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    "Gerenciar Cargos e Salários",
+                                    style = MaterialTheme.typography.titleSmall
+                                )
                                 Text(
                                     "Acesse o histórico completo de funções e ajustes salariais.",
                                     style = MaterialTheme.typography.bodySmall
@@ -346,7 +443,13 @@ internal fun EditarEmpregoContent(
 
                         OutlinedTextField(
                             value = uiState.salarioInicial?.toString() ?: "",
-                            onValueChange = { onAction(EditarEmpregoAction.AlterarSalarioInicial(it.toDoubleOrNull())) },
+                            onValueChange = {
+                                onAction(
+                                    EditarEmpregoAction.AlterarSalarioInicial(
+                                        it.toDoubleOrNull()
+                                    )
+                                )
+                            },
                             label = { Text("Salário Inicial (R$)") },
                             placeholder = { Text("0.00") },
                             keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
@@ -364,101 +467,110 @@ internal fun EditarEmpregoContent(
             }
         }
 
+
         // ⚙️ CONFIGURAÇÕES GERAIS
         item {
             FormSection(
                 title = "Configurações Gerais",
                 icon = Icons.Default.Settings,
                 isExpanded = uiState.secaoExpandida == SecaoFormulario.CONFIGURACOES_GERAIS,
-                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.CONFIGURACOES_GERAIS)) }
+                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.CONFIGURACOES_GERAIS)) },
+                showSaveButton = uiState.temMudancasConfiguracoesGerais,
+                onSave = { onAction(EditarEmpregoAction.SalvarConfiguracoesGerais) },
+                isSaving = uiState.isSaving,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                SwitchOption(
-                    title = "Habilitar NSR",
-                    description = "Registro Sequencial de Registro (Portaria 671)",
-                    checked = uiState.habilitarNsr,
-                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarNsr(it)) }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    SwitchOption(
+                        title = "Habilitar NSR",
+                        description = "Registro Sequencial de Registro (Portaria 671)",
+                        checked = uiState.habilitarNsr,
+                        onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarNsr(it)) }
+                    )
 
-                AnimatedVisibility(visible = uiState.habilitarNsr) {
-                    Column(modifier = Modifier.padding(start = 16.dp, top = 4.dp)) {
-                        Text("Tipo de NSR", style = MaterialTheme.typography.bodySmall)
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            TipoNsr.entries.forEach { tipo ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    RadioButton(
-                                        selected = uiState.tipoNsr == tipo,
-                                        onClick = { onAction(EditarEmpregoAction.AlterarTipoNsr(tipo)) }
-                                    )
-                                    Text(tipo.descricao, style = MaterialTheme.typography.bodySmall)
+                    AnimatedVisibility(visible = uiState.habilitarNsr) {
+                        Column(modifier = Modifier.padding(start = 16.dp, top = 4.dp)) {
+                            Text("Tipo de NSR", style = MaterialTheme.typography.bodySmall)
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                TipoNsr.entries.forEach { tipo ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        RadioButton(
+                                            selected = uiState.tipoNsr == tipo,
+                                            onClick = { onAction(EditarEmpregoAction.AlterarTipoNsr(tipo)) }
+                                        )
+                                        Text(tipo.descricao, style = MaterialTheme.typography.bodySmall)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    SwitchOption(
+                        title = "Registrar Localização",
+                        description = "Capturar GPS ao bater o ponto",
+                        checked = uiState.habilitarLocalizacao,
+                        onCheckedChange = {
+                            onAction(
+                                EditarEmpregoAction.AlterarHabilitarLocalizacao(
+                                    it
+                                )
+                            )
+                        }
+                    )
 
-                SwitchOption(
-                    title = "Registrar Localização",
-                    description = "Capturar GPS ao bater o ponto",
-                    checked = uiState.habilitarLocalizacao,
-                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarLocalizacao(it)) }
-                )
-
-                AnimatedVisibility(visible = uiState.habilitarLocalizacao) {
-                    Column(modifier = Modifier.padding(start = 16.dp)) {
-                        SwitchOption(
-                            title = "Captura Automática",
-                            description = "Obter localização automaticamente",
-                            checked = uiState.localizacaoAutomatica,
-                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarLocalizacaoAutomatica(it)) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SwitchOption(
-                    title = "Foto de Comprovante",
-                    description = "Habilitar captura de foto no registro do ponto",
-                    checked = uiState.habilitarFotoComprovante,
-                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarFotoComprovante(it)) }
-                )
-
-                AnimatedVisibility(visible = uiState.habilitarFotoComprovante) {
-                    Column(
-                        modifier = Modifier.padding(start = 16.dp, top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SwitchOption(
-                            title = "Foto Obrigatória",
-                            description = "Impedir o registro sem anexar uma foto",
-                            checked = uiState.fotoObrigatoria,
-                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarFotoObrigatoria(it)) }
-                        )
-
-                        Text("Opções de Foto", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                        
-                        Card(
-                            onClick = { /* Navegar para sub-tela de configuração avançada de foto se necessário */ },
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Qualidade e Resolução", style = MaterialTheme.typography.bodySmall)
-                                    Text("85% | 1920px (Padrão)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    AnimatedVisibility(visible = uiState.habilitarLocalizacao) {
+                        Column(modifier = Modifier.padding(start = 16.dp)) {
+                            SwitchOption(
+                                title = "Captura Automática",
+                                description = "Obter localização automaticamente",
+                                checked = uiState.localizacaoAutomatica,
+                                onCheckedChange = {
+                                    onAction(
+                                        EditarEmpregoAction.AlterarLocalizacaoAutomatica(
+                                            it
+                                        )
+                                    )
                                 }
-                                Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp))
-                            }
+                            )
+                        }
+                    }
+
+                    SwitchOption(
+                        title = "Foto de Comprovante",
+                        description = "Habilitar captura de foto no registro do ponto",
+                        checked = uiState.habilitarFotoComprovante,
+                        onCheckedChange = {
+                            onAction(
+                                EditarEmpregoAction.AlterarHabilitarFotoComprovante(
+                                    it
+                                )
+                            )
+                        }
+                    )
+
+                    AnimatedVisibility(visible = uiState.habilitarFotoComprovante) {
+                        Column(
+                            modifier = Modifier.padding(start = 16.dp, top = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            SwitchOption(
+                                title = "Foto Obrigatória",
+                                description = "Impedir o registro sem anexar uma foto",
+                                checked = uiState.fotoObrigatoria,
+                                onCheckedChange = {
+                                    onAction(
+                                        EditarEmpregoAction.AlterarFotoObrigatoria(
+                                            it
+                                        )
+                                    )
+                                }
+                            )
                         }
                     }
                 }
             }
         }
+
 
         // 🕒 JORNADAS VERSIONADAS
         item {
@@ -466,7 +578,8 @@ internal fun EditarEmpregoContent(
                 title = "Jornadas Versionadas",
                 icon = Icons.Default.Schedule,
                 isExpanded = uiState.secaoExpandida == SecaoFormulario.JORNADAS_VERSIONADAS,
-                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.JORNADAS_VERSIONADAS)) }
+                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.JORNADAS_VERSIONADAS)) },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 if (!uiState.isNovoEmprego && onNavigateToVersoes != null) {
                     Column {
@@ -483,11 +596,21 @@ internal fun EditarEmpregoContent(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(16.dp)
                             ) {
-                                Icon(Icons.Default.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Icon(
+                                    Icons.Default.Timer,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Configurar Jornadas e Banco", style = MaterialTheme.typography.titleSmall)
-                                    Text("Regras que mudam ao longo do tempo.", style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        "Configurar Jornadas e Banco",
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    Text(
+                                        "Regras que mudam ao longo do tempo.",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                                 Icon(Icons.Default.ChevronRight, contentDescription = null)
                             }
@@ -503,28 +626,34 @@ internal fun EditarEmpregoContent(
             }
         }
 
+
         // SALVAR
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = { onAction(EditarEmpregoAction.Salvar) },
-                enabled = uiState.formularioValido && !uiState.isSaving,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+        if (uiState.isNovoEmprego) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { onAction(EditarEmpregoAction.Salvar) },
+                        enabled = uiState.formularioValido && !uiState.isSaving,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (uiState.isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Icon(imageVector = Icons.Default.Check, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(uiState.textoBotaoSalvar)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-                Icon(imageVector = Icons.Default.Check, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(uiState.textoBotaoSalvar)
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
+
     }
 }
 
@@ -646,13 +775,17 @@ private fun FormSection(
     icon: ImageVector,
     isExpanded: Boolean,
     onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    showSaveButton: Boolean = false,
+    onSave: () -> Unit = {},
+    isSaving: Boolean = false,
     content: @Composable () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Column {
             Row(
@@ -674,6 +807,26 @@ private fun FormSection(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
                 )
+
+                if (showSaveButton && isExpanded) {
+                    IconButton(
+                        onClick = onSave,
+                        enabled = !isSaving,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Salvar seção",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "Recolher" else "Expandir"

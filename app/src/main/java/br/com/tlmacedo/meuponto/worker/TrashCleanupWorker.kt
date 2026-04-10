@@ -10,6 +10,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import br.com.tlmacedo.meuponto.util.foto.ImageTrashManager
+import br.com.tlmacedo.meuponto.worker.TrashCleanupWorker.Companion.REPEAT_INTERVAL_HOURS
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import timber.log.Timber

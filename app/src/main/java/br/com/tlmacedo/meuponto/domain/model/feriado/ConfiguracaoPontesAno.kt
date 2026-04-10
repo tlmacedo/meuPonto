@@ -1,8 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/feriado/ConfiguracaoPontesAno.kt
 package br.com.tlmacedo.meuponto.domain.model.feriado
 
-import java.time.LocalDate
-
 /**
  * Configuração de feriados ponte para um ano específico de um emprego.
  *

@@ -1,7 +1,6 @@
 package br.com.tlmacedo.meuponto.data.local.database.migration
 
 import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 
 val MIGRATION_25_26 = Migration(25, 26) { database ->
     // Corrigir valores vazios de 'atualizadoEm' usando o valor de 'criadoEm'

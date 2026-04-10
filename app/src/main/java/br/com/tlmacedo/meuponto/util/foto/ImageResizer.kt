@@ -5,8 +5,10 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import br.com.tlmacedo.meuponto.util.foto.ImageResizer.Companion.DEFAULT_MAX_DIMENSION
+import br.com.tlmacedo.meuponto.util.foto.ImageResizer.Companion.THUMBNAIL_SIZE
 import dagger.hilt.android.qualifiers.ApplicationContext
-import timber.log.Timber // Importação adicionada
+import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton

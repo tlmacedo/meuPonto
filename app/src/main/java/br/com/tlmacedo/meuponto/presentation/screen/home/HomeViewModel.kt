@@ -9,7 +9,6 @@ import br.com.tlmacedo.meuponto.data.service.LocationService
 import br.com.tlmacedo.meuponto.data.service.OcrService
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Emprego
-import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
@@ -132,7 +131,7 @@ class HomeViewModel @Inject constructor(
             // ══════════════════════════════════════════════════════════════════════
             is HomeAction.AbrirEdicaoModal -> abrirEdicaoModal(action.ponto)
             is HomeAction.FecharEdicaoModal -> fecharEdicaoModal()
-            is HomeAction.AtualizarFotoEdicaoModal -> atualizarFotoEdicaoModal(action.uri)
+            is HomeAction.AtualizarFotoEdicaoModal -> atualizarFotoEdicaoModal(action.uri, action.origem)
             is HomeAction.RemoverFotoEdicaoModal -> removerFotoEdicaoModal()
             is HomeAction.SalvarEdicaoModal -> salvarEdicaoModal(
                 action.pontoId, action.hora, action.nsr, action.motivo, action.detalhes
@@ -186,7 +185,7 @@ class HomeViewModel @Inject constructor(
             is HomeAction.AbrirRegistrarPontoModal -> abrirRegistrarPontoModal(action.dataHora)
             is HomeAction.FecharRegistrarPontoModal -> fecharRegistrarPontoModal()
             is HomeAction.AtualizarNsrRegistroModal -> atualizarNsrRegistroModal(action.nsr)
-            is HomeAction.AtualizarFotoRegistroModal -> atualizarFotoRegistroModal(action.uri)
+            is HomeAction.AtualizarFotoRegistroModal -> atualizarFotoRegistroModal(action.uri, action.origem)
             is HomeAction.AtualizarHoraRegistroModal -> atualizarHoraRegistroModal(action.hora)
             is HomeAction.AbrirTimePickerRegistroModal -> abrirTimePickerRegistroModal()
             is HomeAction.FecharTimePickerRegistroModal -> fecharTimePickerRegistroModal()
@@ -199,18 +198,18 @@ class HomeViewModel @Inject constructor(
             is HomeAction.FecharFotoSourceDialog -> fecharFotoSourceDialog()
             is HomeAction.ConfirmarFotoCamera -> {
                 if (_uiState.value.registrarPontoModal != null) {
-                    atualizarFotoRegistroModal(_uiState.value.cameraUri)
+                    atualizarFotoRegistroModal(_uiState.value.cameraUri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
                 } else if (_uiState.value.edicaoModal != null) {
-                    atualizarFotoEdicaoModal(_uiState.value.cameraUri)
+                    atualizarFotoEdicaoModal(_uiState.value.cameraUri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
                 } else {
                     confirmarFotoCamera()
                 }
             }
             is HomeAction.SelecionarFotoComprovante -> {
                 if (_uiState.value.registrarPontoModal != null) {
-                    atualizarFotoRegistroModal(action.uri)
+                    atualizarFotoRegistroModal(action.uri, action.origem)
                 } else if (_uiState.value.edicaoModal != null) {
-                    atualizarFotoEdicaoModal(action.uri)
+                    atualizarFotoEdicaoModal(action.uri, action.origem)
                 } else {
                     selecionarFotoComprovante(action.uri)
                 }
@@ -252,11 +251,12 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(edicaoModal = null) }
     }
 
-    private fun atualizarFotoEdicaoModal(uri: Uri?) {
+    private fun atualizarFotoEdicaoModal(uri: Uri?, origem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA) {
         _uiState.update { state ->
             state.copy(
                 edicaoModal = state.edicaoModal?.copy(
                     fotoUri = uri,
+                    fotoOrigem = origem,
                     fotoRemovida = uri == null
                 )
             )
@@ -327,6 +327,7 @@ class HomeViewModel @Inject constructor(
                         horaConsiderada = hora,
                         nsr = nsr,
                         fotoComprovantePath = novoPath,
+                        fotoOrigem = modalState.fotoOrigem,
                         isEditadoManualmente = true,
                         observacao = buildString {
                             pontoAtual.observacao?.let { append(it).append(" | ") }
@@ -527,11 +528,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun atualizarFotoRegistroModal(uri: Uri?) {
+    private fun atualizarFotoRegistroModal(uri: Uri?, origem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA) {
         _uiState.update { state ->
             state.copy(
                 registrarPontoModal = state.registrarPontoModal?.copy(
                     fotoUri = uri,
+                    fotoOrigem = origem,
                     isProcessingOcr = uri != null && state.configuracaoEmprego?.fotoRegistrarPontoOcr == true
                 ),
                 showFotoSourceDialog = false
@@ -765,7 +767,7 @@ class HomeViewModel @Inject constructor(
                 is RegistrarPontoUseCase.Resultado.Sucesso -> {
                     // Salvar foto se houver
                     modalState.fotoUri?.let { uri ->
-                        salvarFotoComprovante(uri, resultado.pontoId, empregoId, modalState.dataHora)
+                        salvarFotoComprovante(uri, resultado.pontoId, empregoId, modalState.dataHora, modalState.fotoOrigem)
                     }
 
                     _uiState.update { it.copy(registrarPontoModal = null) }
@@ -1298,7 +1300,8 @@ class HomeViewModel @Inject constructor(
         uri: Uri,
         pontoId: Long,
         empregoId: Long,
-        dataHora: LocalDateTime
+        dataHora: LocalDateTime,
+        fotoOrigem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA
     ) {
         try {
             val relativePath = comprovanteImageStorage.saveFromUri(
@@ -1309,7 +1312,7 @@ class HomeViewModel @Inject constructor(
             )
 
             if (relativePath != null) {
-                pontoRepository.atualizarFotoComprovante(pontoId, relativePath)
+                pontoRepository.atualizarFotoComprovante(pontoId, relativePath, fotoOrigem)
                 android.util.Log.d("HomeViewModel", "Foto salva: $relativePath")
             } else {
                 android.util.Log.w("HomeViewModel", "Falha ao salvar foto")

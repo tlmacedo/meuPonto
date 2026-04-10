@@ -11,6 +11,7 @@ import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
  * @property isLoading Indica se está carregando dados
  * @property errorMessage Mensagem de erro, se houver
  * @property empregoNome Nome do emprego atual
+ * @property empregoApelido Apelido do emprego atual
  *
  * @author Thiago
  * @since 9.0.0
@@ -20,7 +21,8 @@ data class HistoricoCiclosUiState(
     val cicloExpandido: Int? = null,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
-    val empregoNome: String = ""
+    val empregoNome: String = "",
+    val empregoApelido: String = ""
 ) {
     /**
      * Verifica se há ciclos para exibir.

@@ -2,6 +2,8 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.design
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +56,7 @@ import kotlinx.coroutines.flow.collectLatest
  * @author Thiago
  * @since 9.0.0
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AparenciaScreen(
     onNavigateBack: () -> Unit,
@@ -84,7 +88,10 @@ fun AparenciaScreen(
         modifier = modifier
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(
+                horizontal = 16.dp,
+                vertical = 24.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
@@ -104,18 +111,28 @@ fun AparenciaScreen(
                 Text(
                     text = "Escolha como o app deve ser exibido",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
                 )
             }
 
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     TemaOption(
                         title = "Claro",
                         subtitle = "Tema com fundo claro",
                         icon = Icons.Outlined.LightMode,
                         isSelected = uiState.temaSelecionado == "light",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("light")) }
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("light")) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
                     )
 
                     TemaOption(
@@ -123,7 +140,10 @@ fun AparenciaScreen(
                         subtitle = "Tema com fundo escuro",
                         icon = Icons.Outlined.DarkMode,
                         isSelected = uiState.temaSelecionado == "dark",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("dark")) }
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("dark")) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
                     )
 
                     TemaOption(
@@ -131,7 +151,10 @@ fun AparenciaScreen(
                         subtitle = "Seguir configuração do dispositivo",
                         icon = Icons.Outlined.PhoneAndroid,
                         isSelected = uiState.temaSelecionado == "system",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("system")) }
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("system")) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
                     )
                 }
             }
@@ -140,9 +163,9 @@ fun AparenciaScreen(
             // SEÇÃO: CONTRASTE (Futuro)
             // ══════════════════════════════════════════════════════════════
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(modifier = Modifier.alpha(0.5f))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             item {
@@ -188,7 +211,7 @@ private fun SectionHeader(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+        modifier = modifier.fillMaxWidth()
     ) {
         Icon(
             imageVector = icon,

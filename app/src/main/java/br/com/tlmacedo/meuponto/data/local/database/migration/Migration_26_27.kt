@@ -1,7 +1,6 @@
 package br.com.tlmacedo.meuponto.data.local.database.migration
 
 import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Migração da versão 26 para 27: Adição da tabela 'usuarios' para o Módulo de Autenticação.

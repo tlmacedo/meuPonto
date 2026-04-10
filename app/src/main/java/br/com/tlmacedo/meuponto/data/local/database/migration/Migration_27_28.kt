@@ -1,7 +1,6 @@
 package br.com.tlmacedo.meuponto.data.local.database.migration
 
 import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Migração da versão 27 para 28:

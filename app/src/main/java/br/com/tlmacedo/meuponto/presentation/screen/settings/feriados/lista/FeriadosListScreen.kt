@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -92,7 +93,7 @@ fun FeriadosListScreen(
 /**
  * Conteúdo da tela de listagem de feriados, desacoplado do ViewModel.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun FeriadosListContent(
     uiState: FeriadosListUiState,
@@ -188,54 +189,67 @@ fun FeriadosListContent(
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                SearchBar(
-                    inputField = {
-                        SearchBarDefaults.InputField(
-                            query = uiState.searchQuery,
-                            onQueryChange = {
-                                onEvent(FeriadosListEvent.OnSearchQueryChange(it))
-                            },
-                            onSearch = { searchActive = false },
-                            expanded = false,
-                            onExpandedChange = { },
-                            placeholder = { Text("Buscar feriados...") },
-                            trailingIcon = {
-                                if (uiState.searchQuery.isNotBlank()) {
-                                    IconButton(
-                                        onClick = {
-                                            onEvent(
-                                                FeriadosListEvent.OnSearchQueryChange("")
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SearchBar(
+                        inputField = {
+                            SearchBarDefaults.InputField(
+                                query = uiState.searchQuery,
+                                onQueryChange = {
+                                    onEvent(FeriadosListEvent.OnSearchQueryChange(it))
+                                },
+                                onSearch = { searchActive = false },
+                                expanded = false,
+                                onExpandedChange = { },
+                                placeholder = { Text("Buscar feriados...") },
+                                trailingIcon = {
+                                    if (uiState.searchQuery.isNotBlank()) {
+                                        IconButton(
+                                            onClick = {
+                                                onEvent(
+                                                    FeriadosListEvent.OnSearchQueryChange("")
+                                                )
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Search,
+                                                contentDescription = "Limpar"
                                             )
                                         }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Search,
-                                            contentDescription = "Limpar"
-                                        )
                                     }
                                 }
-                            }
-                        )
-                    },
-                    expanded = false,
-                    onExpandedChange = { searchActive = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) { }
+                            )
+                        },
+                        expanded = false,
+                        onExpandedChange = { searchActive = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) { }
+                }
             }
 
             // Filtros
-            FeriadoFilterChips(
-                tiposSelecionados = uiState.filtroTipos,
-                anoSelecionado = uiState.filtroAno,
-                anosDisponiveis = uiState.anosDisponiveis,
-                ordemData = uiState.ordemData,
-                onToggleTipo = { onEvent(FeriadosListEvent.OnToggleTipo(it)) },
-                onAnoChange = { onEvent(FeriadosListEvent.OnFiltroAnoChange(it)) },
-                onToggleOrdem = { onEvent(FeriadosListEvent.OnToggleOrdem) },
-                onLimparFiltros = { onEvent(FeriadosListEvent.OnLimparFiltros) }
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                FeriadoFilterChips(
+                    tiposSelecionados = uiState.filtroTipos,
+                    anoSelecionado = uiState.filtroAno,
+                    anosDisponiveis = uiState.anosDisponiveis,
+                    ordemData = uiState.ordemData,
+                    onToggleTipo = { onEvent(FeriadosListEvent.OnToggleTipo(it)) },
+                    onAnoChange = { onEvent(FeriadosListEvent.OnFiltroAnoChange(it)) },
+                    onToggleOrdem = { onEvent(FeriadosListEvent.OnToggleOrdem) },
+                    onLimparFiltros = { onEvent(FeriadosListEvent.OnLimparFiltros) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 0.dp)
+                )
+            }
 
             // Conteúdo
             when {

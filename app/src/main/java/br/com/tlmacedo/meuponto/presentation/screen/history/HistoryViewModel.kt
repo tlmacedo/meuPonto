@@ -77,10 +77,9 @@ class HistoryViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                val empregoId: Long? = when (val resultado = obterEmpregoAtivoUseCase()) {
-                    is ObterEmpregoAtivoUseCase.Resultado.Sucesso -> resultado.emprego.id
-                    else -> null
-                }
+                val resultadoEmprego = obterEmpregoAtivoUseCase()
+                val emprego = (resultadoEmprego as? ObterEmpregoAtivoUseCase.Resultado.Sucesso)?.emprego
+                val empregoId = emprego?.id
 
                 if (empregoId == null) {
                     _uiState.update { it.copy(isLoading = false) }
@@ -96,6 +95,8 @@ class HistoryViewModel @Inject constructor(
 
                 _uiState.update { state ->
                     state.copy(
+                        nomeEmprego = emprego.nome,
+                        apelidoEmprego = emprego.apelido,
                         periodoSelecionado = periodoInicial,
                         diaInicioFechamento = diaInicio
                     )

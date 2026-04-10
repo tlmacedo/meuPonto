@@ -105,8 +105,8 @@ fun ComprovanteSection(
             showSourceDialog = true,
             onDismissSourceDialog = { viewModel.dismissSourceDialog() },
             cameraUri = uiState.cameraUri,
-            onCameraResult = { success -> viewModel.onCameraResult(success) },
-            onGalleryResult = { uri -> viewModel.onGalleryResult(uri) },
+            onCameraResult = { success, origem -> viewModel.onCameraResult(success, origem) },
+            onGalleryResult = { uri, origem -> viewModel.onGalleryResult(uri, origem) },
             onPermissionDenied = { message ->
                 viewModel.dismissSourceDialog()
                 Toast.makeText(context, message, Toast.LENGTH_LONG).show()

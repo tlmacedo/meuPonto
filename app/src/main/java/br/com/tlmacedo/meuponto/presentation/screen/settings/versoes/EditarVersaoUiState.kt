@@ -58,7 +58,37 @@ data class EditarVersaoUiState(
     val showDataFimPicker: Boolean = false,
     val showDataInicioCicloBancoPicker: Boolean = false,
     val secaoExpandida: SecaoVersao? = SecaoVersao.VIGENCIA_IDENTIFICACAO,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    // DADOS ORIGINAIS PARA COMPARACAO
+    val originalDescricao: String = "",
+    val originalDataInicio: LocalDate = LocalDate.now(),
+    val originalDataFim: LocalDate? = null,
+    val originalJornadaMaximaDiariaMinutos: Int = 600,
+    val originalIntervaloMinimoInterjornadaMinutos: Int = 660,
+    val originalIntervaloMinimoAlmocoMinutos: Int = 60,
+    val originalIntervaloMinimoDescansoMinutos: Int = 15,
+    val originalToleranciaIntervaloMaisMinutos: Int = 0,
+    val originalToleranciaRetornoIntervaloMinutos: Int = 5,
+    val originalTurnoMaximoMinutos: Int = 360,
+    val originalCargaHorariaDiariaMinutos: Int = 480,
+    val originalAcrescimoMinutosDiasPontes: Int = 12,
+    val originalCargaHorariaSemanalMinutos: Int = 2460,
+    val originalPrimeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
+    val originalDiaInicioFechamentoRH: Int = 1,
+    val originalZerarSaldoSemanal: Boolean = false,
+    val originalZerarSaldoPeriodoRH: Boolean = false,
+    val originalOcultarSaldoTotal: Boolean = false,
+    val originalBancoHorasHabilitado: Boolean = false,
+    val originalPeriodoBancoDias: Int = 0,
+    val originalPeriodoBancoSemanas: Int = 0,
+    val originalPeriodoBancoMeses: Int = 0,
+    val originalPeriodoBancoAnos: Int = 0,
+    val originalDataInicioCicloBancoAtual: LocalDate? = null,
+    val originalDiasUteisLembreteFechamento: Int = 3,
+    val originalHabilitarSugestaoAjuste: Boolean = false,
+    val originalZerarBancoAntesPeriodo: Boolean = false,
+    val originalExigeJustificativaInconsistencia: Boolean = false
 ) {
     private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
@@ -91,6 +121,45 @@ data class EditarVersaoUiState(
 
     val titulo: String
         get() = if (descricao.isNotBlank()) descricao else "Versão $numeroVersao"
+
+    // MUDANCAS GRANULARES
+    val temMudancasVigencia: Boolean = !isNovaVersao && (
+        descricao != originalDescricao ||
+            dataInicio != originalDataInicio ||
+            dataFim != originalDataFim
+    )
+
+    val temMudancasJornada: Boolean = !isNovaVersao && (
+        cargaHorariaDiariaMinutos != originalCargaHorariaDiariaMinutos ||
+            jornadaMaximaDiariaMinutos != originalJornadaMaximaDiariaMinutos ||
+            intervaloMinimoAlmocoMinutos != originalIntervaloMinimoAlmocoMinutos ||
+            intervaloMinimoDescansoMinutos != originalIntervaloMinimoDescansoMinutos ||
+            toleranciaRetornoIntervaloMinutos != originalToleranciaRetornoIntervaloMinutos ||
+            intervaloMinimoInterjornadaMinutos != originalIntervaloMinimoInterjornadaMinutos ||
+            turnoMaximoMinutos != originalTurnoMaximoMinutos
+    )
+
+    val temMudancasFechamento: Boolean = !isNovaVersao && (
+        diaInicioFechamentoRH != originalDiaInicioFechamentoRH ||
+            primeiroDiaSemana != originalPrimeiroDiaSemana ||
+            zerarSaldoPeriodoRH != originalZerarSaldoPeriodoRH ||
+            ocultarSaldoTotal != originalOcultarSaldoTotal
+    )
+
+    val temMudancasBancoHoras: Boolean = !isNovaVersao && (
+        bancoHorasHabilitado != originalBancoHorasHabilitado ||
+            periodoBancoDias != originalPeriodoBancoDias ||
+            periodoBancoSemanas != originalPeriodoBancoSemanas ||
+            periodoBancoMeses != originalPeriodoBancoMeses ||
+            periodoBancoAnos != originalPeriodoBancoAnos ||
+            dataInicioCicloBancoAtual != originalDataInicioCicloBancoAtual ||
+            habilitarSugestaoAjuste != originalHabilitarSugestaoAjuste
+    )
+
+    val temMudancasValidacao: Boolean = !isNovaVersao && (
+        exigeJustificativaInconsistencia != originalExigeJustificativaInconsistencia ||
+            toleranciaIntervaloMaisMinutos != originalToleranciaIntervaloMaisMinutos
+    )
 
     // BANCO DE HORAS - COMPUTADOS
     val temBancoHoras: Boolean

@@ -1,14 +1,12 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/emprego/AtualizarEmpregoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.emprego
 
-import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
-import br.com.tlmacedo.meuponto.domain.model.DiaSemana
-import br.com.tlmacedo.meuponto.domain.model.Emprego
+import androidx.core.net.toUri
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
-import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.util.LogoImageStorage
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -22,7 +20,8 @@ import javax.inject.Inject
 class AtualizarEmpregoUseCase @Inject constructor(
     private val empregoRepository: EmpregoRepository,
     private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val logoImageStorage: LogoImageStorage
 ) {
     data class Parametros(
         val empregoId: Long,
@@ -32,6 +31,7 @@ class AtualizarEmpregoUseCase @Inject constructor(
         val descricao: String? = null,
         val dataInicioTrabalho: LocalDate,
         val dataTerminoTrabalho: LocalDate? = null,
+        val logo: String? = null,
         
         // Configurações Fixas
         val habilitarNsr: Boolean,
@@ -55,7 +55,15 @@ class AtualizarEmpregoUseCase @Inject constructor(
 
             val agora = LocalDateTime.now()
 
-            // 1. Atualizar Emprego
+            // 1. Processar Logo se necessário
+            val logoFinal = if (parametros.logo != null && parametros.logo.startsWith("content://")) {
+                logoImageStorage.saveFromUri(parametros.logo.toUri(), parametros.empregoId)
+                    ?: parametros.logo
+            } else {
+                parametros.logo
+            }
+
+            // 2. Atualizar Emprego
             empregoRepository.atualizar(
                 empregoExistente.copy(
                     nome = parametros.nome.trim(),
@@ -64,11 +72,12 @@ class AtualizarEmpregoUseCase @Inject constructor(
                     descricao = parametros.descricao?.trim(),
                     dataInicioTrabalho = parametros.dataInicioTrabalho,
                     dataTerminoTrabalho = parametros.dataTerminoTrabalho,
+                    logo = logoFinal,
                     atualizadoEm = agora
                 )
             )
 
-            // 2. Atualizar ConfiguracaoEmprego
+            // 3. Atualizar ConfiguracaoEmprego
             val configExistente = configuracaoEmpregoRepository.buscarPorEmpregoId(parametros.empregoId)
             if (configExistente != null) {
                 configuracaoEmpregoRepository.atualizar(

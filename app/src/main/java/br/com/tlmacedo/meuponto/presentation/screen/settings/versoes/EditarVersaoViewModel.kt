@@ -3,7 +3,6 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.versoes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.versaojornada.AtualizarVersaoJornadaUseCase
@@ -20,7 +19,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
@@ -126,6 +124,11 @@ class EditarVersaoViewModel @Inject constructor(
             is EditarVersaoAction.MostrarDataInicioCicloBancoPicker -> _uiState.update { it.copy(showDataInicioCicloBancoPicker = action.mostrar) }
             is EditarVersaoAction.ToggleSecao -> toggleSecao(action.secao)
             is EditarVersaoAction.Salvar -> salvar()
+            is EditarVersaoAction.SalvarVigencia -> salvarVigencia()
+            is EditarVersaoAction.SalvarJornada -> salvarJornada()
+            is EditarVersaoAction.SalvarFechamento -> salvarFechamento()
+            is EditarVersaoAction.SalvarBancoHoras -> salvarBancoHoras()
+            is EditarVersaoAction.SalvarValidacao -> salvarValidacao()
             is EditarVersaoAction.Cancelar -> cancelar()
             is EditarVersaoAction.LimparErro -> limparErro()
             is EditarVersaoAction.ConfigurarHorarios -> configurarHorarios()
@@ -201,6 +204,35 @@ class EditarVersaoViewModel @Inject constructor(
                             // Validação
                             exigeJustificativaInconsistencia = versao.exigeJustificativaInconsistencia,
 
+                            originalDescricao = versao.descricao ?: "",
+                            originalDataInicio = versao.dataInicio,
+                            originalDataFim = versao.dataFim,
+                            originalJornadaMaximaDiariaMinutos = versao.jornadaMaximaDiariaMinutos,
+                            originalIntervaloMinimoInterjornadaMinutos = versao.intervaloMinimoInterjornadaMinutos,
+                            originalIntervaloMinimoAlmocoMinutos = versao.intervaloMinimoAlmocoMinutos,
+                            originalIntervaloMinimoDescansoMinutos = versao.intervaloMinimoDescansoMinutos,
+                            originalToleranciaIntervaloMaisMinutos = versao.toleranciaIntervaloMaisMinutos,
+                            originalToleranciaRetornoIntervaloMinutos = versao.toleranciaRetornoIntervaloMinutos,
+                            originalTurnoMaximoMinutos = versao.turnoMaximoMinutos,
+                            originalCargaHorariaDiariaMinutos = versao.cargaHorariaDiariaMinutos,
+                            originalAcrescimoMinutosDiasPontes = versao.acrescimoMinutosDiasPontes,
+                            originalCargaHorariaSemanalMinutos = versao.cargaHorariaSemanalMinutos,
+                            originalPrimeiroDiaSemana = versao.primeiroDiaSemana,
+                            originalDiaInicioFechamentoRH = versao.diaInicioFechamentoRH,
+                            originalZerarSaldoSemanal = versao.zerarSaldoSemanal,
+                            originalZerarSaldoPeriodoRH = versao.zerarSaldoPeriodoRH,
+                            originalOcultarSaldoTotal = versao.ocultarSaldoTotal,
+                            originalBancoHorasHabilitado = versao.bancoHorasHabilitado,
+                            originalPeriodoBancoDias = versao.periodoBancoDias,
+                            originalPeriodoBancoSemanas = versao.periodoBancoSemanas,
+                            originalPeriodoBancoMeses = versao.periodoBancoMeses,
+                            originalPeriodoBancoAnos = versao.periodoBancoAnos,
+                            originalDataInicioCicloBancoAtual = versao.dataInicioCicloBancoAtual,
+                            originalDiasUteisLembreteFechamento = versao.diasUteisLembreteFechamento,
+                            originalHabilitarSugestaoAjuste = versao.habilitarSugestaoAjuste,
+                            originalZerarBancoAntesPeriodo = versao.zerarBancoAntesPeriodo,
+                            originalExigeJustificativaInconsistencia = versao.exigeJustificativaInconsistencia,
+
                             horarios = horarios
                         )
                     }
@@ -258,6 +290,125 @@ class EditarVersaoViewModel @Inject constructor(
             state.copy(
                 secaoExpandida = if (state.secaoExpandida == secao) null else secao
             )
+        }
+    }
+
+    private fun salvarVigencia() {
+        val state = _uiState.value
+        executarAtualizacaoGranular(
+            criarParams(state).copy(
+                descricao = state.descricao,
+                dataInicio = state.dataInicio,
+                dataFim = state.dataFim
+            ),
+            "Vigência atualizada"
+        )
+    }
+
+    private fun salvarJornada() {
+        val state = _uiState.value
+        executarAtualizacaoGranular(
+            criarParams(state).copy(
+                cargaHorariaDiariaMinutos = state.cargaHorariaDiariaMinutos,
+                jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,
+                intervaloMinimoAlmocoMinutos = state.intervaloMinimoAlmocoMinutos,
+                intervaloMinimoDescansoMinutos = state.intervaloMinimoDescansoMinutos,
+                toleranciaRetornoIntervaloMinutos = state.toleranciaRetornoIntervaloMinutos,
+                intervaloMinimoInterjornadaMinutos = state.intervaloMinimoInterjornadaMinutos,
+                turnoMaximoMinutos = state.turnoMaximoMinutos
+            ),
+            "Jornada atualizada"
+        )
+    }
+
+    private fun salvarFechamento() {
+        val state = _uiState.value
+        executarAtualizacaoGranular(
+            criarParams(state).copy(
+                diaInicioFechamentoRH = state.diaInicioFechamentoRH,
+                primeiroDiaSemana = state.primeiroDiaSemana,
+                zerarSaldoPeriodoRH = state.zerarSaldoPeriodoRH,
+                ocultarSaldoTotal = state.ocultarSaldoTotal
+            ),
+            "Fechamento atualizado"
+        )
+    }
+
+    private fun salvarBancoHoras() {
+        val state = _uiState.value
+        executarAtualizacaoGranular(
+            criarParams(state).copy(
+                bancoHorasHabilitado = state.bancoHorasHabilitado,
+                periodoBancoDias = state.periodoBancoDias,
+                periodoBancoSemanas = state.periodoBancoSemanas,
+                periodoBancoMeses = state.periodoBancoMeses,
+                periodoBancoAnos = state.periodoBancoAnos,
+                dataInicioCicloBancoAtual = state.dataInicioCicloBancoAtual,
+                habilitarSugestaoAjuste = state.habilitarSugestaoAjuste
+            ),
+            "Banco de horas atualizado"
+        )
+    }
+
+    private fun salvarValidacao() {
+        val state = _uiState.value
+        executarAtualizacaoGranular(
+            criarParams(state).copy(
+                exigeJustificativaInconsistencia = state.exigeJustificativaInconsistencia,
+                toleranciaIntervaloMaisMinutos = state.toleranciaIntervaloMaisMinutos
+            ),
+            "Regras de validação atualizadas"
+        )
+    }
+
+    private fun criarParams(state: EditarVersaoUiState) = AtualizarVersaoJornadaUseCase.Params(
+        versaoId = state.versaoId!!,
+        dataInicio = state.originalDataInicio,
+        dataFim = state.originalDataFim,
+        descricao = state.originalDescricao.ifBlank { null },
+        vigente = state.vigente,
+        jornadaMaximaDiariaMinutos = state.originalJornadaMaximaDiariaMinutos,
+        intervaloMinimoInterjornadaMinutos = state.originalIntervaloMinimoInterjornadaMinutos,
+        intervaloMinimoAlmocoMinutos = state.originalIntervaloMinimoAlmocoMinutos,
+        intervaloMinimoDescansoMinutos = state.originalIntervaloMinimoDescansoMinutos,
+        toleranciaIntervaloMaisMinutos = state.originalToleranciaIntervaloMaisMinutos,
+        toleranciaRetornoIntervaloMinutos = state.originalToleranciaRetornoIntervaloMinutos,
+        turnoMaximoMinutos = state.originalTurnoMaximoMinutos,
+        cargaHorariaDiariaMinutos = state.originalCargaHorariaDiariaMinutos,
+        acrescimoMinutosDiasPontes = state.originalAcrescimoMinutosDiasPontes,
+        cargaHorariaSemanalMinutos = state.originalCargaHorariaSemanalMinutos,
+        primeiroDiaSemana = state.originalPrimeiroDiaSemana,
+        diaInicioFechamentoRH = state.originalDiaInicioFechamentoRH,
+        zerarSaldoSemanal = state.originalZerarSaldoSemanal,
+        zerarSaldoPeriodoRH = state.originalZerarSaldoPeriodoRH,
+        ocultarSaldoTotal = state.originalOcultarSaldoTotal,
+        bancoHorasHabilitado = state.originalBancoHorasHabilitado,
+        periodoBancoDias = state.originalPeriodoBancoDias,
+        periodoBancoSemanas = state.originalPeriodoBancoSemanas,
+        periodoBancoMeses = state.originalPeriodoBancoMeses,
+        periodoBancoAnos = state.originalPeriodoBancoAnos,
+        dataInicioCicloBancoAtual = state.originalDataInicioCicloBancoAtual,
+        diasUteisLembreteFechamento = state.originalDiasUteisLembreteFechamento,
+        habilitarSugestaoAjuste = state.originalHabilitarSugestaoAjuste,
+        zerarBancoAntesPeriodo = state.originalZerarBancoAntesPeriodo,
+        exigeJustificativaInconsistencia = state.originalExigeJustificativaInconsistencia
+    )
+
+    private fun executarAtualizacaoGranular(params: AtualizarVersaoJornadaUseCase.Params, msg: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+            try {
+                versaoJornadaUseCases.atualizar(params).onSuccess {
+                    _eventos.emit(EditarVersaoEvent.MostrarMensagem(msg))
+                    carregarVersao(params.versaoId)
+                }.onFailure { e ->
+                    _eventos.emit(EditarVersaoEvent.MostrarMensagem(e.message ?: "Erro ao salvar"))
+                }
+            } catch (e: Exception) {
+                _eventos.emit(EditarVersaoEvent.MostrarMensagem("Erro ao salvar: ${e.message}"))
+            } finally {
+                _uiState.update { it.copy(isSaving = false) }
+            }
         }
     }
 

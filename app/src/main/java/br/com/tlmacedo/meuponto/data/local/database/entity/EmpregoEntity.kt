@@ -29,6 +29,7 @@ data class EmpregoEntity(
     val ativo: Boolean = true,
     val arquivado: Boolean = false,
     val ordem: Int = 0,
+    val logo: String? = null,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 )
@@ -45,6 +46,7 @@ fun EmpregoEntity.toDomain(): br.com.tlmacedo.meuponto.domain.model.Emprego =
         ativo = ativo,
         arquivado = arquivado,
         ordem = ordem,
+        logo = logo,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )
@@ -61,6 +63,7 @@ fun br.com.tlmacedo.meuponto.domain.model.Emprego.toEntity(): EmpregoEntity =
         ativo = ativo,
         arquivado = arquivado,
         ordem = ordem,
+        logo = logo,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )

@@ -2,7 +2,6 @@
 package br.com.tlmacedo.meuponto.domain.usecase.feriado
 
 import br.com.tlmacedo.meuponto.data.remote.api.BrasilApiService
-import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import java.time.LocalDate

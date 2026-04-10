@@ -1,0 +1,2342 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 33,
+    "identityHash": "2d88954c58d595ce20cf26c83bb2fe6a",
+    "entities": [
+      {
+        "tableName": "ajustes_salariais",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `historicoCargoId` INTEGER NOT NULL, `dataAjuste` TEXT NOT NULL, `novoSalario` REAL NOT NULL, `observacao` TEXT, `criadoEm` TEXT NOT NULL, FOREIGN KEY(`historicoCargoId`) REFERENCES `historico_cargos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "historicoCargoId",
+            "columnName": "historicoCargoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataAjuste",
+            "columnName": "dataAjuste",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "novoSalario",
+            "columnName": "novoSalario",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observacao",
+            "columnName": "observacao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_ajustes_salariais_historicoCargoId",
+            "unique": false,
+            "columnNames": [
+              "historicoCargoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ajustes_salariais_historicoCargoId` ON `${TABLE_NAME}` (`historicoCargoId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "historico_cargos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "historicoCargoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "ajustes_saldo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `data` TEXT NOT NULL, `minutos` INTEGER NOT NULL, `tipo` TEXT NOT NULL, `justificativa` TEXT NOT NULL, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "data",
+            "columnName": "data",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minutos",
+            "columnName": "minutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "justificativa",
+            "columnName": "justificativa",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_ajustes_saldo_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ajustes_saldo_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          },
+          {
+            "name": "index_ajustes_saldo_data",
+            "unique": false,
+            "columnNames": [
+              "data"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ajustes_saldo_data` ON `${TABLE_NAME}` (`data`)"
+          },
+          {
+            "name": "index_ajustes_saldo_empregoId_data",
+            "unique": false,
+            "columnNames": [
+              "empregoId",
+              "data"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ajustes_saldo_empregoId_data` ON `${TABLE_NAME}` (`empregoId`, `data`)"
+          },
+          {
+            "name": "index_ajustes_saldo_tipo",
+            "unique": false,
+            "columnNames": [
+              "tipo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ajustes_saldo_tipo` ON `${TABLE_NAME}` (`tipo`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "audit_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `entidade` TEXT NOT NULL, `entidade_id` INTEGER NOT NULL, `acao` TEXT NOT NULL, `motivo` TEXT, `dados_anteriores` TEXT, `dados_novos` TEXT, `criado_em` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entidade",
+            "columnName": "entidade",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entidadeId",
+            "columnName": "entidade_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "acao",
+            "columnName": "acao",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "motivo",
+            "columnName": "motivo",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dadosAnteriores",
+            "columnName": "dados_anteriores",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dadosNovos",
+            "columnName": "dados_novos",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criado_em",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_audit_logs_entidade_entidade_id",
+            "unique": false,
+            "columnNames": [
+              "entidade",
+              "entidade_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_audit_logs_entidade_entidade_id` ON `${TABLE_NAME}` (`entidade`, `entidade_id`)"
+          },
+          {
+            "name": "index_audit_logs_criado_em",
+            "unique": false,
+            "columnNames": [
+              "criado_em"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_audit_logs_criado_em` ON `${TABLE_NAME}` (`criado_em`)"
+          },
+          {
+            "name": "index_audit_logs_acao",
+            "unique": false,
+            "columnNames": [
+              "acao"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_audit_logs_acao` ON `${TABLE_NAME}` (`acao`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "configuracoes_emprego",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `habilitarNsr` INTEGER NOT NULL DEFAULT 0, `tipoNsr` TEXT NOT NULL DEFAULT 'NUMERICO', `habilitarLocalizacao` INTEGER NOT NULL DEFAULT 0, `localizacaoAutomatica` INTEGER NOT NULL DEFAULT 0, `exibirLocalizacaoDetalhes` INTEGER NOT NULL DEFAULT 1, `fotoHabilitada` INTEGER NOT NULL DEFAULT 0, `fotoObrigatoria` INTEGER NOT NULL DEFAULT 0, `fotoFormato` TEXT NOT NULL DEFAULT 'JPEG', `fotoQualidade` INTEGER NOT NULL DEFAULT 85, `fotoResolucaoMaxima` INTEGER NOT NULL DEFAULT 1920, `fotoTamanhoMaximoKb` INTEGER NOT NULL DEFAULT 1024, `fotoCorrecaoOrientacao` INTEGER NOT NULL DEFAULT 1, `fotoApenasCamera` INTEGER NOT NULL DEFAULT 0, `fotoIncluirLocalizacaoExif` INTEGER NOT NULL DEFAULT 1, `fotoBackupNuvemHabilitado` INTEGER NOT NULL DEFAULT 0, `fotoBackupApenasWifi` INTEGER NOT NULL DEFAULT 1, `fotoLocalArmazenamento` TEXT, `fotoRegistrarPontoOcr` INTEGER NOT NULL DEFAULT 0, `diaInicioFechamentoRH` INTEGER NOT NULL DEFAULT 11, `bancoHorasHabilitado` INTEGER NOT NULL DEFAULT 0, `bancoHorasCicloMeses` INTEGER NOT NULL DEFAULT 6, `bancoHorasDataInicioCiclo` TEXT, `bancoHorasZerarAoFinalCiclo` INTEGER NOT NULL DEFAULT 0, `exigeJustificativaInconsistencia` INTEGER NOT NULL DEFAULT 0, `exibirDuracaoTurno` INTEGER NOT NULL DEFAULT 1, `exibirDuracaoIntervalo` INTEGER NOT NULL DEFAULT 1, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "habilitarNsr",
+            "columnName": "habilitarNsr",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "tipoNsr",
+            "columnName": "tipoNsr",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'NUMERICO'"
+          },
+          {
+            "fieldPath": "habilitarLocalizacao",
+            "columnName": "habilitarLocalizacao",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "localizacaoAutomatica",
+            "columnName": "localizacaoAutomatica",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "exibirLocalizacaoDetalhes",
+            "columnName": "exibirLocalizacaoDetalhes",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "fotoHabilitada",
+            "columnName": "fotoHabilitada",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fotoObrigatoria",
+            "columnName": "fotoObrigatoria",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fotoFormato",
+            "columnName": "fotoFormato",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'JPEG'"
+          },
+          {
+            "fieldPath": "fotoQualidade",
+            "columnName": "fotoQualidade",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "85"
+          },
+          {
+            "fieldPath": "fotoResolucaoMaxima",
+            "columnName": "fotoResolucaoMaxima",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1920"
+          },
+          {
+            "fieldPath": "fotoTamanhoMaximoKb",
+            "columnName": "fotoTamanhoMaximoKb",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1024"
+          },
+          {
+            "fieldPath": "fotoCorrecaoOrientacao",
+            "columnName": "fotoCorrecaoOrientacao",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "fotoApenasCamera",
+            "columnName": "fotoApenasCamera",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fotoIncluirLocalizacaoExif",
+            "columnName": "fotoIncluirLocalizacaoExif",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "fotoBackupNuvemHabilitado",
+            "columnName": "fotoBackupNuvemHabilitado",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fotoBackupApenasWifi",
+            "columnName": "fotoBackupApenasWifi",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "fotoLocalArmazenamento",
+            "columnName": "fotoLocalArmazenamento",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "fotoRegistrarPontoOcr",
+            "columnName": "fotoRegistrarPontoOcr",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "diaInicioFechamentoRH",
+            "columnName": "diaInicioFechamentoRH",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "11"
+          },
+          {
+            "fieldPath": "bancoHorasHabilitado",
+            "columnName": "bancoHorasHabilitado",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "bancoHorasCicloMeses",
+            "columnName": "bancoHorasCicloMeses",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "6"
+          },
+          {
+            "fieldPath": "bancoHorasDataInicioCiclo",
+            "columnName": "bancoHorasDataInicioCiclo",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "bancoHorasZerarAoFinalCiclo",
+            "columnName": "bancoHorasZerarAoFinalCiclo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "exigeJustificativaInconsistencia",
+            "columnName": "exigeJustificativaInconsistencia",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "exibirDuracaoTurno",
+            "columnName": "exibirDuracaoTurno",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "exibirDuracaoIntervalo",
+            "columnName": "exibirDuracaoIntervalo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_configuracoes_emprego_empregoId",
+            "unique": true,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_configuracoes_emprego_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "configuracao_pontes_ano",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `ano` INTEGER NOT NULL, `diasPonte` INTEGER NOT NULL, `cargaHorariaPonteMinutos` INTEGER NOT NULL, `diasUteisAno` INTEGER NOT NULL, `adicionalDiarioMinutos` INTEGER NOT NULL, `observacao` TEXT, `calculadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ano",
+            "columnName": "ano",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diasPonte",
+            "columnName": "diasPonte",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cargaHorariaPonteMinutos",
+            "columnName": "cargaHorariaPonteMinutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diasUteisAno",
+            "columnName": "diasUteisAno",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adicionalDiarioMinutos",
+            "columnName": "adicionalDiarioMinutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observacao",
+            "columnName": "observacao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "calculadoEm",
+            "columnName": "calculadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_configuracao_pontes_ano_empregoId_ano",
+            "unique": true,
+            "columnNames": [
+              "empregoId",
+              "ano"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_configuracao_pontes_ano_empregoId_ano` ON `${TABLE_NAME}` (`empregoId`, `ano`)"
+          },
+          {
+            "name": "index_configuracao_pontes_ano_ano",
+            "unique": false,
+            "columnNames": [
+              "ano"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_configuracao_pontes_ano_ano` ON `${TABLE_NAME}` (`ano`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "empregos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nome` TEXT NOT NULL, `apelido` TEXT, `endereco` TEXT, `dataInicioTrabalho` TEXT, `dataTerminoTrabalho` TEXT, `descricao` TEXT, `ativo` INTEGER NOT NULL, `arquivado` INTEGER NOT NULL, `ordem` INTEGER NOT NULL, `logo` TEXT, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "apelido",
+            "columnName": "apelido",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "endereco",
+            "columnName": "endereco",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dataInicioTrabalho",
+            "columnName": "dataInicioTrabalho",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dataTerminoTrabalho",
+            "columnName": "dataTerminoTrabalho",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "descricao",
+            "columnName": "descricao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "ativo",
+            "columnName": "ativo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "arquivado",
+            "columnName": "arquivado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ordem",
+            "columnName": "ordem",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "logo",
+            "columnName": "logo",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_empregos_ativo",
+            "unique": false,
+            "columnNames": [
+              "ativo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_empregos_ativo` ON `${TABLE_NAME}` (`ativo`)"
+          },
+          {
+            "name": "index_empregos_arquivado",
+            "unique": false,
+            "columnNames": [
+              "arquivado"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_empregos_arquivado` ON `${TABLE_NAME}` (`arquivado`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "fechamentos_periodo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `emprego_id` INTEGER NOT NULL, `data_fechamento` TEXT NOT NULL, `data_inicio_periodo` TEXT NOT NULL, `data_fim_periodo` TEXT NOT NULL, `saldo_anterior_minutos` INTEGER NOT NULL, `tipo` TEXT NOT NULL, `observacao` TEXT, `criado_em` TEXT NOT NULL, FOREIGN KEY(`emprego_id`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "emprego_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataFechamento",
+            "columnName": "data_fechamento",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataInicioPeriodo",
+            "columnName": "data_inicio_periodo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataFimPeriodo",
+            "columnName": "data_fim_periodo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "saldoAnteriorMinutos",
+            "columnName": "saldo_anterior_minutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observacao",
+            "columnName": "observacao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criado_em",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fechamentos_periodo_emprego_id",
+            "unique": false,
+            "columnNames": [
+              "emprego_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_emprego_id` ON `${TABLE_NAME}` (`emprego_id`)"
+          },
+          {
+            "name": "index_fechamentos_periodo_data_fechamento",
+            "unique": false,
+            "columnNames": [
+              "data_fechamento"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_data_fechamento` ON `${TABLE_NAME}` (`data_fechamento`)"
+          },
+          {
+            "name": "index_fechamentos_periodo_tipo",
+            "unique": false,
+            "columnNames": [
+              "tipo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fechamentos_periodo_tipo` ON `${TABLE_NAME}` (`tipo`)"
+          },
+          {
+            "name": "index_fechamentos_periodo_emprego_id_data_inicio_periodo_data_fim_periodo",
+            "unique": true,
+            "columnNames": [
+              "emprego_id",
+              "data_inicio_periodo",
+              "data_fim_periodo"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_fechamentos_periodo_emprego_id_data_inicio_periodo_data_fim_periodo` ON `${TABLE_NAME}` (`emprego_id`, `data_inicio_periodo`, `data_fim_periodo`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "emprego_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "feriados",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nome` TEXT NOT NULL, `tipo` TEXT NOT NULL, `recorrencia` TEXT NOT NULL, `abrangencia` TEXT NOT NULL, `diaMes` TEXT, `dataEspecifica` TEXT, `anoReferencia` INTEGER, `uf` TEXT, `municipio` TEXT, `empregoId` INTEGER, `ativo` INTEGER NOT NULL, `observacao` TEXT, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recorrencia",
+            "columnName": "recorrencia",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abrangencia",
+            "columnName": "abrangencia",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diaMes",
+            "columnName": "diaMes",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dataEspecifica",
+            "columnName": "dataEspecifica",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "anoReferencia",
+            "columnName": "anoReferencia",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "uf",
+            "columnName": "uf",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "municipio",
+            "columnName": "municipio",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "ativo",
+            "columnName": "ativo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observacao",
+            "columnName": "observacao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_feriados_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_feriados_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          },
+          {
+            "name": "index_feriados_tipo",
+            "unique": false,
+            "columnNames": [
+              "tipo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_feriados_tipo` ON `${TABLE_NAME}` (`tipo`)"
+          },
+          {
+            "name": "index_feriados_anoReferencia",
+            "unique": false,
+            "columnNames": [
+              "anoReferencia"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_feriados_anoReferencia` ON `${TABLE_NAME}` (`anoReferencia`)"
+          },
+          {
+            "name": "index_feriados_diaMes",
+            "unique": false,
+            "columnNames": [
+              "diaMes"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_feriados_diaMes` ON `${TABLE_NAME}` (`diaMes`)"
+          },
+          {
+            "name": "index_feriados_dataEspecifica",
+            "unique": false,
+            "columnNames": [
+              "dataEspecifica"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_feriados_dataEspecifica` ON `${TABLE_NAME}` (`dataEspecifica`)"
+          },
+          {
+            "name": "index_feriados_ativo",
+            "unique": false,
+            "columnNames": [
+              "ativo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_feriados_ativo` ON `${TABLE_NAME}` (`ativo`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "fotos_comprovante",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `pontoId` INTEGER NOT NULL, `empregoId` INTEGER NOT NULL, `data` TEXT NOT NULL, `diaSemana` TEXT NOT NULL, `hora` TEXT NOT NULL, `indicePontoDia` INTEGER NOT NULL, `nsr` TEXT, `latitude` REAL, `longitude` REAL, `altitude` REAL, `precisaoMetros` REAL, `enderecoFormatado` TEXT, `versaoJornada` INTEGER NOT NULL, `tipoJornadaDia` TEXT NOT NULL, `horasTrabalhadasDiaMinutos` INTEGER NOT NULL, `saldoDiaMinutos` INTEGER NOT NULL, `saldoBancoHorasMinutos` INTEGER NOT NULL, `fotoPath` TEXT NOT NULL, `fotoTimestamp` TEXT NOT NULL, `fotoOrigem` TEXT NOT NULL, `fotoTamanhoBytes` INTEGER NOT NULL, `fotoHashMd5` TEXT NOT NULL, `sincronizadoNuvem` INTEGER NOT NULL, `sincronizadoEm` TEXT, `cloudFileId` TEXT, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`pontoId`) REFERENCES `pontos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pontoId",
+            "columnName": "pontoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "data",
+            "columnName": "data",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diaSemana",
+            "columnName": "diaSemana",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hora",
+            "columnName": "hora",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "indicePontoDia",
+            "columnName": "indicePontoDia",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nsr",
+            "columnName": "nsr",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "altitude",
+            "columnName": "altitude",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "precisaoMetros",
+            "columnName": "precisaoMetros",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "enderecoFormatado",
+            "columnName": "enderecoFormatado",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "versaoJornada",
+            "columnName": "versaoJornada",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipoJornadaDia",
+            "columnName": "tipoJornadaDia",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "horasTrabalhadasDiaMinutos",
+            "columnName": "horasTrabalhadasDiaMinutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "saldoDiaMinutos",
+            "columnName": "saldoDiaMinutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "saldoBancoHorasMinutos",
+            "columnName": "saldoBancoHorasMinutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoPath",
+            "columnName": "fotoPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoTimestamp",
+            "columnName": "fotoTimestamp",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoOrigem",
+            "columnName": "fotoOrigem",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoTamanhoBytes",
+            "columnName": "fotoTamanhoBytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoHashMd5",
+            "columnName": "fotoHashMd5",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sincronizadoNuvem",
+            "columnName": "sincronizadoNuvem",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sincronizadoEm",
+            "columnName": "sincronizadoEm",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "cloudFileId",
+            "columnName": "cloudFileId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fotos_comprovante_pontoId",
+            "unique": true,
+            "columnNames": [
+              "pontoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_fotos_comprovante_pontoId` ON `${TABLE_NAME}` (`pontoId`)"
+          },
+          {
+            "name": "index_fotos_comprovante_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fotos_comprovante_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          },
+          {
+            "name": "index_fotos_comprovante_data",
+            "unique": false,
+            "columnNames": [
+              "data"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fotos_comprovante_data` ON `${TABLE_NAME}` (`data`)"
+          },
+          {
+            "name": "index_fotos_comprovante_sincronizadoNuvem",
+            "unique": false,
+            "columnNames": [
+              "sincronizadoNuvem"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fotos_comprovante_sincronizadoNuvem` ON `${TABLE_NAME}` (`sincronizadoNuvem`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "pontos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "pontoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "historico_cargos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `funcao` TEXT NOT NULL, `salarioInicial` REAL NOT NULL, `dataInicio` TEXT NOT NULL, `dataFim` TEXT, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "funcao",
+            "columnName": "funcao",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "salarioInicial",
+            "columnName": "salarioInicial",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataInicio",
+            "columnName": "dataInicio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataFim",
+            "columnName": "dataFim",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_historico_cargos_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_historico_cargos_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "horarios_dia_semana",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `versaoJornadaId` INTEGER, `diaSemana` TEXT NOT NULL, `ativo` INTEGER NOT NULL, `cargaHorariaMinutos` INTEGER NOT NULL, `entradaIdeal` TEXT, `saidaIntervaloIdeal` TEXT, `voltaIntervaloIdeal` TEXT, `saidaIdeal` TEXT, `intervaloMinimoMinutos` INTEGER NOT NULL, `toleranciaIntervaloMaisMinutos` INTEGER NOT NULL, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`versaoJornadaId`) REFERENCES `versoes_jornada`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "versaoJornadaId",
+            "columnName": "versaoJornadaId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "diaSemana",
+            "columnName": "diaSemana",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ativo",
+            "columnName": "ativo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cargaHorariaMinutos",
+            "columnName": "cargaHorariaMinutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entradaIdeal",
+            "columnName": "entradaIdeal",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "saidaIntervaloIdeal",
+            "columnName": "saidaIntervaloIdeal",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "voltaIntervaloIdeal",
+            "columnName": "voltaIntervaloIdeal",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "saidaIdeal",
+            "columnName": "saidaIdeal",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "intervaloMinimoMinutos",
+            "columnName": "intervaloMinimoMinutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toleranciaIntervaloMaisMinutos",
+            "columnName": "toleranciaIntervaloMaisMinutos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_horarios_dia_semana_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_horarios_dia_semana_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          },
+          {
+            "name": "index_horarios_dia_semana_versaoJornadaId",
+            "unique": false,
+            "columnNames": [
+              "versaoJornadaId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_horarios_dia_semana_versaoJornadaId` ON `${TABLE_NAME}` (`versaoJornadaId`)"
+          },
+          {
+            "name": "index_horarios_dia_semana_versaoJornadaId_diaSemana",
+            "unique": true,
+            "columnNames": [
+              "versaoJornadaId",
+              "diaSemana"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_horarios_dia_semana_versaoJornadaId_diaSemana` ON `${TABLE_NAME}` (`versaoJornadaId`, `diaSemana`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "versoes_jornada",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "versaoJornadaId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "marcadores",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `nome` TEXT NOT NULL, `cor` TEXT NOT NULL, `icone` TEXT, `ativo` INTEGER NOT NULL, `ordem` INTEGER NOT NULL, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cor",
+            "columnName": "cor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icone",
+            "columnName": "icone",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "ativo",
+            "columnName": "ativo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ordem",
+            "columnName": "ordem",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_marcadores_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_marcadores_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          },
+          {
+            "name": "index_marcadores_empregoId_ativo",
+            "unique": false,
+            "columnNames": [
+              "empregoId",
+              "ativo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_marcadores_empregoId_ativo` ON `${TABLE_NAME}` (`empregoId`, `ativo`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "pontos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `dataHora` TEXT NOT NULL, `data` TEXT NOT NULL, `hora` TEXT NOT NULL, `horaConsiderada` TEXT NOT NULL, `nsr` TEXT, `observacao` TEXT, `isEditadoManualmente` INTEGER NOT NULL, `latitude` REAL, `longitude` REAL, `endereco` TEXT, `marcadorId` INTEGER, `justificativaInconsistencia` TEXT, `fotoComprovantePath` TEXT, `foto_origem` INTEGER NOT NULL DEFAULT 0, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, `is_deleted` INTEGER NOT NULL DEFAULT 0, `deleted_at` INTEGER, `updated_at` INTEGER NOT NULL DEFAULT 0, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`marcadorId`) REFERENCES `marcadores`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataHora",
+            "columnName": "dataHora",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "data",
+            "columnName": "data",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hora",
+            "columnName": "hora",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "horaConsiderada",
+            "columnName": "horaConsiderada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nsr",
+            "columnName": "nsr",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "observacao",
+            "columnName": "observacao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isEditadoManualmente",
+            "columnName": "isEditadoManualmente",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "endereco",
+            "columnName": "endereco",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "marcadorId",
+            "columnName": "marcadorId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "justificativaInconsistencia",
+            "columnName": "justificativaInconsistencia",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "fotoComprovantePath",
+            "columnName": "fotoComprovantePath",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "fotoOrigem",
+            "columnName": "foto_origem",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDeleted",
+            "columnName": "is_deleted",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deleted_at",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pontos_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pontos_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          },
+          {
+            "name": "index_pontos_marcadorId",
+            "unique": false,
+            "columnNames": [
+              "marcadorId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pontos_marcadorId` ON `${TABLE_NAME}` (`marcadorId`)"
+          },
+          {
+            "name": "index_pontos_dataHora",
+            "unique": false,
+            "columnNames": [
+              "dataHora"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pontos_dataHora` ON `${TABLE_NAME}` (`dataHora`)"
+          },
+          {
+            "name": "index_pontos_data",
+            "unique": false,
+            "columnNames": [
+              "data"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pontos_data` ON `${TABLE_NAME}` (`data`)"
+          },
+          {
+            "name": "index_pontos_empregoId_data",
+            "unique": false,
+            "columnNames": [
+              "empregoId",
+              "data"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pontos_empregoId_data` ON `${TABLE_NAME}` (`empregoId`, `data`)"
+          },
+          {
+            "name": "index_pontos_empregoId_dataHora",
+            "unique": false,
+            "columnNames": [
+              "empregoId",
+              "dataHora"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pontos_empregoId_dataHora` ON `${TABLE_NAME}` (`empregoId`, `dataHora`)"
+          },
+          {
+            "name": "index_pontos_is_deleted",
+            "unique": false,
+            "columnNames": [
+              "is_deleted"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pontos_is_deleted` ON `${TABLE_NAME}` (`is_deleted`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "marcadores",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "marcadorId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "versoes_jornada",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `dataInicio` TEXT NOT NULL, `dataFim` TEXT, `descricao` TEXT, `numeroVersao` INTEGER NOT NULL DEFAULT 1, `vigente` INTEGER NOT NULL DEFAULT 1, `jornadaMaximaDiariaMinutos` INTEGER NOT NULL DEFAULT 600, `intervaloMinimoInterjornadaMinutos` INTEGER NOT NULL DEFAULT 660, `turnoMaximoMinutos` INTEGER NOT NULL DEFAULT 360, `intervaloMinimoAlmocoMinutos` INTEGER NOT NULL DEFAULT 60, `intervaloMinimoDescansoMinutos` INTEGER NOT NULL DEFAULT 15, `toleranciaIntervaloMaisMinutos` INTEGER NOT NULL DEFAULT 0, `toleranciaRetornoIntervaloMinutos` INTEGER NOT NULL DEFAULT 5, `cargaHorariaDiariaMinutos` INTEGER NOT NULL DEFAULT 480, `acrescimoMinutosDiasPontes` INTEGER NOT NULL DEFAULT 12, `cargaHorariaSemanalMinutos` INTEGER NOT NULL DEFAULT 2460, `primeiroDiaSemana` TEXT NOT NULL DEFAULT 'SEGUNDA', `diaInicioFechamentoRH` INTEGER NOT NULL DEFAULT 1, `zerarSaldoSemanal` INTEGER NOT NULL DEFAULT 0, `zerarSaldoPeriodoRH` INTEGER NOT NULL DEFAULT 0, `ocultarSaldoTotal` INTEGER NOT NULL DEFAULT 0, `bancoHorasHabilitado` INTEGER NOT NULL DEFAULT 0, `periodoBancoDias` INTEGER NOT NULL DEFAULT 0, `periodoBancoSemanas` INTEGER NOT NULL DEFAULT 0, `periodoBancoMeses` INTEGER NOT NULL DEFAULT 0, `periodoBancoAnos` INTEGER NOT NULL DEFAULT 0, `dataInicioCicloBancoAtual` TEXT, `diasUteisLembreteFechamento` INTEGER NOT NULL DEFAULT 3, `habilitarSugestaoAjuste` INTEGER NOT NULL DEFAULT 0, `zerarBancoAntesPeriodo` INTEGER NOT NULL DEFAULT 0, `exigeJustificativaInconsistencia` INTEGER NOT NULL DEFAULT 0, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataInicio",
+            "columnName": "dataInicio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataFim",
+            "columnName": "dataFim",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "descricao",
+            "columnName": "descricao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "numeroVersao",
+            "columnName": "numeroVersao",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "vigente",
+            "columnName": "vigente",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "jornadaMaximaDiariaMinutos",
+            "columnName": "jornadaMaximaDiariaMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "600"
+          },
+          {
+            "fieldPath": "intervaloMinimoInterjornadaMinutos",
+            "columnName": "intervaloMinimoInterjornadaMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "660"
+          },
+          {
+            "fieldPath": "turnoMaximoMinutos",
+            "columnName": "turnoMaximoMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "360"
+          },
+          {
+            "fieldPath": "intervaloMinimoAlmocoMinutos",
+            "columnName": "intervaloMinimoAlmocoMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "60"
+          },
+          {
+            "fieldPath": "intervaloMinimoDescansoMinutos",
+            "columnName": "intervaloMinimoDescansoMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "15"
+          },
+          {
+            "fieldPath": "toleranciaIntervaloMaisMinutos",
+            "columnName": "toleranciaIntervaloMaisMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "toleranciaRetornoIntervaloMinutos",
+            "columnName": "toleranciaRetornoIntervaloMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "5"
+          },
+          {
+            "fieldPath": "cargaHorariaDiariaMinutos",
+            "columnName": "cargaHorariaDiariaMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "480"
+          },
+          {
+            "fieldPath": "acrescimoMinutosDiasPontes",
+            "columnName": "acrescimoMinutosDiasPontes",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "12"
+          },
+          {
+            "fieldPath": "cargaHorariaSemanalMinutos",
+            "columnName": "cargaHorariaSemanalMinutos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "2460"
+          },
+          {
+            "fieldPath": "primeiroDiaSemana",
+            "columnName": "primeiroDiaSemana",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'SEGUNDA'"
+          },
+          {
+            "fieldPath": "diaInicioFechamentoRH",
+            "columnName": "diaInicioFechamentoRH",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "zerarSaldoSemanal",
+            "columnName": "zerarSaldoSemanal",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "zerarSaldoPeriodoRH",
+            "columnName": "zerarSaldoPeriodoRH",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "ocultarSaldoTotal",
+            "columnName": "ocultarSaldoTotal",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "bancoHorasHabilitado",
+            "columnName": "bancoHorasHabilitado",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "periodoBancoDias",
+            "columnName": "periodoBancoDias",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "periodoBancoSemanas",
+            "columnName": "periodoBancoSemanas",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "periodoBancoMeses",
+            "columnName": "periodoBancoMeses",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "periodoBancoAnos",
+            "columnName": "periodoBancoAnos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "dataInicioCicloBancoAtual",
+            "columnName": "dataInicioCicloBancoAtual",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "diasUteisLembreteFechamento",
+            "columnName": "diasUteisLembreteFechamento",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "3"
+          },
+          {
+            "fieldPath": "habilitarSugestaoAjuste",
+            "columnName": "habilitarSugestaoAjuste",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "zerarBancoAntesPeriodo",
+            "columnName": "zerarBancoAntesPeriodo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "exigeJustificativaInconsistencia",
+            "columnName": "exigeJustificativaInconsistencia",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_versoes_jornada_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_versoes_jornada_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          },
+          {
+            "name": "index_versoes_jornada_empregoId_dataInicio",
+            "unique": false,
+            "columnNames": [
+              "empregoId",
+              "dataInicio"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_versoes_jornada_empregoId_dataInicio` ON `${TABLE_NAME}` (`empregoId`, `dataInicio`)"
+          },
+          {
+            "name": "index_versoes_jornada_empregoId_dataFim",
+            "unique": false,
+            "columnNames": [
+              "empregoId",
+              "dataFim"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_versoes_jornada_empregoId_dataFim` ON `${TABLE_NAME}` (`empregoId`, `dataFim`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "usuarios",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `nome` TEXT NOT NULL, `email` TEXT NOT NULL, `senhaHash` TEXT NOT NULL, `biometriaHabilitada` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "email",
+            "columnName": "email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "senhaHash",
+            "columnName": "senhaHash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "biometriaHabilitada",
+            "columnName": "biometriaHabilitada",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "ausencias",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `tipo` TEXT NOT NULL, `tipoFolga` TEXT, `dataInicio` TEXT NOT NULL, `dataFim` TEXT NOT NULL, `descricao` TEXT, `observacao` TEXT, `horaInicio` TEXT, `duracaoDeclaracaoMinutos` INTEGER, `duracaoAbonoMinutos` INTEGER, `subTipoFolga` TEXT, `periodoAquisitivo` TEXT, `imagemUri` TEXT, `ativo` INTEGER NOT NULL, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipoFolga",
+            "columnName": "tipoFolga",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dataInicio",
+            "columnName": "dataInicio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataFim",
+            "columnName": "dataFim",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descricao",
+            "columnName": "descricao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "observacao",
+            "columnName": "observacao",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "horaInicio",
+            "columnName": "horaInicio",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "duracaoDeclaracaoMinutos",
+            "columnName": "duracaoDeclaracaoMinutos",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "duracaoAbonoMinutos",
+            "columnName": "duracaoAbonoMinutos",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "subTipoFolga",
+            "columnName": "subTipoFolga",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "periodoAquisitivo",
+            "columnName": "periodoAquisitivo",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "imagemUri",
+            "columnName": "imagemUri",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "ativo",
+            "columnName": "ativo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_ausencias_empregoId",
+            "unique": false,
+            "columnNames": [
+              "empregoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ausencias_empregoId` ON `${TABLE_NAME}` (`empregoId`)"
+          },
+          {
+            "name": "index_ausencias_tipo",
+            "unique": false,
+            "columnNames": [
+              "tipo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ausencias_tipo` ON `${TABLE_NAME}` (`tipo`)"
+          },
+          {
+            "name": "index_ausencias_dataInicio",
+            "unique": false,
+            "columnNames": [
+              "dataInicio"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ausencias_dataInicio` ON `${TABLE_NAME}` (`dataInicio`)"
+          },
+          {
+            "name": "index_ausencias_dataFim",
+            "unique": false,
+            "columnNames": [
+              "dataFim"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ausencias_dataFim` ON `${TABLE_NAME}` (`dataFim`)"
+          },
+          {
+            "name": "index_ausencias_ativo",
+            "unique": false,
+            "columnNames": [
+              "ativo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ausencias_ativo` ON `${TABLE_NAME}` (`ativo`)"
+          },
+          {
+            "name": "index_ausencias_empregoId_dataInicio_dataFim",
+            "unique": false,
+            "columnNames": [
+              "empregoId",
+              "dataInicio",
+              "dataFim"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ausencias_empregoId_dataInicio_dataFim` ON `${TABLE_NAME}` (`empregoId`, `dataInicio`, `dataFim`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "empregos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "empregoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2d88954c58d595ce20cf26c83bb2fe6a')"
+    ]
+  }
+}

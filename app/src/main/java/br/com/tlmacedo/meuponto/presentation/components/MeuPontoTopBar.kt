@@ -1,8 +1,11 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/components/MeuPontoTopBar.kt
 package br.com.tlmacedo.meuponto.presentation.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
@@ -17,6 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 
 /**
  * TopBar customizada do app Meu Ponto.
@@ -33,11 +39,12 @@ fun MeuPontoTopBar(
     showTodayButton: Boolean = false,
     showHistoryButton: Boolean = false,
     showSettingsButton: Boolean = false,
+    logo: String? = null,
     onBackClick: () -> Unit = {},
     onTodayClick: () -> Unit = {},
     onHistoryClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    actions: @Composable (RowScope.() -> Unit)? = null,  // NOVO PARÂMETRO
+    actions: @Composable (RowScope.() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     CenterAlignedTopAppBar(
@@ -64,6 +71,17 @@ fun MeuPontoTopBar(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Voltar"
+                    )
+                }
+            } else if (logo != null) {
+                Box(modifier = Modifier.padding(start = 8.dp)) {
+                    LocalImage(
+                        imagePath = logo,
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(MaterialTheme.shapes.small),
+                        contentScale = ContentScale.Crop
                     )
                 }
             }

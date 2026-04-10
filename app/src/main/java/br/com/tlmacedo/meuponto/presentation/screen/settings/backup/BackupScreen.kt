@@ -4,6 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -68,6 +70,7 @@ import java.time.format.DateTimeFormatter
  * @author Thiago
  * @since 9.0.0
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BackupScreen(
     onNavigateBack: () -> Unit,
@@ -182,7 +185,10 @@ fun BackupScreen(
         modifier = modifier
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(
+                horizontal = 16.dp,
+                vertical = 24.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
@@ -194,7 +200,8 @@ fun BackupScreen(
             item {
                 SectionHeader(
                     title = "Estatísticas",
-                    icon = Icons.Outlined.Storage
+                    icon = Icons.Outlined.Storage,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
@@ -204,179 +211,184 @@ fun BackupScreen(
                     totalPontos = uiState.totalPontos,
                     totalFeriados = uiState.totalFeriados,
                     tamanhoEstimado = uiState.tamanhoEstimado,
-                    isLoading = uiState.isLoading
+                    isLoading = uiState.isLoading,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
             item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .fillMaxWidth()
+                )
             }
 
             // ══════════════════════════════════════════════════════════════
-            // EXPORTAR
+            // EXPORTAR E IMPORTAR (Lado a lado no tablet)
             // ══════════════════════════════════════════════════════════════
             item {
-                SectionHeader(
-                    title = "Exportar Backup",
-                    icon = Icons.Outlined.CloudUpload
-                )
-            }
-
-            item {
-                Text(
-                    text = "Salve uma cópia de segurança de todos os seus dados em um arquivo JSON.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            item {
-                Button(
-                    onClick = { viewModel.iniciarExportacao() },
-                    enabled = !uiState.isProcessando,
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (uiState.isProcessando && uiState.operacaoAtual == "exportar") {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
+                    // COLUNA EXPORTAR
+                    Column(modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()) {
+                        SectionHeader(
+                            title = "Exportar Backup",
+                            icon = Icons.Outlined.CloudUpload
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    Icon(
-                        imageVector = Icons.Outlined.CloudUpload,
-                        contentDescription = null
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Exportar Backup Completo")
-                }
-            }
-
-            item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            }
-
-            // ══════════════════════════════════════════════════════════════
-            // IMPORTAR
-            // ══════════════════════════════════════════════════════════════
-            item {
-                SectionHeader(
-                    title = "Importar Backup",
-                    icon = Icons.Outlined.CloudDownload
-                )
-            }
-
-            item {
-                Text(
-                    text = "Restaure seus dados a partir de um arquivo de backup.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            item {
-                OutlinedButton(
-                    onClick = { viewModel.iniciarImportacao() },
-                    enabled = !uiState.isProcessando,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (uiState.isProcessando && uiState.operacaoAtual == "importar") {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    Icon(
-                        imageVector = Icons.Outlined.CloudDownload,
-                        contentDescription = null
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Selecionar Arquivo de Backup")
-                }
-            }
-
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "A importação substitui os dados existentes. Faça um backup antes de importar.",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "Salve uma cópia de segurança de todos os seus dados em um arquivo JSON.",
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { viewModel.iniciarExportacao() },
+                            enabled = !uiState.isProcessando,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (uiState.isProcessando && uiState.operacaoAtual == "exportar") {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Icon(
+                                imageVector = Icons.Outlined.CloudUpload,
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Exportar Backup")
+                        }
+                    }
+
+                    // COLUNA IMPORTAR
+                    Column(modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()) {
+                        SectionHeader(
+                            title = "Importar Backup",
+                            icon = Icons.Outlined.CloudDownload
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Restaure seus dados a partir de um arquivo de backup.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedButton(
+                            onClick = { viewModel.iniciarImportacao() },
+                            enabled = !uiState.isProcessando,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (uiState.isProcessando && uiState.operacaoAtual == "importar") {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Icon(
+                                imageVector = Icons.Outlined.CloudDownload,
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Importar Backup")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "A importação substitui os dados existentes.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .fillMaxWidth()
+                )
             }
 
             // ══════════════════════════════════════════════════════════════
             // MANUTENÇÃO
             // ══════════════════════════════════════════════════════════════
             item {
-                SectionHeader(
-                    title = "Manutenção",
-                    icon = Icons.Outlined.DeleteSweep
-                )
-            }
-
-            item {
-                Text(
-                    text = "Libere espaço removendo registros antigos que não são mais necessários.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            item {
-                OutlinedCard(
-                    onClick = { showConfirmLimpeza = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(16.dp)
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    SectionHeader(
+                        title = "Manutenção",
+                        icon = Icons.Outlined.DeleteSweep
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Libere espaço removendo registros antigos que não são mais necessários.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedCard(
+                        onClick = { showConfirmLimpeza = true },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteSweep,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Limpar Dados Antigos",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.error
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.DeleteSweep,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
                             )
-                            Text(
-                                text = "Remover registros com mais de 12 meses",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Limpar Dados Antigos",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "Remover registros com mais de 12 meses",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
             }
+
 
             item {
                 Spacer(modifier = Modifier.height(32.dp))

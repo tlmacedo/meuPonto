@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.Ponto
+import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.usecase.foto.CreateTempImageFileUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.foto.DeleteComprovanteImageUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.foto.LoadComprovanteImageUseCase
@@ -78,10 +79,10 @@ class FotoViewModel @Inject constructor(
     /**
      * Processa resultado da câmera.
      */
-    fun onCameraResult(success: Boolean) {
+    fun onCameraResult(success: Boolean, origem: FotoOrigem) {
         dismissSourceDialog()
         if (success && currentTempUri != null) {
-            validateAndPreview(currentTempUri!!, FotoSource.CAMERA)
+            validateAndPreview(currentTempUri!!, origem)
         } else {
             currentTempUri = null
         }
@@ -90,17 +91,17 @@ class FotoViewModel @Inject constructor(
     /**
      * Processa resultado da galeria.
      */
-    fun onGalleryResult(uri: Uri?) {
+    fun onGalleryResult(uri: Uri?, origem: FotoOrigem) {
         dismissSourceDialog()
         if (uri != null) {
-            validateAndPreview(uri, FotoSource.GALLERY)
+            validateAndPreview(uri, origem)
         }
     }
 
     /**
      * Valida imagem e mostra preview.
      */
-    private fun validateAndPreview(uri: Uri, source: FotoSource) {
+    private fun validateAndPreview(uri: Uri, origem: FotoOrigem) {
         _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
@@ -112,7 +113,7 @@ class FotoViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             previewUri = uri,
-                            previewSource = source,
+                            previewSource = origem,
                             showPreviewDialog = true,
                             imageInfo = ImageInfo(
                                 width = validation.width,
@@ -257,7 +258,7 @@ data class FotoUiState(
     val showPreviewDialog: Boolean = false,
     val showDeleteConfirmation: Boolean = false,
     val previewUri: Uri? = null,
-    val previewSource: FotoSource? = null,
+    val previewSource: FotoOrigem? = null,
     val imageInfo: ImageInfo? = null,
     val savedFilePath: String? = null,
     val savedFileHash: String? = null,
@@ -279,8 +280,6 @@ data class ImageInfo(
             else -> String.format("%.2f MB", sizeBytes / (1024.0 * 1024.0))
         }
 }
-
-enum class FotoSource { CAMERA, GALLERY }
 
 sealed class FotoEvent {
     data class SaveSuccess(val filePath: String, val hash: String) : FotoEvent()

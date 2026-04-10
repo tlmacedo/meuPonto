@@ -89,7 +89,8 @@ fun VersoesJornadaContent(
     Scaffold(
         topBar = {
             MeuPontoTopBar(
-                title = "Histórico: ${uiState.nomeEmprego}",
+                title = "Histórico de Jornadas",
+                subtitle = uiState.nomeEmprego, // Aqui nomeEmprego já é o apelido vindo do UI State
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

@@ -21,6 +21,7 @@ sealed class EditarEmpregoAction {
     data class AlterarEndereco(val endereco: String) : EditarEmpregoAction()
     data class AlterarDataInicioTrabalho(val data: LocalDate?) : EditarEmpregoAction()
     data class AlterarDataTerminoTrabalho(val data: LocalDate?) : EditarEmpregoAction()
+    data class AlterarLogo(val uri: String?) : EditarEmpregoAction()
 
     // Jornada
     data class AlterarCargaHorariaDiaria(val duracao: Duration) : EditarEmpregoAction()
@@ -60,6 +61,10 @@ sealed class EditarEmpregoAction {
     // Cargo Inicial (para criação)
     data class AlterarFuncaoInicial(val funcao: String) : EditarEmpregoAction()
     data class AlterarSalarioInicial(val valor: Double?) : EditarEmpregoAction()
+
+    // Salvar Granular
+    data object SalvarDadosBasicos : EditarEmpregoAction()
+    data object SalvarConfiguracoesGerais : EditarEmpregoAction()
 
     // UI
     data class ToggleSecao(val secao: SecaoFormulario) : EditarEmpregoAction()

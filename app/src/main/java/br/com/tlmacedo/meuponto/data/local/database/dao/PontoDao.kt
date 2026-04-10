@@ -124,8 +124,8 @@ interface PontoDao {
 
     // === Atualização de foto ===
 
-    @Query("UPDATE pontos SET fotoComprovantePath = :fotoPath, updated_at = :updatedAt WHERE id = :pontoId")
-    suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?, updatedAt: Long = System.currentTimeMillis())
+    @Query("UPDATE pontos SET fotoComprovantePath = :fotoPath, foto_origem = :fotoOrigem, updated_at = :updatedAt WHERE id = :pontoId")
+    suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?, fotoOrigem: Int, updatedAt: Long = System.currentTimeMillis())
 
     // === Soft Delete e Lixeira ===
 

@@ -257,6 +257,7 @@ class PhotoCaptureManager @Inject constructor(
                         gpsData = gpsData
                     )
                 }
+                else -> SavePhotoResult.Error("Origem da foto inválida: ${currentState.source}")
             }
 
             when (result) {

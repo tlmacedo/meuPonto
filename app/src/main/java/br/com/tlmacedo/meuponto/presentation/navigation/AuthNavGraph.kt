@@ -4,10 +4,9 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
-
+import br.com.tlmacedo.meuponto.presentation.screen.auth.forgotpassword.ForgotPasswordScreen
 import br.com.tlmacedo.meuponto.presentation.screen.auth.login.LoginScreen
 import br.com.tlmacedo.meuponto.presentation.screen.auth.register.RegisterScreen
-import br.com.tlmacedo.meuponto.presentation.screen.auth.forgotpassword.ForgotPasswordScreen
 
 fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
     navigation(

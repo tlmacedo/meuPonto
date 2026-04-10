@@ -40,8 +40,8 @@ fun ComprovanteImagePicker(
     showSourceDialog: Boolean,
     onDismissSourceDialog: () -> Unit,
     cameraUri: Uri?,
-    onCameraResult: (Boolean) -> Unit,
-    onGalleryResult: (Uri?) -> Unit,
+    onCameraResult: (Boolean, br.com.tlmacedo.meuponto.domain.model.FotoOrigem) -> Unit,
+    onGalleryResult: (Uri?, br.com.tlmacedo.meuponto.domain.model.FotoOrigem) -> Unit,
     onPermissionDenied: (String) -> Unit
 ) {
     // Flag para rastrear se uma ação está em andamento
@@ -53,7 +53,7 @@ fun ComprovanteImagePicker(
     ) { success ->
         Timber.d("cameraLauncher resultado: success=$success")
         actionInProgress = false
-        onCameraResult(success)
+        onCameraResult(success, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
     }
 
     // Launcher da galeria
@@ -62,7 +62,7 @@ fun ComprovanteImagePicker(
     ) { uri ->
         Timber.d("galleryLauncher resultado: uri=$uri")
         actionInProgress = false
-        onGalleryResult(uri)
+        onGalleryResult(uri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA)
     }
 
     // Permissão da câmera

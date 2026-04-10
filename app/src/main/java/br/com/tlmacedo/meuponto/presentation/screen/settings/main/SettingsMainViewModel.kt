@@ -38,7 +38,8 @@ data class SettingsMainUiState(
     val versaoVigenteDescricao: String? = null,
     val totalVersoes: Int = 0,
     val saldoAtualTexto: String = "--:--",
-    val dataUltimoBackup: String = "Nunca realizado"
+    val dataUltimoBackup: String = "Nunca realizado",
+    val secoesExpandidas: Set<String> = emptySet()
 ) {
     val empregoAtualId: Long?
         get() = empregoAtual?.id
@@ -55,6 +56,7 @@ data class SettingsMainUiState(
  */
 sealed interface SettingsMainAction {
     data class TrocarEmprego(val emprego: Emprego) : SettingsMainAction
+    data class AlternarExpansaoSecao(val secao: String) : SettingsMainAction
     data object Recarregar : SettingsMainAction
 }
 
@@ -101,7 +103,19 @@ class SettingsMainViewModel @Inject constructor(
     fun onAction(action: SettingsMainAction) {
         when (action) {
             is SettingsMainAction.TrocarEmprego -> trocarEmprego(action.emprego)
+            is SettingsMainAction.AlternarExpansaoSecao -> alternarExpansaoSecao(action.secao)
             is SettingsMainAction.Recarregar -> recarregar()
+        }
+    }
+
+    private fun alternarExpansaoSecao(secao: String) {
+        _uiState.update { state ->
+            val novasSecoes = if (state.secoesExpandidas.contains(secao)) {
+                state.secoesExpandidas - secao
+            } else {
+                state.secoesExpandidas + secao
+            }
+            state.copy(secoesExpandidas = novasSecoes)
         }
     }
 

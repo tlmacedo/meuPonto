@@ -29,6 +29,7 @@ import java.time.format.DateTimeFormatter
  * @property marcadorId ID do marcador/tag associado
  * @property justificativaInconsistencia Justificativa para pontos com problema
  * @property fotoComprovantePath Caminho da foto do comprovante (opcional)
+ * @property fotoOrigem Origem da foto (Câmera, Galeria, Editada)
  * @property criadoEm Timestamp de criação
  * @property atualizadoEm Timestamp da última atualização
  * @property isDeleted Flag de soft delete (true = na lixeira)
@@ -54,6 +55,7 @@ data class Ponto(
     val marcadorId: Long? = null,
     val justificativaInconsistencia: String? = null,
     val fotoComprovantePath: String? = null,
+    val fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now(),
     // === Soft Delete ===
@@ -122,6 +124,18 @@ data class Ponto(
     val temFotoComprovante: Boolean
         get() = !fotoComprovantePath.isNullOrBlank()
 
+    /** Verifica se a foto veio da câmera */
+    val isFotoCamera: Boolean
+        get() = fotoOrigem == FotoOrigem.CAMERA
+
+    /** Verifica se a foto veio da galeria */
+    val isFotoGaleria: Boolean
+        get() = fotoOrigem == FotoOrigem.GALERIA
+
+    /** Verifica se a foto foi editada */
+    val isFotoEditada: Boolean
+        get() = fotoOrigem == FotoOrigem.EDITADA
+
     /** Verifica se está na lixeira */
     val estaNaLixeira: Boolean
         get() = isDeleted
@@ -187,11 +201,12 @@ data class Ponto(
     }
 
     /**
-     * Cria uma cópia com foto do comprovante.
+     * Cria uma cópia com foto do comprovante e sua origem.
      */
-    fun comFotoComprovante(path: String?): Ponto {
+    fun comFotoComprovante(path: String?, origem: FotoOrigem = FotoOrigem.NENHUMA): Ponto {
         return copy(
             fotoComprovantePath = path,
+            fotoOrigem = origem,
             atualizadoEm = LocalDateTime.now(),
             updatedAt = System.currentTimeMillis()
         )
@@ -239,6 +254,7 @@ data class Ponto(
         marcadorId?.let { put("marcadorId", it) }
         justificativaInconsistencia?.let { put("justificativa", it) }
         fotoComprovantePath?.let { put("fotoComprovante", it) }
+        put("fotoOrigem", fotoOrigem.descricao)
         if (isDeleted) put("naLixeira", true)
     }
 
@@ -265,7 +281,8 @@ data class Ponto(
             longitude: Double? = null,
             endereco: String? = null,
             marcadorId: Long? = null,
-            fotoComprovantePath: String? = null
+            fotoComprovantePath: String? = null,
+            fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA
         ): Ponto {
             val agora = LocalDateTime.now()
             return Ponto(
@@ -279,6 +296,7 @@ data class Ponto(
                 endereco = endereco,
                 marcadorId = marcadorId,
                 fotoComprovantePath = fotoComprovantePath,
+                fotoOrigem = fotoOrigem,
                 criadoEm = agora,
                 atualizadoEm = agora
             )
@@ -297,7 +315,8 @@ data class Ponto(
             longitude: Double? = null,
             endereco: String? = null,
             marcadorId: Long? = null,
-            fotoComprovantePath: String? = null
+            fotoComprovantePath: String? = null,
+            fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA
         ): Ponto {
             val agora = LocalDateTime.now()
             return Ponto(
@@ -311,6 +330,7 @@ data class Ponto(
                 endereco = endereco,
                 marcadorId = marcadorId,
                 fotoComprovantePath = fotoComprovantePath,
+                fotoOrigem = fotoOrigem,
                 criadoEm = agora,
                 atualizadoEm = agora
             )

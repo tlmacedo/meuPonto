@@ -1,8 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/feriados/editar/EditarFeriadoScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar
 
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +27,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -58,19 +55,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.feriado.AbrangenciaFeriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
-import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components.EmpregoSelectorDialog
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
+import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components.EmpregoSelectorDialog
+import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
+import br.com.tlmacedo.meuponto.util.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.Month
 import java.time.MonthDay
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale

@@ -6,6 +6,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -29,6 +30,7 @@ import java.time.LocalTime
  * @property marcadorId FK para marcador/tag (opcional)
  * @property justificativaInconsistencia Justificativa para pontos inconsistentes
  * @property fotoComprovantePath Caminho da foto do comprovante (opcional)
+ * @property fotoOrigem ID da origem da foto (0=Nenhum, 1=Câmera, 2=Galeria, 3=Editada)
  * @property criadoEm Timestamp de criação do registro
  * @property atualizadoEm Timestamp da última atualização
  * @property isDeleted Flag de soft delete
@@ -85,6 +87,8 @@ data class PontoEntity(
     val marcadorId: Long? = null,
     val justificativaInconsistencia: String? = null,
     val fotoComprovantePath: String? = null,
+    @ColumnInfo(name = "foto_origem", defaultValue = "0")
+    val fotoOrigem: Int = 0,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now(),
 
@@ -120,6 +124,7 @@ fun PontoEntity.toDomain(): Ponto = Ponto(
     marcadorId = marcadorId,
     justificativaInconsistencia = justificativaInconsistencia,
     fotoComprovantePath = fotoComprovantePath,
+    fotoOrigem = FotoOrigem.fromId(fotoOrigem),
     criadoEm = criadoEm,
     atualizadoEm = atualizadoEm,
     isDeleted = isDeleted,
@@ -146,6 +151,7 @@ fun Ponto.toEntity(): PontoEntity = PontoEntity(
     marcadorId = marcadorId,
     justificativaInconsistencia = justificativaInconsistencia,
     fotoComprovantePath = fotoComprovantePath,
+    fotoOrigem = fotoOrigem.id,
     criadoEm = criadoEm,
     atualizadoEm = atualizadoEm,
     isDeleted = isDeleted,

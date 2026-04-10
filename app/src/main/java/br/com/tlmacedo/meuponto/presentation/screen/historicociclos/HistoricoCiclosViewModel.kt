@@ -113,6 +113,7 @@ class HistoricoCiclosViewModel @Inject constructor(
                     state.copy(
                         ciclos = ciclos,
                         empregoNome = emprego.nome,
+                        empregoApelido = emprego.apelido ?: "",
                         isLoading = false
                     )
                 }

@@ -6,6 +6,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,17 +18,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -111,6 +112,7 @@ fun CargosScreen(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CargosContent(
     uiState: CargosUiState,
@@ -159,7 +161,10 @@ internal fun CargosContent(
 
             else -> {
                 LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = 16.dp,
+                        vertical = 16.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxSize()
@@ -168,21 +173,28 @@ internal fun CargosContent(
                     item {
                         ResumoCargoHeader(
                             totalCargos = uiState.cargos.size,
-                            cargoAtual = uiState.cargoAtual?.funcao
+                            cargoAtual = uiState.cargoAtual?.funcao,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
-                    items(
-                        items = uiState.cargos,
-                        key = { it.id }
-                    ) { cargo ->
-                        CargoCard(
-                            cargo = cargo,
-                            ajustes = uiState.ajustesPorCargo[cargo.id] ?: emptyList(),
-                            isAtual = cargo.id == uiState.cargoAtual?.id,
-                            onEditar = { onAction(CargosAction.EditarCargo(cargo)) },
-                            onExcluir = { onAction(CargosAction.SolicitarExclusao(cargo)) }
-                        )
+                    item {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            uiState.cargos.forEach { cargo ->
+                                CargoCard(
+                                    cargo = cargo,
+                                    ajustes = uiState.ajustesPorCargo[cargo.id] ?: emptyList(),
+                                    isAtual = cargo.id == uiState.cargoAtual?.id,
+                                    onEditar = { onAction(CargosAction.EditarCargo(cargo)) },
+                                    onExcluir = { onAction(CargosAction.SolicitarExclusao(cargo)) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
                     }
 
                     item { Spacer(modifier = Modifier.height(88.dp)) }

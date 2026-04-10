@@ -1,20 +1,18 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/FotoOrigem.kt
 package br.com.tlmacedo.meuponto.domain.model
 
 /**
- * Origem da foto de comprovante.
+ * Origem da foto do comprovante de ponto.
  *
  * @author Thiago
- * @since 10.0.0
+ * @since 12.1.0
  */
-enum class FotoOrigem {
-    /**
-     * Foto capturada diretamente pela câmera do dispositivo.
-     */
-    CAMERA,
+enum class FotoOrigem(val id: Int, val descricao: String) {
+    NENHUMA(0, "Nenhuma"),
+    CAMERA(1, "Câmera"),
+    GALERIA(2, "Galeria"),
+    EDITADA(3, "Editada");
 
-    /**
-     * Foto selecionada da galeria do dispositivo.
-     */
-    GALERIA
+    companion object {
+        fun fromId(id: Int): FotoOrigem = entries.find { it.id == id } ?: NENHUMA
+    }
 }

@@ -6,7 +6,6 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Transaction
 import androidx.room.Update
 import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
 import kotlinx.coroutines.flow.Flow

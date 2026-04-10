@@ -2,10 +2,9 @@ package br.com.tlmacedo.meuponto.data.service
 
 import android.content.Context
 import android.net.Uri
-import br.com.tlmacedo.meuponto.util.ComprovanteImageStorage
+import br.com.tlmacedo.meuponto.domain.model.PontoOcrResult
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
-import br.com.tlmacedo.meuponto.domain.model.PontoOcrResult
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine

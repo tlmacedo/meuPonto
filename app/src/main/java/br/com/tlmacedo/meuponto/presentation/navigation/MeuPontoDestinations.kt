@@ -97,8 +97,9 @@ object MeuPontoDestinations {
     // Configurações globais
     const val CONFIGURACOES_GLOBAIS = "configuracoes_globais"
 
-    // Sobre
+    // Sobre e Ajuda
     const val SOBRE = "sobre"
+    const val AJUDA = "ajuda"
 
     // ===== Funções auxiliares =====
 

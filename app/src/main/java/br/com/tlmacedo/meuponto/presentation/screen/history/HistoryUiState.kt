@@ -301,6 +301,8 @@ data class ResumoPeriodo(
  * Estado da interface da tela de Histórico.
  */
 data class HistoryUiState(
+    val nomeEmprego: String? = null,
+    val apelidoEmprego: String? = null,
     val diasHistorico: List<InfoDiaHistorico> = emptyList(),
     val periodoSelecionado: PeriodoHistorico = PeriodoHistorico.periodoAtual(),
     val diaInicioFechamento: Int = 1,

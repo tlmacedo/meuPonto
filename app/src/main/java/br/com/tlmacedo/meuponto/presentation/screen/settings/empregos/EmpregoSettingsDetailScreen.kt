@@ -1,13 +1,12 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,9 +28,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Work
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Circle
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,15 +46,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.tlmacedo.meuponto.presentation.components.LocalImage
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import kotlinx.coroutines.flow.collectLatest
-import java.time.format.DateTimeFormatter
 
 /**
  * Tela de detalhes e configurações de um emprego específico.
@@ -117,7 +115,7 @@ fun EmpregoSettingsDetailScreen(
         topBar = {
             MeuPontoTopBar(
                 title = uiState.nomeEmprego,
-                subtitle = if (uiState.empregoAtivo) "Emprego Ativo" else "Emprego Inativo",
+                subtitle = uiState.emprego?.apelido,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -184,6 +182,7 @@ fun EmpregoSettingsDetailScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EmpregoSettingsDetailContent(
     uiState: EmpregoSettingsDetailUiState,
@@ -194,11 +193,12 @@ private fun EmpregoSettingsDetailContent(
     onNavigateToAjustesSaldo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(
+            horizontal = 16.dp,
+            vertical = 24.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxSize()
     ) {
         // ══════════════════════════════════════════════════════════════
@@ -210,167 +210,167 @@ private fun EmpregoSettingsDetailContent(
                 apelido = uiState.emprego?.apelido,
                 isAtivo = uiState.empregoAtivo,
                 versaoVigenteDescricao = uiState.versaoVigenteDescricao,
-                cargoAtual = uiState.cargoAtual
+                cargoAtual = uiState.cargoAtual,
+                logo = uiState.emprego?.logo,
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
         // ══════════════════════════════════════════════════════════════
-        // SEÇÃO: INFORMAÇÕES DA EMPRESA
+        // SEÇÕES DE CONFIGURAÇÃO
         // ══════════════════════════════════════════════════════════════
         item {
-            SettingsSectionHeader(
-                title = "Informações da Empresa",
-                icon = Icons.Default.Business
-            )
-        }
+            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                // SEÇÃO: INFORMAÇÕES DA EMPRESA
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsSectionHeader(
+                        title = "Informações da Empresa",
+                        icon = Icons.Default.Business
+                    )
+                    SettingsNavigationItem(
+                        icon = Icons.Default.Edit,
+                        title = "Dados da Empresa",
+                        subtitle = buildString {
+                            uiState.emprego?.let { emp ->
+                                append(emp.nome)
+                                emp.endereco?.let { append(" • $it") }
+                            } ?: append("Nome, datas, endereço e informações gerais")
+                        },
+                        onClick = onNavigateToEditar
+                    )
+                }
 
-        item {
-            SettingsNavigationItem(
-                icon = Icons.Default.Edit,
-                title = "Dados da Empresa",
-                subtitle = buildString {
-                    uiState.emprego?.let { emp ->
-                        append(emp.nome)
-                        emp.endereco?.let { append(" • $it") }
-                    } ?: append("Nome, datas, endereço e informações gerais")
-                },
-                onClick = onNavigateToEditar
-            )
-        }
+                // SEÇÃO: CARGOS NA EMPRESA
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsSectionHeader(
+                        title = "Cargos na Empresa",
+                        icon = Icons.Default.Badge
+                    )
+                    SettingsNavigationItem(
+                        icon = Icons.Default.Work,
+                        title = "Cargos e Salários",
+                        subtitle = buildString {
+                            if (uiState.totalCargos > 0) {
+                                append("${uiState.totalCargos} cargo(s) registrado(s)")
+                                uiState.cargoAtual?.let { append(" • Atual: $it") }
+                            } else {
+                                append("Histórico de funções, salários e dissídios")
+                            }
+                        },
+                        badge = if (uiState.totalCargos > 0) uiState.totalCargos.toString() else null,
+                        onClick = onNavigateToCargos
+                    )
+                }
 
-        // ══════════════════════════════════════════════════════════════
-        // SEÇÃO: CARGOS E SALÁRIOS
-        // ══════════════════════════════════════════════════════════════
-        item {
-            Spacer(modifier = Modifier.height(4.dp))
-            SettingsSectionHeader(
-                title = "Cargos na Empresa",
-                icon = Icons.Default.Badge
-            )
-        }
+                // SEÇÃO: CONFIGURAÇÃO GERAL
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsSectionHeader(
+                        title = "Configuração Geral",
+                        icon = Icons.Default.Settings
+                    )
+                    SettingsNavigationItem(
+                        icon = Icons.Default.CalendarMonth,
+                        title = "Info RH e Banco de Horas",
+                        subtitle = buildString {
+                            uiState.configuracao?.let { cfg ->
+                                append("Fechamento dia ${cfg.diaInicioFechamentoRH}")
+                                if (cfg.bancoHorasHabilitado) {
+                                    append(" • Banco de horas: ${cfg.bancoHorasCicloMeses} meses")
+                                }
+                            } ?: append("Dia de fechamento, ciclos e banco de horas")
+                        },
+                        onClick = onNavigateToEditar
+                    )
+                }
 
-        item {
-            SettingsNavigationItem(
-                icon = Icons.Default.Work,
-                title = "Cargos e Salários",
-                subtitle = buildString {
-                    if (uiState.totalCargos > 0) {
-                        append("${uiState.totalCargos} cargo(s) registrado(s)")
-                        uiState.cargoAtual?.let { append(" • Atual: $it") }
-                    } else {
-                        append("Histórico de funções, salários e dissídios")
+                // SEÇÃO: OPÇÕES DE REGISTRO
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsSectionHeader(
+                        title = "Opções de Registro",
+                        icon = Icons.Default.LocationOn
+                    )
+                    SettingsNavigationItem(
+                        icon = Icons.Default.LocationOn,
+                        title = "Opções de Registro",
+                        subtitle = buildString {
+                            uiState.configuracao?.let { cfg ->
+                                val opcoes = mutableListOf<String>()
+                                if (cfg.habilitarNsr) opcoes.add("NSR")
+                                if (cfg.habilitarLocalizacao) opcoes.add("Localização")
+                                if (cfg.fotoHabilitada) opcoes.add("Foto")
+                                if (cfg.exigeJustificativaInconsistencia) opcoes.add("Justificativa")
+                                if (opcoes.isEmpty()) append("NSR, Localização, Foto e Justificativas")
+                                else append(opcoes.joinToString(" • "))
+                            } ?: append("NSR, Localização, Foto e Justificativas")
+                        },
+                        onClick = onNavigateToEditar
+                    )
+                }
+
+                // SEÇÃO: JORNADAS
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsSectionHeader(
+                        title = "Jornadas Versionadas",
+                        icon = Icons.Default.Schedule
+                    )
+                    SettingsNavigationItem(
+                        icon = Icons.Default.History,
+                        title = "Versões de Jornada",
+                        subtitle = buildString {
+                            append("${uiState.totalVersoes} versão(ões)")
+                            uiState.versaoVigenteDescricao?.let {
+                                append(" • Vigente: $it")
+                            }
+                        },
+                        badge = if (uiState.totalVersoes > 0) uiState.totalVersoes.toString() else null,
+                        onClick = onNavigateToVersoes
+                    )
+                }
+
+                // SEÇÃO: REGISTROS E AUSÊNCIAS
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsSectionHeader(
+                        title = "Registros e Ausências",
+                        icon = Icons.AutoMirrored.Filled.EventNote
+                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        SettingsNavigationItem(
+                            icon = Icons.AutoMirrored.Filled.EventNote,
+                            title = "Ausências",
+                            subtitle = "Férias e licenças",
+                            onClick = onNavigateToAusencias
+                        )
+                        SettingsNavigationItem(
+                            icon = Icons.Default.AccountBalance,
+                            title = "Ajustes de Saldo",
+                            subtitle = "Manual no banco",
+                            onClick = onNavigateToAjustesSaldo
+                        )
                     }
-                },
-                badge = if (uiState.totalCargos > 0) uiState.totalCargos.toString() else null,
-                onClick = onNavigateToCargos
-            )
+                }
+            }
         }
 
-        // ══════════════════════════════════════════════════════════════
-        // SEÇÃO: CONFIGURAÇÃO GERAL
-        // ══════════════════════════════════════════════════════════════
-        item {
-            Spacer(modifier = Modifier.height(4.dp))
-            SettingsSectionHeader(
-                title = "Configuração Geral do Emprego",
-                icon = Icons.Default.Settings
-            )
-        }
-
-        item {
-            SettingsNavigationItem(
-                icon = Icons.Default.CalendarMonth,
-                title = "Info RH e Banco de Horas",
-                subtitle = buildString {
-                    uiState.configuracao?.let { cfg ->
-                        append("Fechamento dia ${cfg.diaInicioFechamentoRH}")
-                        if (cfg.bancoHorasHabilitado) {
-                            append(" • Banco de horas: ${cfg.bancoHorasCicloMeses} meses")
-                        }
-                    } ?: append("Dia de fechamento, ciclos e banco de horas")
-                },
-                onClick = onNavigateToEditar
-            )
-        }
-
-        item {
-            SettingsNavigationItem(
-                icon = Icons.Default.LocationOn,
-                title = "Opções de Registro",
-                subtitle = buildString {
-                    uiState.configuracao?.let { cfg ->
-                        val opcoes = mutableListOf<String>()
-                        if (cfg.habilitarNsr) opcoes.add("NSR")
-                        if (cfg.habilitarLocalizacao) opcoes.add("Localização")
-                        if (cfg.fotoHabilitada) opcoes.add("Foto")
-                        if (cfg.exigeJustificativaInconsistencia) opcoes.add("Justificativa")
-                        if (opcoes.isEmpty()) append("NSR, Localização, Foto e Justificativas")
-                        else append(opcoes.joinToString(" • "))
-                    } ?: append("NSR, Localização, Foto e Justificativas")
-                },
-                onClick = onNavigateToEditar
-            )
-        }
-
-        // ══════════════════════════════════════════════════════════════
-        // SEÇÃO: JORNADAS VERSIONADAS
-        // ══════════════════════════════════════════════════════════════
-        item {
-            Spacer(modifier = Modifier.height(4.dp))
-            SettingsSectionHeader(
-                title = "Jornadas Versionadas",
-                icon = Icons.Default.Schedule
-            )
-        }
-
-        item {
-            SettingsNavigationItem(
-                icon = Icons.Default.History,
-                title = "Versões de Jornada",
-                subtitle = buildString {
-                    append("${uiState.totalVersoes} versão(ões)")
-                    uiState.versaoVigenteDescricao?.let {
-                        append(" • Vigente: $it")
-                    }
-                },
-                badge = if (uiState.totalVersoes > 0) uiState.totalVersoes.toString() else null,
-                onClick = onNavigateToVersoes
-            )
-        }
-
-        // ══════════════════════════════════════════════════════════════
-        // SEÇÃO: REGISTROS E AUSÊNCIAS
-        // ══════════════════════════════════════════════════════════════
-        item {
-            Spacer(modifier = Modifier.height(4.dp))
-            SettingsSectionHeader(
-                title = "Registros e Ausências",
-                icon = Icons.AutoMirrored.Filled.EventNote
-            )
-        }
-
-        item {
-            SettingsNavigationItem(
-                icon = Icons.AutoMirrored.Filled.EventNote,
-                title = "Ausências",
-                subtitle = "Férias, licenças, atestados e afastamentos",
-                onClick = onNavigateToAusencias
-            )
-        }
-
-        item {
-            SettingsNavigationItem(
-                icon = Icons.Default.AccountBalance,
-                title = "Ajustes de Saldo",
-                subtitle = "Ajustes manuais no banco de horas",
-                onClick = onNavigateToAjustesSaldo
-            )
-        }
 
         item {
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+}
+
+@Composable
+private fun SettingsGroup(
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        verticalAlignment = Alignment.Top,
+        content = content
+    )
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -384,6 +384,7 @@ private fun EmpregoHeaderCard(
     isAtivo: Boolean,
     versaoVigenteDescricao: String?,
     cargoAtual: String?,
+    logo: String? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -401,15 +402,26 @@ private fun EmpregoHeaderCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Business,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = if (isAtivo)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (logo != null) {
+                    LocalImage(
+                        imagePath = logo,
+                        contentDescription = "Logo da empresa",
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(MaterialTheme.shapes.medium),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Business,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = if (isAtivo)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
