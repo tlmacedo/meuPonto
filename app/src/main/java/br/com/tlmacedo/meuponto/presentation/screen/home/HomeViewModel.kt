@@ -143,7 +143,7 @@ class HomeViewModel @Inject constructor(
             is HomeAction.FecharLocalizacaoModal -> fecharLocalizacaoModal()
             is HomeAction.AbrirFotoModal -> abrirFotoModal(action.ponto)
             is HomeAction.FecharFotoModal -> fecharFotoModal()
-            is HomeAction.SalvarFotoModal -> salvarFotoModal(action.path)
+            is HomeAction.SalvarFotoModal -> salvarFotoModal(action.pontoId, action.path)
 
             // Editar ponto (navegação para tela completa)
             is HomeAction.EditarPonto -> {
@@ -478,14 +478,22 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(fotoModal = null) }
     }
 
-    private fun salvarFotoModal(path: String) {
+    private fun salvarFotoModal(pontoId: Long, path: String) {
         viewModelScope.launch {
             // Ao salvar no modal, o arquivo já é sobrescrito no disco.
-            // Precisamos apenas notificar o UI state para recarregar as imagens.
-            // Coil geralmente lida com cache, mas podemos forçar uma atualização
-            // recarregando os pontos.
-            _uiEvent.emit(HomeUiEvent.MostrarMensagem("Foto salva com sucesso"))
-            carregarPontosDoDia()
+            // Precisamos atualizar a origem da foto para "EDITADA" no banco de dados.
+            try {
+                pontoRepository.atualizarFotoComprovante(
+                    pontoId = pontoId,
+                    fotoPath = path,
+                    fotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.EDITADA
+                )
+                _uiEvent.emit(HomeUiEvent.MostrarMensagem("Foto editada e salva com sucesso"))
+                carregarPontosDoDia()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Erro ao atualizar foto editada: ${e.message}")
+                _uiEvent.emit(HomeUiEvent.MostrarErro("Erro ao salvar edição da foto"))
+            }
         }
     }
 

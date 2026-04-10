@@ -90,7 +90,7 @@ fun FotoPontoModal(
     tipoDescricao: String,
     fotoPath: String?,
     onDismiss: () -> Unit,
-    onSalvarFoto: (String) -> Unit = {}
+    onSalvarFoto: (Long, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -377,7 +377,7 @@ fun FotoPontoModal(
                                     FileOutputStream(fotoPath!!).use { out ->
                                         rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                                     }
-                                    onSalvarFoto(fotoPath)
+                                    onSalvarFoto(ponto.id, fotoPath!!)
                                     onDismiss()
                                 } catch (e: Exception) {
                                     e.printStackTrace()

@@ -78,6 +78,7 @@ class OcrService @Inject constructor(
         val textNormalizado = text.replace(Regex("(?:N[S\\s]R|MSR|N5R|N\\s*S\\s*R)", RegexOption.IGNORE_CASE), "NSR")
         
         // Identifica o número do REP (17 dígitos) para evitar que ele seja confundido com o NSR
+        // Adicionada detecção de modelos Inner (REPSIDIA) que costumam ter o NSR após o label
         val repPattern = Pattern.compile("\\b(\\d{17})\\b")
         val repMatcher = repPattern.matcher(textNormalizado)
         val repEncontrado = if (repMatcher.find()) repMatcher.group(1) else null
@@ -88,7 +89,7 @@ class OcrService @Inject constructor(
             // Prioridade 2: Label "NSR:" seguido de 9 a 17 dígitos
             Pattern.compile("NSR[:\\s]*(\\d{9,17})", Pattern.CASE_INSENSITIVE),
             // Prioridade 3: Sequência isolada de 9 dígitos que NÃO faça parte do número do REP
-            Pattern.compile("\\b(\\d{9})\\b")
+            Pattern.compile("\\b(\\d{9,10})\\b")
         )
 
         for (pattern in patterns) {
@@ -104,17 +105,27 @@ class OcrService @Inject constructor(
     }
 
     /**
-     * Busca um padrão de data (dd/MM/yyyy) no texto.
+     * Busca um padrão de data (dd/MM/yyyy ou dd-MM-yyyy) no texto.
      */
     private fun extrairData(text: String): java.time.LocalDate? {
-        val pattern = Pattern.compile("\\b(\\d{2}/\\d{2}/\\d{4})\\b")
-        val matcher = pattern.matcher(text)
-        val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        val patterns = listOf(
+            Pattern.compile("\\b(\\d{2}/\\d{2}/\\d{4})\\b"),
+            Pattern.compile("\\b(\\d{2}-\\d{2}-\\d{4})\\b"),
+            Pattern.compile("\\b(\\d{2}/\\d{2}/\\d{2})\\b")
+        )
+        val formatters = listOf(
+            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+            DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+            DateTimeFormatter.ofPattern("dd/MM/yy")
+        )
         
-        if (matcher.find()) {
-            return try {
-                java.time.LocalDate.parse(matcher.group(1), formatter)
-            } catch (e: Exception) { null }
+        for (i in patterns.indices) {
+            val matcher = patterns[i].matcher(text)
+            if (matcher.find()) {
+                try {
+                    return java.time.LocalDate.parse(matcher.group(1), formatters[i])
+                } catch (e: Exception) { continue }
+            }
         }
         return null
     }
@@ -166,6 +177,7 @@ class OcrService @Inject constructor(
     private fun extrairHoraMelhorada(text: String, horariosHabituais: List<LocalTime>): LocalTime? {
         // Remove as datas do texto para não confundir "11/03" com "11:03"
         val textoSemDatas = text.replace(Regex("\\b\\d{2}[/.-]\\d{2}[/.-]\\d{4}\\b"), " [DATA] ")
+            .replace(Regex("\\b\\d{2}/\\d{2}/\\d{2}\\b"), " [DATA] ")
 
         // Regex para capturar horas, dando preferência para aquelas que estão perto de "REP" ou "PIS"
         // Ou que estão no formato HH:mm isolado

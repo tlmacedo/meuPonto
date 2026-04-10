@@ -124,7 +124,7 @@ sealed interface HomeAction {
     data object FecharFotoModal : HomeAction
 
     /** Salva a foto editada no modal */
-    data class SalvarFotoModal(val path: String) : HomeAction
+    data class SalvarFotoModal(val pontoId: Long, val path: String) : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
     // AÇÕES DE NAVEGAÇÃO POR DATA

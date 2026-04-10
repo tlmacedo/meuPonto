@@ -251,7 +251,7 @@ private fun HomeDialogs(
     }
 
     uiState.fotoModal?.let { modal ->
-        FotoPontoModal(ponto = modal.ponto, tipoDescricao = modal.tipoDescricao, fotoPath = modal.fotoPath, onDismiss = { onAction(HomeAction.FecharFotoModal) }, onSalvarFoto = { onAction(HomeAction.SalvarFotoModal(it)) })
+        FotoPontoModal(ponto = modal.ponto, tipoDescricao = modal.tipoDescricao, fotoPath = modal.fotoPath, onDismiss = { onAction(HomeAction.FecharFotoModal) }, onSalvarFoto = { id, path -> onAction(HomeAction.SalvarFotoModal(id, path)) })
     }
 
     uiState.registrarPontoModal?.let { modal ->
