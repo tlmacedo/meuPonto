@@ -108,63 +108,80 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
             val folderBackupsId = getOrCreateFolder(service, "backups", folderEmpregoId)
 
-            // 3. Consolidar banco
+            // 3. Consolidar banco e Upload do DB (Zipado)
             checkpointManager.prepareForBackup()
             val dbFile = context.getDatabasePath(MeuPontoDatabase.DATABASE_NAME)
-
             if (!dbFile.exists()) {
                 return@withContext Result.failure(Exception("Arquivo de banco não encontrado"))
             }
 
-            // 4. Preparar arquivo ZIP contendo o banco e as imagens
             val timestamp = System.currentTimeMillis()
-            val zipFileName = "meuponto_backup_$timestamp.zip"
+            val zipFileName = "meuponto_db_$timestamp.zip"
             val tempZipFile = JavaFile(context.cacheDir, zipFileName)
 
             ZipOutputStream(FileOutputStream(tempZipFile)).use { zos ->
-                // Adicionar Banco de Dados
                 val dbEntry = ZipEntry(MeuPontoDatabase.DATABASE_NAME)
                 zos.putNextEntry(dbEntry)
                 FileInputStream(dbFile).use { it.copyTo(zos) }
                 zos.closeEntry()
+            }
 
-                // Adicionar Imagens de Comprovantes
-                val fotos = database.fotoComprovanteDao().buscarPorEmpregoEPeriodo(
-                    empregoId,
-                    LocalDate.MIN.plusYears(1), // Evita problemas com ano 0 em alguns sistemas
-                    LocalDate.MAX
-                )
+            val dbMetadata = File().apply {
+                name = zipFileName
+                parents = listOf(folderBackupsId)
+            }
+            val mediaContent = FileContent("application/zip", tempZipFile)
+            service.files().create(dbMetadata, mediaContent).execute()
+            tempZipFile.delete()
+            Timber.d("Backup do banco (zip) enviado: $zipFileName")
+
+            // 4. Upload de Fotos (individuais, sem compactar)
+            val pathsSnapshot = database.fotoComprovanteDao().listarPathsPorEmprego(empregoId)
+            val pathsPontos = database.pontoDao().listarPorEmprego(empregoId).first()
+                .mapNotNull { it.fotoComprovantePath }
+
+            val todosOsPaths = (pathsSnapshot + pathsPontos).distinct()
+            val baseDirImagens = JavaFile(context.filesDir, "comprovantes")
+            
+            if (todosOsPaths.isNotEmpty()) {
+                val folderPhotosId = getOrCreateFolder(service, "photos", folderEmpregoId)
                 
-                fotos.forEach { foto ->
-                    val fotoFile = JavaFile(context.filesDir, foto.fotoPath)
-                    if (fotoFile.exists()) {
-                        val fotoEntry = ZipEntry("fotos/${foto.fotoPath}")
-                        zos.putNextEntry(fotoEntry)
-                        FileInputStream(fotoFile).use { it.copyTo(zos) }
-                        zos.closeEntry()
+                todosOsPaths.forEach { path ->
+                    val (fotoFile, relativePath) = if (path.startsWith("comprovantes/")) {
+                        JavaFile(context.filesDir, path) to path.removePrefix("comprovantes/")
                     } else {
-                        Timber.w("Arquivo de foto não encontrado para backup: ${foto.fotoPath}")
+                        JavaFile(baseDirImagens, path) to path
+                    }
+
+                    if (fotoFile.exists()) {
+                        // Extrair Ano e Mês do path (formato esperado: emprego_X/YYYY/MM/arquivo.jpg)
+                        // ou apenas YYYY/MM/arquivo.jpg
+                        val parts = relativePath.split("/")
+                        if (parts.size >= 3) {
+                            val ano = parts[parts.size - 3]
+                            val mes = parts[parts.size - 2]
+                            val fileName = parts.last()
+
+                            val folderAnoId = getOrCreateFolder(service, ano, folderPhotosId)
+                            val folderMesId = getOrCreateFolder(service, mes, folderAnoId)
+
+                            // Verificar se o arquivo já existe para evitar duplicidade
+                            if (!fileQueryExists(service, fileName, folderMesId)) {
+                                val fileMetadata = File().apply {
+                                    name = fileName
+                                    parents = listOf(folderMesId)
+                                }
+                                val mediaContent = FileContent("image/jpeg", fotoFile)
+                                service.files().create(fileMetadata, mediaContent).execute()
+                                Timber.d("Foto enviada: $ano/$mes/$fileName")
+                            }
+                        }
                     }
                 }
             }
 
-            // 5. Upload do arquivo ZIP
-            val fileMetadata = File().apply {
-                name = zipFileName
-                parents = listOf(folderBackupsId)
-            }
-
-            val mediaContent = FileContent("application/zip", tempZipFile)
-            val createdFile = service.files().create(fileMetadata, mediaContent).execute()
-            Timber.d("Backup compactado enviado para nuvem: ${createdFile.id}")
-
-            // Remover arquivo temporário
-            tempZipFile.delete()
-
-            // 6. Registrar sucesso ANTES de tentar limpar locais
+            // 5. Registrar sucesso
             preferencesDataStore.registrarBackupRealizado(isNuvem = true)
-
-            // 7. Apagar backups locais após sucesso (exceto o db principal)
             limparBackupsLocais()
 
             Result.success(Unit)
@@ -190,6 +207,12 @@ class CloudBackupRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun fileQueryExists(service: Drive, fileName: String, parentId: String): Boolean {
+        val query = "name = '$fileName' and '$parentId' in parents and trashed = false"
+        val result = service.files().list().setQ(query).setFields("files(id)").execute()
+        return !result.files.isNullOrEmpty()
+    }
+
     private fun limparBackupsLocais() {
         try {
             val backupDir = JavaFile(context.getExternalFilesDir(null), "backups")
@@ -210,8 +233,8 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 val targetFileId = if (fileId != null) {
                     fileId
                 } else {
-                    // Localizar o backup mais recente se fileId for nulo
-                    val query = "name contains 'meuponto_backup' and trashed = false"
+                    // Localizar o backup de banco mais recente
+                    val query = "name contains 'meuponto_db' and trashed = false"
                     val files = service.files().list()
                         .setQ(query)
                         .setOrderBy("modifiedTime desc")
@@ -219,7 +242,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
                         .execute()
 
                     if (files.files.isNullOrEmpty()) {
-                        return@withContext Result.failure(Exception("Nenhum backup encontrado na nuvem"))
+                        return@withContext Result.failure(Exception("Nenhum backup de banco encontrado na nuvem"))
                     }
                     files.files[0].id
                 }
@@ -228,7 +251,6 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 val isZip = targetFile.name.endsWith(".zip") || targetFile.mimeType == "application/zip"
 
                 val dbFile = context.getDatabasePath(MeuPontoDatabase.DATABASE_NAME)
-                val baseDirFotos = JavaFile(context.filesDir, "comprovantes")
 
                 if (isZip) {
                     val tempZipFile = JavaFile(context.cacheDir, "temp_restore.zip")
@@ -241,20 +263,11 @@ class CloudBackupRepositoryImpl @Inject constructor(
                     ZipInputStream(FileInputStream(tempZipFile)).use { zis ->
                         var entry = zis.nextEntry
                         while (entry != null) {
-                            when {
-                                entry.name == MeuPontoDatabase.DATABASE_NAME -> {
-                                    // Restaurar banco
-                                    java.io.File(dbFile.path + "-wal").delete()
-                                    java.io.File(dbFile.path + "-shm").delete()
-                                    FileOutputStream(dbFile).use { output -> zis.copyTo(output) }
-                                }
-                                entry.name.startsWith("fotos/") -> {
-                                    // Restaurar foto
-                                    val relativePath = entry.name.removePrefix("fotos/")
-                                    val fotoFile = JavaFile(baseDirFotos, relativePath)
-                                    fotoFile.parentFile?.mkdirs()
-                                    FileOutputStream(fotoFile).use { output -> zis.copyTo(output) }
-                                }
+                            if (entry.name == MeuPontoDatabase.DATABASE_NAME) {
+                                // Restaurar banco
+                                JavaFile(dbFile.path + "-wal").delete()
+                                JavaFile(dbFile.path + "-shm").delete()
+                                FileOutputStream(dbFile).use { output -> zis.copyTo(output) }
                             }
                             zis.closeEntry()
                             entry = zis.nextEntry
@@ -262,18 +275,15 @@ class CloudBackupRepositoryImpl @Inject constructor(
                     }
                     tempZipFile.delete()
                 } else {
-                    // Download para arquivo temporário (.db legado)
-                    val tempFile = java.io.File(context.cacheDir, "temp_backup.db")
+                    // Download legado (.db)
+                    val tempFile = JavaFile(context.cacheDir, "temp_backup.db")
                     FileOutputStream(tempFile).use { output ->
                         service.files().get(targetFileId).executeMediaAndDownloadTo(output)
                     }
 
-                    // 3. Fechar banco atual e substituir
                     database.close()
-
-                    // Remover arquivos WAL/SHM
-                    java.io.File(dbFile.path + "-wal").delete()
-                    java.io.File(dbFile.path + "-shm").delete()
+                    JavaFile(dbFile.path + "-wal").delete()
+                    JavaFile(dbFile.path + "-shm").delete()
 
                     tempFile.copyTo(dbFile, overwrite = true)
                     tempFile.delete()
@@ -305,7 +315,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
             val folderBackupsId = getOrCreateFolder(service, "backups", folderEmpregoId)
 
-            val query = "'$folderBackupsId' in parents and (name contains 'meuponto_backup') and trashed = false"
+            val query = "'$folderBackupsId' in parents and (name contains 'meuponto_db') and trashed = false"
             val result = service.files().list()
                 .setQ(query)
                 .setFields("files(id, name, size, modifiedTime, mimeType)")
@@ -358,7 +368,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
             val folderBackupsId = getOrCreateFolder(service, "backups", folderEmpregoId)
 
-            val query = "'$folderBackupsId' in parents and (name contains 'meuponto_backup') and trashed = false"
+            val query = "'$folderBackupsId' in parents and (name contains 'meuponto_db') and trashed = false"
             val result = service.files().list().setQ(query).setFields("files(id)").execute()
 
             result.files?.forEach { file ->

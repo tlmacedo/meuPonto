@@ -53,6 +53,8 @@ data class BackupUiState(
     val totalPontos: Int = 0,
     val totalFeriados: Int = 0,
     val tamanhoEstimado: String = "...",
+    val tamanhoBanco: String = "0B",
+    val tamanhoImagens: String = "0B",
     val backupNuvemAtivo: Boolean = false,
     val ultimoBackupLocal: Long? = null,
     val ultimoBackupNuvem: Long? = null,
@@ -324,9 +326,25 @@ class BackupViewModel @Inject constructor(
 
                 // Cálculo real do tamanho dos arquivos (Banco + Fotos)
                 val dbFile = context.getDatabasePath(MeuPontoDatabase.DATABASE_NAME)
-                val tamanhoBanco = if (dbFile.exists()) dbFile.length() else 0L
-                val tamanhoFotos = database.fotoComprovanteDao().calcularTamanhoTotal() ?: 0L
-                val tamanhoEstimado = formatarTamanho(tamanhoBanco + tamanhoFotos)
+                var tamanhoBancoBytes = if (dbFile.exists()) dbFile.length() else 0L
+                
+                // Incluir arquivos auxiliares do SQLite (WAL e SHM) no tamanho do banco
+                val walFile = java.io.File(dbFile.path + "-wal")
+                val shmFile = java.io.File(dbFile.path + "-shm")
+                if (walFile.exists()) tamanhoBancoBytes += walFile.length()
+                if (shmFile.exists()) tamanhoBancoBytes += shmFile.length()
+                
+                // Medir tamanho real da pasta de comprovantes
+                val baseDirImagens = java.io.File(context.filesDir, "comprovantes")
+                val tamanhoFotosBytes = if (baseDirImagens.exists()) {
+                    baseDirImagens.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                } else 0L
+                
+                val tamanhoTotalBytes = tamanhoBancoBytes + tamanhoFotosBytes
+                
+                val tamanhoBanco = formatarTamanho(tamanhoBancoBytes)
+                val tamanhoImagens = formatarTamanho(tamanhoFotosBytes)
+                val tamanhoEstimado = formatarTamanho(tamanhoTotalBytes)
 
                 _uiState.update {
                     it.copy(
@@ -335,7 +353,9 @@ class BackupViewModel @Inject constructor(
                         totalPontos = totalPontos,
                         totalFeriados = totalFeriados,
                         backupsLocais = backupsLocais,
-                        tamanhoEstimado = tamanhoEstimado
+                        tamanhoEstimado = tamanhoEstimado,
+                        tamanhoBanco = tamanhoBanco,
+                        tamanhoImagens = tamanhoImagens
                     )
                 }
             } catch (e: Exception) {
@@ -347,11 +367,8 @@ class BackupViewModel @Inject constructor(
     }
 
     private fun formatarTamanho(bytes: Long): String {
-        return when {
-            bytes < 1024L -> "${bytes}B"
-            bytes < 1024L * 1024L -> "${bytes / 1024L}KB"
-            else -> "${bytes / (1024L * 1024L)}MB"
-        }
+        val mb = bytes / (1024.0 * 1024.0)
+        return String.format(java.util.Locale.US, "%.2f MB", mb)
     }
 
     private fun exportarBackup(outputStream: OutputStream) {

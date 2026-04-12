@@ -460,6 +460,8 @@ fun BackupScreen(
                         totalPontos = uiState.totalPontos,
                         totalFeriados = uiState.totalFeriados,
                         tamanhoEstimado = uiState.tamanhoEstimado,
+                        tamanhoBanco = uiState.tamanhoBanco,
+                        tamanhoImagens = uiState.tamanhoImagens,
                         isLoading = uiState.isLoading
                     )
                 }
@@ -651,7 +653,7 @@ fun BackupScreen(
                                     ListItem(
                                         headlineContent = { Text(data) },
                                         supportingContent = {
-                                            Text("${backup.size / 1024} KB")
+                                            Text("Tamanho compactado: ${backup.size / 1024} KB")
                                         },
                                         leadingContent = {
                                             Icon(
@@ -1011,6 +1013,8 @@ private fun EstatisticasCard(
     totalPontos: Int,
     totalFeriados: Int,
     tamanhoEstimado: String,
+    tamanhoBanco: String,
+    tamanhoImagens: String,
     isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -1031,28 +1035,44 @@ private fun EstatisticasCard(
                 CircularProgressIndicator(modifier = Modifier.size(32.dp))
             }
         } else {
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                EstatisticaItem(
-                    valor = totalEmpregos.toString(),
-                    label = "Empregos"
-                )
-                EstatisticaItem(
-                    valor = totalPontos.toString(),
-                    label = "Registros"
-                )
-                EstatisticaItem(
-                    valor = totalFeriados.toString(),
-                    label = "Feriados"
-                )
-                EstatisticaItem(
-                    valor = tamanhoEstimado,
-                    label = "Tamanho"
-                )
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    EstatisticaItem(
+                        valor = totalEmpregos.toString(),
+                        label = "Empregos"
+                    )
+                    EstatisticaItem(
+                        valor = totalPontos.toString(),
+                        label = "Registros"
+                    )
+//                    EstatisticaItem(
+//                        valor = totalFeriados.toString(),
+//                        label = "Feriados"
+//                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 0.5.dp)
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    EstatisticaItem(
+                        valor = tamanhoBanco,
+                        label = "Banco DB"
+                    )
+                    EstatisticaItem(
+                        valor = tamanhoImagens,
+                        label = "Imagens"
+                    )
+                    EstatisticaItem(
+                        valor = tamanhoEstimado,
+                        label = "Total"
+                    )
+                }
             }
         }
     }

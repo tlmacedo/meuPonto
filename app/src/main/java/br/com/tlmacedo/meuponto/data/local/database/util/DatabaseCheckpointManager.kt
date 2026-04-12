@@ -37,10 +37,18 @@ class DatabaseCheckpointManager @Inject constructor(
         withContext(Dispatchers.IO) {
             try {
                 val db = database.openHelper.writableDatabase
-                db.execSQL("PRAGMA wal_checkpoint(${mode.name})")
-
-                Log.d(TAG, "Checkpoint ${mode.name} executado com sucesso")
-                true
+                // Para comandos PRAGMA que não retornam dados, execSQL é suficiente, 
+                // mas alguns drivers exigem query/rawQuery se houver retorno ou comportamento específico.
+                // Usando rawQuery para garantir compatibilidade com o que o erro SQLITE_OK sugere.
+                db.query("PRAGMA wal_checkpoint(${mode.name})").use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        Log.d(TAG, "Checkpoint ${mode.name} executado com sucesso")
+                        true
+                    } else {
+                        Log.w(TAG, "Checkpoint ${mode.name} retornou cursor vazio")
+                        false
+                    }
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Erro ao executar checkpoint: ${e.message}", e)
                 false
@@ -54,9 +62,15 @@ class DatabaseCheckpointManager @Inject constructor(
     fun checkpointSync(mode: CheckpointMode = CheckpointMode.PASSIVE): Boolean {
         return try {
             val db = database.openHelper.writableDatabase
-            db.execSQL("PRAGMA wal_checkpoint(${mode.name})")
-            Log.d(TAG, "Checkpoint ${mode.name} (sync) executado com sucesso")
-            true
+            db.query("PRAGMA wal_checkpoint(${mode.name})").use { cursor ->
+                if (cursor.moveToFirst()) {
+                    Log.d(TAG, "Checkpoint ${mode.name} (sync) executado com sucesso")
+                    true
+                } else {
+                    Log.w(TAG, "Checkpoint ${mode.name} (sync) retornou cursor vazio")
+                    false
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao executar checkpoint sync: ${e.message}", e)
             false
