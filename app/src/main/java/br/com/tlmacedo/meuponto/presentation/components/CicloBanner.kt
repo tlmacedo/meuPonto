@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaGreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.EstadoCiclo
 
 /**
@@ -122,7 +123,7 @@ private fun BannerPendente(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = if (estado.ciclo.saldoAtualMinutos >= 0) {
-                    Color(0xFF2E7D32)
+                    SidiaGreen
                 } else {
                     MaterialTheme.colorScheme.error
                 },

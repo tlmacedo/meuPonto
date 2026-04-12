@@ -50,11 +50,14 @@ class PreferenciasGlobaisDataStore @Inject constructor(
         val LOCALIZACAO_PADRAO_LONG = doublePreferencesKey("localizacao_padrao_long")
         val RAIO_GEOFENCING = intPreferencesKey("raio_geofencing")
         val REGISTRO_AUTOMATICO_GEOFENCING = booleanPreferencesKey("registro_automatico_geofencing")
+        val BACKUP_AUTOMATICO = booleanPreferencesKey("backup_automatico")
+        val BACKUP_NUVEM_ATIVO = booleanPreferencesKey("backup_nuvem_ativo")
+        val ULTIMO_BACKUP_LOCAL = longPreferencesKey("ultimo_backup_local")
+        val ULTIMO_BACKUP_NUVEM = longPreferencesKey("ultimo_backup_nuvem")
+        val CONTA_GOOGLE_CONECTADA = stringPreferencesKey("conta_google_conectada")
         val FORMATO_DATA = intPreferencesKey("formato_data")
         val FORMATO_HORA = intPreferencesKey("formato_hora")
         val PRIMEIRO_DIA_SEMANA = intPreferencesKey("primeiro_dia_semana")
-        val BACKUP_AUTOMATICO_ATIVO = booleanPreferencesKey("backup_automatico_ativo")
-        val ULTIMO_BACKUP = longPreferencesKey("ultimo_backup")
     }
 
     val preferenciasGlobais: Flow<PreferenciasGlobais> = context.prefsGlobaisDataStore.data.map { prefs ->
@@ -71,11 +74,14 @@ class PreferenciasGlobaisDataStore @Inject constructor(
             localizacaoPadraoLongitude = prefs[Keys.LOCALIZACAO_PADRAO_LONG],
             raioGeofencingMetros = prefs[Keys.RAIO_GEOFENCING] ?: 100,
             registroAutomaticoGeofencing = prefs[Keys.REGISTRO_AUTOMATICO_GEOFENCING] ?: false,
+            backupAutomaticoAtivo = prefs[Keys.BACKUP_AUTOMATICO] ?: false,
+            backupNuvemAtivo = prefs[Keys.BACKUP_NUVEM_ATIVO] ?: false,
+            ultimoBackupLocal = prefs[Keys.ULTIMO_BACKUP_LOCAL] ?: 0L,
+            ultimoBackupNuvem = prefs[Keys.ULTIMO_BACKUP_NUVEM] ?: 0L,
+            contaGoogleConectada = prefs[Keys.CONTA_GOOGLE_CONECTADA],
             formatoData = FormatoData.fromOrdinal(prefs[Keys.FORMATO_DATA] ?: FormatoData.DD_MM_YYYY.ordinal),
             formatoHora = FormatoHora.fromOrdinal(prefs[Keys.FORMATO_HORA] ?: FormatoHora.H24.ordinal),
-            primeiroDiaSemana = DayOfWeek.of(prefs[Keys.PRIMEIRO_DIA_SEMANA] ?: DayOfWeek.SUNDAY.value),
-            backupAutomaticoAtivo = prefs[Keys.BACKUP_AUTOMATICO_ATIVO] ?: false,
-            ultimoBackup = prefs[Keys.ULTIMO_BACKUP]
+            primeiroDiaSemana = DayOfWeek.of(prefs[Keys.PRIMEIRO_DIA_SEMANA] ?: DayOfWeek.SUNDAY.value)
         )
     }
 
@@ -147,19 +153,35 @@ class PreferenciasGlobaisDataStore @Inject constructor(
         }
     }
 
-    suspend fun salvarBackup(backupAutomaticoAtivo: Boolean, ultimoBackup: Long? = null) {
+    suspend fun salvarBackup(
+        backupAutomaticoAtivo: Boolean,
+        backupNuvemAtivo: Boolean? = null,
+        ultimoBackup: Long? = null,
+        ultimoBackupNuvem: Long? = null,
+        contaGoogle: String? = null
+    ) {
         Timber.d("Salvando backup: automatico=$backupAutomaticoAtivo")
         context.prefsGlobaisDataStore.edit { prefs ->
-            prefs[Keys.BACKUP_AUTOMATICO_ATIVO] = backupAutomaticoAtivo
-            if (ultimoBackup != null) prefs[Keys.ULTIMO_BACKUP] = ultimoBackup
+            prefs[Keys.BACKUP_AUTOMATICO] = backupAutomaticoAtivo
+            backupNuvemAtivo?.let { prefs[Keys.BACKUP_NUVEM_ATIVO] = it }
+            ultimoBackup?.let { prefs[Keys.ULTIMO_BACKUP_LOCAL] = it }
+            ultimoBackupNuvem?.let { prefs[Keys.ULTIMO_BACKUP_NUVEM] = it }
+            contaGoogle?.let { 
+                if (it.isEmpty()) prefs.remove(Keys.CONTA_GOOGLE_CONECTADA)
+                else prefs[Keys.CONTA_GOOGLE_CONECTADA] = it 
+            }
         }
     }
 
-    suspend fun registrarBackupRealizado() {
-        val agora = System.currentTimeMillis()
-        Timber.d("Registrando backup realizado: $agora")
+    suspend fun registrarBackupRealizado(isNuvem: Boolean = false) {
+        val now = System.currentTimeMillis()
+        Timber.d("Registrando backup realizado: nuvem=$isNuvem, data=$now")
         context.prefsGlobaisDataStore.edit { prefs ->
-            prefs[Keys.ULTIMO_BACKUP] = agora
+            if (isNuvem) {
+                prefs[Keys.ULTIMO_BACKUP_NUVEM] = now
+            } else {
+                prefs[Keys.ULTIMO_BACKUP_LOCAL] = now
+            }
         }
     }
 }

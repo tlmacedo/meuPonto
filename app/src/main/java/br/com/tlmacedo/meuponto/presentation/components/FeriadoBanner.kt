@@ -40,6 +40,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import br.com.tlmacedo.meuponto.presentation.theme.Info
+import br.com.tlmacedo.meuponto.presentation.theme.InfoLight
+import br.com.tlmacedo.meuponto.presentation.theme.OnWarning
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaBlue
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaDarkGreen
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaLightGray
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaNavy
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaSoftGreen
+import br.com.tlmacedo.meuponto.presentation.theme.SurfaceVariant
+import br.com.tlmacedo.meuponto.presentation.theme.WarningLight
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 
@@ -258,22 +268,22 @@ private fun FeriadoItemCompacto(
  * Retorna a cor de fundo apropriada para cada tipo de feriado.
  */
 private fun TipoFeriado.getBackgroundColor(): Color = when (this) {
-    TipoFeriado.NACIONAL -> Color(0xFFE8F5E9)    // Verde claro
-    TipoFeriado.ESTADUAL -> Color(0xFFE3F2FD)    // Azul claro
-    TipoFeriado.MUNICIPAL -> Color(0xFFFFF3E0)   // Laranja claro
-    TipoFeriado.FACULTATIVO -> Color(0xFFFCE4EC) // Rosa claro
-    TipoFeriado.PONTE -> Color(0xFFF3E5F5)       // Roxo claro
+    TipoFeriado.NACIONAL -> SidiaSoftGreen
+    TipoFeriado.ESTADUAL -> SurfaceVariant
+    TipoFeriado.MUNICIPAL -> WarningLight
+    TipoFeriado.FACULTATIVO -> SidiaLightGray
+    TipoFeriado.PONTE -> InfoLight
 }
 
 /**
  * Retorna a cor de conteúdo apropriada para cada tipo de feriado.
  */
 private fun TipoFeriado.getContentColor(): Color = when (this) {
-    TipoFeriado.NACIONAL -> Color(0xFF2E7D32)    // Verde escuro
-    TipoFeriado.ESTADUAL -> Color(0xFF1565C0)    // Azul escuro
-    TipoFeriado.MUNICIPAL -> Color(0xFFE65100)   // Laranja escuro
-    TipoFeriado.FACULTATIVO -> Color(0xFFC2185B) // Rosa escuro
-    TipoFeriado.PONTE -> Color(0xFF7B1FA2)       // Roxo escuro
+    TipoFeriado.NACIONAL -> SidiaDarkGreen
+    TipoFeriado.ESTADUAL -> SidiaBlue
+    TipoFeriado.MUNICIPAL -> OnWarning
+    TipoFeriado.FACULTATIVO -> SidiaNavy
+    TipoFeriado.PONTE -> Info
 }
 
 /**

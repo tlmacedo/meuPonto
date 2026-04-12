@@ -84,6 +84,8 @@ class AparenciaViewModel @Inject constructor(
             val nomeTema = when (tema) {
                 "light" -> "Claro"
                 "dark" -> "Escuro"
+                "sidia" -> "Sidia"
+                "sidia_dark" -> "Sidia Dark"
                 else -> "Sistema"
             }
             _eventos.emit(AparenciaEvent.MostrarMensagem("Tema alterado para $nomeTema"))

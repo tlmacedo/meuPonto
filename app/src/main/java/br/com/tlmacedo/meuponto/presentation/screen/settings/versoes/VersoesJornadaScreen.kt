@@ -4,8 +4,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -112,7 +111,6 @@ fun VersoesJornadaScreen(
 /**
  * Conteúdo da tela de listagem de versões de jornada, desacoplado do ViewModel.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VersoesJornadaContent(
     uiState: VersoesJornadaUiState,
@@ -191,7 +189,7 @@ fun VersoesJornadaContent(
                         horizontal = 16.dp,
                         vertical = 16.dp
                     ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -250,42 +248,32 @@ fun VersoesJornadaContent(
                             )
                         }
 
-                        item {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                        items(historicas) { versao ->
+                            VersaoJornadaModernCard(
+                                versao = versao,
+                                isVigente = false,
+                                isSelected = uiState.versoesSelecionadas.contains(versao.id),
+                                onEditar = {
+                                    onAction(VersoesJornadaAction.EditarVersao(versao.id))
+                                },
+                                onLongClick = {
+                                    onAction(VersoesJornadaAction.AlternarSelecaoVersao(versao.id))
+                                },
+                                onClick = {
+                                    if (uiState.modoSelecao) {
+                                        onAction(VersoesJornadaAction.AlternarSelecaoVersao(versao.id))
+                                    } else {
+                                        onAction(VersoesJornadaAction.EditarVersao(versao.id))
+                                    }
+                                },
+                                onDefinirVigente = {
+                                    onAction(VersoesJornadaAction.DefinirComoVigente(versao.id))
+                                },
+                                onExcluir = {
+                                    onAction(VersoesJornadaAction.AbrirDialogExcluir(versao))
+                                },
                                 modifier = Modifier.fillMaxWidth()
-                            ) {
-                                historicas.forEach { versao ->
-                                    VersaoJornadaModernCard(
-                                        versao = versao,
-                                        isVigente = false,
-                                        isSelected = uiState.versoesSelecionadas.contains(versao.id),
-                                        onEditar = {
-                                            onAction(VersoesJornadaAction.EditarVersao(versao.id))
-                                        },
-                                        onLongClick = {
-                                            onAction(VersoesJornadaAction.AlternarSelecaoVersao(versao.id))
-                                        },
-                                        onClick = {
-                                            if (uiState.modoSelecao) {
-                                                onAction(VersoesJornadaAction.AlternarSelecaoVersao(versao.id))
-                                            } else {
-                                                onAction(VersoesJornadaAction.EditarVersao(versao.id))
-                                            }
-                                        },
-                                        onDefinirVigente = {
-                                            onAction(VersoesJornadaAction.DefinirComoVigente(versao.id))
-                                        },
-                                        onExcluir = {
-                                            onAction(VersoesJornadaAction.AbrirDialogExcluir(versao))
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .weight(1f)
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
 

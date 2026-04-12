@@ -80,7 +80,12 @@ import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
 import br.com.tlmacedo.meuponto.presentation.components.LoadingIndicator
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.theme.Error
+import br.com.tlmacedo.meuponto.presentation.theme.Info
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaMediumGray
+import br.com.tlmacedo.meuponto.presentation.theme.Success
+import br.com.tlmacedo.meuponto.presentation.theme.Warning
 import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import java.time.LocalDate
@@ -431,7 +436,7 @@ private fun ResumoMes(
                     valor = "${resumoPeriodo.diasUteis}",
                     sublabel = if (isPeriodoFuturo) "previstos" else "no período",
                     icon = Icons.Default.CalendarMonth,
-                    cor = MaterialTheme.colorScheme.tertiary
+                    cor = MaterialTheme.colorScheme.onSurface
                 )
 
                 if (!isPeriodoFuturo) {
@@ -497,16 +502,14 @@ private fun ResumoMes(
                         sublabel = "do período",
                         icon = if (resumoPeriodo.saldoPeriodoMinutos >= 0)
                             Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
-                        cor = if (resumoPeriodo.saldoPeriodoMinutos >= 0) Color(0xFF4CAF50) else Color(
-                            0xFFF44336
-                        )
+                        cor = if (resumoPeriodo.saldoPeriodoMinutos >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                     )
                     ResumoPrincipalItem(
                         label = "Completos",
                         valor = "${resumoPeriodo.diasCompletos}",
                         sublabel = "dias",
                         icon = Icons.Default.CheckCircle,
-                        cor = Color(0xFF4CAF50)
+                        cor = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
@@ -711,12 +714,13 @@ private fun ResumoMes(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    val anteriorColor = if (saldoInicialPeriodo == 0) MaterialTheme.colorScheme.outline
+                    else if (saldoInicialPeriodo >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                     Text(
                         saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color = if (saldoInicialPeriodo == 0) Color(0xFFDFE1DF)
-                        else if (saldoInicialPeriodo >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                        color = anteriorColor
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -739,9 +743,7 @@ private fun ResumoMes(
                         saldoAcumuladoTotal.toLong().minutosParaSaldoFormatado(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (saldoAcumuladoTotal >= 0) Color(0xFF4CAF50) else Color(
-                            0xFFF44336
-                        )
+                        color = if (saldoAcumuladoTotal >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                     )
                 }
             } else {
@@ -767,9 +769,7 @@ private fun ResumoMes(
                         saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (saldoInicialPeriodo >= 0) Color(0xFF4CAF50) else Color(
-                            0xFFF44336
-                        )
+                        color = if (saldoInicialPeriodo >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -1442,11 +1442,11 @@ private fun SaldosSection(
 ) {
     val saldoDiaColor = when {
         isSemJornada -> MaterialTheme.colorScheme.onSurfaceVariant
-        resumo.temSaldoPositivo || !resumo.temSaldoNegativo -> Color(0xFF4CAF50)
-        else -> Color(0xFFF44336)
+        resumo.temSaldoPositivo || !resumo.temSaldoNegativo -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.error
     }
     val saldoBancoColor =
-        saldoBancoAcumulado?.let { if (it >= 0) Color(0xFF4CAF50) else Color(0xFFF44336) }
+        saldoBancoAcumulado?.let { if (it >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error }
 
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -1512,14 +1512,14 @@ private fun Int.minutosParaSaldoFormatado(): String = this.toLong().minutosParaS
 private fun getStatusColor(status: StatusDiaResumo): Color {
     return when (status) {
         StatusDiaResumo.DESCANSO -> Color(0xFF9C27B0)
-        StatusDiaResumo.COMPLETO -> Color(0xFF4CAF50)
-        StatusDiaResumo.EM_ANDAMENTO -> Color(0xFF2196F3)
-        StatusDiaResumo.INCOMPLETO -> Color(0xFFFF9800)
-        StatusDiaResumo.COM_PROBLEMAS -> Color(0xFFF44336)
-        StatusDiaResumo.SEM_REGISTRO -> Color(0xFF9E9E9E)
+        StatusDiaResumo.COMPLETO -> Success
+        StatusDiaResumo.EM_ANDAMENTO -> Info
+        StatusDiaResumo.INCOMPLETO -> Warning
+        StatusDiaResumo.COM_PROBLEMAS -> Error
+        StatusDiaResumo.SEM_REGISTRO -> SidiaMediumGray
         StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)
-        StatusDiaResumo.FERIADO_TRABALHADO -> Color(0xFFFF9800)
-        StatusDiaResumo.FUTURO -> Color(0xFF78909C)
+        StatusDiaResumo.FERIADO_TRABALHADO -> Warning
+        StatusDiaResumo.FUTURO -> SidiaMediumGray.copy(alpha = 0.6f)
     }
 }
 

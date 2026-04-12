@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -170,11 +171,14 @@ internal fun EditarEmpregoContent(
         DatePickerDialog(
             onDismissRequest = { onSetShowInicioTrabalhoPicker(false) },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
-                        onAction(EditarEmpregoAction.AlterarDataInicioTrabalho(date))
-                    }
-                }) { Text("Confirmar") }
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
+                            onAction(EditarEmpregoAction.AlterarDataInicioTrabalho(date))
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
+                ) { Text("Confirmar") }
             },
             dismissButton = {
                 TextButton(onClick = { onSetShowInicioTrabalhoPicker(false) }) { Text("Cancelar") }
@@ -192,11 +196,14 @@ internal fun EditarEmpregoContent(
         DatePickerDialog(
             onDismissRequest = { onSetShowTerminoTrabalhoPicker(false) },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
-                        onAction(EditarEmpregoAction.AlterarDataTerminoTrabalho(date))
-                    }
-                }) { Text("Confirmar") }
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
+                            onAction(EditarEmpregoAction.AlterarDataTerminoTrabalho(date))
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
+                ) { Text("Confirmar") }
             },
             dismissButton = {
                 TextButton(onClick = { onSetShowTerminoTrabalhoPicker(false) }) { Text("Cancelar") }
@@ -635,6 +642,7 @@ internal fun EditarEmpregoContent(
                     Button(
                         onClick = { onAction(EditarEmpregoAction.Salvar) },
                         enabled = uiState.formularioValido && !uiState.isSaving,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         if (uiState.isSaving) {
@@ -820,7 +828,7 @@ private fun FormSection(
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Salvar seção",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }

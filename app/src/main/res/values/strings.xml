@@ -258,6 +258,13 @@
     <string name="backup_exportar_pdf">Exportar PDF</string>
     <string name="backup_importar">Importar backup</string>
     <string name="backup_nuvem">Backup na nuvem</string>
+    <string name="backup_nuvem_descricao">Sincronize seus dados com o Google Drive de forma segura.</string>
+    <string name="backup_conectar_google">Conectar Conta Google</string>
+    <string name="backup_desconectar_google">Desconectar Conta</string>
+    <string name="backup_conta_conectada">Conectado como: %s</string>
+    <string name="backup_fazer_agora">Fazer backup agora</string>
+    <string name="backup_auto_nuvem">Backup automático na nuvem</string>
+    <string name="backup_auto_nuvem_desc">Realiza o backup diariamente quando estiver no Wi-Fi e carregando.</string>
     <string name="backup_apenas_wifi">Backup somente via Wi-Fi</string>
     <string name="backup_ultimo">Último backup</string>
     <string name="backup_nunca">Nunca realizado</string>

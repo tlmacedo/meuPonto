@@ -420,12 +420,12 @@ fun RegistrarPontoModal(
                         onClick = onConfirmar,
                         modifier = Modifier.weight(1f),
                         enabled = podeConfirmar,
-                        colors = ButtonDefaults.buttonColors(containerColor = corPrincipal)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                     ) {
                         if (state.isSaving) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.onSecondary,
                                 strokeWidth = 2.dp
                             )
                         } else {

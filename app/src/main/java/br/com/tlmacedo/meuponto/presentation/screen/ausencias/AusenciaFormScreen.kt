@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -629,7 +630,10 @@ fun AusenciaFormScreen(
                 Button(
                     onClick = { viewModel.onAction(AusenciaFormAction.Salvar) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = uiState.isFormValido && !uiState.isSalvando
+                    enabled = uiState.isFormValido && !uiState.isSalvando,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
                 ) {
                     if (uiState.isSalvando) {
                         CircularProgressIndicator(

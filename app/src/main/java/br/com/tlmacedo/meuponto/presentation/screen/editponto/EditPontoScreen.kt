@@ -241,7 +241,10 @@ fun EditPontoScreen(
             Button(
                 onClick = { viewModel.onAction(EditPontoAction.Salvar) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading && uiState.temAlteracao
+                enabled = !uiState.isLoading && uiState.temAlteracao,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
             ) {
                 Text(stringResource(R.string.btn_salvar))
             }

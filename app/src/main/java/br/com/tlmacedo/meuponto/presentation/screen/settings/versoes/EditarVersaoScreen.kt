@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -131,11 +132,14 @@ fun EditarVersaoContent(
         DatePickerDialog(
             onDismissRequest = { onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
-                        onAction(EditarVersaoAction.AlterarDataInicio(it))
-                    }
-                }) { Text("OK") }
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
+                            onAction(EditarVersaoAction.AlterarDataInicio(it))
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
+                ) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = { onAction(EditarVersaoAction.MostrarDataInicioPicker(false)) }) {
@@ -154,11 +158,14 @@ fun EditarVersaoContent(
         DatePickerDialog(
             onDismissRequest = { onAction(EditarVersaoAction.MostrarDataFimPicker(false)) },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
-                        onAction(EditarVersaoAction.AlterarDataFim(it))
-                    }
-                }) { Text("OK") }
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
+                            onAction(EditarVersaoAction.AlterarDataFim(it))
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
+                ) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = { onAction(EditarVersaoAction.AlterarDataFim(null)) }) {
@@ -180,11 +187,14 @@ fun EditarVersaoContent(
         DatePickerDialog(
             onDismissRequest = { onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
-                        onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(it))
-                    }
-                }) { Text("OK") }
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let {
+                            onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(it))
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
+                ) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = { onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(null)) }) {
@@ -536,6 +546,7 @@ private fun EditarVersaoForm(
             Button(
                 onClick = { onAction(EditarVersaoAction.Salvar) },
                 enabled = uiState.podeSalvar,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (uiState.isSaving) {
@@ -646,7 +657,7 @@ private fun ConfiguracaoSection(
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Salvar seção",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }

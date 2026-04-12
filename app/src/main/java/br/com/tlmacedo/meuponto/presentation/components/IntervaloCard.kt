@@ -345,7 +345,7 @@ private fun PontoContent(
                 text = horaConsiderada,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
-                color = if (isEntrada) Color(0xFF34D399) else corPrimaria
+                color = corPrimaria
             )
         } else {
             Text(

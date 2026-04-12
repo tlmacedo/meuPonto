@@ -5,8 +5,6 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,9 +46,8 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 9.0.0 - Novo design
+ * @updated 12.1.0 - Refatoração para vertical stack (Sidia Standard)
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SobreScreen(
     onNavigateBack: () -> Unit,
@@ -73,10 +70,10 @@ fun SobreScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            // Spacer(modifier = Modifier.height(16.dp)) // Removido para alinhar ao topo com 24.dp vertical padding
 
             // ══════════════════════════════════════════════════════════════
             // LOGO E NOME DO APP
@@ -89,6 +86,7 @@ fun SobreScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
+                    shape = MaterialTheme.shapes.extraLarge,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -127,30 +125,22 @@ fun SobreScreen(
             // ══════════════════════════════════════════════════════════════
             // INFORMAÇÕES DA VERSÃO E DESENVOLVEDOR
             // ══════════════════════════════════════════════════════════════
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+            InfoCard(
+                icon = Icons.Outlined.Code,
+                title = "Versão",
+                value = BuildConfig.VERSION_NAME,
+                subtitle = "Build ${BuildConfig.VERSION_CODE}",
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                InfoCard(
-                    icon = Icons.Outlined.Code,
-                    title = "Versão",
-                    value = BuildConfig.VERSION_NAME,
-                    subtitle = "Build ${BuildConfig.VERSION_CODE}",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
+            )
 
-                InfoCard(
-                    icon = Icons.Outlined.Person,
-                    title = "Desenvolvido por",
-                    value = "Thiago Macedo",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
-            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            InfoCard(
+                icon = Icons.Outlined.Person,
+                title = "Desenvolvido por",
+                value = "Thiago Macedo",
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -169,6 +159,7 @@ fun SobreScreen(
                         }
                         context.startActivity(intent)
                     },
+                    shape = MaterialTheme.shapes.extraLarge,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -245,8 +236,9 @@ private fun InfoCard(
 ) {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
+        shape = MaterialTheme.shapes.extraLarge,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(

@@ -97,7 +97,8 @@ fun VersoesJornadaContent(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNovaVersaoClick
+                onClick = onNovaVersaoClick,
+                containerColor = MaterialTheme.colorScheme.secondary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Nova Versão")
             }
@@ -140,7 +141,7 @@ private fun VersoesJornadaList(
     } else {
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = modifier.fillMaxSize()
         ) {
             items(uiState.versoes) { versao ->

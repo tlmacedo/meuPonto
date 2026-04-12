@@ -5,6 +5,7 @@ import br.com.tlmacedo.meuponto.data.repository.AuditLogRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.AusenciaRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.AuthRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.BackupRepositoryImpl
+import br.com.tlmacedo.meuponto.data.repository.CloudBackupRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.ConfiguracaoEmpregoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.EmpregoRepositoryImpl
 import br.com.tlmacedo.meuponto.data.repository.FechamentoPeriodoRepositoryImpl
@@ -20,6 +21,7 @@ import br.com.tlmacedo.meuponto.domain.repository.AuditLogRepository
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.BackupRepository
+import br.com.tlmacedo.meuponto.domain.repository.CloudBackupRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
@@ -54,4 +56,5 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindLixeiraRepository(impl: LixeiraRepositoryImpl): LixeiraRepository
     @Binds @Singleton abstract fun bindHistoricoCargoRepository(impl: HistoricoCargoRepositoryImpl): HistoricoCargoRepository
     @Binds @Singleton abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
+    @Binds @Singleton abstract fun bindCloudBackupRepository(impl: CloudBackupRepositoryImpl): CloudBackupRepository
 }

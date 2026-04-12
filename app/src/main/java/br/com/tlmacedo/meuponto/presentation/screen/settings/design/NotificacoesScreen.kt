@@ -82,10 +82,7 @@ fun NotificacoesScreen(
         modifier = modifier
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(
-                horizontal = 16.dp,
-                vertical = 24.dp
-            ),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
@@ -99,46 +96,27 @@ fun NotificacoesScreen(
                     habilitadas = uiState.notificacoesHabilitadas,
                     onToggle = {
                         viewModel.onAction(NotificacoesAction.ToggleNotificacoes)
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                    }
                 )
             }
 
             if (uiState.notificacoesHabilitadas) {
-                item {
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    )
-                }
-
                 // ══════════════════════════════════════════════════════════════
                 // LEMBRETES
                 // ══════════════════════════════════════════════════════════════
                 item {
-                    SectionHeader(
-                        title = "Lembretes",
-                        icon = Icons.Outlined.Alarm
-                    )
-                }
-
-                item {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionHeader(
+                            title = "Lembretes",
+                            icon = Icons.Outlined.Alarm
+                        )
                         NotificacaoSwitch(
                             title = "Lembrete de entrada",
                             subtitle = "Avisar quando estiver perto do horário de entrada",
                             checked = uiState.lembreteEntrada,
                             onCheckedChange = {
                                 viewModel.onAction(NotificacoesAction.ToggleLembreteEntrada)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
+                            }
                         )
 
                         NotificacaoSwitch(
@@ -147,10 +125,7 @@ fun NotificacoesScreen(
                             checked = uiState.lembreteSaida,
                             onCheckedChange = {
                                 viewModel.onAction(NotificacoesAction.ToggleLembreteSaida)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
+                            }
                         )
 
                         NotificacaoSwitch(
@@ -159,48 +134,27 @@ fun NotificacoesScreen(
                             checked = uiState.lembreteIntervalo,
                             onCheckedChange = {
                                 viewModel.onAction(NotificacoesAction.ToggleLembreteIntervalo)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
+                            }
                         )
                     }
-                }
-
-                item {
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    )
                 }
 
                 // ══════════════════════════════════════════════════════════════
                 // ALERTAS
                 // ══════════════════════════════════════════════════════════════
                 item {
-                    SectionHeader(
-                        title = "Alertas",
-                        icon = Icons.Outlined.Timer
-                    )
-                }
-
-                item {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionHeader(
+                            title = "Alertas",
+                            icon = Icons.Outlined.Timer
+                        )
                         NotificacaoSwitch(
                             title = "Alerta de hora extra",
                             subtitle = "Avisar quando ultrapassar a jornada normal",
                             checked = uiState.alertaHoraExtra,
                             onCheckedChange = {
                                 viewModel.onAction(NotificacoesAction.ToggleAlertaHoraExtra)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
+                            }
                         )
 
                         NotificacaoSwitch(
@@ -209,48 +163,27 @@ fun NotificacoesScreen(
                             checked = uiState.alertaJornadaMaxima,
                             onCheckedChange = {
                                 viewModel.onAction(NotificacoesAction.ToggleAlertaJornadaMaxima)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
+                            }
                         )
                     }
-                }
-
-                item {
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    )
                 }
 
                 // ══════════════════════════════════════════════════════════════
                 // COMPORTAMENTO
                 // ══════════════════════════════════════════════════════════════
                 item {
-                    SectionHeader(
-                        title = "Comportamento",
-                        icon = Icons.Outlined.Vibration
-                    )
-                }
-
-                item {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionHeader(
+                            title = "Comportamento",
+                            icon = Icons.Outlined.Vibration
+                        )
                         NotificacaoSwitch(
                             title = "Vibração",
                             subtitle = "Vibrar ao exibir notificações",
                             checked = uiState.vibracaoHabilitada,
                             onCheckedChange = {
                                 viewModel.onAction(NotificacoesAction.ToggleVibracao)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
+                            }
                         )
 
                         NotificacaoSwitch(
@@ -259,10 +192,7 @@ fun NotificacoesScreen(
                             checked = uiState.somHabilitado,
                             onCheckedChange = {
                                 viewModel.onAction(NotificacoesAction.ToggleSom)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
+                            }
                         )
                     }
                 }
@@ -270,7 +200,7 @@ fun NotificacoesScreen(
 
 
             item {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -352,8 +282,6 @@ private fun SectionHeader(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
     ) {
         Icon(
             imageVector = icon,

@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -429,27 +431,51 @@ private fun SystemStatusCard(
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
     ) {
         // Card de Saldo
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             ),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Saldo no Mês",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = saldoMensal,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    color = if (saldoMensal.startsWith("-")) MaterialTheme.colorScheme.error 
-                            else MaterialTheme.colorScheme.primary
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxHeight(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Saldo no Mês",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = saldoMensal,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = when {
+                            saldoMensal.startsWith("-") -> MaterialTheme.colorScheme.error
+                            saldoMensal.contains("00:00") -> MaterialTheme.colorScheme.onSurface
+                            else -> MaterialTheme.colorScheme.secondary // Sidia Green
+                        }
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Outlined.History,
+                    contentDescription = null,
+                    tint = when {
+                        saldoMensal.startsWith("-") -> MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+                        saldoMensal.contains("00:00") -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                    },
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -460,25 +486,36 @@ private fun SystemStatusCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             ),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Backup",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = ultimoBackup,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Gerenciar",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxHeight(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Último Backup",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = ultimoBackup,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Outlined.CloudSync,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }

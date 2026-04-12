@@ -17,46 +17,60 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-private val LightColorScheme = lightColorScheme(
-    primary = Primary,
-    onPrimary = OnPrimary,
-    primaryContainer = PrimaryLight,
-    onPrimaryContainer = PrimaryVariant,
-    secondary = Secondary,
-    onSecondary = OnSecondary,
-    secondaryContainer = SurfaceVariant,
-    onSecondaryContainer = SecondaryVariant,
-    surface = Surface,
-    onSurface = OnSurface,
-    surfaceVariant = SurfaceVariant,
-    onSurfaceVariant = OnSurfaceVariant,
-    background = Background,
-    onBackground = OnBackground,
-    error = Error,
-    onError = OnError,
-    errorContainer = ErrorLight,
-    onErrorContainer = Error
+private val DefaultLightColorScheme = lightColorScheme(
+    primary = DefaultPrimary,
+    secondary = DefaultSecondary,
+    tertiary = DefaultTertiary
 )
 
-private val DarkColorScheme = darkColorScheme(
+private val DefaultDarkColorScheme = darkColorScheme(
+    primary = Color(0xFFD0BCFF),
+    secondary = Color(0xFFCCC2DC),
+    tertiary = Color(0xFFEFB8C8)
+)
+
+private val SidiaLightColorScheme = lightColorScheme(
+    primary = SidiaBlue,
+    onPrimary = Color.White,
+    primaryContainer = SidiaBlue.copy(alpha = 0.1f),
+    onPrimaryContainer = SidiaBlue,
+    secondary = SidiaGreen,
+    onSecondary = Color.White,
+    secondaryContainer = SidiaGreen.copy(alpha = 0.1f),
+    onSecondaryContainer = SidiaGreen,
+    tertiary = SidiaMediumGray,
+    onTertiary = Color.White,
+    background = SidiaLightGray,
+    onBackground = SidiaNavy,
+    surface = SidiaLightGray,
+    onSurface = SidiaNavy,
+    surfaceVariant = Color.White,
+    onSurfaceVariant = SidiaMediumGray,
+    error = Error,
+    onError = OnError,
+    outline = SidiaMediumGray
+)
+
+private val SidiaDarkColorScheme = darkColorScheme(
     primary = DarkPrimary,
-    onPrimary = OnPrimary,
-    primaryContainer = DarkPrimaryVariant,
-    onPrimaryContainer = Color(0xFFE0E7FF),  // Texto claro para contraste no card azul
-    secondary = Secondary,
-    onSecondary = OnSecondary,
-    secondaryContainer = DarkSurfaceVariant,
-    onSecondaryContainer = Color(0xFFE2E8F0),
+    onPrimary = Color.White,
+    primaryContainer = DarkPrimary.copy(alpha = 0.2f),
+    onPrimaryContainer = DarkPrimary,
+    secondary = DarkSecondary,
+    onSecondary = Color.Black,
+    secondaryContainer = DarkSecondary.copy(alpha = 0.2f),
+    onSecondaryContainer = DarkSecondary,
+    tertiary = DarkOnSurfaceVariant,
+    onTertiary = Color.Black,
+    background = DarkBackground,
+    onBackground = DarkOnBackground,
     surface = DarkSurface,
     onSurface = DarkOnSurface,
     surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = Color(0xFFCBD5E1),  // Aumentado contraste
-    background = DarkBackground,
-    onBackground = DarkOnBackground,
-    error = Error,
-    onError = OnError,
-    errorContainer = ErrorLight,
-    onErrorContainer = Error
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    error = DarkError,
+    onError = Color.White,
+    outline = DarkOnSurfaceVariant
 )
 
 private val AppTypography = Typography(
@@ -138,15 +152,23 @@ private val AppTypography = Typography(
 fun MeuPontoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    temaForcado: String = "system",
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val colorScheme = when (temaForcado) {
+        "light" -> DefaultLightColorScheme
+        "dark" -> DefaultDarkColorScheme
+        "sidia" -> SidiaLightColorScheme
+        "sidia_dark" -> SidiaDarkColorScheme
+        "system" -> {
+            if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val context = LocalContext.current
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            } else {
+                if (darkTheme) DefaultDarkColorScheme else DefaultLightColorScheme
+            }
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else -> if (darkTheme) DefaultDarkColorScheme else DefaultLightColorScheme
     }
 
     MaterialTheme(

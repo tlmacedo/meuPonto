@@ -72,40 +72,27 @@ fun PrivacidadeScreen(
         modifier = modifier
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(
-                horizontal = 16.dp,
-                vertical = 24.dp
-            ),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
             // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: PROTEÇÃO DO APP
+            // PROTEÇÃO DO APP
             // ══════════════════════════════════════════════════════════════
             item {
-                SectionHeader(
-                    title = "Proteção do App",
-                    icon = Icons.Outlined.Security
-                )
-            }
-
-            item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeader(
+                        title = "Proteção do App",
+                        icon = Icons.Outlined.Security
+                    )
                     PrivacidadeSwitch(
                         title = "Bloqueio por biometria",
                         subtitle = "Exigir impressão digital ou reconhecimento facial para abrir o app",
                         icon = Icons.Outlined.Fingerprint,
                         checked = biometriaHabilitada,
-                        onCheckedChange = { viewModel.toggleBiometria(it) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
+                        onCheckedChange = { viewModel.toggleBiometria(it) }
                     )
 
                     PrivacidadeSwitch(
@@ -114,45 +101,28 @@ fun PrivacidadeScreen(
                         icon = Icons.Outlined.Lock,
                         checked = bloqueioAutomatico,
                         onCheckedChange = { viewModel.toggleBloqueioAutomatico(it) },
-                        enabled = biometriaHabilitada,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
+                        enabled = biometriaHabilitada
                     )
                 }
             }
 
-            item {
-                HorizontalDivider(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                )
-            }
-
             // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: VISIBILIDADE
+            // VISIBILIDADE
             // ══════════════════════════════════════════════════════════════
             item {
-                SectionHeader(
-                    title = "Visibilidade",
-                    icon = Icons.Outlined.Visibility
-                )
-            }
-
-            item {
-                PrivacidadeSwitch(
-                    title = "Ocultar na tela de recentes",
-                    subtitle = "Esconder conteúdo do app quando alternar entre aplicativos",
-                    icon = Icons.Outlined.VisibilityOff,
-                    checked = ocultarPreview,
-                    onCheckedChange = { viewModel.toggleOcultarPreview(it) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeader(
+                        title = "Visibilidade",
+                        icon = Icons.Outlined.Visibility
+                    )
+                    PrivacidadeSwitch(
+                        title = "Ocultar na tela de recentes",
+                        subtitle = "Esconder conteúdo do app quando alternar entre aplicativos",
+                        icon = Icons.Outlined.VisibilityOff,
+                        checked = ocultarPreview,
+                        onCheckedChange = { viewModel.toggleOcultarPreview(it) }
+                    )
+                }
             }
 
             // ══════════════════════════════════════════════════════════════
@@ -183,9 +153,8 @@ fun PrivacidadeScreen(
                 }
             }
 
-
             item {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -200,8 +169,6 @@ private fun SectionHeader(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
     ) {
         Icon(
             imageVector = icon,

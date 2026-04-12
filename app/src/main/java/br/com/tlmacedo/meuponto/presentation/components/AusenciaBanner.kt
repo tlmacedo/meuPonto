@@ -39,6 +39,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.tlmacedo.meuponto.presentation.theme.Error
+import br.com.tlmacedo.meuponto.presentation.theme.ErrorLight
+import br.com.tlmacedo.meuponto.presentation.theme.Info
+import br.com.tlmacedo.meuponto.presentation.theme.InfoLight
+import br.com.tlmacedo.meuponto.presentation.theme.OnWarning
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaBlue
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaDarkGreen
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaGreen
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaSoftGreen
+import br.com.tlmacedo.meuponto.presentation.theme.SurfaceVariant
+import br.com.tlmacedo.meuponto.presentation.theme.WarningLight
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import java.time.format.DateTimeFormatter
@@ -418,24 +429,24 @@ private fun formatarMinutos(minutos: Int): String {
  * Retorna a cor de fundo apropriada para cada tipo de ausência.
  */
 private fun TipoAusencia.getBackgroundColor(): Color = when (this) {
-    TipoAusencia.FERIAS -> Color(0xFFE0F7FA)           // Ciano claro
-    TipoAusencia.ATESTADO -> Color(0xFFFFEBEE)         // Vermelho claro
-    TipoAusencia.DECLARACAO -> Color(0xFFFFF8E1)       // Âmbar claro
-    TipoAusencia.FOLGA -> Color(0xFFE8F5E9)            // Verde claro
-    TipoAusencia.FALTA_JUSTIFICADA -> Color(0xFFE3F2FD) // Azul claro
-    TipoAusencia.FALTA_INJUSTIFICADA -> Color(0xFFFFCDD2) // Vermelho mais forte
+    TipoAusencia.FERIAS -> SurfaceVariant
+    TipoAusencia.ATESTADO -> ErrorLight
+    TipoAusencia.DECLARACAO -> WarningLight
+    TipoAusencia.FOLGA -> SidiaSoftGreen
+    TipoAusencia.FALTA_JUSTIFICADA -> InfoLight
+    TipoAusencia.FALTA_INJUSTIFICADA -> ErrorLight
 }
 
 /**
  * Retorna a cor de conteúdo apropriada para cada tipo de ausência.
  */
 private fun TipoAusencia.getContentColor(): Color = when (this) {
-    TipoAusencia.FERIAS -> Color(0xFF00695C)           // Ciano escuro
-    TipoAusencia.ATESTADO -> Color(0xFFC62828)         // Vermelho escuro
-    TipoAusencia.DECLARACAO -> Color(0xFFFF8F00)       // Âmbar escuro
-    TipoAusencia.FOLGA -> Color(0xFF2E7D32)            // Verde escuro
-    TipoAusencia.FALTA_JUSTIFICADA -> Color(0xFF1565C0) // Azul escuro
-    TipoAusencia.FALTA_INJUSTIFICADA -> Color(0xFFB71C1C) // Vermelho muito escuro
+    TipoAusencia.FERIAS -> SidiaBlue
+    TipoAusencia.ATESTADO -> Error
+    TipoAusencia.DECLARACAO -> OnWarning
+    TipoAusencia.FOLGA -> SidiaDarkGreen
+    TipoAusencia.FALTA_JUSTIFICADA -> Info
+    TipoAusencia.FALTA_INJUSTIFICADA -> Error
 }
 
 /**

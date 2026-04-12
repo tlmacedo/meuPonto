@@ -1,8 +1,6 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.global
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.settings.SettingsSectionCard
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GlobalSettingsScreen(
     onNavigateBack: () -> Unit,
@@ -47,51 +44,43 @@ fun GlobalSettingsScreen(
                 .padding(paddingValues)
         ) {
             item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                SettingsSectionCard(
+                    title = "Aparência",
+                    subtitle = "Tema, cores, densidade visual e preferências de interface.",
+                    icon = Icons.Default.DarkMode,
+                    onClick = { },
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    SettingsSectionCard(
-                        title = "Aparência",
-                        subtitle = "Tema, cores, densidade visual e preferências de interface.",
-                        icon = Icons.Default.DarkMode,
-                        onClick = { },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
+                )
+            }
 
-                    SettingsSectionCard(
-                        title = "Notificações",
-                        subtitle = "Lembretes, alertas de ponto e avisos importantes.",
-                        icon = Icons.Default.Notifications,
-                        onClick = { },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
+            item {
+                SettingsSectionCard(
+                    title = "Notificações",
+                    subtitle = "Lembretes, alertas de ponto e avisos importantes.",
+                    icon = Icons.Default.Notifications,
+                    onClick = { },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
-                    SettingsSectionCard(
-                        title = "Backup e dados",
-                        subtitle = "Exportação, importação e manutenção local de dados.",
-                        icon = Icons.Default.Save,
-                        onClick = { },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
+            item {
+                SettingsSectionCard(
+                    title = "Backup e dados",
+                    subtitle = "Exportação, importação e manutenção local de dados.",
+                    icon = Icons.Default.Save,
+                    onClick = { },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
-                    SettingsSectionCard(
-                        title = "Privacidade e segurança",
-                        subtitle = "Proteção do app, biometria e controle de acesso.",
-                        icon = Icons.Default.Security,
-                        onClick = { },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
-                }
+            item {
+                SettingsSectionCard(
+                    title = "Privacidade e segurança",
+                    subtitle = "Proteção do app, biometria e controle de acesso.",
+                    icon = Icons.Default.Security,
+                    onClick = { },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

@@ -33,14 +33,17 @@ data class PreferenciasGlobais(
     val raioGeofencingMetros: Int = 100,
     val registroAutomaticoGeofencing: Boolean = false,
     
+    // Backup
+    val backupAutomaticoAtivo: Boolean = false,
+    val backupNuvemAtivo: Boolean = false,
+    val ultimoBackupLocal: Long = 0L,
+    val ultimoBackupNuvem: Long = 0L,
+    val contaGoogleConectada: String? = null,
+    
     // Formatos
     val formatoData: FormatoData = FormatoData.DD_MM_YYYY,
     val formatoHora: FormatoHora = FormatoHora.H24,
-    val primeiroDiaSemana: DayOfWeek = DayOfWeek.SUNDAY,
-    
-    // Backup
-    val backupAutomaticoAtivo: Boolean = false,
-    val ultimoBackup: Long? = null
+    val primeiroDiaSemana: DayOfWeek = DayOfWeek.SUNDAY
 ) {
     /**
      * Opções de tema escuro.

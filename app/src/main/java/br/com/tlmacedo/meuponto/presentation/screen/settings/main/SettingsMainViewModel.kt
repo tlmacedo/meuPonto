@@ -18,10 +18,14 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
+import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
 
@@ -84,7 +88,10 @@ class SettingsMainViewModel @Inject constructor(
     private val trocarEmpregoAtivoUseCase: TrocarEmpregoAtivoUseCase,
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val calcularSaldoMensalUseCase: br.com.tlmacedo.meuponto.domain.usecase.saldo.CalcularSaldoMensalUseCase,
-    private val obterPreferenciasGlobaisUseCase: ObterPreferenciasGlobaisUseCase
+    private val calcularBancoHorasUseCase: br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase,
+    private val obterPreferenciasGlobaisUseCase: ObterPreferenciasGlobaisUseCase,
+    private val backupRepository: br.com.tlmacedo.meuponto.domain.repository.BackupRepository,
+    private val cloudBackupRepository: br.com.tlmacedo.meuponto.domain.repository.CloudBackupRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsMainUiState())
@@ -120,83 +127,83 @@ class SettingsMainViewModel @Inject constructor(
     }
 
     /**
-     * Observa mudanças no emprego ativo e lista de empregos.
+     * Observa mudanças no emprego ativo, lista de empregos e saldo mensal.
      */
     private fun observarDados() {
         viewModelScope.launch {
-            combine(
-                obterEmpregoAtivoUseCase.observar(),
-                listarEmpregosUseCase.observarTodos(),
-                obterPreferenciasGlobaisUseCase()
-            ) { empregoAtivo, empregosComResumo, preferencias ->
-                Triple(
-                    empregoAtivo,
-                    empregosComResumo.map { it.emprego }.filter { !it.arquivado },
-                    preferencias
-                )
-            }.collectLatest { (empregoAtivo, empregosDisponiveis, preferencias) ->
-                if (empregoAtivo != null) {
-                    carregarDadosEmprego(empregoAtivo, empregosDisponiveis, preferencias.ultimoBackup)
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            empregoAtual = null,
-                            empregosDisponiveis = empregosDisponiveis,
-                            versaoVigenteDescricao = null,
-                            totalVersoes = 0,
-                            dataUltimoBackup = formatarDataBackup(preferencias.ultimoBackup)
-                        )
+            val empregosFlow = listarEmpregosUseCase.observarTodos()
+                .map { lista -> lista.map { it.emprego }.filter { !it.arquivado } }
+                .distinctUntilChanged()
+
+            val preferenciasFlow = obterPreferenciasGlobaisUseCase()
+                .distinctUntilChanged()
+
+            obterEmpregoAtivoUseCase.observar()
+                .distinctUntilChanged { old, new -> old?.id == new?.id }
+                .flatMapLatest { emprego ->
+                    if (emprego == null) {
+                        combine(empregosFlow, preferenciasFlow) { empregos, prefs ->
+                            val dataBackup = obterDataBackupRecente(prefs.ultimoBackupLocal, prefs.ultimoBackupNuvem)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    empregoAtual = null,
+                                    empregosDisponiveis = empregos,
+                                    versaoVigenteDescricao = null,
+                                    totalVersoes = 0,
+                                    dataUltimoBackup = formatarDataBackup(dataBackup)
+                                )
+                            }
+                        }
+                    } else {
+                        // Quando temos um emprego, observamos também o saldo e versões de forma reativa
+                        combine(
+                            empregosFlow,
+                            preferenciasFlow,
+                            versaoJornadaRepository.observarVigente(emprego.id),
+                            observarSaldoMensal(emprego.id)
+                        ) { empregos, prefs, versao, saldo ->
+                            val dataBackup = obterDataBackupRecente(prefs.ultimoBackupLocal, prefs.ultimoBackupNuvem)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    empregoAtual = emprego,
+                                    empregosDisponiveis = empregos,
+                                    versaoVigenteDescricao = versao?.let { v ->
+                                        "Versão ${v.numeroVersao}" + (v.descricao?.let { d -> " - $d" } ?: "")
+                                    },
+                                    totalVersoes = 0,
+                                    saldoAtualTexto = saldo,
+                                    dataUltimoBackup = formatarDataBackup(dataBackup)
+                                )
+                            }
+                        }
                     }
-                }
-            }
+                }.collectLatest { }
         }
+    }
+
+    private suspend fun obterDataBackupRecente(prefLocal: Long?, prefNuvem: Long?): Long? {
+        val backupLocalReal = backupRepository.obterDataUltimoBackupLocal()
+        
+        // Só considera a data da nuvem se o usuário ainda estiver autenticado
+        val isNuvemValido = cloudBackupRepository.isUsuarioAutenticado()
+        val dataNuvemConsiderar = if (isNuvemValido) prefNuvem else 0L
+
+        return listOfNotNull(prefLocal, dataNuvemConsiderar, backupLocalReal).maxOrNull()
     }
 
     /**
-     * Carrega dados complementares do emprego (versão vigente, totais).
+     * Observa o saldo mensal de forma reativa, reagindo a mudanças nos pontos.
      */
-    private suspend fun carregarDadosEmprego(
-        emprego: Emprego,
-        empregosDisponiveis: List<Emprego>,
-        ultimoBackupMillis: Long?
-    ) {
-        try {
-            val versaoVigente = versaoJornadaRepository.buscarVigente(emprego.id)
-            val totalVersoes = versaoJornadaRepository.contarPorEmprego(emprego.id)
-            
-            // Busca o saldo do mês atual (exemplo simplificado)
-            val agora = java.time.YearMonth.now()
-            val saldoMensal = calcularSaldoMensalUseCase(emprego.id, agora)
-            val saldoTexto = saldoMensal.saldoFormatado
-
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    empregoAtual = emprego,
-                    empregosDisponiveis = empregosDisponiveis,
-                    versaoVigenteDescricao = versaoVigente?.let { v ->
-                        "Versão ${v.numeroVersao}" + (v.descricao?.let { d -> " - $d" } ?: "")
-                    },
-                    totalVersoes = totalVersoes,
-                    saldoAtualTexto = saldoTexto,
-                    dataUltimoBackup = formatarDataBackup(ultimoBackupMillis)
-                )
+    private fun observarSaldoMensal(empregoId: Long) =
+        calcularBancoHorasUseCase.invoke(empregoId)
+            .flatMapLatest {
+                kotlinx.coroutines.flow.flow {
+                    val saldo = calcularSaldoMensalUseCase(empregoId, YearMonth.now())
+                    emit(saldo.saldoFormatado)
+                }
             }
-        } catch (e: Exception) {
-            Timber.e(e, "Erro ao carregar dados do emprego %d", emprego.id)
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    empregoAtual = emprego,
-                    empregosDisponiveis = empregosDisponiveis,
-                    versaoVigenteDescricao = null,
-                    totalVersoes = 0,
-                    dataUltimoBackup = formatarDataBackup(ultimoBackupMillis)
-                )
-            }
-        }
-    }
 
     private fun formatarDataBackup(millis: Long?): String {
         if (millis == null || millis == 0L) return "Nunca realizado"

@@ -1,8 +1,6 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.home
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +18,6 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.settings.SettingsInfoCard
 import br.com.tlmacedo.meuponto.presentation.components.settings.SettingsSectionCard
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsHomeScreen(
     onNavigateBack: () -> Unit,
@@ -57,41 +54,33 @@ fun SettingsHomeScreen(
             }
 
             item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                SettingsSectionCard(
+                    title = "Configurações Globais",
+                    subtitle = "Preferências gerais do sistema, aparência, notificações e comportamento padrão.",
+                    icon = Icons.Default.Tune,
+                    onClick = onNavigateToGlobal,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    SettingsSectionCard(
-                        title = "Configurações Globais",
-                        subtitle = "Preferências gerais do sistema, aparência, notificações e comportamento padrão.",
-                        icon = Icons.Default.Tune,
-                        onClick = onNavigateToGlobal,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
+                )
+            }
 
-                    SettingsSectionCard(
-                        title = "Empregos",
-                        subtitle = "Gerencie múltiplos empregos, regras específicas e versões de jornada por emprego.",
-                        icon = Icons.Default.BusinessCenter,
-                        onClick = onNavigateToEmpregos,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
+            item {
+                SettingsSectionCard(
+                    title = "Empregos",
+                    subtitle = "Gerencie múltiplos empregos, regras específicas e versões de jornada por emprego.",
+                    icon = Icons.Default.BusinessCenter,
+                    onClick = onNavigateToEmpregos,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
-                    SettingsSectionCard(
-                        title = "Sistema",
-                        subtitle = "Informações técnicas, versão do app e opções administrativas.",
-                        icon = Icons.Default.Settings,
-                        onClick = { },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
-                }
+            item {
+                SettingsSectionCard(
+                    title = "Sistema",
+                    subtitle = "Informações técnicas, versão do app e opções administrativas.",
+                    icon = Icons.Default.Settings,
+                    onClick = { },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

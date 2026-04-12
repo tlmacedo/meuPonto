@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,9 +50,7 @@ import kotlinx.coroutines.flow.collectLatest
  * Tela de configurações de aparência.
  *
  * Permite ao usuário configurar:
- * - Tema (Claro, Escuro, Sistema)
- * - Cor de destaque (futuro)
- * - Densidade visual (futuro)
+ * - Tema (Claro, Escuro, Sistema, Sidia)
  *
  * @author Thiago
  * @since 9.0.0
@@ -88,116 +87,113 @@ fun AparenciaScreen(
         modifier = modifier
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(
-                horizontal = 16.dp,
-                vertical = 24.dp
-            ),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
             // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: TEMA
+            // IDENTIDADE VISUAL (Sidia)
             // ══════════════════════════════════════════════════════════════
             item {
-                SectionHeader(
-                    title = "Tema",
-                    icon = Icons.Outlined.Palette
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeader(
+                        title = "Identidade Sidia",
+                        icon = Icons.Outlined.Palette
+                    )
+                    Text(
+                        text = "Aplique as cores da marca Sidia ao seu aplicativo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TemaOption(
+                        title = "Sidia",
+                        subtitle = "Azul, Navy e Ciano",
+                        icon = Icons.Outlined.Palette,
+                        isSelected = uiState.temaSelecionado == "sidia",
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("sidia")) }
+                    )
+                    TemaOption(
+                        title = "Sidia Dark",
+                        subtitle = "Identidade no escuro",
+                        icon = Icons.Outlined.DarkMode,
+                        isSelected = uiState.temaSelecionado == "sidia_dark",
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("sidia_dark")) }
+                    )
+                }
             }
 
+            // ══════════════════════════════════════════════════════════════
+            // CORES DO SISTEMA
+            // ══════════════════════════════════════════════════════════════
             item {
-                Text(
-                    text = "Escolha como o app deve ser exibido",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                )
-            }
-
-            item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeader(
+                        title = "Padrão Android",
+                        icon = Icons.Outlined.PhoneAndroid
+                    )
                     TemaOption(
                         title = "Claro",
-                        subtitle = "Tema com fundo claro",
+                        subtitle = "Tema padrão claro",
                         icon = Icons.Outlined.LightMode,
                         isSelected = uiState.temaSelecionado == "light",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("light")) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("light")) }
                     )
-
                     TemaOption(
                         title = "Escuro",
-                        subtitle = "Tema com fundo escuro",
+                        subtitle = "Tema padrão escuro",
                         icon = Icons.Outlined.DarkMode,
                         isSelected = uiState.temaSelecionado == "dark",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("dark")) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("dark")) }
                     )
-
                     TemaOption(
-                        title = "Sistema",
-                        subtitle = "Seguir configuração do dispositivo",
+                        title = "Seguir Sistema",
+                        subtitle = "Sincronizar com as configurações do seu dispositivo",
                         icon = Icons.Outlined.PhoneAndroid,
                         isSelected = uiState.temaSelecionado == "system",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("system")) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("system")) }
                     )
                 }
             }
 
             // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: CONTRASTE (Futuro)
+            // ACESSIBILIDADE
             // ══════════════════════════════════════════════════════════════
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(modifier = Modifier.alpha(0.5f))
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            item {
-                SectionHeader(
-                    title = "Acessibilidade",
-                    icon = Icons.Outlined.Contrast
-                )
-            }
-
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeader(
+                        title = "Acessibilidade",
+                        icon = Icons.Outlined.Contrast
+                    )
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "🚧 Em breve",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Opções de alto contraste e ajuste de tamanho de fonte estarão disponíveis em uma próxima atualização.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "🚧 Em breve",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Opções de alto contraste e ajuste de tamanho de fonte estarão disponíveis em uma próxima atualização.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -211,7 +207,7 @@ private fun SectionHeader(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
     ) {
         Icon(
             imageVector = icon,

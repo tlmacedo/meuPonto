@@ -62,6 +62,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/DEPENDENCIES"
         }
     }
 }
@@ -135,6 +137,13 @@ dependencies {
 
     // MLKit
     implementation(libs.play.services.mlkit.text.recognition)
+
+    // Google Drive API
+    implementation(libs.play.services.auth)
+    implementation(libs.google.api.client.android) {
+        exclude(group = "org.apache.httpcomponents")
+    }
+    implementation(libs.google.api.services.drive)
 
     // Testes
     testImplementation(libs.junit)

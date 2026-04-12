@@ -67,7 +67,7 @@ fun FechamentoCicloDialog(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = if (estadoCiclo.ciclo.saldoAtualMinutos >= 0) {
-                            MaterialTheme.colorScheme.primary
+                            MaterialTheme.colorScheme.secondary
                         } else {
                             MaterialTheme.colorScheme.error
                         }
@@ -98,7 +98,7 @@ fun FechamentoCicloDialog(
             Button(
                 onClick = onConfirmar,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.secondary
                 )
             ) {
                 Text("Fechar Ciclo")

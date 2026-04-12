@@ -50,14 +50,17 @@ import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.presentation.theme.Error
+import br.com.tlmacedo.meuponto.presentation.theme.Info
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaBlue
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaNavy
 import br.com.tlmacedo.meuponto.presentation.theme.Success
 import java.time.LocalDateTime
 import java.time.LocalTime
 import kotlin.math.abs
 
 // Cores do gradiente moderno
-private val GradientStart = Color(0xFF2D3748)
-private val GradientEnd = Color(0xFF1A202C)
+private val GradientStart = SidiaNavy
+private val GradientEnd = Color(0xFF1A1D21)
 
 /**
  * Card compacto de resumo do dia.
@@ -351,15 +354,15 @@ private fun ResumoItemPrincipal(
     modifier: Modifier = Modifier
 ) {
     val (titulo, icone, corIconeEspecial) = when (tipoDiaEspecial) {
-        TipoDiaEspecial.DESCANSO -> Triple("Descanso", Icons.Default.EventBusy, Color(0xFF42A5F5))
-        TipoDiaEspecial.FERIAS -> Triple("Férias", Icons.Default.BeachAccess, Color(0xFF00BCD4))
-        TipoDiaEspecial.ATESTADO -> Triple("Atestado", Icons.Default.LocalHospital, Color(0xFFEF5350))
-        TipoDiaEspecial.FOLGA -> Triple("Folga", Icons.Default.Home, Color(0xFF66BB6A))
-        TipoDiaEspecial.FALTA_JUSTIFICADA -> Triple("Falta Just.", Icons.Default.EventBusy, Color(0xFF42A5F5))
-        TipoDiaEspecial.FALTA_INJUSTIFICADA -> Triple("Falta", Icons.Default.EventBusy, Color(0xFFEF5350))
-        TipoDiaEspecial.FERIADO -> Triple("Feriado", Icons.Outlined.WorkOff, Color(0xFF4CAF50))
-        TipoDiaEspecial.PONTE -> Triple("Ponte", Icons.Outlined.WorkOff, Color(0xFF9C27B0))
-        TipoDiaEspecial.FACULTATIVO -> Triple("Facultativo", Icons.Outlined.WorkOff, Color(0xFFE91E63))
+        TipoDiaEspecial.DESCANSO -> Triple("Descanso", Icons.Default.EventBusy, Info)
+        TipoDiaEspecial.FERIAS -> Triple("Férias", Icons.Default.BeachAccess, SidiaBlue)
+        TipoDiaEspecial.ATESTADO -> Triple("Atestado", Icons.Default.LocalHospital, Error)
+        TipoDiaEspecial.FOLGA -> Triple("Folga", Icons.Default.Home, Success)
+        TipoDiaEspecial.FALTA_JUSTIFICADA -> Triple("Falta Just.", Icons.Default.EventBusy, Info)
+        TipoDiaEspecial.FALTA_INJUSTIFICADA -> Triple("Falta", Icons.Default.EventBusy, Error)
+        TipoDiaEspecial.FERIADO -> Triple("Feriado", Icons.Outlined.WorkOff, Success)
+        TipoDiaEspecial.PONTE -> Triple("Ponte", Icons.Outlined.WorkOff, Success)
+        TipoDiaEspecial.FACULTATIVO -> Triple("Facultativo", Icons.Outlined.WorkOff, Success)
         TipoDiaEspecial.NORMAL -> Triple("Trabalhado no dias", Icons.Default.AccessTime, null)
     }
 
@@ -635,15 +638,15 @@ private fun TipoDiaEspecial.getIcon(): ImageVector = when (this) {
 }
 
 private fun TipoDiaEspecial.getCor(): Color = when (this) {
-    TipoDiaEspecial.DESCANSO -> Color(0xFF42A5F5)
-    TipoDiaEspecial.FERIAS -> Color(0xFF00BCD4)
-    TipoDiaEspecial.ATESTADO -> Color(0xFFEF5350)
-    TipoDiaEspecial.FOLGA -> Color(0xFF66BB6A)
-    TipoDiaEspecial.FALTA_JUSTIFICADA -> Color(0xFF42A5F5)
-    TipoDiaEspecial.FALTA_INJUSTIFICADA -> Color(0xFFEF5350)
-    TipoDiaEspecial.FERIADO -> Color(0xFF4CAF50)
-    TipoDiaEspecial.PONTE -> Color(0xFF9C27B0)
-    TipoDiaEspecial.FACULTATIVO -> Color(0xFFE91E63)
+    TipoDiaEspecial.DESCANSO -> Info
+    TipoDiaEspecial.FERIAS -> SidiaBlue
+    TipoDiaEspecial.ATESTADO -> Error
+    TipoDiaEspecial.FOLGA -> Success
+    TipoDiaEspecial.FALTA_JUSTIFICADA -> Info
+    TipoDiaEspecial.FALTA_INJUSTIFICADA -> Error
+    TipoDiaEspecial.FERIADO -> Success
+    TipoDiaEspecial.PONTE -> Success
+    TipoDiaEspecial.FACULTATIVO -> Success
     TipoDiaEspecial.NORMAL -> Color.White
 }
 

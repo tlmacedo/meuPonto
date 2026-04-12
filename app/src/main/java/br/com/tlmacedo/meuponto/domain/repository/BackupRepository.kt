@@ -20,4 +20,44 @@ interface BackupRepository {
      * @return Result indicando sucesso ou erro
      */
     suspend fun importarBanco(inputStream: InputStream): Result<Unit>
+
+    /**
+     * Realiza um backup local em pasta padronizada.
+     */
+    suspend fun realizarBackupLocal(): Result<Unit>
+
+    /**
+     * Retorna o timestamp do último backup local encontrado.
+     */
+    suspend fun obterDataUltimoBackupLocal(): Long?
+
+    /**
+     * Retorna a lista de backups locais disponíveis.
+     */
+    suspend fun obterBackupsLocais(): List<LocalBackupFile>
+
+    /**
+     * Exclui um arquivo de backup local específico.
+     */
+    suspend fun excluirBackupLocal(nomeArquivo: String): Result<Unit>
+
+    /**
+     * Exclui todos os arquivos de backup local da pasta do emprego ativo.
+     */
+    suspend fun excluirTodosBackupsLocais(): Result<Unit>
+
+    /**
+     * Restaura o banco de dados a partir de um arquivo de backup local específico.
+     */
+    suspend fun restaurarBackupLocal(nomeArquivo: String): Result<Unit>
 }
+
+/**
+ * Representa um arquivo de backup local.
+ */
+data class LocalBackupFile(
+    val nome: String,
+    val caminho: String,
+    val tamanho: Long,
+    val dataCriacao: Long
+)

@@ -25,12 +25,18 @@ data class GlobalSettingsUiState(
     val mensagemErro: String? = null
 ) {
     val ultimoBackupFormatado: String
-        get() = preferencias.ultimoBackup?.let { timestamp ->
-            val instant = Instant.ofEpochMilli(timestamp)
-            val dateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime()
-            val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-            dateTime.format(formatter)
-        } ?: "Nunca realizado"
+        get() {
+            val local = preferencias.ultimoBackupLocal
+            val nuvem = preferencias.ultimoBackupNuvem
+            val maisRecente = maxOf(local, nuvem)
+            
+            return maisRecente.takeIf { it > 0 }?.let { timestamp ->
+                val instant = Instant.ofEpochMilli(timestamp)
+                val dateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime()
+                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                dateTime.format(formatter)
+            } ?: "Nunca realizado"
+        }
 }
 
 /**

@@ -4,27 +4,38 @@ package br.com.tlmacedo.meuponto.presentation.theme
 import androidx.compose.ui.graphics.Color
 
 // ============================================================================
-// Cores Primárias - Azul Moderno
+// Cores Padrão (Default Material)
 // ============================================================================
-val Primary = Color(0xFF2563EB)
-val PrimaryVariant = Color(0xFF1D4ED8)
-val PrimaryLight = Color(0xFF60A5FA)
-val OnPrimary = Color.White
+val DefaultPrimary = Color(0xFF6750A4)
+val DefaultSecondary = Color(0xFF625B71)
+val DefaultTertiary = Color(0xFF7D5260)
 
 // ============================================================================
-// Cores Secundárias - Slate/Cinza
+// Cores Primárias - Tema Sidia (Baseadas na Logo)
 // ============================================================================
-val Secondary = Color(0xFF64748B)
-val SecondaryVariant = Color(0xFF475569)
-val OnSecondary = Color.White
+val SidiaBlue = Color(0xFF007BFF)      // Azul Principal (Primary Blue)
+val SidiaGreen = Color(0xFF28A745)     // Verde Destaque (Accent Green)
+val SidiaNavy = Color(0xFF343A40)      // Cinza Escuro (Dark Gray) - Base Colors
+val SidiaMediumGray = Color(0xFF6C757D) // Cinza Médio (Medium Gray)
+val SidiaLightGray = Color(0xFFF8F9FA) // Cinza Claro (Light Gray)
+
+// Cores de Apoio Sidia
+val SidiaDarkBlue = Color(0xFF0056B3)
+val SidiaSoftGreen = Color(0xFFD4EDDA)
+val SidiaDarkGreen = Color(0xFF155724)
+
+val Primary = SidiaBlue
+val OnPrimary = Color.White
+val Secondary = SidiaGreen
+val OnSecondary = Color.Black // Verde neon pede texto preto para contraste
 
 // ============================================================================
 // Cores de Superfície
 // ============================================================================
 val Surface = Color(0xFFFAFAFA)
-val SurfaceVariant = Color(0xFFF1F5F9)
-val OnSurface = Color(0xFF1E293B)
-val OnSurfaceVariant = Color(0xFF64748B)
+val SurfaceVariant = Color(0xFFE6F0FD) // Azul muito claro Sidia para variantes
+val OnSurface = Color(0xFF001C46)      // Usar Navy para textos em superfície
+val OnSurfaceVariant = Color(0xFF0056B3) // Usar Sidia Blue para variantes de texto
 
 // ============================================================================
 // Cores de Background
@@ -35,16 +46,16 @@ val OnBackground = Color(0xFF0F172A)
 // ============================================================================
 // Cores Semânticas - Status
 // ============================================================================
-val Success = Color(0xFF10B981)
-val SuccessLight = Color(0xFFD1FAE5)
+val Success = Color(0xFF28A745)
+val SuccessLight = Color(0xFFD4EDDA)
 val OnSuccess = Color.White
 
-val Warning = Color(0xFFF59E0B)
-val WarningLight = Color(0xFFFEF3C7)
-val OnWarning = Color.White
+val Warning = Color(0xFFFFC107)
+val WarningLight = Color(0xFFFFF3CD)
+val OnWarning = Color(0xFF856404)
 
-val Error = Color(0xFFEF4444)
-val ErrorLight = Color(0xFFFEE2E2)
+val Error = Color(0xFFDC3545)
+val ErrorLight = Color(0xFFF8D7DA)
 val OnError = Color.White
 
 val Info = Color(0xFF3B82F6)
@@ -60,16 +71,16 @@ val SaidaColor = Color(0xFFEF4444)        // Vermelho para saída
 val SaidaBg = Color(0xFFFEE2E2)           // Fundo vermelho claro
 
 // ============================================================================
-// Cores do Tema Escuro - MELHORADAS PARA MAIOR CONTRASTE
+// Cores do Tema Escuro - Sidia Dark
 // ============================================================================
-val DarkPrimary = Color(0xFF60A5FA)
-val DarkPrimaryVariant = Color(0xFF3B82F6)
-val DarkSurface = Color(0xFF1E293B)
-val DarkSurfaceVariant = Color(0xFF334155)
-val DarkBackground = Color(0xFF0F172A)
-val DarkOnSurface = Color(0xFFF1F5F9)
-val DarkOnSurfaceVariant = Color(0xFFCBD5E1)  // Aumentado contraste (era 94A3B8)
-val DarkOnBackground = Color(0xFFF8FAFC)
+val DarkPrimary = Color(0xFF4D88FF)    // Azul Sidia suavizado para Dark Mode
+val DarkSecondary = Color(0xFF5DF25D)  // Verde Sidia vibrante para Dark Mode
+val DarkSurface = Color(0xFF0F172A)    // Fundo Slate escuro
+val DarkSurfaceVariant = Color(0xFF1E293B)
+val DarkBackground = Color(0xFF020617)
+val DarkOnSurface = Color(0xFFF8FAFC)
+val DarkOnSurfaceVariant = Color(0xFF94A3B8)
+val DarkOnBackground = Color(0xFFF1F5F9)
 
 // Cores de Ponto - Tema Escuro (mais vibrantes)
 val DarkEntradaColor = Color(0xFF34D399)   // Verde mais vibrante
