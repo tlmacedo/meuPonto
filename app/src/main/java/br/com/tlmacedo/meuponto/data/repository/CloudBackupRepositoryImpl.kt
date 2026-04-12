@@ -131,18 +131,19 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 // Adicionar Imagens de Comprovantes
                 val fotos = database.fotoComprovanteDao().buscarPorEmpregoEPeriodo(
                     empregoId,
-                    LocalDate.MIN,
+                    LocalDate.MIN.plusYears(1), // Evita problemas com ano 0 em alguns sistemas
                     LocalDate.MAX
                 )
-                val baseDir = JavaFile(context.filesDir, "comprovantes")
                 
                 fotos.forEach { foto ->
-                    val fotoFile = JavaFile(baseDir, foto.fotoPath)
+                    val fotoFile = JavaFile(context.filesDir, foto.fotoPath)
                     if (fotoFile.exists()) {
                         val fotoEntry = ZipEntry("fotos/${foto.fotoPath}")
                         zos.putNextEntry(fotoEntry)
                         FileInputStream(fotoFile).use { it.copyTo(zos) }
                         zos.closeEntry()
+                    } else {
+                        Timber.w("Arquivo de foto não encontrado para backup: ${foto.fotoPath}")
                     }
                 }
             }
