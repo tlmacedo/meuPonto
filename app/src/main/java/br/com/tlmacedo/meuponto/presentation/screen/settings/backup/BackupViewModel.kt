@@ -322,8 +322,9 @@ class BackupViewModel @Inject constructor(
 
                 val backupsLocais = backupRepository.obterBackupsLocais()
 
-                // Estimativa simplificada de tamanho incluindo fotos
-                val tamanhoBanco = (totalPontos * 200L) + (totalEmpregos * 500L) + (totalFeriados * 100L)
+                // Cálculo real do tamanho dos arquivos (Banco + Fotos)
+                val dbFile = context.getDatabasePath(MeuPontoDatabase.DATABASE_NAME)
+                val tamanhoBanco = if (dbFile.exists()) dbFile.length() else 0L
                 val tamanhoFotos = database.fotoComprovanteDao().calcularTamanhoTotal() ?: 0L
                 val tamanhoEstimado = formatarTamanho(tamanhoBanco + tamanhoFotos)
 
