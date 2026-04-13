@@ -80,7 +80,8 @@ fun FotoSourceDialog(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     SourceOption(
-                        icon = Icons.Default.DocumentScanner,
+//                        icon = Icons.Default.DocumentScanner,
+                        icon = Icons.Default.CameraAlt,
                         label = "Câmera",
                         onClick = onCustomCameraSelected
                     )

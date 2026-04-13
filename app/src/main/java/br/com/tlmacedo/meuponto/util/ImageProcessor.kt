@@ -52,18 +52,30 @@ object ImageProcessor {
     }
 
     /**
-     * Aplica processamento otimizado para OCR: Corta conforme o overlay,
+     * Aplica processamento otimizado para OCR: Corta conforme o overlay (com margem de 50%),
      * converte para tons de cinza e ajusta o contraste.
      *
-     * Atualizado para o layout Portrait (Recibo Vertical):
-     * left: (1.0 - 0.85) / 2 = 0.075
-     * top: (1.0 - 1.4 * aspect) * 0.35 -> Ajustado para ~0.15 fixo
-     * width: 0.85
-     * height: 0.7 (ajustado para o novo overlay vertical 1.4x)
+     * Atualizado para o layout "Cartão de Crédito" (Overlay curto 0.63x):
      */
     fun processForOcr(src: Bitmap, contrast: Float = 1.6f): Bitmap {
-        // Coordenadas aproximadas para o novo ReceiptOverlay vertical (85% width, 1.4x aspect height)
-        val cropped = crop(src, 0.075f, 0.15f, 0.85f, 0.7f)
+        val relWidth = 0.85f
+        val bitmapRatio = src.width.toFloat() / src.height.toFloat()
+        val relHeight = 0.60f * relWidth * bitmapRatio
+        
+        val relLeft = (1f - relWidth) / 2f
+        val relTop = (1f - relHeight) * 0.30f
+        
+        // Margem de 50% sobre as dimensões da máscara para garantir captura do contexto
+        val marginFactor = 0.95f
+        val marginW = relWidth * marginFactor
+        val marginH = relHeight * marginFactor
+
+        val cropLeft = (relLeft - marginW).coerceAtLeast(0f)
+        val cropTop = (relTop - marginH).coerceAtLeast(0f)
+        val cropWidth = (relWidth + 2 * marginW).coerceAtMost(1f - cropLeft)
+        val cropHeight = (relHeight + 2 * marginH).coerceAtMost(1f - cropTop)
+
+        val cropped = crop(src, cropLeft, cropTop, cropWidth, cropHeight)
         val grayscale = toGrayscale(cropped)
         val final = adjustContrast(grayscale, contrast)
         

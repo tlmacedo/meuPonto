@@ -343,9 +343,9 @@ fun ReceiptOverlay(isDetected: Boolean) {
         val width = size.width
         val height = size.height
         
-        // Retângulo central (Proporção vertical para recibos)
+        // Retângulo central (Proporção de Cartão de Crédito)
         val rectWidth = width * 0.85f
-        val rectHeight = rectWidth * 1.4f 
+        val rectHeight = rectWidth * 0.63f 
         val left = (width - rectWidth) / 2
         val top = (height - rectHeight) * 0.35f // Levemente acima do centro
         
@@ -484,17 +484,20 @@ private fun takePhoto(
                         // Agora que o bitmap está na orientação correta, usamos os mesmos parâmetros da UI
                         val relWidth = 0.85f
                         val bitmapRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
-                        val relHeight = relWidth * 1.4f * bitmapRatio
+                        val relHeight = 0.63f * relWidth * bitmapRatio
                         
                         val relLeft = (1f - relWidth) / 2f
                         val relTop = (1f - relHeight) * 0.35f
                         
-                        // Adicionamos uma pequena margem de segurança (2%) para não perder nada nas bordas
-                        val margin = 0.02f
-                        val cropLeft = (relLeft - margin).coerceAtLeast(0f)
-                        val cropTop = (relTop - margin).coerceAtLeast(0f)
-                        val cropWidth = (relWidth + margin * 2).coerceAtMost(1f - cropLeft)
-                        val cropHeight = (relHeight + margin * 2).coerceAtMost(1f - cropTop)
+                        // Margem de segurança de 50% sobre as dimensões da máscara
+                        val marginFactor = 0.90f
+                        val marginW = relWidth * marginFactor
+                        val marginH = relHeight * marginFactor
+
+                        val cropLeft = (relLeft - marginW).coerceAtLeast(0f)
+                        val cropTop = (relTop - marginH).coerceAtLeast(0f)
+                        val cropWidth = (relWidth + 2 * marginW).coerceAtMost(1f - cropLeft)
+                        val cropHeight = (relHeight + 2 * marginH).coerceAtMost(1f - cropTop)
 
                         // 3. Cortar o bitmap original (mais eficiente antes do processamento)
                         val cropped = ImageProcessor.crop(bitmap, cropLeft, cropTop, cropWidth, cropHeight)
