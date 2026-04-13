@@ -34,6 +34,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.lixeira.LixeiraScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsDetailScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracoes.OpcoesRegistroScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.CargosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.EditarCargoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
@@ -218,11 +219,12 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToAuditoria = {
                 navController.navigate(MeuPontoDestinations.AUDITORIA)
+            },
+            onNavigateToOpcoesRegistro = { empregoId ->
+                navController.navigate(MeuPontoDestinations.opcoesRegistro(empregoId))
             }
         )
     }
-
-    // ===== CONFIGURAÇÕES DO EMPREGO =====
 
     composable(
         route = MeuPontoDestinations.EMPREGO_SETTINGS,
@@ -248,7 +250,25 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToAjustesSaldo = { id ->
                 navController.navigate(MeuPontoDestinations.ajustesSaldo(id))
+            },
+            onNavigateToOpcoesRegistro = { id ->
+                navController.navigate(MeuPontoDestinations.opcoesRegistro(id))
             }
+        )
+    }
+
+    // ===== OPÇÕES DE REGISTRO =====
+
+    composable(
+        route = MeuPontoDestinations.OPCOES_REGISTRO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        OpcoesRegistroScreen(
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 

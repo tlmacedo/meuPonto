@@ -4,7 +4,6 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.AtualizarEmpregoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.AtualizarEmpregoUseCase.Parametros
@@ -20,16 +19,11 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.time.LocalDate
 import javax.inject.Inject
 
 /**
  * ViewModel da tela de edição/criação de emprego.
- *
- * @author Thiago
- * @since 2.0.0
- * @updated 11.0.0 - Refatorado para usar Criar/AtualizarEmpregoUseCase com suporte total a regras de negócio.
  */
 @HiltViewModel
 class EditarEmpregoViewModel @Inject constructor(
@@ -58,53 +52,55 @@ class EditarEmpregoViewModel @Inject constructor(
 
     fun onAction(action: EditarEmpregoAction) {
         when (action) {
+            // Dados básicos
             is EditarEmpregoAction.AlterarNome -> alterarNome(action.nome)
             is EditarEmpregoAction.AlterarApelido -> _uiState.update { it.copy(apelido = action.apelido) }
             is EditarEmpregoAction.AlterarEndereco -> _uiState.update { it.copy(endereco = action.endereco) }
+            is EditarEmpregoAction.AlterarDescricao -> _uiState.update { it.copy(descricao = action.descricao) }
             is EditarEmpregoAction.AlterarDataInicioTrabalho -> alterarDataInicioTrabalho(action.data)
             is EditarEmpregoAction.AlterarDataTerminoTrabalho -> _uiState.update { it.copy(dataTerminoTrabalho = action.data, showTerminoTrabalhoPicker = false) }
             is EditarEmpregoAction.AlterarLogo -> _uiState.update { it.copy(logo = action.uri) }
 
-            is EditarEmpregoAction.AlterarHabilitarNsr -> alterarHabilitarNsr(action.habilitado)
-            is EditarEmpregoAction.AlterarTipoNsr -> alterarTipoNsr(action.tipo)
-            is EditarEmpregoAction.AlterarHabilitarLocalizacao -> alterarHabilitarLocalizacao(action.habilitado)
-            is EditarEmpregoAction.AlterarLocalizacaoAutomatica -> alterarLocalizacaoAutomatica(action.automatica)
-            is EditarEmpregoAction.AlterarHabilitarFotoComprovante -> alterarHabilitarFotoComprovante(action.habilitado)
-            is EditarEmpregoAction.AlterarFotoObrigatoria -> alterarFotoObrigatoria(action.obrigatoria)
+            // RH e Banco de Horas
+            is EditarEmpregoAction.AlterarDiaInicioFechamentoRH -> _uiState.update { it.copy(diaInicioFechamentoRH = action.dia) }
+            is EditarEmpregoAction.AlterarBancoHorasHabilitado -> _uiState.update { it.copy(bancoHorasHabilitado = action.habilitado) }
+            is EditarEmpregoAction.AlterarBancoHorasCicloMeses -> _uiState.update { it.copy(bancoHorasCicloMeses = action.meses) }
+            is EditarEmpregoAction.AlterarBancoHorasDataInicioCiclo -> _uiState.update { it.copy(bancoHorasDataInicioCiclo = action.data, showInicioCicloBHPicker = false) }
+            is EditarEmpregoAction.AlterarBancoHorasZerarAoFinalCiclo -> _uiState.update { it.copy(bancoHorasZerarAoFinalCiclo = action.zerar) }
+            is EditarEmpregoAction.AlterarExigeJustificativaInconsistencia -> _uiState.update { it.copy(exigeJustificativaInconsistencia = action.exige) }
 
+            // Opções de Registro
+            is EditarEmpregoAction.AlterarHabilitarNsr -> _uiState.update { it.copy(habilitarNsr = action.habilitar) }
+            is EditarEmpregoAction.AlterarTipoNsr -> _uiState.update { it.copy(tipoNsr = action.tipo) }
+            is EditarEmpregoAction.AlterarHabilitarLocalizacao -> _uiState.update { it.copy(habilitarLocalizacao = action.habilitar) }
+            is EditarEmpregoAction.AlterarLocalizacaoAutomatica -> _uiState.update { it.copy(localizacaoAutomatica = action.habilitar) }
+            is EditarEmpregoAction.AlterarExibirLocalizacaoDetalhes -> _uiState.update { it.copy(exibirLocalizacaoDetalhes = action.exibir) }
+            is EditarEmpregoAction.AlterarFotoHabilitada -> _uiState.update { it.copy(fotoHabilitada = action.habilitar) }
+            is EditarEmpregoAction.AlterarFotoObrigatoria -> _uiState.update { it.copy(fotoObrigatoria = action.obrigatoria) }
+            is EditarEmpregoAction.AlterarFotoValidarComprovante -> _uiState.update { it.copy(fotoValidarComprovante = action.validar) }
+            is EditarEmpregoAction.AlterarComentarioHabilitado -> _uiState.update { it.copy(comentarioHabilitado = action.habilitar) }
+            is EditarEmpregoAction.AlterarComentarioObrigatorioHoraExtra -> _uiState.update { it.copy(comentarioObrigatorioHoraExtra = action.obrigatorio) }
+            is EditarEmpregoAction.AlterarExibirDuracaoTurno -> _uiState.update { it.copy(exibirDuracaoTurno = action.exibir) }
+            is EditarEmpregoAction.AlterarExibirDuracaoIntervalo -> _uiState.update { it.copy(exibirDuracaoIntervalo = action.exibir) }
+
+            // Cargo Inicial
             is EditarEmpregoAction.AlterarFuncaoInicial -> _uiState.update { it.copy(funcaoInicial = action.funcao) }
             is EditarEmpregoAction.AlterarSalarioInicial -> _uiState.update { it.copy(salarioInicial = action.valor) }
 
+            // UI
             is EditarEmpregoAction.ToggleSecao -> toggleSecao(action.secao)
             is EditarEmpregoAction.Salvar -> salvar()
             is EditarEmpregoAction.SalvarDadosBasicos -> salvarDadosBasicos()
-            is EditarEmpregoAction.SalvarConfiguracoesGerais -> salvarConfiguracoesGerais()
+            is EditarEmpregoAction.SalvarRHBank -> salvarRHBank()
+            is EditarEmpregoAction.SalvarOpcoesRegistro -> salvarOpcoesRegistro()
             is EditarEmpregoAction.Cancelar -> cancelar()
             is EditarEmpregoAction.LimparErro -> limparErro()
-
-            // Ignorar ações migradas para Versão na tela de Emprego
-            is EditarEmpregoAction.AlterarCargaHorariaDiaria,
-            is EditarEmpregoAction.AlterarAcrescimoDiasPontes,
-            is EditarEmpregoAction.AlterarJornadaMaximaDiaria,
-            is EditarEmpregoAction.AlterarTurnoMaximo,
-            is EditarEmpregoAction.AlterarIntervaloMinimo,
-            is EditarEmpregoAction.AlterarIntervaloInterjornada,
-            is EditarEmpregoAction.AlterarToleranciaIntervaloMais,
-            is EditarEmpregoAction.AlterarExigeJustificativa,
-            is EditarEmpregoAction.AlterarPrimeiroDiaSemana,
-            is EditarEmpregoAction.AlterarDiaInicioFechamentoRH,
-            is EditarEmpregoAction.AlterarZerarSaldoPeriodoRH,
-            is EditarEmpregoAction.AlterarBancoHorasHabilitado,
-            is EditarEmpregoAction.AlterarPeriodoBancoHoras,
-            is EditarEmpregoAction.AlterarDataInicioCicloBanco,
-            is EditarEmpregoAction.AlterarZerarBancoAntesPeriodo -> {
-                Timber.w("Ação ${action::class.simpleName} migrada para EditarVersaoViewModel e não deve ser usada aqui.")
-            }
         }
     }
 
     fun setShowInicioTrabalhoPicker(show: Boolean) = _uiState.update { it.copy(showInicioTrabalhoPicker = show) }
     fun setShowTerminoTrabalhoPicker(show: Boolean) = _uiState.update { it.copy(showTerminoTrabalhoPicker = show) }
+    fun setShowInicioCicloBHPicker(show: Boolean) = _uiState.update { it.copy(showInicioCicloBHPicker = show) }
 
     private fun carregarEmprego(id: Long) {
         viewModelScope.launch {
@@ -122,6 +118,7 @@ class EditarEmpregoViewModel @Inject constructor(
                             nome = emprego.nome,
                             apelido = emprego.apelido ?: "",
                             endereco = emprego.endereco ?: "",
+                            descricao = emprego.descricao ?: "",
                             dataInicioTrabalho = emprego.dataInicioTrabalho,
                             dataTerminoTrabalho = emprego.dataTerminoTrabalho,
                             logo = emprego.logo,
@@ -129,23 +126,50 @@ class EditarEmpregoViewModel @Inject constructor(
                             originalNome = emprego.nome,
                             originalApelido = emprego.apelido ?: "",
                             originalEndereco = emprego.endereco ?: "",
+                            originalDescricao = emprego.descricao ?: "",
                             originalDataInicioTrabalho = emprego.dataInicioTrabalho,
                             originalDataTerminoTrabalho = emprego.dataTerminoTrabalho,
                             originalLogo = emprego.logo,
-                            
+
+                            diaInicioFechamentoRH = config.diaInicioFechamentoRH,
+                            bancoHorasHabilitado = config.bancoHorasHabilitado,
+                            bancoHorasCicloMeses = config.bancoHorasCicloMeses,
+                            bancoHorasDataInicioCiclo = config.bancoHorasDataInicioCiclo,
+                            bancoHorasZerarAoFinalCiclo = config.bancoHorasZerarAoFinalCiclo,
+                            exigeJustificativaInconsistencia = config.exigeJustificativaInconsistencia,
+
+                            originalDiaInicioFechamentoRH = config.diaInicioFechamentoRH,
+                            originalBancoHorasHabilitado = config.bancoHorasHabilitado,
+                            originalBancoHorasCicloMeses = config.bancoHorasCicloMeses,
+                            originalBancoHorasDataInicioCiclo = config.bancoHorasDataInicioCiclo,
+                            originalBancoHorasZerarAoFinalCiclo = config.bancoHorasZerarAoFinalCiclo,
+                            originalExigeJustificativaInconsistencia = config.exigeJustificativaInconsistencia,
+
                             habilitarNsr = config.habilitarNsr,
                             tipoNsr = config.tipoNsr,
                             habilitarLocalizacao = config.habilitarLocalizacao,
                             localizacaoAutomatica = config.localizacaoAutomatica,
-                            habilitarFotoComprovante = config.fotoHabilitada,
+                            exibirLocalizacaoDetalhes = config.exibirLocalizacaoDetalhes,
+                            fotoHabilitada = config.fotoHabilitada,
                             fotoObrigatoria = config.fotoObrigatoria,
+                            fotoValidarComprovante = config.fotoValidarComprovante,
+                            comentarioHabilitado = config.comentarioHabilitado,
+                            comentarioObrigatorioHoraExtra = config.comentarioObrigatorioHoraExtra,
+                            exibirDuracaoTurno = config.exibirDuracaoTurno,
+                            exibirDuracaoIntervalo = config.exibirDuracaoIntervalo,
 
                             originalHabilitarNsr = config.habilitarNsr,
                             originalTipoNsr = config.tipoNsr,
                             originalHabilitarLocalizacao = config.habilitarLocalizacao,
                             originalLocalizacaoAutomatica = config.localizacaoAutomatica,
-                            originalHabilitarFotoComprovante = config.fotoHabilitada,
+                            originalExibirLocalizacaoDetalhes = config.exibirLocalizacaoDetalhes,
+                            originalFotoHabilitada = config.fotoHabilitada,
                             originalFotoObrigatoria = config.fotoObrigatoria,
+                            originalFotoValidarComprovante = config.fotoValidarComprovante,
+                            originalComentarioHabilitado = config.comentarioHabilitado,
+                            originalComentarioObrigatorioHoraExtra = config.comentarioObrigatorioHoraExtra,
+                            originalExibirDuracaoTurno = config.exibirDuracaoTurno,
+                            originalExibirDuracaoIntervalo = config.exibirDuracaoIntervalo,
 
                             isLoading = false
                         )
@@ -174,12 +198,6 @@ class EditarEmpregoViewModel @Inject constructor(
     }
 
     private fun alterarDataInicioTrabalho(data: LocalDate?) = _uiState.update { it.copy(dataInicioTrabalho = data, showInicioTrabalhoPicker = false) }
-    private fun alterarHabilitarNsr(habilitado: Boolean) = _uiState.update { it.copy(habilitarNsr = habilitado) }
-    private fun alterarTipoNsr(tipo: TipoNsr) = _uiState.update { it.copy(tipoNsr = tipo) }
-    private fun alterarHabilitarLocalizacao(habilitado: Boolean) = _uiState.update { it.copy(habilitarLocalizacao = habilitado) }
-    private fun alterarLocalizacaoAutomatica(automatica: Boolean) = _uiState.update { it.copy(localizacaoAutomatica = automatica) }
-    private fun alterarHabilitarFotoComprovante(habilitado: Boolean) = _uiState.update { it.copy(habilitarFotoComprovante = habilitado) }
-    private fun alterarFotoObrigatoria(obrigatoria: Boolean) = _uiState.update { it.copy(fotoObrigatoria = obrigatoria) }
     private fun toggleSecao(secao: SecaoFormulario) = _uiState.update { state -> state.copy(secaoExpandida = if (state.secaoExpandida == secao) null else secao) }
 
     private fun salvarDadosBasicos() {
@@ -194,21 +212,37 @@ class EditarEmpregoViewModel @Inject constructor(
                 nome = state.nome,
                 apelido = state.apelido,
                 endereco = state.endereco,
+                descricao = state.descricao,
                 dataInicioTrabalho = state.dataInicioTrabalho ?: LocalDate.now(),
                 dataTerminoTrabalho = state.dataTerminoTrabalho,
                 logo = state.logo,
+
                 habilitarNsr = state.originalHabilitarNsr,
                 tipoNsr = state.originalTipoNsr,
                 habilitarLocalizacao = state.originalHabilitarLocalizacao,
                 localizacaoAutomatica = state.originalLocalizacaoAutomatica,
-                fotoHabilitada = state.originalHabilitarFotoComprovante,
-                fotoObrigatoria = state.originalFotoObrigatoria
+                exibirLocalizacaoDetalhes = state.originalExibirLocalizacaoDetalhes,
+                fotoHabilitada = state.originalFotoHabilitada,
+                fotoObrigatoria = state.originalFotoObrigatoria,
+                fotoValidarComprovante = state.originalFotoValidarComprovante,
+
+                diaInicioFechamentoRH = state.originalDiaInicioFechamentoRH,
+                bancoHorasHabilitado = state.originalBancoHorasHabilitado,
+                bancoHorasCicloMeses = state.originalBancoHorasCicloMeses,
+                bancoHorasDataInicioCiclo = state.originalBancoHorasDataInicioCiclo,
+                bancoHorasZerarAoFinalCiclo = state.originalBancoHorasZerarAoFinalCiclo,
+                exigeJustificativaInconsistencia = state.originalExigeJustificativaInconsistencia,
+
+                comentarioHabilitado = state.originalComentarioHabilitado,
+                comentarioObrigatorioHoraExtra = state.originalComentarioObrigatorioHoraExtra,
+                exibirDuracaoTurno = state.originalExibirDuracaoTurno,
+                exibirDuracaoIntervalo = state.originalExibirDuracaoIntervalo
             ),
             sucessoMsg = "Dados básicos atualizados"
         )
     }
 
-    private fun salvarConfiguracoesGerais() {
+    private fun salvarRHBank() {
         val state = _uiState.value
         executarAtualizacaoGranular(
             Parametros(
@@ -216,17 +250,71 @@ class EditarEmpregoViewModel @Inject constructor(
                 nome = state.originalNome,
                 apelido = state.originalApelido,
                 endereco = state.originalEndereco,
+                descricao = state.originalDescricao,
                 dataInicioTrabalho = state.originalDataInicioTrabalho ?: LocalDate.now(),
                 dataTerminoTrabalho = state.originalDataTerminoTrabalho,
                 logo = state.originalLogo,
+
+                habilitarNsr = state.originalHabilitarNsr,
+                tipoNsr = state.originalTipoNsr,
+                habilitarLocalizacao = state.originalHabilitarLocalizacao,
+                localizacaoAutomatica = state.originalLocalizacaoAutomatica,
+                exibirLocalizacaoDetalhes = state.originalExibirLocalizacaoDetalhes,
+                fotoHabilitada = state.originalFotoHabilitada,
+                fotoObrigatoria = state.originalFotoObrigatoria,
+                fotoValidarComprovante = state.originalFotoValidarComprovante,
+
+                diaInicioFechamentoRH = state.diaInicioFechamentoRH,
+                bancoHorasHabilitado = state.bancoHorasHabilitado,
+                bancoHorasCicloMeses = state.bancoHorasCicloMeses,
+                bancoHorasDataInicioCiclo = state.bancoHorasDataInicioCiclo,
+                bancoHorasZerarAoFinalCiclo = state.bancoHorasZerarAoFinalCiclo,
+                exigeJustificativaInconsistencia = state.exigeJustificativaInconsistencia,
+
+                comentarioHabilitado = state.originalComentarioHabilitado,
+                comentarioObrigatorioHoraExtra = state.originalComentarioObrigatorioHoraExtra,
+                exibirDuracaoTurno = state.originalExibirDuracaoTurno,
+                exibirDuracaoIntervalo = state.originalExibirDuracaoIntervalo
+            ),
+            sucessoMsg = "Configurações de RH e Banco atualizadas"
+        )
+    }
+
+    private fun salvarOpcoesRegistro() {
+        val state = _uiState.value
+        executarAtualizacaoGranular(
+            Parametros(
+                empregoId = state.empregoId!!,
+                nome = state.originalNome,
+                apelido = state.originalApelido,
+                endereco = state.originalEndereco,
+                descricao = state.originalDescricao,
+                dataInicioTrabalho = state.originalDataInicioTrabalho ?: LocalDate.now(),
+                dataTerminoTrabalho = state.originalDataTerminoTrabalho,
+                logo = state.originalLogo,
+
                 habilitarNsr = state.habilitarNsr,
                 tipoNsr = state.tipoNsr,
                 habilitarLocalizacao = state.habilitarLocalizacao,
                 localizacaoAutomatica = state.localizacaoAutomatica,
-                fotoHabilitada = state.habilitarFotoComprovante,
-                fotoObrigatoria = state.fotoObrigatoria
+                exibirLocalizacaoDetalhes = state.exibirLocalizacaoDetalhes,
+                fotoHabilitada = state.fotoHabilitada,
+                fotoObrigatoria = state.fotoObrigatoria,
+                fotoValidarComprovante = state.fotoValidarComprovante,
+
+                diaInicioFechamentoRH = state.originalDiaInicioFechamentoRH,
+                bancoHorasHabilitado = state.originalBancoHorasHabilitado,
+                bancoHorasCicloMeses = state.originalBancoHorasCicloMeses,
+                bancoHorasDataInicioCiclo = state.originalBancoHorasDataInicioCiclo,
+                bancoHorasZerarAoFinalCiclo = state.originalBancoHorasZerarAoFinalCiclo,
+                exigeJustificativaInconsistencia = state.originalExigeJustificativaInconsistencia,
+
+                comentarioHabilitado = state.comentarioHabilitado,
+                comentarioObrigatorioHoraExtra = state.comentarioObrigatorioHoraExtra,
+                exibirDuracaoTurno = state.exibirDuracaoTurno,
+                exibirDuracaoIntervalo = state.exibirDuracaoIntervalo
             ),
-            sucessoMsg = "Configurações gerais atualizadas"
+            sucessoMsg = "Opções de registro atualizadas"
         )
     }
 
@@ -236,7 +324,7 @@ class EditarEmpregoViewModel @Inject constructor(
             try {
                 when (val resultado = atualizarEmpregoUseCase(params)) {
                     is AtualizarEmpregoUseCase.Resultado.Sucesso -> {
-                        _eventos.emit(EditarEmpregoEvent.MostrarErro(sucessoMsg)) // Usando erro temporário para snackbar sem fechar
+                        _eventos.emit(EditarEmpregoEvent.MostrarErro(sucessoMsg))
                         carregarEmprego(params.empregoId)
                     }
                     is AtualizarEmpregoUseCase.Resultado.NaoEncontrado -> _eventos.emit(EditarEmpregoEvent.MostrarErro("Emprego não encontrado"))
@@ -276,12 +364,10 @@ class EditarEmpregoViewModel @Inject constructor(
                         tipoNsr = state.tipoNsr,
                         habilitarLocalizacao = state.habilitarLocalizacao,
                         localizacaoAutomatica = state.localizacaoAutomatica,
-                        fotoHabilitada = state.habilitarFotoComprovante,
+                        fotoHabilitada = state.fotoHabilitada,
                         fotoObrigatoria = state.fotoObrigatoria
-                        // Outros parâmetros de CriarEmpregoUseCase agora têm defaults
-                        // refletindo a configuração inicial padrão para a Versao 1.
                     )
-                    
+
                     when (val resultado = criarEmpregoUseCase(params)) {
                         is CriarEmpregoUseCase.Resultado.Sucesso -> {
                             _eventos.emit(EditarEmpregoEvent.SalvoComSucesso("Emprego criado com sucesso"))
@@ -294,20 +380,36 @@ class EditarEmpregoViewModel @Inject constructor(
                         }
                     }
                 } else {
-                    val params = AtualizarEmpregoUseCase.Parametros(
+                    val params = Parametros(
                         empregoId = state.empregoId!!,
                         nome = state.nome,
                         apelido = state.apelido,
                         endereco = state.endereco,
+                        descricao = state.descricao,
                         dataInicioTrabalho = state.dataInicioTrabalho ?: LocalDate.now(),
                         dataTerminoTrabalho = state.dataTerminoTrabalho,
                         logo = state.logo,
+
                         habilitarNsr = state.habilitarNsr,
                         tipoNsr = state.tipoNsr,
                         habilitarLocalizacao = state.habilitarLocalizacao,
                         localizacaoAutomatica = state.localizacaoAutomatica,
-                        fotoHabilitada = state.habilitarFotoComprovante,
-                        fotoObrigatoria = state.fotoObrigatoria
+                        exibirLocalizacaoDetalhes = state.exibirLocalizacaoDetalhes,
+                        fotoHabilitada = state.fotoHabilitada,
+                        fotoObrigatoria = state.fotoObrigatoria,
+                        fotoValidarComprovante = state.fotoValidarComprovante,
+
+                        diaInicioFechamentoRH = state.diaInicioFechamentoRH,
+                        bancoHorasHabilitado = state.bancoHorasHabilitado,
+                        bancoHorasCicloMeses = state.bancoHorasCicloMeses,
+                        bancoHorasDataInicioCiclo = state.bancoHorasDataInicioCiclo,
+                        bancoHorasZerarAoFinalCiclo = state.bancoHorasZerarAoFinalCiclo,
+                        exigeJustificativaInconsistencia = state.exigeJustificativaInconsistencia,
+
+                        comentarioHabilitado = state.comentarioHabilitado,
+                        comentarioObrigatorioHoraExtra = state.comentarioObrigatorioHoraExtra,
+                        exibirDuracaoTurno = state.exibirDuracaoTurno,
+                        exibirDuracaoIntervalo = state.exibirDuracaoIntervalo
                     )
 
                     when (val resultado = atualizarEmpregoUseCase(params)) {

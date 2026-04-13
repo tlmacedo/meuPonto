@@ -144,11 +144,16 @@ class ImageProcessor @Inject constructor(
 
     /**
      * Executa o pipeline completo de processamento e salvamento.
-     *
+     * 
+     * Ordem de processamento:
+     * 1. Corte (Crop) - Opcional, via metadados ou configuração de corte
+     * 2. Redimensionamento
+     * 3. Compressão
+     * 
      * ## Contrato de ciclo de vida dos bitmaps:
      * - [originalBitmap]: NÃO é reciclado por esta função. Responsabilidade do
      *   chamador (geralmente [processImage] que deve reciclar após o retorno).
-     * - bitmap intermediário (redimensionado): É reciclado no bloco `finally`
+     * - bitmap intermediário (redimensionado/cortado): É reciclado no bloco `finally`
      *   se for diferente do [originalBitmap].
      *
      * @param originalBitmap Bitmap carregado e com orientação corrigida
@@ -167,6 +172,28 @@ class ImageProcessor @Inject constructor(
         var wasResized = false
 
         try {
+            // Etapa 0: Crop da imagem conforme o overlay (Centralizado, proporcional ao overlay)
+            // Alinhado com ReceiptOverlay em CameraCaptureScreen.kt
+            // O overlay é: width=85% da tela, height=0.6*rectWidth, centralizado horizontalmente, 40% verticalmente
+            
+            val cropW = (bitmap.width * 0.85f).toInt()
+            val cropH = (cropW * 0.6f).toInt()
+            val cropX = (bitmap.width - cropW) / 2
+            val cropY = ((bitmap.height - cropH) * 0.4f).toInt()
+            
+            // Garantir que não ultrapasse limites
+            val safeCropX = cropX.coerceIn(0, bitmap.width - 1)
+            val safeCropY = cropY.coerceIn(0, bitmap.height - 1)
+            val safeCropW = cropW.coerceAtMost(bitmap.width - safeCropX)
+            val safeCropH = cropH.coerceAtMost(bitmap.height - safeCropY)
+            
+            val croppedBitmap = Bitmap.createBitmap(bitmap, safeCropX, safeCropY, safeCropW, safeCropH)
+            if (croppedBitmap !== bitmap) {
+                // Se o bitmap atual é diferente do original e já foi processado (ex: redimensionado antes, embora aqui o crop venha primeiro)
+                // como bitmap = originalBitmap inicialmente, não reciclamos originalBitmap.
+                bitmap = croppedBitmap
+            }
+
             // Etapa 1: Redimensionar se exceder a resolução máxima configurada
             val maxDimension = config.fotoResolucaoMaxima
             if (maxDimension > 0 && resizer.needsResize(bitmap.width, bitmap.height, maxDimension)) {

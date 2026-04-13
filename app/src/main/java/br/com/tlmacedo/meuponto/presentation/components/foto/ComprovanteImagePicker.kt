@@ -42,19 +42,11 @@ fun ComprovanteImagePicker(
     cameraUri: Uri?,
     onCameraResult: (Boolean, br.com.tlmacedo.meuponto.domain.model.FotoOrigem) -> Unit,
     onGalleryResult: (Uri?, br.com.tlmacedo.meuponto.domain.model.FotoOrigem) -> Unit,
-    onPermissionDenied: (String) -> Unit
+    onPermissionDenied: (String) -> Unit,
+    onLaunchCustomCamera: () -> Unit = {}
 ) {
     // Flag para rastrear se uma ação está em andamento
     var actionInProgress by remember { mutableStateOf(false) }
-
-    // Launcher da câmera
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        Timber.d("cameraLauncher resultado: success=$success")
-        actionInProgress = false
-        onCameraResult(success, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
-    }
 
     // Launcher da galeria
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -68,16 +60,10 @@ fun ComprovanteImagePicker(
     // Permissão da câmera
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA) { granted ->
         Timber.d("Permissão câmera: granted=$granted")
+        actionInProgress = false
         if (granted) {
-            cameraUri?.let { uri ->
-                Timber.d("Lançando câmera com uri=$uri")
-                cameraLauncher.launch(uri)
-            } ?: run {
-                actionInProgress = false
-                onPermissionDenied("Erro ao preparar câmera. Tente novamente.")
-            }
+            onLaunchCustomCamera()
         } else {
-            actionInProgress = false
             onPermissionDenied("Permissão de câmera necessária para tirar fotos")
         }
     }
@@ -90,17 +76,11 @@ fun ComprovanteImagePicker(
                 onDismissSourceDialog()
             },
             onCameraSelected = {
-                Timber.d("Câmera selecionada. permissao=${cameraPermissionState.status.isGranted}, cameraUri=$cameraUri")
-                actionInProgress = true
+                Timber.d("Câmera selecionada. permissao=${cameraPermissionState.status.isGranted}")
                 if (cameraPermissionState.status.isGranted) {
-                    cameraUri?.let { uri ->
-                        Timber.d("Lançando câmera direto")
-                        cameraLauncher.launch(uri)
-                    } ?: run {
-                        actionInProgress = false
-                        onPermissionDenied("Erro ao preparar câmera. Tente novamente.")
-                    }
+                    onLaunchCustomCamera()
                 } else {
+                    actionInProgress = true
                     Timber.d("Solicitando permissão de câmera")
                     cameraPermissionState.launchPermissionRequest()
                 }

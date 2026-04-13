@@ -62,7 +62,8 @@ data class BackupUiState(
     val isGoogleAutenticado: Boolean = false,
     val backupsLocais: List<LocalBackupFile> = emptyList(),
     val backupsNuvem: List<CloudFile> = emptyList(),
-    val mesesParaLimpeza: Int = 24
+    val mesesParaLimpeza: Int = 24,
+    val totalImagens: Int = 0
 )
 
 /**
@@ -336,10 +337,13 @@ class BackupViewModel @Inject constructor(
                 
                 // Medir tamanho real da pasta de comprovantes
                 val baseDirImagens = java.io.File(context.filesDir, "comprovantes")
+                var totalImagens = 0
                 val tamanhoFotosBytes = if (baseDirImagens.exists()) {
-                    baseDirImagens.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                    val arquivos = baseDirImagens.walkTopDown().filter { it.isFile }.toList()
+                    totalImagens = arquivos.size
+                    arquivos.sumOf { it.length() }
                 } else 0L
-                
+
                 val tamanhoTotalBytes = tamanhoBancoBytes + tamanhoFotosBytes
                 
                 val tamanhoBanco = formatarTamanho(tamanhoBancoBytes)
@@ -352,6 +356,7 @@ class BackupViewModel @Inject constructor(
                         totalEmpregos = totalEmpregos,
                         totalPontos = totalPontos,
                         totalFeriados = totalFeriados,
+                        totalImagens = totalImagens,
                         backupsLocais = backupsLocais,
                         tamanhoEstimado = tamanhoEstimado,
                         tamanhoBanco = tamanhoBanco,

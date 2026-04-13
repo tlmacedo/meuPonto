@@ -96,4 +96,7 @@ interface EmpregoDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM empregos WHERE id = :id)")
     suspend fun existe(id: Long): Boolean
+
+    @Query("SELECT * FROM empregos WHERE cnpj = :cnpj LIMIT 1")
+    suspend fun buscarPorCnpj(cnpj: String): EmpregoEntity?
 }

@@ -78,6 +78,9 @@ data class ConfiguracaoEmprego(
     /** Registrar ponto automaticamente através de OCR da foto */
     val fotoRegistrarPontoOcr: Boolean = false,
 
+    /** Validar usuário, data e evitar duplicidade através de OCR */
+    val fotoValidarComprovante: Boolean = false,
+
     // ════════════════════════════════════════════════════════════════════════
     // CONFIGURAÇÃO RH E BANCO DE HORAS (Geral do Emprego)
     // ════════════════════════════════════════════════════════════════════════

@@ -80,6 +80,7 @@ fun EmpregoSettingsDetailScreen(
     onNavigateToCargos: ((Long) -> Unit)? = null,
     onNavigateToAusencias: ((Long) -> Unit)? = null,
     onNavigateToAjustesSaldo: ((Long) -> Unit)? = null,
+    onNavigateToOpcoesRegistro: ((Long) -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: EmpregoSettingsDetailViewModel = hiltViewModel()
 ) {
@@ -103,6 +104,9 @@ fun EmpregoSettingsDetailScreen(
                 }
                 is EmpregoSettingsDetailEvent.NavegarParaCargos -> {
                     onNavigateToCargos?.invoke(evento.empregoId)
+                }
+                is EmpregoSettingsDetailEvent.NavegarParaOpcoesRegistro -> {
+                    onNavigateToOpcoesRegistro?.invoke(evento.empregoId)
                 }
                 is EmpregoSettingsDetailEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
@@ -175,6 +179,9 @@ fun EmpregoSettingsDetailScreen(
                     onNavigateToAjustesSaldo = {
                         viewModel.onAction(EmpregoSettingsDetailAction.NavegarParaAjustesSaldo)
                     },
+                    onNavigateToOpcoesRegistro = {
+                        viewModel.onAction(EmpregoSettingsDetailAction.NavegarParaOpcoesRegistro)
+                    },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -191,6 +198,7 @@ private fun EmpregoSettingsDetailContent(
     onNavigateToVersoes: () -> Unit,
     onNavigateToAusencias: () -> Unit,
     onNavigateToAjustesSaldo: () -> Unit,
+    onNavigateToOpcoesRegistro: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -303,7 +311,7 @@ private fun EmpregoSettingsDetailContent(
                                 else append(opcoes.joinToString(" • "))
                             } ?: append("NSR, Localização, Foto e Justificativas")
                         },
-                        onClick = onNavigateToEditar
+                        onClick = onNavigateToOpcoesRegistro
                     )
                 }
 

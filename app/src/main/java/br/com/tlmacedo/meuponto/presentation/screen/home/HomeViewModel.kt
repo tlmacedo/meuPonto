@@ -196,6 +196,8 @@ class HomeViewModel @Inject constructor(
             // FOTO DE COMPROVANTE
             is HomeAction.AbrirFotoSourceDialog -> abrirFotoSourceDialog()
             is HomeAction.FecharFotoSourceDialog -> fecharFotoSourceDialog()
+            is HomeAction.AbrirCameraCapture -> abrirCameraCapture()
+            is HomeAction.FecharCameraCapture -> fecharCameraCapture()
             is HomeAction.ConfirmarFotoCamera -> {
                 if (_uiState.value.registrarPontoModal != null) {
                     atualizarFotoRegistroModal(_uiState.value.cameraUri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
@@ -564,47 +566,79 @@ class HomeViewModel @Inject constructor(
                     horarioDia?.saidaIdeal
                 )
 
-                val resultado = ocrService.extrairDadosComprovante(uri, habituais)
+                // OCR Real com Validações (Suporte a múltiplos comprovantes)
+                val resultadosOcr = ocrService.extrairDadosMultiplosComprovantes(
+                    uri = uri,
+                    horariosHabituais = habituais,
+                    empregoId = empregoId
+                )
                 
-                if (resultado != null) {
+                if (resultadosOcr.isNotEmpty()) {
                     val nomeUsuario = usuarioLogado?.nome ?: ""
+                    val empregoAtivo = _uiState.value.empregoAtivo
                     
-                    // 1. Validação de Data
-                    if (resultado.data != null && resultado.data != dataSelecionada) {
-                        limparFotoOcrInvalida()
-                        val dataFormatada = resultado.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                        _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nA data extraída ($dataFormatada) não corresponde ao dia selecionado."))
-                        return@launch
-                    }
+                    // Se houver apenas um comprovante válido
+                    if (resultadosOcr.size == 1) {
+                        val resultado = resultadosOcr.first()
+                        
+                        // 1. Validação de Data
+                        if (resultado.data != null && resultado.data != dataSelecionada) {
+                            limparFotoOcrInvalida()
+                            val dataFormatada = resultado.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                            _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nA data extraída ($dataFormatada) não corresponde ao dia selecionado."))
+                            return@launch
+                        }
 
-                    // 2. Validação de Usuário
-                    val nomeValido = resultado.nomeTrabalhador?.let { nomeExtraido ->
-                        nomeExtraido.contains(nomeUsuario, ignoreCase = true) || 
-                        nomeUsuario.contains(nomeExtraido, ignoreCase = true)
-                    } ?: true
+                        // 2. Validação de Usuário
+                        val nomeValido = resultado.nomeTrabalhador?.let { nomeExtraido ->
+                            nomeExtraido.contains(nomeUsuario, ignoreCase = true) || 
+                            nomeUsuario.contains(nomeExtraido, ignoreCase = true)
+                        } ?: true
 
-                    if (!nomeValido) {
-                        limparFotoOcrInvalida()
-                        _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nEste comprovante pertence a outro trabalhador (${resultado.nomeTrabalhador})."))
-                        return@launch
-                    }
+                        if (!nomeValido) {
+                            limparFotoOcrInvalida()
+                            _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nEste comprovante pertence a outro trabalhador (${resultado.nomeTrabalhador})."))
+                            return@launch
+                        }
 
-                    // 3. Sucesso nas validações -> Preencher campos
-                    // Remove prefixos, espaços e zeros à esquerda para o NSR
-                    val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
+                        // 3. Validação de Empregador (CNPJ)
+                        if (resultado.cnpj != null && !empregoAtivo?.cnpj.isNullOrBlank()) {
+                            val cnpjComprovante = resultado.cnpj.replace(Regex("[^0-9]"), "")
+                            val cnpjEmprego = empregoAtivo?.cnpj?.replace(Regex("[^0-9]"), "")
+                            
+                            if (cnpjComprovante != cnpjEmprego) {
+                                limparFotoOcrInvalida()
+                                val empresaNome = resultado.razaoSocial ?: "outra empresa"
+                                _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nEste comprovante pertence a $empresaNome (CNPJ: ${resultado.cnpj})."))
+                                return@launch
+                            }
+                        }
 
-                    _uiState.update { state ->
-                        state.copy(
-                            registrarPontoModal = state.registrarPontoModal?.copy(
-                                nsr = nsrLimpissimo ?: state.registrarPontoModal.nsr,
-                                dataHora = resultado.hora?.let { 
-                                    LocalDateTime.of(state.registrarPontoModal.dataHora.toLocalDate(), it)
-                                } ?: state.registrarPontoModal.dataHora,
-                                isProcessingOcr = false
+                        // 4. Sucesso nas validações -> Preencher campos
+                        val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
+
+                        // Substituir imagem pela imagem recortada se disponível
+                        val finalUri = resultado.imagemRecortadaPath?.let { Uri.fromFile(java.io.File(it)) } ?: uri
+
+                        _uiState.update { state ->
+                            state.copy(
+                                registrarPontoModal = state.registrarPontoModal?.copy(
+                                    nsr = nsrLimpissimo ?: state.registrarPontoModal.nsr,
+                                    dataHora = resultado.hora?.let { 
+                                        LocalDateTime.of(state.registrarPontoModal.dataHora.toLocalDate(), it)
+                                    } ?: state.registrarPontoModal.dataHora,
+                                    fotoUri = finalUri,
+                                    isProcessingOcr = false,
+                                    ocrSucesso = true
+                                )
                             )
-                        )
+                        }
+                        _uiEvent.emit(HomeUiEvent.MostrarMensagem("Dados validados e extraídos com sucesso!"))
+                    } else {
+                        // Múltiplos comprovantes
+                        _uiState.update { it.copy(registrarPontoModal = null) }
+                        processarMultiplosComprovantes(resultadosOcr, dataSelecionada, nomeUsuario, empregoAtivo)
                     }
-                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Dados validados e extraídos com sucesso!"))
                 } else {
                     _uiState.update { state ->
                         state.copy(
@@ -616,6 +650,64 @@ class HomeViewModel @Inject constructor(
                     _uiEvent.emit(HomeUiEvent.MostrarMensagem("Não foi possível extrair dados automaticamente."))
                 }
             }
+        }
+    }
+
+    private suspend fun processarMultiplosComprovantes(
+        resultados: List<br.com.tlmacedo.meuponto.domain.model.PontoOcrResult>,
+        dataSelecionada: LocalDate,
+        nomeUsuario: String,
+        empregoAtivo: Emprego?
+    ) {
+        val pontosParaRegistrar = mutableListOf<RegistrarPontoUseCase.Parametros>()
+        val imagensParaSalvar = mutableListOf<Pair<Int, Uri>>()
+        var erros = 0
+
+        for (resultado in resultados) {
+            // Validações básicas por item
+            val dataValida = resultado.data == null || resultado.data == dataSelecionada
+            val nomeValido = resultado.nomeTrabalhador?.let { it.contains(nomeUsuario, ignoreCase = true) || nomeUsuario.contains(it, ignoreCase = true) } ?: true
+            val cnpjValido = if (resultado.cnpj != null && !empregoAtivo?.cnpj.isNullOrBlank()) {
+                resultado.cnpj.replace(Regex("[^0-9]"), "") == empregoAtivo?.cnpj?.replace(Regex("[^0-9]"), "")
+            } else true
+
+            if (dataValida && nomeValido && cnpjValido) {
+                val dataHora = LocalDateTime.of(dataSelecionada, resultado.hora ?: LocalTime.now())
+                val nsr = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
+                
+                pontosParaRegistrar.add(RegistrarPontoUseCase.Parametros(
+                    empregoId = empregoAtivo?.id ?: 0L,
+                    dataHora = dataHora,
+                    nsr = nsr
+                ))
+                
+                resultado.imagemRecortadaPath?.let {
+                    imagensParaSalvar.add(pontosParaRegistrar.size - 1 to Uri.fromFile(java.io.File(it)))
+                }
+            } else {
+                erros++
+            }
+        }
+
+        if (pontosParaRegistrar.isNotEmpty()) {
+            var registrados = 0
+            for (i in pontosParaRegistrar.indices) {
+                val result = registrarPontoUseCase(pontosParaRegistrar[i])
+                if (result is RegistrarPontoUseCase.Resultado.Sucesso) {
+                    registrados++
+                    // Salvar imagem se houver
+                    val imgUri = imagensParaSalvar.find { it.first == i }?.second
+                    val dataHora = pontosParaRegistrar[i].dataHora ?: LocalDateTime.now()
+                    if (imgUri != null) {
+                        salvarFotoComprovante(imgUri, result.pontoId, empregoAtivo?.id ?: 0L, dataHora, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA)
+                    }
+                }
+            }
+            _uiEvent.emit(HomeUiEvent.MostrarMensagem("Registrados $registrados pontos com sucesso.${if (erros > 0) " $erros ignorados por divergência de dados." else ""}"))
+            carregarPontosDoDia()
+            carregarBancoHoras()
+        } else if (erros > 0) {
+            _uiEvent.emit(HomeUiEvent.MostrarErro("Nenhum comprovante válido encontrado na imagem."))
         }
     }
 
@@ -1331,22 +1423,19 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun abrirFotoSourceDialog() {
-        val uri = criarCameraUri()
-        _uiState.update {
-            it.copy(
-                showFotoSourceDialog = true,
-                cameraUri = uri
-            )
-        }
+        _uiState.update { it.copy(showFotoSourceDialog = true) }
     }
 
     private fun fecharFotoSourceDialog() {
-        _uiState.update {
-            it.copy(
-                showFotoSourceDialog = false,
-                cameraUri = null
-            )
-        }
+        _uiState.update { it.copy(showFotoSourceDialog = false) }
+    }
+
+    private fun abrirCameraCapture() {
+        _uiState.update { it.copy(showCameraCapture = true, showFotoSourceDialog = false) }
+    }
+
+    private fun fecharCameraCapture() {
+        _uiState.update { it.copy(showCameraCapture = false) }
     }
 
     private fun confirmarFotoCamera() {

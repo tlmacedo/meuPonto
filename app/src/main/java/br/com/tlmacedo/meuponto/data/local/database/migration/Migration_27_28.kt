@@ -51,12 +51,15 @@ val MIGRATION_27_28 = Migration(27, 28) { database ->
     // 3. Atualizar tabela 'configuracoes_emprego'
     database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `fotoLocalArmazenamento` TEXT")
     database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `fotoRegistrarPontoOcr` INTEGER NOT NULL DEFAULT 0")
+    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `fotoValidarComprovante` INTEGER NOT NULL DEFAULT 0")
     database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `diaInicioFechamentoRH` INTEGER NOT NULL DEFAULT 11")
     database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `bancoHorasHabilitado` INTEGER NOT NULL DEFAULT 0")
     database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `bancoHorasCicloMeses` INTEGER NOT NULL DEFAULT 6")
     database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `bancoHorasDataInicioCiclo` TEXT")
     database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `bancoHorasZerarAoFinalCiclo` INTEGER NOT NULL DEFAULT 0")
     database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `exigeJustificativaInconsistencia` INTEGER NOT NULL DEFAULT 0")
+    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `exibirDuracaoTurno` INTEGER NOT NULL DEFAULT 1")
+    database.execSQL("ALTER TABLE `configuracoes_emprego` ADD COLUMN `exibirDuracaoIntervalo` INTEGER NOT NULL DEFAULT 1")
 
     // 4. Atualizar tabela 'versoes_jornada' (Recriação para aplicar DefaultValues e novas colunas)
     database.execSQL(

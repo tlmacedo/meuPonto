@@ -29,13 +29,13 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
@@ -55,7 +55,6 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -81,6 +80,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.presentation.components.LocalImage
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.components.OutlinedNumberField
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
@@ -93,7 +93,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun EditarEmpregoScreen(
     onNavigateBack: () -> Unit,
     onNavigateToVersoes: (() -> Unit)? = null,
-    onNavigateToCargos: (() -> Unit)? = null, // ← Novo
+    onNavigateToCargos: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: EditarEmpregoViewModel = hiltViewModel()
 ) {
@@ -121,7 +121,7 @@ fun EditarEmpregoScreen(
         topBar = {
             MeuPontoTopBar(
                 title = uiState.tituloTela,
-                subtitle = uiState.apelido,
+                subtitle = uiState.apelido.ifBlank { uiState.nome },
                 showBackButton = true,
                 onBackClick = { viewModel.onAction(EditarEmpregoAction.Cancelar) }
             )
@@ -144,6 +144,7 @@ fun EditarEmpregoScreen(
                 onAction = viewModel::onAction,
                 onSetShowInicioTrabalhoPicker = viewModel::setShowInicioTrabalhoPicker,
                 onSetShowTerminoTrabalhoPicker = viewModel::setShowTerminoTrabalhoPicker,
+                onSetShowInicioCicloBHPicker = viewModel::setShowInicioCicloBHPicker,
                 onNavigateToVersoes = onNavigateToVersoes,
                 onNavigateToCargos = onNavigateToCargos,
                 modifier = Modifier.padding(paddingValues)
@@ -159,6 +160,7 @@ internal fun EditarEmpregoContent(
     onAction: (EditarEmpregoAction) -> Unit,
     onSetShowInicioTrabalhoPicker: (Boolean) -> Unit,
     onSetShowTerminoTrabalhoPicker: (Boolean) -> Unit,
+    onSetShowInicioCicloBHPicker: (Boolean) -> Unit,
     onNavigateToVersoes: (() -> Unit)? = null,
     onNavigateToCargos: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -207,6 +209,31 @@ internal fun EditarEmpregoContent(
             },
             dismissButton = {
                 TextButton(onClick = { onSetShowTerminoTrabalhoPicker(false) }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // DATE PICKER - Início Ciclo BH
+    if (uiState.showInicioCicloBHPicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = uiState.bancoHorasDataInicioCiclo?.toDatePickerMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { onSetShowInicioCicloBHPicker(false) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
+                            onAction(EditarEmpregoAction.AlterarBancoHorasDataInicioCiclo(date))
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
+                ) { Text("Confirmar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onSetShowInicioCicloBHPicker(false) }) { Text("Cancelar") }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -397,6 +424,140 @@ internal fun EditarEmpregoContent(
             }
         }
 
+        // 🏦 RH E BANCO DE HORAS
+        if (!uiState.isNovoEmprego) {
+            item {
+                FormSection(
+                    title = "RH e Banco de Horas",
+                    icon = Icons.Default.Save,
+                    isExpanded = uiState.secaoExpandida == SecaoFormulario.RH_E_BANCO_DE_HORAS,
+                    onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.RH_E_BANCO_DE_HORAS)) },
+                    showSaveButton = uiState.temMudancasRHBank,
+                    onSave = { onAction(EditarEmpregoAction.SalvarRHBank) },
+                    isSaving = uiState.isSaving,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        OutlinedNumberField(
+                            value = uiState.diaInicioFechamentoRH.toString(),
+                            onValueChange = {
+                                it.toIntOrNull()?.let { dia ->
+                                    if (dia in 1..31) onAction(EditarEmpregoAction.AlterarDiaInicioFechamentoRH(dia))
+                                }
+                            },
+                            label = "Dia de Início do Fechamento RH",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        SwitchOption(
+                            title = "Habilitar Banco de Horas",
+                            description = "Controlar saldo de horas extras e atrasos",
+                            checked = uiState.bancoHorasHabilitado,
+                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarBancoHorasHabilitado(it)) }
+                        )
+
+                        AnimatedVisibility(visible = uiState.bancoHorasHabilitado) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.padding(top = 8.dp)
+                            ) {
+                                OutlinedNumberField(
+                                    value = uiState.bancoHorasCicloMeses.toString(),
+                                    onValueChange = {
+                                        it.toIntOrNull()?.let { meses ->
+                                            if (meses > 0) onAction(EditarEmpregoAction.AlterarBancoHorasCicloMeses(meses))
+                                        }
+                                    },
+                                    label = "Ciclo do Banco (Meses)",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                OutlinedTextField(
+                                    value = uiState.dataInicioCicloBHFormatada,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Data de Início do Ciclo") },
+                                    trailingIcon = {
+                                        IconButton(onClick = { onSetShowInicioCicloBHPicker(true) }) {
+                                            Icon(Icons.Default.CalendarMonth, contentDescription = null)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().clickable { onSetShowInicioCicloBHPicker(true) }
+                                )
+
+                                SwitchOption(
+                                    title = "Zerar ao Final do Ciclo",
+                                    description = "Limpar saldo automaticamente após o período",
+                                    checked = uiState.bancoHorasZerarAoFinalCiclo,
+                                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarBancoHorasZerarAoFinalCiclo(it)) }
+                                )
+
+                                SwitchOption(
+                                    title = "Exigir Justificativa",
+                                    description = "Obrigar comentário em inconsistências",
+                                    checked = uiState.exigeJustificativaInconsistencia,
+                                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarExigeJustificativaInconsistencia(it)) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 🕒 JORNADAS VERSIONADAS
+        item {
+            FormSection(
+                title = "Jornadas Versionadas",
+                icon = Icons.Default.Schedule,
+                isExpanded = uiState.secaoExpandida == SecaoFormulario.JORNADAS_VERSIONADAS,
+                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.JORNADAS_VERSIONADAS)) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (!uiState.isNovoEmprego && onNavigateToVersoes != null) {
+                    Column {
+                        Text(
+                            "Gerencie o histórico de horários, carga horária e regras específicas.",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        OutlinedCard(
+                            onClick = onNavigateToVersoes,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Timer,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Configurar Jornadas",
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    Text(
+                                        "Regras que mudam ao longo do tempo.",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Icon(Icons.Default.ChevronRight, contentDescription = null)
+                            }
+                        }
+                    }
+                } else if (uiState.isNovoEmprego) {
+                    Text(
+                        "As configurações detalhadas de jornada estarão disponíveis logo após a criação do emprego.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
 
         // 💼 HISTÓRICO DE CARGOS
         item {
@@ -474,167 +635,7 @@ internal fun EditarEmpregoContent(
             }
         }
 
-
-        // ⚙️ CONFIGURAÇÕES GERAIS
-        item {
-            FormSection(
-                title = "Configurações Gerais",
-                icon = Icons.Default.Settings,
-                isExpanded = uiState.secaoExpandida == SecaoFormulario.CONFIGURACOES_GERAIS,
-                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.CONFIGURACOES_GERAIS)) },
-                showSaveButton = uiState.temMudancasConfiguracoesGerais,
-                onSave = { onAction(EditarEmpregoAction.SalvarConfiguracoesGerais) },
-                isSaving = uiState.isSaving,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    SwitchOption(
-                        title = "Habilitar NSR",
-                        description = "Registro Sequencial de Registro (Portaria 671)",
-                        checked = uiState.habilitarNsr,
-                        onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarNsr(it)) }
-                    )
-
-                    AnimatedVisibility(visible = uiState.habilitarNsr) {
-                        Column(modifier = Modifier.padding(start = 16.dp, top = 4.dp)) {
-                            Text("Tipo de NSR", style = MaterialTheme.typography.bodySmall)
-                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                TipoNsr.entries.forEach { tipo ->
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        RadioButton(
-                                            selected = uiState.tipoNsr == tipo,
-                                            onClick = { onAction(EditarEmpregoAction.AlterarTipoNsr(tipo)) }
-                                        )
-                                        Text(tipo.descricao, style = MaterialTheme.typography.bodySmall)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    SwitchOption(
-                        title = "Registrar Localização",
-                        description = "Capturar GPS ao bater o ponto",
-                        checked = uiState.habilitarLocalizacao,
-                        onCheckedChange = {
-                            onAction(
-                                EditarEmpregoAction.AlterarHabilitarLocalizacao(
-                                    it
-                                )
-                            )
-                        }
-                    )
-
-                    AnimatedVisibility(visible = uiState.habilitarLocalizacao) {
-                        Column(modifier = Modifier.padding(start = 16.dp)) {
-                            SwitchOption(
-                                title = "Captura Automática",
-                                description = "Obter localização automaticamente",
-                                checked = uiState.localizacaoAutomatica,
-                                onCheckedChange = {
-                                    onAction(
-                                        EditarEmpregoAction.AlterarLocalizacaoAutomatica(
-                                            it
-                                        )
-                                    )
-                                }
-                            )
-                        }
-                    }
-
-                    SwitchOption(
-                        title = "Foto de Comprovante",
-                        description = "Habilitar captura de foto no registro do ponto",
-                        checked = uiState.habilitarFotoComprovante,
-                        onCheckedChange = {
-                            onAction(
-                                EditarEmpregoAction.AlterarHabilitarFotoComprovante(
-                                    it
-                                )
-                            )
-                        }
-                    )
-
-                    AnimatedVisibility(visible = uiState.habilitarFotoComprovante) {
-                        Column(
-                            modifier = Modifier.padding(start = 16.dp, top = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            SwitchOption(
-                                title = "Foto Obrigatória",
-                                description = "Impedir o registro sem anexar uma foto",
-                                checked = uiState.fotoObrigatoria,
-                                onCheckedChange = {
-                                    onAction(
-                                        EditarEmpregoAction.AlterarFotoObrigatoria(
-                                            it
-                                        )
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-
-        // 🕒 JORNADAS VERSIONADAS
-        item {
-            FormSection(
-                title = "Jornadas Versionadas",
-                icon = Icons.Default.Schedule,
-                isExpanded = uiState.secaoExpandida == SecaoFormulario.JORNADAS_VERSIONADAS,
-                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.JORNADAS_VERSIONADAS)) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (!uiState.isNovoEmprego && onNavigateToVersoes != null) {
-                    Column {
-                        Text(
-                            "Gerencie o histórico de horários, carga horária e regras de banco de horas.",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        OutlinedCard(
-                            onClick = onNavigateToVersoes,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(16.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Timer,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        "Configurar Jornadas e Banco",
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-                                    Text(
-                                        "Regras que mudam ao longo do tempo.",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                Icon(Icons.Default.ChevronRight, contentDescription = null)
-                            }
-                        }
-                    }
-                } else if (uiState.isNovoEmprego) {
-                    Text(
-                        "As configurações detalhadas de jornada e banco de horas estarão disponíveis logo após a criação do emprego.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-
-        // SALVAR
+        // SALVAR (Apenas para novos empregos, os existentes usam salvamento granular por seção)
         if (uiState.isNovoEmprego) {
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -662,118 +663,6 @@ internal fun EditarEmpregoContent(
             }
         }
 
-    }
-}
-
-@Composable
-private fun ValidationWarning(
-    message: String,
-    isError: Boolean = false
-) {
-    val color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
-    val icon = if (isError) Icons.Default.Info else Icons.Default.Info
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 4.dp, start = 8.dp, end = 8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            color = color
-        )
-    }
-}
-
-@Composable
-private fun MinutesSliderWithSteppers(
-    label: String,
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    valueRange: IntRange,
-    sliderStep: Int,
-    formatAsHours: Boolean,
-    suffix: String = "min",
-    helperText: String? = null,
-    displayFormatter: ((Int) -> String)? = null,
-    enabled: Boolean = true
-) {
-    val displayValue = when {
-        displayFormatter != null -> displayFormatter(value)
-        formatAsHours -> {
-            val h = value / 60
-            val m = value % 60
-            String.format("%02d:%02d", h, m)
-        }
-        else -> if (suffix.isEmpty()) "$value" else "$value $suffix"
-    }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = displayValue,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            IconButton(
-                onClick = { onValueChange((value - 1).coerceIn(valueRange)) },
-                enabled = enabled && value > valueRange.first
-            ) {
-                Icon(Icons.Default.Remove, contentDescription = "Diminuir")
-            }
-            Slider(
-                value = value.toFloat(),
-                onValueChange = { onValueChange(it.toInt()) },
-                valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
-                steps = if (sliderStep > 0 && (valueRange.last - valueRange.first) > sliderStep)
-                    ((valueRange.last - valueRange.first) / sliderStep) - 1
-                else 0,
-                modifier = Modifier.weight(1f),
-                enabled = enabled
-            )
-            IconButton(
-                onClick = { onValueChange((value + 1).coerceIn(valueRange)) },
-                enabled = enabled && value < valueRange.last
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Aumentar")
-            }
-        }
-
-        helperText?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
     }
 }
 
@@ -870,10 +759,10 @@ private fun SwitchOption(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyMedium)
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
@@ -895,7 +784,8 @@ private fun EditarEmpregoContentPreview() {
             ),
             onAction = {},
             onSetShowInicioTrabalhoPicker = {},
-            onSetShowTerminoTrabalhoPicker = {}
+            onSetShowTerminoTrabalhoPicker = {},
+            onSetShowInicioCicloBHPicker = {}
         )
     }
 }
@@ -912,7 +802,8 @@ private fun EditarEmpregoContentEditingPreview() {
             ),
             onAction = {},
             onSetShowInicioTrabalhoPicker = {},
-            onSetShowTerminoTrabalhoPicker = {}
+            onSetShowTerminoTrabalhoPicker = {},
+            onSetShowInicioCicloBHPicker = {}
         )
     }
 }

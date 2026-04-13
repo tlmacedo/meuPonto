@@ -20,6 +20,8 @@ import java.time.LocalDateTime
 data class Emprego(
     val id: Long = 0,
     val nome: String,
+    val razaoSocial: String? = null,
+    val cnpj: String? = null,
     val apelido: String? = null,
     val endereco: String? = null,
     val dataInicioTrabalho: LocalDate? = null,

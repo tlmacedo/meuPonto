@@ -83,6 +83,10 @@ val MIGRATION_32_33 = object : Migration(32, 33) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pontos_empregoId_data` ON `pontos` (`empregoId`, `data`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pontos_empregoId_dataHora` ON `pontos` (`empregoId`, `dataHora`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pontos_is_deleted` ON `pontos` (`is_deleted`)")
+
+        // 5. Adicionar colunas faltantes na tabela empregos (v33)
+        db.execSQL("ALTER TABLE `empregos` ADD COLUMN `razaoSocial` TEXT")
+        db.execSQL("ALTER TABLE `empregos` ADD COLUMN `cnpj` TEXT")
     }
 }
 

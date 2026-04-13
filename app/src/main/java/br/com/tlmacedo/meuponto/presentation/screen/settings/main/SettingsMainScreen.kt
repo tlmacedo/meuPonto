@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.QuestionMark
 import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Work
@@ -110,6 +111,7 @@ fun SettingsMainScreen(
     onNavigateToAjuda: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
+    onNavigateToOpcoesRegistro: (Long) -> Unit,
     viewModel: SettingsMainViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -146,6 +148,7 @@ fun SettingsMainScreen(
         onNavigateToAjuda = onNavigateToAjuda,
         onNavigateToLixeira = onNavigateToLixeira,
         onNavigateToAuditoria = onNavigateToAuditoria,
+        onNavigateToOpcoesRegistro = onNavigateToOpcoesRegistro,
         onTrocarEmprego = { viewModel.onAction(SettingsMainAction.TrocarEmprego(it)) },
         onAlternarSecao = { viewModel.onAction(SettingsMainAction.AlternarExpansaoSecao(it)) },
         snackbarHostState = snackbarHostState
@@ -173,6 +176,7 @@ fun SettingsMainContent(
     onNavigateToAjuda: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
+    onNavigateToOpcoesRegistro: (Long) -> Unit,
     onTrocarEmprego: (Emprego) -> Unit,
     onAlternarSecao: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -309,14 +313,14 @@ fun SettingsMainContent(
             }
 
             // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: DESIGN
+            // SEÇÃO: CONFIGURAÇÕES GERAIS
             // ══════════════════════════════════════════════════════════════
             item {
                 CollapsibleSettingsSection(
-                    title = "Personalização",
+                    title = "Configurações Gerais",
                     icon = Icons.Outlined.Palette,
-                    isExpanded = uiState.secoesExpandidas.contains("Personalizacao"),
-                    onToggle = { onAlternarSecao("Personalizacao") }
+                    isExpanded = uiState.secoesExpandidas.contains("ConfiguracoesGerais"),
+                    onToggle = { onAlternarSecao("ConfiguracoesGerais") }
                 ) {
                     SettingsItemsLayout {
                         SettingsNavigationItem(
@@ -337,6 +341,16 @@ fun SettingsMainContent(
                             icon = Icons.Outlined.Security,
                             onClick = onNavigateToPrivacidade
                         )
+
+                        // Opções de Registro do Emprego Ativo
+                        uiState.empregoAtualId?.let { empregoId ->
+                            SettingsNavigationItem(
+                                title = "Opções de Registro",
+                                subtitle = "NSR, Localização e Comprovantes",
+                                icon = Icons.Outlined.Settings,
+                                onClick = { onNavigateToOpcoesRegistro(empregoId) }
+                            )
+                        }
                     }
                 }
             }
@@ -788,6 +802,7 @@ private fun SettingsMainContentPreview() {
             onNavigateToAjuda = {},
             onNavigateToLixeira = {},
             onNavigateToAuditoria = {},
+            onNavigateToOpcoesRegistro = {},
             onTrocarEmprego = {},
             onAlternarSecao = {}
         )

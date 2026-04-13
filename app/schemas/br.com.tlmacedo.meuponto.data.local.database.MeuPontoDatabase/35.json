@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 33,
-    "identityHash": "67485528b2e1426b549269e7c3a6727f",
+    "version": 35,
+    "identityHash": "55f0d4583160cbec5841ebfd30f93f02",
     "entities": [
       {
         "tableName": "ajustes_salariais",
@@ -281,7 +281,7 @@
       },
       {
         "tableName": "configuracoes_emprego",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `habilitarNsr` INTEGER NOT NULL DEFAULT 0, `tipoNsr` TEXT NOT NULL DEFAULT 'NUMERICO', `habilitarLocalizacao` INTEGER NOT NULL DEFAULT 0, `localizacaoAutomatica` INTEGER NOT NULL DEFAULT 0, `exibirLocalizacaoDetalhes` INTEGER NOT NULL DEFAULT 1, `fotoHabilitada` INTEGER NOT NULL DEFAULT 0, `fotoObrigatoria` INTEGER NOT NULL DEFAULT 0, `fotoFormato` TEXT NOT NULL DEFAULT 'JPEG', `fotoQualidade` INTEGER NOT NULL DEFAULT 85, `fotoResolucaoMaxima` INTEGER NOT NULL DEFAULT 1920, `fotoTamanhoMaximoKb` INTEGER NOT NULL DEFAULT 1024, `fotoCorrecaoOrientacao` INTEGER NOT NULL DEFAULT 1, `fotoApenasCamera` INTEGER NOT NULL DEFAULT 0, `fotoIncluirLocalizacaoExif` INTEGER NOT NULL DEFAULT 1, `fotoBackupNuvemHabilitado` INTEGER NOT NULL DEFAULT 0, `fotoBackupApenasWifi` INTEGER NOT NULL DEFAULT 1, `fotoLocalArmazenamento` TEXT, `fotoRegistrarPontoOcr` INTEGER NOT NULL DEFAULT 0, `diaInicioFechamentoRH` INTEGER NOT NULL DEFAULT 11, `bancoHorasHabilitado` INTEGER NOT NULL DEFAULT 0, `bancoHorasCicloMeses` INTEGER NOT NULL DEFAULT 6, `bancoHorasDataInicioCiclo` TEXT, `bancoHorasZerarAoFinalCiclo` INTEGER NOT NULL DEFAULT 0, `exigeJustificativaInconsistencia` INTEGER NOT NULL DEFAULT 0, `exibirDuracaoTurno` INTEGER NOT NULL DEFAULT 1, `exibirDuracaoIntervalo` INTEGER NOT NULL DEFAULT 1, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `empregoId` INTEGER NOT NULL, `habilitarNsr` INTEGER NOT NULL DEFAULT 0, `tipoNsr` TEXT NOT NULL DEFAULT 'NUMERICO', `habilitarLocalizacao` INTEGER NOT NULL DEFAULT 0, `localizacaoAutomatica` INTEGER NOT NULL DEFAULT 0, `exibirLocalizacaoDetalhes` INTEGER NOT NULL DEFAULT 1, `fotoHabilitada` INTEGER NOT NULL DEFAULT 0, `fotoObrigatoria` INTEGER NOT NULL DEFAULT 0, `fotoFormato` TEXT NOT NULL DEFAULT 'JPEG', `fotoQualidade` INTEGER NOT NULL DEFAULT 85, `fotoResolucaoMaxima` INTEGER NOT NULL DEFAULT 1920, `fotoTamanhoMaximoKb` INTEGER NOT NULL DEFAULT 1024, `fotoCorrecaoOrientacao` INTEGER NOT NULL DEFAULT 1, `fotoApenasCamera` INTEGER NOT NULL DEFAULT 0, `fotoIncluirLocalizacaoExif` INTEGER NOT NULL DEFAULT 1, `fotoBackupNuvemHabilitado` INTEGER NOT NULL DEFAULT 0, `fotoBackupApenasWifi` INTEGER NOT NULL DEFAULT 1, `fotoLocalArmazenamento` TEXT, `fotoRegistrarPontoOcr` INTEGER NOT NULL DEFAULT 0, `fotoValidarComprovante` INTEGER NOT NULL DEFAULT 0, `diaInicioFechamentoRH` INTEGER NOT NULL DEFAULT 11, `bancoHorasHabilitado` INTEGER NOT NULL DEFAULT 0, `bancoHorasCicloMeses` INTEGER NOT NULL DEFAULT 6, `bancoHorasDataInicioCiclo` TEXT, `bancoHorasZerarAoFinalCiclo` INTEGER NOT NULL DEFAULT 0, `exigeJustificativaInconsistencia` INTEGER NOT NULL DEFAULT 0, `exibirDuracaoTurno` INTEGER NOT NULL DEFAULT 1, `exibirDuracaoIntervalo` INTEGER NOT NULL DEFAULT 1, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -416,6 +416,13 @@
           {
             "fieldPath": "fotoRegistrarPontoOcr",
             "columnName": "fotoRegistrarPontoOcr",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fotoValidarComprovante",
+            "columnName": "fotoValidarComprovante",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
@@ -2348,7 +2355,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '67485528b2e1426b549269e7c3a6727f')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '55f0d4583160cbec5841ebfd30f93f02')"
     ]
   }
 }

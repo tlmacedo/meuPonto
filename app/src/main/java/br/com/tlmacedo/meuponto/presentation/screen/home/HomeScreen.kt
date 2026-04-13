@@ -4,7 +4,11 @@ package br.com.tlmacedo.meuponto.presentation.screen.home
 import android.Manifest
 import android.content.Context
 import android.content.ContextWrapper
-import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import br.com.tlmacedo.meuponto.util.foto.DocumentScannerWrapper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +58,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
@@ -68,10 +73,13 @@ import br.com.tlmacedo.meuponto.presentation.components.ProximoPontoCard
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoModal
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.foto.ComprovanteImagePicker
+import br.com.tlmacedo.meuponto.presentation.screen.camera.CameraCaptureScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.components.FechamentoCicloDialog
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.findActivity
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 
 /**
@@ -96,6 +104,19 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+
+    val scannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val scanResult = com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+            scanResult?.pages?.firstOrNull()?.imageUri?.let { uri ->
+                viewModel.onAction(HomeAction.SelecionarFotoComprovante(uri, FotoOrigem.CAMERA))
+            }
+        }
+    }
+
+    val docScanner = remember { DocumentScannerWrapper(context) }
 
     // ══════════════════════════════════════════════════════════════════════
     // EFEITOS E EVENTOS
@@ -145,34 +166,52 @@ fun HomeScreen(
     // UI COMPOSITION
     // ══════════════════════════════════════════════════════════════════════
 
-    HomeDialogs(uiState = uiState, onAction = viewModel::onAction)
+    if (uiState.showCameraCapture) {
+        CameraCaptureScreen(
+            onImageCaptured = { uri ->
+                viewModel.onAction(HomeAction.SelecionarFotoComprovante(uri, FotoOrigem.CAMERA))
+                viewModel.onAction(HomeAction.FecharCameraCapture)
+            },
+            onBack = { viewModel.onAction(HomeAction.FecharCameraCapture) }
+        )
+    } else {
+        HomeDialogs(
+            uiState = uiState,
+            onAction = viewModel::onAction,
+            scannerLauncher = scannerLauncher,
+            docScanner = docScanner
+        )
 
-    Scaffold(
-        topBar = {
-            MeuPontoTopBar(
-                title = "Meu Ponto",
-                subtitle = uiState.empregoAtivo?.apelido,
-                logo = uiState.empregoAtivo?.logo,
-                showTodayButton = !uiState.isHoje,
-                showHistoryButton = true,
-                showSettingsButton = true,
-                onTodayClick = { viewModel.onAction(HomeAction.IrParaHoje) },
-                onHistoryClick = { viewModel.onAction(HomeAction.NavegarParaHistorico) },
-                onSettingsClick = { viewModel.onAction(HomeAction.NavegarParaConfiguracoes) }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        if (uiState.isLoading && uiState.pontosHoje.isEmpty()) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                CircularProgressIndicator()
+        Scaffold(
+            topBar = {
+                MeuPontoTopBar(
+                    title = "Meu Ponto",
+                    subtitle = uiState.empregoAtivo?.apelido,
+                    logo = uiState.empregoAtivo?.logo,
+                    showTodayButton = !uiState.isHoje,
+                    showHistoryButton = true,
+                    showSettingsButton = true,
+                    onTodayClick = { viewModel.onAction(HomeAction.IrParaHoje) },
+                    onHistoryClick = { viewModel.onAction(HomeAction.NavegarParaHistorico) },
+                    onSettingsClick = { viewModel.onAction(HomeAction.NavegarParaConfiguracoes) }
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { paddingValues ->
+            if (uiState.isLoading && uiState.pontosHoje.isEmpty()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize().padding(paddingValues)
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                HomeContent(
+                    uiState = uiState,
+                    onAction = viewModel::onAction,
+                    modifier = Modifier.padding(paddingValues)
+                )
             }
-        } else {
-            HomeContent(
-                uiState = uiState,
-                onAction = viewModel::onAction,
-                modifier = Modifier.padding(paddingValues)
-            )
         }
     }
 }
@@ -184,8 +223,11 @@ fun HomeScreen(
 @Composable
 private fun HomeDialogs(
     uiState: HomeUiState,
-    onAction: (HomeAction) -> Unit
+    onAction: (HomeAction) -> Unit,
+    scannerLauncher: ActivityResultLauncher<IntentSenderRequest>,
+    docScanner: DocumentScannerWrapper
 ) {
+    val context = LocalContext.current
     // 1. Date Picker
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -223,7 +265,12 @@ private fun HomeDialogs(
         cameraUri = uiState.cameraUri,
         onCameraResult = { success, origem -> if (success) onAction(HomeAction.ConfirmarFotoCamera) },
         onGalleryResult = { uri, origem -> uri?.let { onAction(HomeAction.SelecionarFotoComprovante(it, origem)) } },
-        onPermissionDenied = { onAction(HomeAction.MostrarMensagem(it)) }
+        onPermissionDenied = { onAction(HomeAction.MostrarMensagem(it)) },
+        onLaunchCustomCamera = {
+            context.findActivity()?.let { activity ->
+                docScanner.startScan(activity, scannerLauncher)
+            }
+        }
     )
 
     // 4. Modais de Ponto
@@ -275,11 +322,6 @@ private fun HomeDialogs(
     }
 }
 
-private fun Context.findActivity(): ComponentActivity? = when (this) {
-    is ComponentActivity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
 
 @Composable
 internal fun HomeContent(

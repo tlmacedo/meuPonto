@@ -78,9 +78,12 @@ data class ConfiguracaoEmpregoEntity(
     val fotoBackupNuvemHabilitado: Boolean = false,
     @ColumnInfo(defaultValue = "1")
     val fotoBackupApenasWifi: Boolean = true,
+    @ColumnInfo(name = "fotoLocalArmazenamento")
     val fotoLocalArmazenamento: String? = null,
     @ColumnInfo(defaultValue = "0")
     val fotoRegistrarPontoOcr: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val fotoValidarComprovante: Boolean = false,
 
     // ════════════════════════════════════════════════════════════════════════
     // CONFIGURAÇÃO RH E BANCO DE HORAS
@@ -142,6 +145,7 @@ fun ConfiguracaoEmpregoEntity.toDomain(): ConfiguracaoEmprego =
         fotoBackupApenasWifi = fotoBackupApenasWifi,
         fotoLocalArmazenamento = fotoLocalArmazenamento,
         fotoRegistrarPontoOcr = fotoRegistrarPontoOcr,
+        fotoValidarComprovante = fotoValidarComprovante,
         diaInicioFechamentoRH = diaInicioFechamentoRH,
         bancoHorasHabilitado = bancoHorasHabilitado,
         bancoHorasCicloMeses = bancoHorasCicloMeses,
@@ -176,6 +180,7 @@ fun ConfiguracaoEmprego.toEntity(): ConfiguracaoEmpregoEntity =
         fotoBackupApenasWifi = fotoBackupApenasWifi,
         fotoLocalArmazenamento = fotoLocalArmazenamento,
         fotoRegistrarPontoOcr = fotoRegistrarPontoOcr,
+        fotoValidarComprovante = fotoValidarComprovante,
         diaInicioFechamentoRH = diaInicioFechamentoRH,
         bancoHorasHabilitado = bancoHorasHabilitado,
         bancoHorasCicloMeses = bancoHorasCicloMeses,

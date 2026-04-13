@@ -14,5 +14,8 @@ data class PontoOcrResult(
     val data: LocalDate? = null,
     val hora: LocalTime? = null,
     val nomeTrabalhador: String? = null,
-    val pis: String? = null
+    val pis: String? = null,
+    val cnpj: String? = null,
+    val razaoSocial: String? = null,
+    val imagemRecortadaPath: String? = null
 )

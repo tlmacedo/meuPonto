@@ -70,6 +70,12 @@ sealed interface HomeAction {
     /** Confirma a foto capturada pela câmera */
     data object ConfirmarFotoCamera : HomeAction
 
+    /** Abre a tela de captura personalizada da CameraX */
+    data object AbrirCameraCapture : HomeAction
+
+    /** Fecha a tela de captura personalizada */
+    data object FecharCameraCapture : HomeAction
+
     /** Seleciona uma foto da galeria */
     data class SelecionarFotoComprovante(val uri: Uri, val origem: FotoOrigem) : HomeAction
 

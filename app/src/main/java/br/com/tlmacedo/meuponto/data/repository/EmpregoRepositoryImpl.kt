@@ -108,6 +108,10 @@ class EmpregoRepositoryImpl @Inject constructor(
         return empregoDao.existe(id)
     }
 
+    override suspend fun buscarPorCnpj(cnpj: String): br.com.tlmacedo.meuponto.domain.model.Emprego? {
+        return empregoDao.buscarPorCnpj(cnpj)?.toDomain()
+    }
+
     // ========================================================================
     // Operações Reativas (Flows)
     // ========================================================================

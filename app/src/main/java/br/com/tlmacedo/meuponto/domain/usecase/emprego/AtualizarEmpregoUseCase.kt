@@ -32,14 +32,30 @@ class AtualizarEmpregoUseCase @Inject constructor(
         val dataInicioTrabalho: LocalDate,
         val dataTerminoTrabalho: LocalDate? = null,
         val logo: String? = null,
-        
+
         // Configurações Fixas
         val habilitarNsr: Boolean,
         val tipoNsr: TipoNsr,
         val habilitarLocalizacao: Boolean,
         val localizacaoAutomatica: Boolean,
+        val exibirLocalizacaoDetalhes: Boolean,
         val fotoHabilitada: Boolean,
-        val fotoObrigatoria: Boolean
+        val fotoObrigatoria: Boolean,
+        val fotoValidarComprovante: Boolean,
+
+        // RH e Banco de Horas
+        val diaInicioFechamentoRH: Int,
+        val bancoHorasHabilitado: Boolean,
+        val bancoHorasCicloMeses: Int,
+        val bancoHorasDataInicioCiclo: LocalDate? = null,
+        val bancoHorasZerarAoFinalCiclo: Boolean,
+        val exigeJustificativaInconsistencia: Boolean,
+
+        // Comentários e Exibição
+        val comentarioHabilitado: Boolean,
+        val comentarioObrigatorioHoraExtra: Boolean,
+        val exibirDuracaoTurno: Boolean,
+        val exibirDuracaoIntervalo: Boolean
     )
 
     sealed class Resultado {
@@ -86,8 +102,20 @@ class AtualizarEmpregoUseCase @Inject constructor(
                         tipoNsr = parametros.tipoNsr,
                         habilitarLocalizacao = parametros.habilitarLocalizacao,
                         localizacaoAutomatica = parametros.localizacaoAutomatica,
+                        exibirLocalizacaoDetalhes = parametros.exibirLocalizacaoDetalhes,
                         fotoHabilitada = parametros.fotoHabilitada,
                         fotoObrigatoria = parametros.fotoObrigatoria,
+                        fotoValidarComprovante = parametros.fotoValidarComprovante,
+                        diaInicioFechamentoRH = parametros.diaInicioFechamentoRH,
+                        bancoHorasHabilitado = parametros.bancoHorasHabilitado,
+                        bancoHorasCicloMeses = parametros.bancoHorasCicloMeses,
+                        bancoHorasDataInicioCiclo = parametros.bancoHorasDataInicioCiclo,
+                        bancoHorasZerarAoFinalCiclo = parametros.bancoHorasZerarAoFinalCiclo,
+                        exigeJustificativaInconsistencia = parametros.exigeJustificativaInconsistencia,
+                        comentarioHabilitado = parametros.comentarioHabilitado,
+                        comentarioObrigatorioHoraExtra = parametros.comentarioObrigatorioHoraExtra,
+                        exibirDuracaoTurno = parametros.exibirDuracaoTurno,
+                        exibirDuracaoIntervalo = parametros.exibirDuracaoIntervalo,
                         atualizadoEm = agora
                     )
                 )

@@ -57,7 +57,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         UsuarioEntity::class,
         AusenciaEntity::class
     ],
-    version = 33, // Incremented version to fix IllegalStateException after schema change
+    version = 35, // Incremented version to fix IllegalStateException after schema change
     exportSchema = true // Mantenha como true para gerar o schema.json
 )
 @TypeConverters(Converters::class)

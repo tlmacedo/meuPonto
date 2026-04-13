@@ -159,6 +159,7 @@ data class RegistrarPontoModalState(
     val isSaving: Boolean = false,
     val isCapturingLocation: Boolean = false,
     val isProcessingOcr: Boolean = false,
+    val ocrSucesso: Boolean = false,
     val showTimePicker: Boolean = false,
     val erroLocalizacao: String? = null
 ) {
@@ -203,6 +204,7 @@ data class HomeUiState(
     val showEmpregoMenu: Boolean = false,
     val showDatePicker: Boolean = false,
     val cameraUri: Uri? = null,
+    val showCameraCapture: Boolean = false,
     val showFotoSourceDialog: Boolean = false,
     val erro: String? = null,
     // Ciclo de banco de horas
