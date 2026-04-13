@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.RotateLeft
 import androidx.compose.material.icons.automirrored.filled.RotateRight
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HideImage
 import androidx.compose.material.icons.filled.Photo
@@ -48,12 +49,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -66,6 +70,9 @@ import androidx.compose.ui.window.DialogProperties
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.time.format.DateTimeFormatter
@@ -103,6 +110,30 @@ fun FotoPontoModal(
     var offset by remember { mutableStateOf(Offset.Zero) }
     var rotationVisual by remember { mutableFloatStateOf(0f) }
     var isSaving by remember { mutableStateOf(false) }
+    var isImproved by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+
+    // ColorFilter para o preview (Grayscale + Contrast)
+    val colorFilter = remember(isImproved) {
+        if (isImproved) {
+            val matrix = ColorMatrix().apply {
+                setToSaturation(0f)
+                val v = 1.5f
+                val off = 128f * (1f - v)
+                val m = this.values
+                for (i in 0..2) {
+                    m[i * 5 + 0] *= v
+                    m[i * 5 + 1] *= v
+                    m[i * 5 + 2] *= v
+                    m[i * 5 + 4] = off
+                }
+            }
+            ColorFilter.colorMatrix(matrix)
+        } else {
+            null
+        }
+    }
 
     // Estado para o bitmap carregado (usado para salvar edições)
     var bitmapOriginal by remember { mutableStateOf<Bitmap?>(null) }
@@ -241,6 +272,16 @@ fun FotoPontoModal(
                             ) {
                                 Icon(imageVector = Icons.AutoMirrored.Filled.RotateRight, contentDescription = "Girar para direita")
                             }
+                            IconButton(
+                                onClick = { isImproved = !isImproved },
+                                enabled = !isSaving
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "Melhorar imagem",
+                                    tint = if (isImproved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
 
                         VerticalDivider(modifier = Modifier.height(24.dp))
@@ -293,6 +334,7 @@ fun FotoPontoModal(
                                 .build(),
                             contentDescription = "Foto do comprovante",
                             contentScale = ContentScale.Fit,
+                            colorFilter = colorFilter,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .graphicsLayer(
@@ -365,24 +407,55 @@ fun FotoPontoModal(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            if (rotationVisual != 0f && bitmapOriginal != null) {
+                            if ((rotationVisual != 0f || isImproved) && bitmapOriginal != null) {
                                 isSaving = true
-                                val matrix = Matrix().apply { postRotate(rotationVisual) }
-                                val rotatedBitmap = Bitmap.createBitmap(
-                                    bitmapOriginal!!, 0, 0,
-                                    bitmapOriginal!!.width, bitmapOriginal!!.height,
-                                    matrix, true
-                                )
-                                try {
-                                    FileOutputStream(fotoPath!!).use { out ->
-                                        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                                scope.launch {
+                                    try {
+                                        val resultPath = withContext(Dispatchers.IO) {
+                                            var currentBitmap = bitmapOriginal!!
+
+                                            // 1. Rotação
+                                            if (rotationVisual != 0f) {
+                                                val matrix = Matrix().apply { postRotate(rotationVisual) }
+                                                currentBitmap = Bitmap.createBitmap(
+                                                    currentBitmap, 0, 0,
+                                                    currentBitmap.width, currentBitmap.height,
+                                                    matrix, true
+                                                )
+                                            }
+
+                                            // 2. Melhoria
+                                            if (isImproved) {
+                                                val grayscale = br.com.tlmacedo.meuponto.util.ImageProcessor.toGrayscale(currentBitmap)
+                                                if (currentBitmap != bitmapOriginal) {
+                                                    currentBitmap.recycle()
+                                                }
+                                                val improved = br.com.tlmacedo.meuponto.util.ImageProcessor.adjustContrast(grayscale, 1.5f)
+                                                grayscale.recycle()
+                                                currentBitmap = improved
+                                            }
+
+                                            // Salvar como novo arquivo
+                                            val originalFile = File(fotoPath!!)
+                                            val timestamp = System.currentTimeMillis()
+                                            val newFile = File(originalFile.parentFile, "IMG_EDIT_$timestamp.jpg")
+
+                                            FileOutputStream(newFile).use { out ->
+                                                currentBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                                            }
+
+                                            if (currentBitmap != bitmapOriginal) {
+                                                currentBitmap.recycle()
+                                            }
+                                            newFile.absolutePath
+                                        }
+                                        onSalvarFoto(ponto.id, resultPath)
+                                        onDismiss()
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    } finally {
+                                        isSaving = false
                                     }
-                                    onSalvarFoto(ponto.id, fotoPath!!)
-                                    onDismiss()
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                } finally {
-                                    isSaving = false
                                 }
                             } else {
                                 onDismiss()
@@ -390,7 +463,7 @@ fun FotoPontoModal(
                         },
                         enabled = !isSaving && temFoto
                     ) {
-                        Text(if (rotationVisual != 0f) "Salvar" else "Fechar")
+                        Text(if (rotationVisual != 0f || isImproved) "Salvar" else "Fechar")
                     }
                 }
             }

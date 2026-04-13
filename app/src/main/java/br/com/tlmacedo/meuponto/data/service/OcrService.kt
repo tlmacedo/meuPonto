@@ -246,7 +246,10 @@ class OcrService @Inject constructor(
         // Identifica o número do REP (17 dígitos) para evitar que ele seja confundido com o NSR
         val repPattern = Pattern.compile("\\b(\\d{17})\\b")
         val repMatcher = repPattern.matcher(textNormalizado)
-        val repEncontrado = if (repMatcher.find()) repMatcher.group(1) else null
+        val repsEncontrados = mutableListOf<String>()
+        while (repMatcher.find()) {
+            repMatcher.group(1)?.let { repsEncontrados.add(it) }
+        }
 
         val patterns = listOf(
             // Prioridade 1: Label "NSR:" seguido de exatamente 9 dígitos (modelo Inner REP Plus)
@@ -254,7 +257,7 @@ class OcrService @Inject constructor(
             // Prioridade 2: Label "NSR:" seguido de 9 a 17 dígitos
             Pattern.compile("NSR[:\\s.]*(\\d{9,17})", Pattern.CASE_INSENSITIVE),
             // Prioridade 3: Sequência isolada de 9 dígitos que NÃO faça parte do número do REP
-            Pattern.compile("\\b(\\d{9,10})\\b")
+            Pattern.compile("\\b(\\d{9})\\b")
         )
 
         for (pattern in patterns) {
@@ -262,7 +265,7 @@ class OcrService @Inject constructor(
             while (matcher.find()) {
                 val match = matcher.group(1) ?: matcher.group()
                 // Validação: se o que encontramos é apenas parte do número do REP, ignoramos
-                if (repEncontrado != null && repEncontrado.contains(match)) continue
+                if (repsEncontrados.any { it.contains(match) }) continue
                 return match
             }
         }

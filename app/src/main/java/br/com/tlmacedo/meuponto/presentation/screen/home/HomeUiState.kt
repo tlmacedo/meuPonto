@@ -160,6 +160,8 @@ data class RegistrarPontoModalState(
     val isCapturingLocation: Boolean = false,
     val isProcessingOcr: Boolean = false,
     val ocrSucesso: Boolean = false,
+    val nsrAutoFilled: Boolean = false,
+    val horaAutoFilled: Boolean = false,
     val showTimePicker: Boolean = false,
     val erroLocalizacao: String? = null
 ) {
@@ -226,7 +228,7 @@ data class HomeUiState(
         private val localeBR = Locale("pt", "BR")
         internal val formatterDiaSemana = DateTimeFormatter.ofPattern("EEEE", localeBR)
         internal val formatterDiaSemanaAbrev = DateTimeFormatter.ofPattern("EEE", localeBR)
-        internal val formatterDataCompleta = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", localeBR)
+        internal val formatterDataCompleta = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM 'de' yyyy", localeBR)
         internal val formatterDataCurta = DateTimeFormatter.ofPattern("dd/MM/yyyy", localeBR)
     }
 
@@ -395,9 +397,9 @@ data class HomeUiState(
                 .replaceFirstChar { it.uppercase() }
 
             return when {
-                isHoje -> "$diaSemana, Hoje"
-                isOntem -> "$diaSemana, Ontem"
-                isAmanha -> "$diaSemana, Amanhã"
+                isHoje -> "Hoje, ${dataSelecionada.format(formatterDataCompleta)}"
+                isOntem -> "Ontem, ${dataSelecionada.format(formatterDataCompleta)}"
+                isAmanha -> "Amanhã, ${dataSelecionada.format(formatterDataCompleta)}"
                 else -> dataSelecionada.format(formatterDataCompleta)
                     .replaceFirstChar { it.uppercase() }
             }

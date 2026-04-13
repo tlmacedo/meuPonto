@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Delete
@@ -187,6 +188,15 @@ fun RegistrarPontoModal(
                             tint = corPrincipal.copy(alpha = 0.6f),
                             modifier = Modifier.size(24.dp)
                         )
+                        if (state.horaAutoFilled) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "Extraído do comprovante",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                     Text(
                         text = "Toque para ajustar o horário",
@@ -304,7 +314,16 @@ fun RegistrarPontoModal(
                         keyboardOptions = KeyboardOptions(
                             keyboardType = if (tipoNsr == TipoNsr.NUMERICO) KeyboardType.Number else KeyboardType.Text
                         ),
-                        leadingIcon = { Icon(Icons.Default.Pin, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Default.Pin, contentDescription = null) },
+                        trailingIcon = if (state.nsrAutoFilled) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "Extraído do comprovante",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else null
                     )
                     Spacer(modifier = Modifier.height(20.dp))
                 }

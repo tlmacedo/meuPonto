@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Image
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoPausa
@@ -295,8 +297,12 @@ private fun PontoContent(
 
             // Identificador de foto (se houver)
             if (ponto.temFotoComprovante) {
-                val isCamera = ponto.fotoComprovantePath?.contains("camera", ignoreCase = true) == true
-                val iconeFoto = if (isCamera) Icons.Default.CameraAlt else Icons.Default.Image
+                val iconeFoto = when (ponto.fotoOrigem) {
+                    FotoOrigem.CAMERA -> Icons.Default.CameraAlt
+                    FotoOrigem.GALERIA -> Icons.Default.Image
+                    FotoOrigem.EDITADA -> Icons.Default.AutoAwesome
+                    else -> Icons.Default.Image
+                }
 
                 Box(
                     contentAlignment = Alignment.Center,

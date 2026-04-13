@@ -556,7 +556,10 @@ class HomeViewModel @Inject constructor(
     private fun atualizarNsrRegistroModal(nsr: String) {
         _uiState.update { state ->
             state.copy(
-                registrarPontoModal = state.registrarPontoModal?.copy(nsr = nsr)
+                registrarPontoModal = state.registrarPontoModal?.copy(
+                    nsr = nsr,
+                    nsrAutoFilled = false
+                )
             )
         }
     }
@@ -675,9 +678,11 @@ class HomeViewModel @Inject constructor(
                             state.copy(
                                 registrarPontoModal = state.registrarPontoModal?.copy(
                                     nsr = if (configuracao.habilitarNsr) (nsrLimpissimo ?: state.registrarPontoModal.nsr) else state.registrarPontoModal.nsr,
+                                    nsrAutoFilled = configuracao.habilitarNsr && nsrLimpissimo != null,
                                     dataHora = resultado.hora?.let { 
                                         LocalDateTime.of(state.registrarPontoModal.dataHora.toLocalDate(), it)
                                     } ?: state.registrarPontoModal.dataHora,
+                                    horaAutoFilled = resultado.hora != null,
                                     fotoUri = finalUri,
                                     isProcessingOcr = false,
                                     ocrSucesso = true
@@ -795,7 +800,8 @@ class HomeViewModel @Inject constructor(
                 state.copy(
                     registrarPontoModal = modal.copy(
                         dataHora = novaDataHora,
-                        showTimePicker = false
+                        showTimePicker = false,
+                        horaAutoFilled = false
                     )
                 )
             } ?: state
