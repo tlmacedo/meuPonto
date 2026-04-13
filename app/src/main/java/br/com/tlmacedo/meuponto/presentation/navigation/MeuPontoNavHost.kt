@@ -44,6 +44,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.global.GlobalSettin
 import br.com.tlmacedo.meuponto.presentation.screen.settings.horarios.HorariosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.SettingsMainScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.AjudaScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.ReportarProblemaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
@@ -213,6 +214,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToAjuda = {
                 navController.navigate(MeuPontoDestinations.AJUDA)
+            },
+            onNavigateToReportarProblema = {
+                navController.navigate(MeuPontoDestinations.REPORTAR_PROBLEMA)
             },
             onNavigateToLixeira = {
                 navController.navigate(MeuPontoDestinations.LIXEIRA)
@@ -621,6 +625,12 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
 
     composable(MeuPontoDestinations.AJUDA) {
         AjudaScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(MeuPontoDestinations.REPORTAR_PROBLEMA) {
+        ReportarProblemaScreen(
             onNavigateBack = { navController.popBackStack() }
         )
     }

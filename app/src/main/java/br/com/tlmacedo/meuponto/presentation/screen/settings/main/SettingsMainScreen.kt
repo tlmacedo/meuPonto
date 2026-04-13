@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -109,6 +110,7 @@ fun SettingsMainScreen(
     onNavigateToBackup: () -> Unit,
     onNavigateToSobre: () -> Unit,
     onNavigateToAjuda: () -> Unit,
+    onNavigateToReportarProblema: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
@@ -146,6 +148,7 @@ fun SettingsMainScreen(
         onNavigateToBackup = onNavigateToBackup,
         onNavigateToSobre = onNavigateToSobre,
         onNavigateToAjuda = onNavigateToAjuda,
+        onNavigateToReportarProblema = onNavigateToReportarProblema,
         onNavigateToLixeira = onNavigateToLixeira,
         onNavigateToAuditoria = onNavigateToAuditoria,
         onNavigateToOpcoesRegistro = onNavigateToOpcoesRegistro,
@@ -174,6 +177,7 @@ fun SettingsMainContent(
     onNavigateToBackup: () -> Unit,
     onNavigateToSobre: () -> Unit,
     onNavigateToAjuda: () -> Unit,
+    onNavigateToReportarProblema: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
@@ -410,6 +414,12 @@ fun SettingsMainContent(
                             subtitle = "Suporte técnico e tutoriais",
                             icon = Icons.Outlined.QuestionMark,
                             onClick = onNavigateToAjuda
+                        )
+                        SettingsNavigationItem(
+                            title = "Reportar Problema",
+                            subtitle = "Beta: Erros, bugs ou sugestões",
+                            icon = Icons.Outlined.BugReport,
+                            onClick = onNavigateToReportarProblema
                         )
                     }
                 }
@@ -800,6 +810,7 @@ private fun SettingsMainContentPreview() {
             onNavigateToBackup = {},
             onNavigateToSobre = {},
             onNavigateToAjuda = {},
+            onNavigateToReportarProblema = {},
             onNavigateToLixeira = {},
             onNavigateToAuditoria = {},
             onNavigateToOpcoesRegistro = {},
