@@ -65,6 +65,7 @@ fun OpcoesRegistroScreen(
             when (evento) {
                 is OpcoesRegistroEvent.SalvoComSucesso -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
+                    onNavigateBack()
                 }
                 OpcoesRegistroEvent.Voltar -> onNavigateBack()
             }

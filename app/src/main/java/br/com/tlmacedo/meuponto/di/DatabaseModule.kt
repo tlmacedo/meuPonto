@@ -50,6 +50,7 @@ import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_31_32
 import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_32_33
 import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_33_34
 import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_34_35
+import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_35_36
 import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_3_4
 import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_4_5
 import br.com.tlmacedo.meuponto.data.local.database.migration.MIGRATION_5_6
@@ -85,7 +86,7 @@ object DatabaseModule {
                 MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
                 MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,
                 MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
-                MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35
+                MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36
             )
             .addCallback(createDatabaseCallback())
             .build()

@@ -48,8 +48,17 @@ class OpcoesRegistroViewModel @Inject constructor(
             is OpcoesRegistroAction.AlterarFotoHabilitada -> _uiState.update { it.copy(fotoHabilitada = action.habilitada) }
             is OpcoesRegistroAction.AlterarFotoObrigatoria -> _uiState.update { it.copy(fotoObrigatoria = action.obrigatoria) }
             is OpcoesRegistroAction.AlterarFotoValidarComprovante -> _uiState.update { it.copy(fotoValidarComprovante = action.validar) }
-            is OpcoesRegistroAction.AlterarComentarioHabilitado -> _uiState.update { it.copy(comentarioHabilitado = action.habilitado) }
-            is OpcoesRegistroAction.AlterarComentarioObrigatorioHoraExtra -> _uiState.update { it.copy(comentarioObrigatorioHoraExtra = action.obrigatorio) }
+            is OpcoesRegistroAction.AlterarComentarioHabilitado -> _uiState.update {
+                it.copy(
+                    comentarioHabilitado = action.habilitado,
+                    comentarioObrigatorioHoraExtra = if (!action.habilitado) false else it.comentarioObrigatorioHoraExtra
+                )
+            }
+            is OpcoesRegistroAction.AlterarComentarioObrigatorioHoraExtra -> {
+                if (_uiState.value.comentarioHabilitado) {
+                    _uiState.update { it.copy(comentarioObrigatorioHoraExtra = action.obrigatorio) }
+                }
+            }
             is OpcoesRegistroAction.AlterarExibirDuracaoTurno -> _uiState.update { it.copy(exibirDuracaoTurno = action.exibir) }
             is OpcoesRegistroAction.AlterarExibirDuracaoIntervalo -> _uiState.update { it.copy(exibirDuracaoIntervalo = action.exibir) }
             OpcoesRegistroAction.Salvar -> salvar()

@@ -838,7 +838,7 @@ class HomeViewModel @Inject constructor(
         }
 
         // Validar comentário obrigatório
-        val comentarioObrigatorio = _uiState.value.configuracaoEmprego?.comentarioObrigatorioHoraExtra == true && (_uiState.value.resumoDia.saldoDiaMinutos > 0)
+        val comentarioObrigatorio = _uiState.value.configuracaoEmprego?.comentarioObrigatorioHoraExtra == true && (_uiState.value.resumoDia.saldoDiaMinutos > 10)
         if (comentarioObrigatorio && modalState.observacao.isBlank()) {
             viewModelScope.launch {
                 _uiEvent.emit(HomeUiEvent.MostrarErro("A observação é obrigatória quando há horas extras."))

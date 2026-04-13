@@ -116,6 +116,15 @@ data class ConfiguracaoEmpregoEntity(
     val exibirDuracaoIntervalo: Boolean = true,
 
     // ════════════════════════════════════════════════════════════════════════
+    // COMENTÁRIO
+    // ════════════════════════════════════════════════════════════════════════
+
+    @ColumnInfo(defaultValue = "1")
+    val comentarioHabilitado: Boolean = true,
+    @ColumnInfo(defaultValue = "0")
+    val comentarioObrigatorioHoraExtra: Boolean = false,
+
+    // ════════════════════════════════════════════════════════════════════════
     // AUDITORIA
     // ════════════════════════════════════════════════════════════════════════
 
@@ -154,6 +163,8 @@ fun ConfiguracaoEmpregoEntity.toDomain(): ConfiguracaoEmprego =
         exigeJustificativaInconsistencia = exigeJustificativaInconsistencia,
         exibirDuracaoTurno = exibirDuracaoTurno,
         exibirDuracaoIntervalo = exibirDuracaoIntervalo,
+        comentarioHabilitado = comentarioHabilitado,
+        comentarioObrigatorioHoraExtra = comentarioObrigatorioHoraExtra,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )
@@ -189,6 +200,8 @@ fun ConfiguracaoEmprego.toEntity(): ConfiguracaoEmpregoEntity =
         exigeJustificativaInconsistencia = exigeJustificativaInconsistencia,
         exibirDuracaoTurno = exibirDuracaoTurno,
         exibirDuracaoIntervalo = exibirDuracaoIntervalo,
+        comentarioHabilitado = comentarioHabilitado,
+        comentarioObrigatorioHoraExtra = comentarioObrigatorioHoraExtra,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )
