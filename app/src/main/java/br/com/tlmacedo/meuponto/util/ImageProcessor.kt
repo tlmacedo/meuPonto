@@ -55,15 +55,15 @@ object ImageProcessor {
      * Aplica processamento otimizado para OCR: Corta conforme o overlay,
      * converte para tons de cinza e ajusta o contraste.
      *
-     * Atualizado para o layout Portrait:
-     * left: (1.0 - 0.75) / 2 = 0.125
-     * top: (1.0 - 0.6) / 2 = 0.2
-     * width: 0.75
-     * height: 0.6
+     * Atualizado para o layout Portrait (Recibo Vertical):
+     * left: (1.0 - 0.85) / 2 = 0.075
+     * top: (1.0 - 1.4 * aspect) * 0.35 -> Ajustado para ~0.15 fixo
+     * width: 0.85
+     * height: 0.7 (ajustado para o novo overlay vertical 1.4x)
      */
-    fun processForOcr(src: Bitmap, contrast: Float = 1.5f): Bitmap {
-        // Coordenadas do ReceiptOverlay (75% width, 60% height, centralizado)
-        val cropped = crop(src, 0.125f, 0.2f, 0.75f, 0.6f)
+    fun processForOcr(src: Bitmap, contrast: Float = 1.6f): Bitmap {
+        // Coordenadas aproximadas para o novo ReceiptOverlay vertical (85% width, 1.4x aspect height)
+        val cropped = crop(src, 0.075f, 0.15f, 0.85f, 0.7f)
         val grayscale = toGrayscale(cropped)
         val final = adjustContrast(grayscale, contrast)
         

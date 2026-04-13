@@ -74,6 +74,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import android.graphics.Matrix
+import androidx.exifinterface.media.ExifInterface
 import br.com.tlmacedo.meuponto.util.ImageProcessor
 import br.com.tlmacedo.meuponto.util.findActivity
 import com.google.mlkit.vision.common.InputImage
@@ -341,9 +343,9 @@ fun ReceiptOverlay(isDetected: Boolean) {
         val width = size.width
         val height = size.height
         
-        // Retângulo central (Estilo Google Pay - Proporção de cartão/recibo horizontal)
+        // Retângulo central (Proporção vertical para recibos)
         val rectWidth = width * 0.85f
-        val rectHeight = rectWidth * 0.55f 
+        val rectHeight = rectWidth * 1.4f 
         val left = (width - rectWidth) / 2
         val top = (height - rectHeight) * 0.35f // Levemente acima do centro
         
@@ -454,18 +456,35 @@ private fun takePhoto(
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                 // Processamento de imagem para melhorar OCR e Cortar exatamente conforme a máscara visual
                 try {
-                    val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
+                    val exif = ExifInterface(photoFile.absolutePath)
+                    val orientation = exif.getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL
+                    )
+
+                    val matrix = Matrix()
+                    when (orientation) {
+                        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                    }
+
+                    var bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
                     if (bitmap != null) {
-                        // 1. Calcular as coordenadas da máscara visual (ReceiptOverlay)
-                        // rectWidth = width * 0.85f
-                        // rectHeight = rectWidth * 0.55f
-                        // left = (width - rectWidth) / 2 = 0.075f
-                        // top = (height - rectHeight) * 0.35f
-                        
+                        // 1. Corrigir orientação primeiro
+                        if (orientation != ExifInterface.ORIENTATION_NORMAL) {
+                            val rotated = Bitmap.createBitmap(
+                                bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+                            )
+                            bitmap.recycle()
+                            bitmap = rotated
+                        }
+
+                        // 2. Calcular as coordenadas da máscara visual (ReceiptOverlay)
+                        // Agora que o bitmap está na orientação correta, usamos os mesmos parâmetros da UI
                         val relWidth = 0.85f
-                        // Precisamos considerar o Aspect Ratio do Bitmap (que deve ser igual ao da tela/preview)
                         val bitmapRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
-                        val relHeight = relWidth * 0.55f * bitmapRatio
+                        val relHeight = relWidth * 1.4f * bitmapRatio
                         
                         val relLeft = (1f - relWidth) / 2f
                         val relTop = (1f - relHeight) * 0.35f
@@ -477,21 +496,21 @@ private fun takePhoto(
                         val cropWidth = (relWidth + margin * 2).coerceAtMost(1f - cropLeft)
                         val cropHeight = (relHeight + margin * 2).coerceAtMost(1f - cropTop)
 
-                        // 2. Melhorar imagem (Cinza + Contraste) para facilitar o OCR
-                        val grayscale = ImageProcessor.toGrayscale(bitmap)
-                        val highContrast = ImageProcessor.adjustContrast(grayscale, 1.5f)
+                        // 3. Cortar o bitmap original (mais eficiente antes do processamento)
+                        val cropped = ImageProcessor.crop(bitmap, cropLeft, cropTop, cropWidth, cropHeight)
                         
-                        // 3. Cortar o bitmap
-                        val finalBitmap = ImageProcessor.crop(highContrast, cropLeft, cropTop, cropWidth, cropHeight)
+                        // 4. Melhorar imagem (Cinza + Contraste 1.6x) para facilitar o OCR
+                        val grayscale = ImageProcessor.toGrayscale(cropped)
+                        val finalBitmap = ImageProcessor.adjustContrast(grayscale, 1.6f)
                         
                         FileOutputStream(photoFile).use { out ->
                             finalBitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
                         }
                         
-                        grayscale.recycle()
-                        highContrast.recycle()
-                        finalBitmap.recycle()
                         bitmap.recycle()
+                        cropped.recycle()
+                        grayscale.recycle()
+                        finalBitmap.recycle()
                     }
                 } catch (e: Exception) {
                     Log.e("CameraCaptureScreen", "Erro ao processar imagem para recorte", e)
