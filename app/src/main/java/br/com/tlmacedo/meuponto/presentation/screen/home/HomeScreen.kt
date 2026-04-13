@@ -266,11 +266,9 @@ private fun HomeDialogs(
         onCameraResult = { success, origem -> if (success) onAction(HomeAction.ConfirmarFotoCamera) },
         onGalleryResult = { uri, origem -> uri?.let { onAction(HomeAction.SelecionarFotoComprovante(it, origem)) } },
         onPermissionDenied = { onAction(HomeAction.MostrarMensagem(it)) },
-        onLaunchCustomCamera = {
-            context.findActivity()?.let { activity ->
-                docScanner.startScan(activity, scannerLauncher)
-            }
-        }
+        onLaunchCustomCamera = { onAction(HomeAction.AbrirCameraCapture) },
+        docScanner = docScanner,
+        scannerLauncher = scannerLauncher
     )
 
     // 4. Modais de Ponto

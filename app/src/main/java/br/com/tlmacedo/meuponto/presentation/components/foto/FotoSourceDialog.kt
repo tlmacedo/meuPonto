@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,6 +43,7 @@ import androidx.compose.ui.window.Dialog
 fun FotoSourceDialog(
     onDismiss: () -> Unit,
     onCameraSelected: () -> Unit,
+    onCustomCameraSelected: () -> Unit,
     onGallerySelected: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -78,15 +80,21 @@ fun FotoSourceDialog(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     SourceOption(
-                        icon = Icons.Default.CameraAlt,
+                        icon = Icons.Default.DocumentScanner,
                         label = "Câmera",
-                        onClick = onCameraSelected  // NÃO chama onDismiss aqui!
+                        onClick = onCustomCameraSelected
                     )
+
+//                    SourceOption(
+//                        icon = Icons.Default.CameraAlt,
+//                        label = "Câmera",
+//                        onClick = onCameraSelected
+//                    )
 
                     SourceOption(
                         icon = Icons.Default.Photo,
                         label = "Galeria",
-                        onClick = onGallerySelected  // NÃO chama onDismiss aqui!
+                        onClick = onGallerySelected
                     )
                 }
 
