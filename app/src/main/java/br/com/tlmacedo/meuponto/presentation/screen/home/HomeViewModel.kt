@@ -6,8 +6,15 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.data.service.LocationService
+import br.com.tlmacedo.meuponto.data.local.database.entity.FotoComprovanteEntity
+import java.time.Instant
 import br.com.tlmacedo.meuponto.data.service.OcrService
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
+import br.com.tlmacedo.meuponto.data.local.database.dao.FotoComprovanteDao
+import br.com.tlmacedo.meuponto.domain.model.toTipoJornadaDia
+import br.com.tlmacedo.meuponto.util.foto.ImageHashCalculator
+import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
+import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
@@ -94,7 +101,9 @@ class HomeViewModel @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val authRepository: AuthRepository,
     private val locationService: LocationService,
-    private val ocrService: OcrService
+    private val ocrService: OcrService,
+    private val fotoComprovanteDao: FotoComprovanteDao,
+    private val imageHashCalculator: ImageHashCalculator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -285,7 +294,7 @@ class HomeViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             val modalState = _uiState.value.edicaoModal ?: return@launch
-            
+
             _uiState.update { state ->
                 state.copy(
                     edicaoModal = state.edicaoModal?.copy(isSaving = true)
@@ -305,12 +314,13 @@ class HomeViewModel @Inject constructor(
 
                 if (pontoAtual != null) {
                     var novoPath = pontoAtual.fotoComprovantePath
-                    
+
                     // Lógica de foto
                     if (modalState.fotoRemovida) {
                         novoPath = null
+                        fotoComprovanteDao.excluirPorPontoId(pontoId)
                     }
-                    
+
                     modalState.fotoUri?.let { uri ->
                         val dataHoraPonto = LocalDateTime.of(pontoAtual.data, hora)
                         val relativePath = comprovanteImageStorage.saveFromUri(
@@ -339,6 +349,11 @@ class HomeViewModel @Inject constructor(
                     )
 
                     pontoRepository.atualizar(pontoAtualizado)
+
+                    // Atualizar snapshot se houver foto
+                    novoPath?.let { path ->
+                        registrarSnapshotFotoComprovante(pontoId, path, modalState.fotoOrigem)
+                    }
                 }
 
                 _uiState.update { it.copy(edicaoModal = null) }
@@ -485,11 +500,27 @@ class HomeViewModel @Inject constructor(
             // Ao salvar no modal, o arquivo já é sobrescrito no disco.
             // Precisamos atualizar a origem da foto para "EDITADA" no banco de dados.
             try {
+                // Se o path for absoluto, converter para relativo se estiver dentro do dir de comprovantes
+                val relativePath = if (path.startsWith("/")) {
+                    val baseDir = comprovanteImageStorage.getComprovantesDirectory()?.absolutePath
+                    if (baseDir != null && path.startsWith(baseDir)) {
+                        path.substring(baseDir.length).removePrefix("/")
+                    } else {
+                        path
+                    }
+                } else {
+                    path
+                }
+
                 pontoRepository.atualizarFotoComprovante(
                     pontoId = pontoId,
-                    fotoPath = path,
+                    fotoPath = relativePath,
                     fotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.EDITADA
                 )
+
+                // Registrar Snapshot atualizado
+                registrarSnapshotFotoComprovante(pontoId, relativePath, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.EDITADA)
+
                 _uiEvent.emit(HomeUiEvent.MostrarMensagem("Foto editada e salva com sucesso"))
                 carregarPontosDoDia()
             } catch (e: Exception) {
@@ -550,12 +581,29 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        // OCR Real com Validações
-        if (uri != null && _uiState.value.configuracaoEmprego?.fotoRegistrarPontoOcr == true) {
+        // Bloqueio de duplicidade e OCR Real com Validações
+        if (uri != null) {
             viewModelScope.launch {
+                val configuracao = _uiState.value.configuracaoEmprego ?: return@launch
                 val dataSelecionada = _uiState.value.dataSelecionada
-                val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
+                val empregoAtivo = _uiState.value.empregoAtivo ?: return@launch
+                val empregoId = empregoAtivo.id
                 
+                // 1. SEMPRE verificar duplicidade pelo Hash MD5 (Independente da flag de validação)
+                val hash = imageHashCalculator.calculateMd5(uri)
+                if (hash != null) {
+                    val fotoExistente = fotoComprovanteDao.buscarPorHash(hash)
+                    if (fotoExistente != null) {
+                        limparFotoOcrInvalida()
+                        val dataFormatada = fotoExistente.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE DUPLICADO\n\nEste comprovante já foi registrado no dia $dataFormatada e não pode ser reutilizado."))
+                        return@launch
+                    }
+                }
+
+                // Só prossegue se o OCR estiver habilitado
+                if (configuracao.fotoRegistrarPontoOcr != true) return@launch
+
                 // Busca horários habituais para o triplo-check de hora
                 val diaSemana = DiaSemana.fromJavaDayOfWeek(dataSelecionada.dayOfWeek)
                 val horarioDia = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
@@ -566,7 +614,7 @@ class HomeViewModel @Inject constructor(
                     horarioDia?.saidaIdeal
                 )
 
-                // OCR Real com Validações (Suporte a múltiplos comprovantes)
+                // OCR Real (Suporte a múltiplos comprovantes)
                 val resultadosOcr = ocrService.extrairDadosMultiplosComprovantes(
                     uri = uri,
                     horariosHabituais = habituais,
@@ -575,46 +623,49 @@ class HomeViewModel @Inject constructor(
                 
                 if (resultadosOcr.isNotEmpty()) {
                     val nomeUsuario = usuarioLogado?.nome ?: ""
-                    val empregoAtivo = _uiState.value.empregoAtivo
+                    val validarComprovante = configuracao.fotoValidarComprovante
                     
-                    // Se houver apenas um comprovante válido
+                    // Se houver apenas um comprovante
                     if (resultadosOcr.size == 1) {
                         val resultado = resultadosOcr.first()
                         
-                        // 1. Validação de Data
-                        if (resultado.data != null && resultado.data != dataSelecionada) {
-                            limparFotoOcrInvalida()
-                            val dataFormatada = resultado.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                            _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nA data extraída ($dataFormatada) não corresponde ao dia selecionado."))
-                            return@launch
-                        }
-
-                        // 2. Validação de Usuário
-                        val nomeValido = resultado.nomeTrabalhador?.let { nomeExtraido ->
-                            nomeExtraido.contains(nomeUsuario, ignoreCase = true) || 
-                            nomeUsuario.contains(nomeExtraido, ignoreCase = true)
-                        } ?: true
-
-                        if (!nomeValido) {
-                            limparFotoOcrInvalida()
-                            _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nEste comprovante pertence a outro trabalhador (${resultado.nomeTrabalhador})."))
-                            return@launch
-                        }
-
-                        // 3. Validação de Empregador (CNPJ)
-                        if (resultado.cnpj != null && !empregoAtivo?.cnpj.isNullOrBlank()) {
-                            val cnpjComprovante = resultado.cnpj.replace(Regex("[^0-9]"), "")
-                            val cnpjEmprego = empregoAtivo?.cnpj?.replace(Regex("[^0-9]"), "")
-                            
-                            if (cnpjComprovante != cnpjEmprego) {
+                        // Validações Condicionais (Somente se fotoValidarComprovante estiver ativa)
+                        if (validarComprovante) {
+                            // 1. Validação de Data
+                            if (resultado.data != null && resultado.data != dataSelecionada) {
                                 limparFotoOcrInvalida()
-                                val empresaNome = resultado.razaoSocial ?: "outra empresa"
-                                _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nEste comprovante pertence a $empresaNome (CNPJ: ${resultado.cnpj})."))
+                                val dataFormatada = resultado.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nA data extraída ($dataFormatada) não corresponde ao dia selecionado."))
                                 return@launch
+                            }
+
+                            // 2. Validação de Usuário
+                            val nomeValido = resultado.nomeTrabalhador?.let { nomeExtraido ->
+                                nomeExtraido.contains(nomeUsuario, ignoreCase = true) || 
+                                nomeUsuario.contains(nomeExtraido, ignoreCase = true)
+                            } ?: true
+
+                            if (!nomeValido) {
+                                limparFotoOcrInvalida()
+                                _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nEste comprovante pertence a outro trabalhador (${resultado.nomeTrabalhador})."))
+                                return@launch
+                            }
+
+                            // 3. Validação de Empregador (CNPJ)
+                            if (resultado.cnpj != null && !empregoAtivo.cnpj.isNullOrBlank()) {
+                                val cnpjComprovante = resultado.cnpj.replace(Regex("[^0-9]"), "")
+                                val cnpjEmprego = empregoAtivo.cnpj.replace(Regex("[^0-9]"), "")
+                                
+                                if (cnpjComprovante != cnpjEmprego) {
+                                    limparFotoOcrInvalida()
+                                    val empresaNome = resultado.razaoSocial ?: "outra empresa"
+                                    _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nEste comprovante pertence a $empresaNome (CNPJ: ${resultado.cnpj})."))
+                                    return@launch
+                                }
                             }
                         }
 
-                        // 4. Sucesso nas validações -> Preencher campos
+                        // Sucesso (ou validações ignoradas) -> Preencher campos
                         val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
 
                         // Substituir imagem pela imagem recortada se disponível
@@ -623,7 +674,7 @@ class HomeViewModel @Inject constructor(
                         _uiState.update { state ->
                             state.copy(
                                 registrarPontoModal = state.registrarPontoModal?.copy(
-                                    nsr = nsrLimpissimo ?: state.registrarPontoModal.nsr,
+                                    nsr = if (configuracao.habilitarNsr) (nsrLimpissimo ?: state.registrarPontoModal.nsr) else state.registrarPontoModal.nsr,
                                     dataHora = resultado.hora?.let { 
                                         LocalDateTime.of(state.registrarPontoModal.dataHora.toLocalDate(), it)
                                     } ?: state.registrarPontoModal.dataHora,
@@ -633,11 +684,11 @@ class HomeViewModel @Inject constructor(
                                 )
                             )
                         }
-                        _uiEvent.emit(HomeUiEvent.MostrarMensagem("Dados validados e extraídos com sucesso!"))
+                        _uiEvent.emit(HomeUiEvent.MostrarMensagem("Dados extraídos com sucesso!"))
                     } else {
-                        // Múltiplos comprovantes
+                        // Múltiplos comprovantes (o processarMultiplosComprovantes também deve respeitar a flag)
                         _uiState.update { it.copy(registrarPontoModal = null) }
-                        processarMultiplosComprovantes(resultadosOcr, dataSelecionada, nomeUsuario, empregoAtivo)
+                        processarMultiplosComprovantes(resultadosOcr, dataSelecionada, nomeUsuario, empregoAtivo, configuracao)
                     }
                 } else {
                     _uiState.update { state ->
@@ -657,17 +708,32 @@ class HomeViewModel @Inject constructor(
         resultados: List<br.com.tlmacedo.meuponto.domain.model.PontoOcrResult>,
         dataSelecionada: LocalDate,
         nomeUsuario: String,
-        empregoAtivo: Emprego?
+        empregoAtivo: Emprego?,
+        configuracao: ConfiguracaoEmprego
     ) {
         val pontosParaRegistrar = mutableListOf<RegistrarPontoUseCase.Parametros>()
         val imagensParaSalvar = mutableListOf<Pair<Int, Uri>>()
         var erros = 0
+        val validarComprovante = configuracao.fotoValidarComprovante
 
         for (resultado in resultados) {
-            // Validações básicas por item
-            val dataValida = resultado.data == null || resultado.data == dataSelecionada
-            val nomeValido = resultado.nomeTrabalhador?.let { it.contains(nomeUsuario, ignoreCase = true) || nomeUsuario.contains(it, ignoreCase = true) } ?: true
-            val cnpjValido = if (resultado.cnpj != null && !empregoAtivo?.cnpj.isNullOrBlank()) {
+            // 1. Verificação de Duplicidade por Hash (Sempre obrigatória)
+            var isDuplicado = false
+            resultado.imagemRecortadaPath?.let { path ->
+                val hash = imageHashCalculator.calculateMd5(java.io.File(path))
+                if (hash != null && fotoComprovanteDao.buscarPorHash(hash) != null) {
+                    isDuplicado = true
+                }
+            }
+            if (isDuplicado) {
+                erros++
+                continue
+            }
+
+            // 2. Validações Condicionais
+            val dataValida = !validarComprovante || resultado.data == null || resultado.data == dataSelecionada
+            val nomeValido = !validarComprovante || resultado.nomeTrabalhador?.let { it.contains(nomeUsuario, ignoreCase = true) || nomeUsuario.contains(it, ignoreCase = true) } ?: true
+            val cnpjValido = if (validarComprovante && resultado.cnpj != null && !empregoAtivo?.cnpj.isNullOrBlank()) {
                 resultado.cnpj.replace(Regex("[^0-9]"), "") == empregoAtivo?.cnpj?.replace(Regex("[^0-9]"), "")
             } else true
 
@@ -678,7 +744,7 @@ class HomeViewModel @Inject constructor(
                 pontosParaRegistrar.add(RegistrarPontoUseCase.Parametros(
                     empregoId = empregoAtivo?.id ?: 0L,
                     dataHora = dataHora,
-                    nsr = nsr
+                    nsr = if (configuracao.habilitarNsr) nsr else null
                 ))
                 
                 resultado.imagemRecortadaPath?.let {
@@ -862,6 +928,22 @@ class HomeViewModel @Inject constructor(
                 longitude = modalState.longitude,
                 endereco = modalState.endereco
             )
+
+            // 1. Verificação de Duplicidade por Hash (Última trava antes de salvar)
+            modalState.fotoUri?.let { uri ->
+                val hash = imageHashCalculator.calculateMd5(uri)
+                if (hash != null) {
+                    val fotoExistente = fotoComprovanteDao.buscarPorHash(hash)
+                    if (fotoExistente != null) {
+                        _uiState.update { state ->
+                            state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                        }
+                        val dataFormatada = fotoExistente.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE DUPLICADO\n\nEste comprovante já foi registrado no dia $dataFormatada e não pode ser reutilizado."))
+                        return@launch
+                    }
+                }
+            }
 
             when (val resultado = registrarPontoUseCase(parametros)) {
                 is RegistrarPontoUseCase.Resultado.Sucesso -> {
@@ -1396,6 +1478,65 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private suspend fun registrarSnapshotFotoComprovante(
+        pontoId: Long,
+        relativePath: String,
+        fotoOrigem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem
+    ) {
+        try {
+            val baseDir = comprovanteImageStorage.getComprovantesDirectory()
+            val file = if (relativePath.startsWith("/")) java.io.File(relativePath)
+            else java.io.File(baseDir, relativePath)
+
+            if (!file.exists()) {
+                android.util.Log.e("HomeViewModel", "Arquivo não encontrado para snapshot: ${file.absolutePath}")
+                return
+            }
+
+            val hash = imageHashCalculator.calculateMd5(file) ?: ""
+            val size = file.length()
+
+            val ponto = pontoRepository.buscarPorId(pontoId) ?: return
+            val empregoId = ponto.empregoId
+            val data = ponto.data
+            val versao = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+
+            val resumo = obterResumoDiaCompletoUseCase(empregoId, data)
+            val pontosOrdenados = resumo.pontos.sortedBy { it.dataHora }
+            val indice = pontosOrdenados.indexOfFirst { it.id == pontoId } + 1
+
+            val saldoBanco = _uiState.value.bancoHoras.saldoTotalMinutos
+            val existente = fotoComprovanteDao.buscarPorPontoId(pontoId)
+
+            val entity = FotoComprovanteEntity(
+                id = existente?.id ?: 0L,
+                pontoId = pontoId,
+                empregoId = empregoId,
+                data = data,
+                diaSemana = data.dayOfWeek,
+                hora = ponto.dataHora.toLocalTime(),
+                indicePontoDia = if (indice > 0) indice else 0,
+                nsr = ponto.nsr,
+                versaoJornada = versao?.numeroVersao ?: 0,
+                tipoJornadaDia = resumo.tipoDiaEspecial.toTipoJornadaDia(),
+                horasTrabalhadasDiaMinutos = resumo.horasTrabalhadasMinutos.toLong(),
+                saldoDiaMinutos = resumo.saldoDiaMinutos.toLong(),
+                saldoBancoHorasMinutos = saldoBanco.toLong(),
+                fotoPath = relativePath,
+                fotoTimestamp = Instant.now(),
+                fotoOrigem = fotoOrigem,
+                fotoTamanhoBytes = size,
+                fotoHashMd5 = hash,
+                criadoEm = existente?.criadoEm ?: Instant.now(),
+                atualizadoEm = Instant.now()
+            )
+
+            fotoComprovanteDao.inserir(entity)
+        } catch (e: Exception) {
+            android.util.Log.e("HomeViewModel", "Erro ao registrar snapshot: ${e.message}")
+        }
+    }
+
     private suspend fun salvarFotoComprovante(
         uri: Uri,
         pontoId: Long,
@@ -1412,13 +1553,18 @@ class HomeViewModel @Inject constructor(
             )
 
             if (relativePath != null) {
+                // 1. Atualiza o path no PontoEntity (legado/compatibilidade)
                 pontoRepository.atualizarFotoComprovante(pontoId, relativePath, fotoOrigem)
-                android.util.Log.d("HomeViewModel", "Foto salva: $relativePath")
+
+                // 2. Criar Snapshot completo na FotoComprovanteEntity para Auditoria
+                registrarSnapshotFotoComprovante(pontoId, relativePath, fotoOrigem)
+
+                android.util.Log.d("HomeViewModel", "Foto salva e snapshot criado: $relativePath")
             } else {
                 android.util.Log.w("HomeViewModel", "Falha ao salvar foto")
             }
         } catch (e: Exception) {
-            android.util.Log.e("HomeViewModel", "Erro ao salvar foto: ${e.message}")
+            android.util.Log.e("HomeViewModel", "Erro ao salvar foto comprovante: ${e.message}")
         }
     }
 
