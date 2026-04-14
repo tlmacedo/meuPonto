@@ -28,7 +28,8 @@ val MIGRATION_35_36 = object : Migration(35, 36) {
             "bancoHorasZerarAoFinalCiclo" to "INTEGER NOT NULL DEFAULT 0",
             "exigeJustificativaInconsistencia" to "INTEGER NOT NULL DEFAULT 0",
             "comentarioHabilitado" to "INTEGER NOT NULL DEFAULT 1",
-            "comentarioObrigatorioHoraExtra" to "INTEGER NOT NULL DEFAULT 0"
+            "comentarioObrigatorioHoraExtra" to "INTEGER NOT NULL DEFAULT 0",
+            "limiteHoraExtraSemComentario" to "INTEGER NOT NULL DEFAULT 0"
         )
 
         configFields.forEach { (col, type) ->

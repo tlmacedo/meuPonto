@@ -305,7 +305,9 @@ private fun HomeDialogs(
             tipoNsr = uiState.tipoNsr, fotoHabilitada = uiState.fotoHabilitada, fotoObrigatoria = uiState.fotoObrigatoria,
             configLocalizacaoHabilitada = uiState.localizacaoHabilitada,
             comentarioHabilitado = uiState.configuracaoEmprego?.comentarioHabilitado == true,
-            comentarioObrigatorio = uiState.configuracaoEmprego?.comentarioObrigatorioHoraExtra == true && (uiState.resumoDia.saldoDiaMinutos > 10),
+            comentarioObrigatorio = uiState.configuracaoEmprego?.let { config ->
+                config.comentarioObrigatorioHoraExtra && (uiState.resumoDia.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
+            } ?: false,
             onNsrChange = { onAction(HomeAction.AtualizarNsrRegistroModal(it)) },
             onObservacaoChange = { onAction(HomeAction.AtualizarObservacaoRegistroModal(it)) },
             onCapturarFoto = { onAction(HomeAction.AbrirFotoSourceDialog) },
@@ -348,7 +350,13 @@ internal fun HomeContent(
                 }
             }
 
-            ResumoCard(uiState.resumoDia, uiState.bancoHoras, modifier = Modifier.fillMaxWidth())
+            ResumoCard(
+                resumoDia = uiState.resumoDia,
+                bancoHoras = uiState.bancoHoras,
+                horaAtual = uiState.horaAtual,
+                versaoJornada = uiState.versaoJornadaAtual,
+                modifier = Modifier.fillMaxWidth()
+            )
             ProximoPontoCard(uiState.proximoTipo, uiState.horaAtual, { if (!uiState.isFuturo) onAction(HomeAction.RegistrarPontoAgora) }, modifier = Modifier.fillMaxWidth(), habilitado = !uiState.isFuturo && uiState.empregoAtivo != null)
 
             FeriadoBanner(uiState.feriadosDoDia)

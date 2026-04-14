@@ -188,7 +188,8 @@ class OcrService @Inject constructor(
                 ?: return null
 
             val processedBitmap = if (aplicarFiltros) {
-                ImageProcessor.processForOcr(originalBitmap)
+                // Aplica apenas filtros (grayscale/contraste) pois a imagem da câmera já vem recortada
+                br.com.tlmacedo.meuponto.util.ImageProcessor.applyOcrFilters(originalBitmap)
             } else {
                 originalBitmap
             }

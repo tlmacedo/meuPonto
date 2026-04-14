@@ -345,16 +345,6 @@ fun SettingsMainContent(
                             icon = Icons.Outlined.Security,
                             onClick = onNavigateToPrivacidade
                         )
-
-                        // Opções de Registro do Emprego Ativo
-                        uiState.empregoAtualId?.let { empregoId ->
-                            SettingsNavigationItem(
-                                title = "Opções de Registro",
-                                subtitle = "NSR, Localização e Comprovantes",
-                                icon = Icons.Outlined.Settings,
-                                onClick = { onNavigateToOpcoesRegistro(empregoId) }
-                            )
-                        }
                     }
                 }
             }

@@ -102,6 +102,9 @@ data class ConfiguracaoEmprego(
     /** Torna o comentário obrigatório caso haja hora extra no dia */
     val comentarioObrigatorioHoraExtra: Boolean = false,
 
+    /** Limite de minutos de hora extra permitidos sem comentário (se comentarioObrigatorioHoraExtra for true) */
+    val limiteHoraExtraSemComentario: Int = 0,
+
     // ════════════════════════════════════════════════════════════════════════
     // EXIBIÇÃO
     // ════════════════════════════════════════════════════════════════════════

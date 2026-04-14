@@ -20,18 +20,16 @@ import javax.inject.Inject
  * REGRAS DE TOLERÂNCIA:
  *
  * 1. ENTRADA (primeiro turno - índice 0):
- *    - Se bateu ANTES do horário ideal (ex: 07:55 para entrada às 08:00)
- *    - E está dentro da tolerância fixa de 10 minutos
- *    - Considera o horário ideal (08:00)
+ *    - Não há mais tolerância na entrada. horaConsiderada = hora real.
  *
- * 2. VOLTA DO INTERVALO (índice 2, 4, etc - entradas após saída):
- *    - Calcula hora ideal de volta = hora real da saída anterior + intervalo mínimo
- *    - Se bateu DEPOIS da hora ideal de volta (ex: 14:07 para volta às 13:47)
- *    - E está dentro da tolerância de intervalo configurada NA VERSÃO DA JORNADA
- *    - Considera o horário ideal (13:47)
+ * 2. VOLTA DO INTERVALO DE ALMOÇO (apenas uma vez ao dia):
+ *    - Identifica se o intervalo é o de almoço (baseado na proximidade com o saidaIntervaloIdeal).
+ *    - Calcula hora ideal de volta = hora real da saída anterior + intervalo mínimo.
+ *    - Se bateu DEPOIS da hora ideal de volta e está dentro da tolerância de intervalo.
+ *    - Considera o horário ideal.
  *
- * 3. SAÍDAS (índices ímpares):
- *    - Não aplicamos tolerância em saídas
+ * 3. OUTROS INTERVALOS E SAÍDAS:
+ *    - Não aplicamos tolerância.
  *    - horaConsiderada = hora real
  *
  * @author Thiago
@@ -50,11 +48,6 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
 
     /**
      * Calcula a hora considerada para um novo ponto.
-     *
-     * @param empregoId ID do emprego
-     * @param dataHora Data e hora real do ponto
-     * @param indicePonto Índice do ponto no dia (0 = primeira entrada, 1 = primeira saída, etc)
-     * @return LocalTime com a hora considerada
      */
     suspend operator fun invoke(
         empregoId: Long,
@@ -63,31 +56,25 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
     ): LocalTime {
         val horaReal = dataHora.toLocalTime()
 
-        // Busca a versão da jornada vigente para a data do ponto
+        // Busca a versão da jornada vigente
         val versao = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, dataHora.toLocalDate())
-            ?: return horaReal // Sem versão = sem tolerância
+            ?: return horaReal
 
-        // Busca configuração do dia para esta versão específica
+        // Busca configuração do dia
         val diaSemana = DiaSemana.fromJavaDayOfWeek(dataHora.dayOfWeek)
         val horarioDia = horarioDiaSemanaRepository.buscarPorVersaoEDia(versao.id, diaSemana)
 
-        // Saídas não têm tolerância
-        val isSaida = indicePonto % 2 != 0
-        if (isSaida) return horaReal
+        // Apenas entradas pares (exceto a primeira) podem ter tolerância de intervalo
+        val isVoltaIntervalo = indicePonto > 0 && indicePonto % 2 == 0
+        if (!isVoltaIntervalo) return horaReal
 
-        // Determina qual tolerância aplicar baseado no índice
-        return when (indicePonto) {
-            0 -> {
-                // Se não há horário configurado para o dia (ex: Sábado), não há tolerância de entrada (atraso/adiantado)
-                if (horarioDia == null) return horaReal
-                calcularToleranciaEntrada(dataHora, horarioDia)
-            }
-            else -> {
-                // Para volta de intervalo, usamos o intervalo mínimo do dia OU o padrão de 60 min se for sábado
-                val intervaloMinimo = horarioDia?.intervaloMinimoMinutos ?: 60
-                calcularToleranciaVoltaIntervalo(empregoId, dataHora, versao, intervaloMinimo, indicePonto)
-            }
-        }
+        // Para volta de intervalo, verificamos se é o almoço
+        val intervaloMinimo = horarioDia?.intervaloMinimoMinutos ?: 60
+        val saidaIntervaloIdeal = horarioDia?.saidaIntervaloIdeal
+
+        return calcularToleranciaVoltaIntervalo(
+            empregoId, dataHora, versao, intervaloMinimo, indicePonto, saidaIntervaloIdeal
+        )
     }
 
     /**
@@ -118,51 +105,50 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
 
     /**
      * Calcula tolerância para VOLTA DO INTERVALO.
-     * horaIdealVolta = horaSaidaIntervaloReal + intervaloMinimoMinutos
+     * REGRA: Apenas para o intervalo de almoço identificado por proximidade do horário ideal.
      */
     private suspend fun calcularToleranciaVoltaIntervalo(
         empregoId: Long,
         dataHora: LocalDateTime,
         versao: VersaoJornada,
         intervaloMinimoMinutos: Int,
-        indicePonto: Int
+        indicePonto: Int,
+        saidaIntervaloIdeal: LocalTime?
     ): LocalTime {
         val horaReal = dataHora.toLocalTime()
-
-        // Verifica se há tolerância configurada na VERSÃO da jornada
         val toleranciaMinutos = versao.toleranciaIntervaloMaisMinutos
-        if (toleranciaMinutos <= 0) {
-            Timber.d("Sem tolerância de intervalo configurada na versão")
-            return horaReal
-        }
 
-        // Busca os pontos do dia para encontrar a saída anterior
+        if (toleranciaMinutos <= 0) return horaReal
+
+        // Busca os pontos do dia
         val pontosNoDia = pontoRepository.buscarPorEmpregoEData(empregoId, dataHora.toLocalDate())
             .sortedBy { it.dataHora }
 
         val indiceSaidaAnterior = indicePonto - 1
-        if (indiceSaidaAnterior < 0 || indiceSaidaAnterior >= pontosNoDia.size) {
-            Timber.w("Saída anterior não encontrada para índice %d", indicePonto)
-            return horaReal
-        }
+        if (indiceSaidaAnterior < 0 || indiceSaidaAnterior >= pontosNoDia.size) return horaReal
 
         val pontoSaidaAnterior = pontosNoDia[indiceSaidaAnterior]
-        val horaSaidaReal = pontoSaidaAnterior.horaConsiderada
+        val horaSaidaReal = pontoSaidaAnterior.dataHora.toLocalTime()
 
-        // Calcula hora ideal de volta = hora da saída + intervalo mínimo
-        val intervaloMinimoLong = intervaloMinimoMinutos.toLong()
-        val horaIdealVolta = horaSaidaReal.plusMinutes(intervaloMinimoLong)
+        // 1. Verifica se este é o intervalo de almoço (proximidade com o ideal)
+        // Se não houver ideal, qualquer intervalo >= mínimo pode ser candidato, mas priorizamos o primeiro
+        val isAlmoco = if (saidaIntervaloIdeal != null) {
+            Math.abs(Duration.between(horaSaidaReal, saidaIntervaloIdeal).toMinutes()) <= 120 // 2h de margem
+        } else {
+            // Se não tem horário ideal, assume que o primeiro intervalo longo do dia é o almoço
+            indicePonto == 2
+        }
 
-        val diferencaMinutos = Duration.between(horaIdealVolta, horaReal).toMinutes()
+        if (!isAlmoco) return horaReal
 
-        Timber.d(
-            "Cálculo volta intervalo: saidaReal=%s, intervaloMin=%d, horaIdealVolta=%s, horaReal=%s, diferença=%dmin, tolerância=%dmin",
-            horaSaidaReal, intervaloMinimoMinutos, horaIdealVolta, horaReal, diferencaMinutos, toleranciaMinutos
-        )
+        // 2. Calcula hora ideal de volta e verifica a duração real
+        val intervaloRealMinutos = Duration.between(pontoSaidaAnterior.dataHora, dataHora).toMinutes()
+        val horaIdealVolta = pontoSaidaAnterior.horaConsiderada.plusMinutes(intervaloMinimoMinutos.toLong())
 
-        // Se bateu DEPOIS do ideal e dentro da tolerância
-        if (diferencaMinutos > 0 && diferencaMinutos <= toleranciaMinutos) {
-            Timber.d("Tolerância volta intervalo aplicada: real=%s → considerado=%s", horaReal, horaIdealVolta)
+        val dentroTolerancia = intervaloRealMinutos in (intervaloMinimoMinutos.toLong()..(intervaloMinimoMinutos + toleranciaMinutos).toLong())
+
+        if (dentroTolerancia && horaReal.isAfter(horaIdealVolta)) {
+            Timber.d("Tolerância ALMOÇO aplicada: real=%s → considerado=%s", horaReal, horaIdealVolta)
             return horaIdealVolta
         }
 

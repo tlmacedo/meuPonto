@@ -123,6 +123,8 @@ data class ConfiguracaoEmpregoEntity(
     val comentarioHabilitado: Boolean = true,
     @ColumnInfo(defaultValue = "0")
     val comentarioObrigatorioHoraExtra: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val limiteHoraExtraSemComentario: Int = 0,
 
     // ════════════════════════════════════════════════════════════════════════
     // AUDITORIA
@@ -165,6 +167,7 @@ fun ConfiguracaoEmpregoEntity.toDomain(): ConfiguracaoEmprego =
         exibirDuracaoIntervalo = exibirDuracaoIntervalo,
         comentarioHabilitado = comentarioHabilitado,
         comentarioObrigatorioHoraExtra = comentarioObrigatorioHoraExtra,
+        limiteHoraExtraSemComentario = limiteHoraExtraSemComentario,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )
@@ -202,6 +205,7 @@ fun ConfiguracaoEmprego.toEntity(): ConfiguracaoEmpregoEntity =
         exibirDuracaoIntervalo = exibirDuracaoIntervalo,
         comentarioHabilitado = comentarioHabilitado,
         comentarioObrigatorioHoraExtra = comentarioObrigatorioHoraExtra,
+        limiteHoraExtraSemComentario = limiteHoraExtraSemComentario,
         criadoEm = criadoEm,
         atualizadoEm = atualizadoEm
     )

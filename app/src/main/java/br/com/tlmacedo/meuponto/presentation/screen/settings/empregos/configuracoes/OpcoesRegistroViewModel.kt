@@ -59,6 +59,7 @@ class OpcoesRegistroViewModel @Inject constructor(
                     _uiState.update { it.copy(comentarioObrigatorioHoraExtra = action.obrigatorio) }
                 }
             }
+            is OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario -> _uiState.update { it.copy(limiteHoraExtraSemComentario = action.limite) }
             is OpcoesRegistroAction.AlterarExibirDuracaoTurno -> _uiState.update { it.copy(exibirDuracaoTurno = action.exibir) }
             is OpcoesRegistroAction.AlterarExibirDuracaoIntervalo -> _uiState.update { it.copy(exibirDuracaoIntervalo = action.exibir) }
             OpcoesRegistroAction.Salvar -> salvar()
@@ -90,6 +91,7 @@ class OpcoesRegistroViewModel @Inject constructor(
                     fotoValidarComprovante = config?.fotoValidarComprovante ?: false,
                     comentarioHabilitado = config?.comentarioHabilitado ?: false,
                     comentarioObrigatorioHoraExtra = config?.comentarioObrigatorioHoraExtra ?: false,
+                    limiteHoraExtraSemComentario = config?.limiteHoraExtraSemComentario ?: 0,
                     exibirDuracaoTurno = config?.exibirDuracaoTurno ?: true,
                     exibirDuracaoIntervalo = config?.exibirDuracaoIntervalo ?: true
                 )
@@ -110,6 +112,7 @@ class OpcoesRegistroViewModel @Inject constructor(
             fotoValidarComprovante = configAtual.fotoValidarComprovante,
             comentarioHabilitado = configAtual.comentarioHabilitado,
             comentarioObrigatorioHoraExtra = configAtual.comentarioObrigatorioHoraExtra,
+            limiteHoraExtraSemComentario = configAtual.limiteHoraExtraSemComentario,
             exibirDuracaoTurno = configAtual.exibirDuracaoTurno,
             exibirDuracaoIntervalo = configAtual.exibirDuracaoIntervalo
         )
@@ -144,6 +147,7 @@ data class OpcoesRegistroUiState(
     val fotoValidarComprovante: Boolean = false,
     val comentarioHabilitado: Boolean = false,
     val comentarioObrigatorioHoraExtra: Boolean = false,
+    val limiteHoraExtraSemComentario: Int = 0,
     val exibirDuracaoTurno: Boolean = true,
     val exibirDuracaoIntervalo: Boolean = true
 )
@@ -159,6 +163,7 @@ sealed interface OpcoesRegistroAction {
     data class AlterarFotoValidarComprovante(val validar: Boolean) : OpcoesRegistroAction
     data class AlterarComentarioHabilitado(val habilitado: Boolean) : OpcoesRegistroAction
     data class AlterarComentarioObrigatorioHoraExtra(val obrigatorio: Boolean) : OpcoesRegistroAction
+    data class AlterarLimiteHoraExtraSemComentario(val limite: Int) : OpcoesRegistroAction
     data class AlterarExibirDuracaoTurno(val exibir: Boolean) : OpcoesRegistroAction
     data class AlterarExibirDuracaoIntervalo(val exibir: Boolean) : OpcoesRegistroAction
     data object Salvar : OpcoesRegistroAction

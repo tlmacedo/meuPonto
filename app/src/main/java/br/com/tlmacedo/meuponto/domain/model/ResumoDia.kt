@@ -219,11 +219,17 @@ data class ResumoDia(
      * Total de horas trabalhadas (CALCULADO A PARTIR DOS INTERVALOS FECHADOS).
      * NÃO inclui o tempo em andamento de turnos abertos.
      * NÃO inclui o tempo abonado (que é somado apenas no saldo).
+     *
+     * Regra: Só começa a contabilizar se tiver no mínimo um registro no dia.
      */
     val horasTrabalhadas: Duration by lazy {
-        intervalos
-            .mapNotNull { it.duracao }
-            .fold(Duration.ZERO) { acc, duracao -> acc.plus(duracao) }
+        if (pontos.isEmpty()) {
+            Duration.ZERO
+        } else {
+            intervalos
+                .mapNotNull { it.duracao }
+                .fold(Duration.ZERO) { acc, duracao -> acc.plus(duracao) }
+        }
     }
 
     /**
@@ -291,13 +297,14 @@ data class ResumoDia(
      *
      * REGRAS:
      * - Dias futuros: saldo = 0 (não calculado)
+     * - Sem pontos: saldo = 0 (só começa a contabilizar se tiver no mínimo um registro)
      * - Jornada zerada: saldo = trabalhado + abonado - 0 = trabalhado + abonado
      * - Jornada normal: saldo = trabalhado + abonado - jornada (pode ser negativo)
      */
     val saldoDia: Duration
         get() {
-            // Dias futuros não têm saldo calculado
-            if (isFuturo) return Duration.ZERO
+            // Dias futuros e sem pontos não têm saldo calculado
+            if (isFuturo || pontos.isEmpty()) return Duration.ZERO
 
             return horasTrabalhadas.plus(tempoAbonado).minus(cargaHorariaEfetiva)
         }
@@ -306,11 +313,11 @@ data class ResumoDia(
      * Saldo do dia INCLUINDO tempo em andamento.
      * Use esta propriedade para exibição em tempo real na UI.
      *
-     * Para dias futuros, retorna sempre ZERO.
+     * Para dias futuros ou sem registros, retorna sempre ZERO.
      */
     fun saldoDiaComAndamento(horaAtual: LocalTime = LocalTime.now()): Duration {
-        // Dias futuros não têm saldo calculado
-        if (isFuturo) return Duration.ZERO
+        // Dias futuros e sem pontos não têm saldo calculado
+        if (isFuturo || pontos.isEmpty()) return Duration.ZERO
 
         return horasTrabalhadasComAndamento(horaAtual).plus(tempoAbonado).minus(cargaHorariaEfetiva)
     }
@@ -536,10 +543,11 @@ data class ResumoDia(
      * Calcula os intervalos aplicando tolerância APENAS UMA VEZ.
      *
      * REGRA:
-     * - Identifica todas as pausas elegíveis (entre intervaloMinimoMinutos e intervaloMinimoMinutos + tolerancia)
-     * - Seleciona a pausa cujo horário de saída (início da pausa) seja mais próximo do saidaIntervaloIdeal
-     * - Se não houver saidaIntervaloIdeal, seleciona a primeira pausa elegível com duração >= intervaloMinimoMinutos
-     * - Apenas essa pausa recebe a tolerância e é marcada como "pausa principal" (almoço)
+     * - Não existe tolerância no primeiro registro do dia (entrada).
+     * - A tolerância é aplicada APENAS na volta do intervalo do almoço.
+     * - O intervalo do almoço é identificado como aquele que tem duração >= intervaloMinimoMinutos
+     *   e cujo horário de saída seja mais próximo do saidaIntervaloIdeal.
+     * - Apenas essa pausa recebe a tolerância e é marcada como "pausa principal" (almoço).
      */
     private fun calcularIntervalos(): List<IntervaloPonto> {
         val pontosOrdenados = pontos.sortedBy { it.dataHora }
@@ -605,7 +613,7 @@ data class ResumoDia(
             null
         }
 
-        // A tolerância só é aplicada na pausa principal (se elegível)
+        // A tolerância só é aplicada na pausa principal (se elegivel)
         val indicePausaComTolerancia: Int? = indicePausaPrincipal?.let { idx ->
             val info = infoPausas.find { it.indice == idx }
             if (info?.elegivelTolerancia == true) idx else null

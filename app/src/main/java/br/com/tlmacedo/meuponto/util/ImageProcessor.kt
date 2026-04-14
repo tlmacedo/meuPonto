@@ -52,21 +52,32 @@ object ImageProcessor {
     }
 
     /**
-     * Aplica processamento otimizado para OCR: Corta conforme o overlay (com margem de 50%),
-     * converte para tons de cinza e ajusta o contraste.
-     *
-     * Atualizado para o layout "Cartão de Crédito" (Overlay curto 0.63x):
+     * Aplica filtros de melhoria para OCR (Grayscale e Contraste) sem recortar.
      */
-    fun processForOcr(src: Bitmap, contrast: Float = 1.6f): Bitmap {
+    fun applyOcrFilters(src: Bitmap, contrast: Float = 1.6f): Bitmap {
+        val grayscale = toGrayscale(src)
+        val final = adjustContrast(grayscale, contrast)
+        
+        if (grayscale != src && grayscale != final) grayscale.recycle()
+        
+        return final
+    }
+
+    /**
+     * Recorta o bitmap conforme o overlay da câmera, aplicando margem de segurança.
+     * Alinhado com a proporção de máscara 0.63.
+     */
+    fun cropForOcr(src: Bitmap): Bitmap {
         val relWidth = 0.85f
         val bitmapRatio = src.width.toFloat() / src.height.toFloat()
-        val relHeight = 0.60f * relWidth * bitmapRatio
+        // Proporção da máscara ajustada para 0.63 conforme requisito
+        val relHeight = 0.63f * relWidth * bitmapRatio
         
         val relLeft = (1f - relWidth) / 2f
         val relTop = (1f - relHeight) * 0.30f
         
-        // Margem de 50% sobre as dimensões da máscara para garantir captura do contexto
-        val marginFactor = 0.95f
+        // Margem de segurança de 50% sobre as dimensões da máscara
+        val marginFactor = 0.50f
         val marginW = relWidth * marginFactor
         val marginH = relHeight * marginFactor
 
@@ -75,12 +86,18 @@ object ImageProcessor {
         val cropWidth = (relWidth + 2 * marginW).coerceAtMost(1f - cropLeft)
         val cropHeight = (relHeight + 2 * marginH).coerceAtMost(1f - cropTop)
 
-        val cropped = crop(src, cropLeft, cropTop, cropWidth, cropHeight)
-        val grayscale = toGrayscale(cropped)
-        val final = adjustContrast(grayscale, contrast)
+        return crop(src, cropLeft, cropTop, cropWidth, cropHeight)
+    }
+
+    /**
+     * Aplica processamento otimizado para OCR: Corta conforme o overlay
+     * e aplica filtros de imagem.
+     */
+    fun processForOcr(src: Bitmap, contrast: Float = 1.6f): Bitmap {
+        val cropped = cropForOcr(src)
+        val final = applyOcrFilters(cropped, contrast)
         
-        if (cropped != src) cropped.recycle()
-        if (grayscale != final) grayscale.recycle()
+        if (cropped != src && cropped != final) cropped.recycle()
         
         return final
     }

@@ -270,27 +270,6 @@ private fun EmpregoSettingsDetailContent(
                     )
                 }
 
-                // SEÇÃO: CONFIGURAÇÃO GERAL
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsSectionHeader(
-                        title = "Configuração Geral",
-                        icon = Icons.Default.Settings
-                    )
-                    SettingsNavigationItem(
-                        icon = Icons.Default.CalendarMonth,
-                        title = "Info RH e Banco de Horas",
-                        subtitle = buildString {
-                            uiState.configuracao?.let { cfg ->
-                                append("Fechamento dia ${cfg.diaInicioFechamentoRH}")
-                                if (cfg.bancoHorasHabilitado) {
-                                    append(" • Banco de horas: ${cfg.bancoHorasCicloMeses} meses")
-                                }
-                            } ?: append("Dia de fechamento, ciclos e banco de horas")
-                        },
-                        onClick = onNavigateToEditar
-                    )
-                }
-
                 // SEÇÃO: OPÇÕES DE REGISTRO
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SettingsSectionHeader(
@@ -312,6 +291,27 @@ private fun EmpregoSettingsDetailContent(
                             } ?: append("NSR, Localização, Foto e Justificativas")
                         },
                         onClick = onNavigateToOpcoesRegistro
+                    )
+                }
+
+                // SEÇÃO: CONFIGURAÇÃO GERAL
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsSectionHeader(
+                        title = "Configuração Geral",
+                        icon = Icons.Default.Settings
+                    )
+                    SettingsNavigationItem(
+                        icon = Icons.Default.CalendarMonth,
+                        title = "Info RH e Banco de Horas",
+                        subtitle = buildString {
+                            uiState.configuracao?.let { cfg ->
+                                append("Fechamento dia ${cfg.diaInicioFechamentoRH}")
+                                if (cfg.bancoHorasHabilitado) {
+                                    append(" • Banco de horas: ${cfg.bancoHorasCicloMeses} meses")
+                                }
+                            } ?: append("Dia de fechamento, ciclos e banco de horas")
+                        },
+                        onClick = onNavigateToEditar
                     )
                 }
 

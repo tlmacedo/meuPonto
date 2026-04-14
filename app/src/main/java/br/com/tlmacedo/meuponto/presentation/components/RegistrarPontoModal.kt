@@ -227,7 +227,7 @@ fun RegistrarPontoModal(
                                 model = state.fotoUri,
                                 contentDescription = "Comprovante",
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Fit
                             )
                             Surface(
                                 color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),

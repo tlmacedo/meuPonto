@@ -244,6 +244,39 @@ private fun OpcoesRegistroContent(
                             checked = uiState.comentarioObrigatorioHoraExtra,
                             onCheckedChange = { onAction(OpcoesRegistroAction.AlterarComentarioObrigatorioHoraExtra(it)) }
                         )
+
+                        AnimatedVisibility(visible = uiState.comentarioObrigatorioHoraExtra) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp, start = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Limite de tolerância (minutos)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "Comentário será obrigatório apenas se a hora extra do dia exceder este valor.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    br.com.tlmacedo.meuponto.presentation.components.NumberPicker(
+                                        value = uiState.limiteHoraExtraSemComentario,
+                                        onValueChange = { onAction(OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario(it)) },
+                                        range = 0..120,
+                                        suffix = " min"
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
