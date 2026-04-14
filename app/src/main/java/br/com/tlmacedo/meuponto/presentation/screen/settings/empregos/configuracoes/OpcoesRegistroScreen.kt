@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -252,27 +253,32 @@ private fun OpcoesRegistroContent(
                                     .padding(top = 12.dp, start = 8.dp)
                             ) {
                                 Text(
-                                    text = "Limite de tolerância (minutos)",
+                                    text = "Tempo permitido de hora extra sem justificativa (minutos)",
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "Comentário será obrigatório apenas se a hora extra do dia exceder este valor.",
+                                    text = "O comentário será obrigatório se a hora extra do dia for maior que o valor selecionado.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
-                                
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    br.com.tlmacedo.meuponto.presentation.components.NumberPicker(
-                                        value = uiState.limiteHoraExtraSemComentario,
-                                        onValueChange = { onAction(OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario(it)) },
-                                        range = 0..120,
-                                        suffix = " min"
+                                    Slider(
+                                        value = uiState.limiteHoraExtraSemComentario.toFloat(),
+                                        onValueChange = { onAction(OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario(it.toInt())) },
+                                        valueRange = 0f..120f,
+                                        steps = 23 // (120 / 5) - 1 if we want steps of 5, or just omit for continuous
+                                    )
+                                    Text(
+                                        text = "${uiState.limiteHoraExtraSemComentario} min",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }

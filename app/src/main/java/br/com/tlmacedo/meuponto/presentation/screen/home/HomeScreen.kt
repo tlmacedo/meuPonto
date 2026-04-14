@@ -305,9 +305,7 @@ private fun HomeDialogs(
             tipoNsr = uiState.tipoNsr, fotoHabilitada = uiState.fotoHabilitada, fotoObrigatoria = uiState.fotoObrigatoria,
             configLocalizacaoHabilitada = uiState.localizacaoHabilitada,
             comentarioHabilitado = uiState.configuracaoEmprego?.comentarioHabilitado == true,
-            comentarioObrigatorio = uiState.configuracaoEmprego?.let { config ->
-                config.comentarioObrigatorioHoraExtra && (uiState.resumoDia.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
-            } ?: false,
+            comentarioObrigatorio = modal.isObservacaoObrigatoria,
             onNsrChange = { onAction(HomeAction.AtualizarNsrRegistroModal(it)) },
             onObservacaoChange = { onAction(HomeAction.AtualizarObservacaoRegistroModal(it)) },
             onCapturarFoto = { onAction(HomeAction.AbrirFotoSourceDialog) },

@@ -1,8 +1,10 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,6 +25,8 @@ import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
@@ -43,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -201,6 +206,14 @@ private fun EmpregoSettingsDetailContent(
     onNavigateToOpcoesRegistro: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val expandedStates = remember {
+        mutableStateMapOf(
+            "Empresa" to true,
+            "ConfiguracaoGeral" to true,
+            "Jornadas" to true
+        )
+    }
+
     LazyColumn(
         contentPadding = PaddingValues(
             horizontal = 16.dp,
@@ -228,13 +241,14 @@ private fun EmpregoSettingsDetailContent(
         // SEÇÕES DE CONFIGURAÇÃO
         // ══════════════════════════════════════════════════════════════
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                // SEÇÃO: INFORMAÇÕES DA EMPRESA
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsSectionHeader(
-                        title = "Informações da Empresa",
-                        icon = Icons.Default.Business
-                    )
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // SEÇÃO: EMPRESA E CARGOS
+                ExpandableSettingsSection(
+                    title = "Empresa e Cargos",
+                    icon = Icons.Default.Business,
+                    isExpanded = expandedStates["Empresa"] == true,
+                    onToggle = { expandedStates["Empresa"] = expandedStates["Empresa"]?.not() ?: true }
+                ) {
                     SettingsNavigationItem(
                         icon = Icons.Default.Edit,
                         title = "Dados da Empresa",
@@ -245,14 +259,6 @@ private fun EmpregoSettingsDetailContent(
                             } ?: append("Nome, datas, endereço e informações gerais")
                         },
                         onClick = onNavigateToEditar
-                    )
-                }
-
-                // SEÇÃO: CARGOS NA EMPRESA
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsSectionHeader(
-                        title = "Cargos na Empresa",
-                        icon = Icons.Default.Badge
                     )
                     SettingsNavigationItem(
                         icon = Icons.Default.Work,
@@ -270,11 +276,25 @@ private fun EmpregoSettingsDetailContent(
                     )
                 }
 
-                // SEÇÃO: OPÇÕES DE REGISTRO
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsSectionHeader(
-                        title = "Opções de Registro",
-                        icon = Icons.Default.LocationOn
+                // SEÇÃO: CONFIGURAÇÃO GERAL
+                ExpandableSettingsSection(
+                    title = "Configuração Geral",
+                    icon = Icons.Default.Settings,
+                    isExpanded = expandedStates["ConfiguracaoGeral"] == true,
+                    onToggle = { expandedStates["ConfiguracaoGeral"] = expandedStates["ConfiguracaoGeral"]?.not() ?: true }
+                ) {
+                    SettingsNavigationItem(
+                        icon = Icons.Default.CalendarMonth,
+                        title = "Info RH e Banco de Horas",
+                        subtitle = buildString {
+                            uiState.configuracao?.let { cfg ->
+                                append("Fechamento dia ${cfg.diaInicioFechamentoRH}")
+                                if (cfg.bancoHorasHabilitado) {
+                                    append(" • Banco de horas: ${cfg.bancoHorasCicloMeses} meses")
+                                }
+                            } ?: append("Dia de fechamento, ciclos e banco de horas")
+                        },
+                        onClick = onNavigateToEditar
                     )
                     SettingsNavigationItem(
                         icon = Icons.Default.LocationOn,
@@ -294,33 +314,13 @@ private fun EmpregoSettingsDetailContent(
                     )
                 }
 
-                // SEÇÃO: CONFIGURAÇÃO GERAL
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsSectionHeader(
-                        title = "Configuração Geral",
-                        icon = Icons.Default.Settings
-                    )
-                    SettingsNavigationItem(
-                        icon = Icons.Default.CalendarMonth,
-                        title = "Info RH e Banco de Horas",
-                        subtitle = buildString {
-                            uiState.configuracao?.let { cfg ->
-                                append("Fechamento dia ${cfg.diaInicioFechamentoRH}")
-                                if (cfg.bancoHorasHabilitado) {
-                                    append(" • Banco de horas: ${cfg.bancoHorasCicloMeses} meses")
-                                }
-                            } ?: append("Dia de fechamento, ciclos e banco de horas")
-                        },
-                        onClick = onNavigateToEditar
-                    )
-                }
-
-                // SEÇÃO: JORNADAS
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsSectionHeader(
-                        title = "Jornadas Versionadas",
-                        icon = Icons.Default.Schedule
-                    )
+                // SEÇÃO: JORNADAS E REGISTROS
+                ExpandableSettingsSection(
+                    title = "Jornadas e Registros",
+                    icon = Icons.Default.Schedule,
+                    isExpanded = expandedStates["Jornadas"] == true,
+                    onToggle = { expandedStates["Jornadas"] = expandedStates["Jornadas"]?.not() ?: true }
+                ) {
                     SettingsNavigationItem(
                         icon = Icons.Default.History,
                         title = "Versões de Jornada",
@@ -333,31 +333,18 @@ private fun EmpregoSettingsDetailContent(
                         badge = if (uiState.totalVersoes > 0) uiState.totalVersoes.toString() else null,
                         onClick = onNavigateToVersoes
                     )
-                }
-
-                // SEÇÃO: REGISTROS E AUSÊNCIAS
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsSectionHeader(
-                        title = "Registros e Ausências",
-                        icon = Icons.AutoMirrored.Filled.EventNote
+                    SettingsNavigationItem(
+                        icon = Icons.AutoMirrored.Filled.EventNote,
+                        title = "Ausências",
+                        subtitle = "Férias e licenças",
+                        onClick = onNavigateToAusencias
                     )
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        SettingsNavigationItem(
-                            icon = Icons.AutoMirrored.Filled.EventNote,
-                            title = "Ausências",
-                            subtitle = "Férias e licenças",
-                            onClick = onNavigateToAusencias
-                        )
-                        SettingsNavigationItem(
-                            icon = Icons.Default.AccountBalance,
-                            title = "Ajustes de Saldo",
-                            subtitle = "Manual no banco",
-                            onClick = onNavigateToAjustesSaldo
-                        )
-                    }
+                    SettingsNavigationItem(
+                        icon = Icons.Default.AccountBalance,
+                        title = "Ajustes de Saldo",
+                        subtitle = "Manual no banco",
+                        onClick = onNavigateToAjustesSaldo
+                    )
                 }
             }
         }
@@ -370,20 +357,72 @@ private fun EmpregoSettingsDetailContent(
 }
 
 @Composable
-private fun SettingsGroup(
-    content: @Composable RowScope.() -> Unit
+private fun ExpandableSettingsSection(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-        verticalAlignment = Alignment.Top,
-        content = content
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SettingsSectionHeader(
+            title = title,
+            icon = icon,
+            isExpanded = isExpanded,
+            onToggle = onToggle
+        )
+        AnimatedVisibility(visible = isExpanded) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                content = content
+            )
+        }
+    }
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// COMPONENTES INTERNOS
-// ════════════════════════════════════════════════════════════════════════════════
+@Composable
+private fun SettingsSectionHeader(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onToggle,
+        color = androidx.compose.ui.graphics.Color.Transparent,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (isExpanded) "Recolher" else "Expandir",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
 
 @Composable
 private fun EmpregoHeaderCard(
@@ -538,32 +577,6 @@ private fun EmpregoHeaderCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SettingsSectionHeader(
-    title: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(vertical = 4.dp, horizontal = 4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
     }
 }
 

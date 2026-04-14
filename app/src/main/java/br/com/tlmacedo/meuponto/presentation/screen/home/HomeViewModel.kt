@@ -534,10 +534,27 @@ class HomeViewModel @Inject constructor(
 
     private fun abrirRegistrarPontoModal(dataHora: LocalDateTime) {
         viewModelScope.launch {
+            val resumoComNovoPonto = calcularResumoDiaUseCase(
+                pontos = _uiState.value.pontosHoje + Ponto(
+                    id = 0,
+                    empregoId = _uiState.value.empregoAtivo?.id ?: 0L,
+                    dataHora = dataHora,
+                    horaConsiderada = dataHora.toLocalTime()
+                ),
+                data = dataHora.toLocalDate(),
+                horarioDiaSemana = null,
+                tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
+            )
+
+            val config = _uiState.value.configuracaoEmprego
+            val observacaoObrigatoria = config?.comentarioObrigatorioHoraExtra == true &&
+                    (resumoComNovoPonto.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
+
             _uiState.update {
                 it.copy(
                     registrarPontoModal = RegistrarPontoModalState(
-                        dataHora = dataHora
+                        dataHora = dataHora,
+                        isObservacaoObrigatoria = observacaoObrigatoria
                     )
                 )
             }
@@ -797,11 +814,29 @@ class HomeViewModel @Inject constructor(
         _uiState.update { state ->
             state.registrarPontoModal?.let { modal ->
                 val novaDataHora = LocalDateTime.of(modal.dataHora.toLocalDate(), hora)
+
+                val resumoComNovoPonto = calcularResumoDiaUseCase(
+                    pontos = state.pontosHoje + Ponto(
+                        id = 0,
+                        empregoId = state.empregoAtivo?.id ?: 0L,
+                        dataHora = novaDataHora,
+                        horaConsiderada = novaDataHora.toLocalTime()
+                    ),
+                    data = novaDataHora.toLocalDate(),
+                    horarioDiaSemana = null,
+                    tipoDiaEspecial = state.resumoDia.tipoDiaEspecial
+                )
+
+                val config = state.configuracaoEmprego
+                val observacaoObrigatoria = config?.comentarioObrigatorioHoraExtra == true &&
+                        (resumoComNovoPonto.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
+
                 state.copy(
                     registrarPontoModal = modal.copy(
                         dataHora = novaDataHora,
                         showTimePicker = false,
-                        horaAutoFilled = false
+                        horaAutoFilled = false,
+                        isObservacaoObrigatoria = observacaoObrigatoria
                     )
                 )
             } ?: state
@@ -911,11 +946,23 @@ class HomeViewModel @Inject constructor(
 
         // Validar comentário obrigatório
         val config = _uiState.value.configuracaoEmprego
+        val resumoComNovoPonto = calcularResumoDiaUseCase(
+            pontos = _uiState.value.pontosHoje + Ponto(
+                id = 0,
+                empregoId = empregoId,
+                dataHora = modalState.dataHora,
+                horaConsiderada = modalState.dataHora.toLocalTime()
+            ),
+            data = modalState.dataHora.toLocalDate(),
+            horarioDiaSemana = null,
+            tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
+        )
+        
         val comentarioObrigatorio = config?.comentarioObrigatorioHoraExtra == true &&
-                (_uiState.value.resumoDia.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
+                (resumoComNovoPonto.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
         if (comentarioObrigatorio && modalState.observacao.isBlank()) {
             viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("A observação é obrigatória quando há horas extras."))
+                _uiEvent.emit(HomeUiEvent.MostrarErro("A observação é obrigatória quando há horas extras acima de ${config.limiteHoraExtraSemComentario} min."))
             }
             return
         }
