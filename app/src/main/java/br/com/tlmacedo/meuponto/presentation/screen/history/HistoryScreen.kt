@@ -37,11 +37,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -61,12 +63,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
@@ -88,6 +92,9 @@ import br.com.tlmacedo.meuponto.presentation.theme.Success
 import br.com.tlmacedo.meuponto.presentation.theme.Warning
 import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
+import android.content.Intent
+import android.net.Uri
+import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -109,11 +116,36 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.limparErro()
+        }
+    }
+
+    LaunchedEffect(uiState.csvParaExportar) {
+        uiState.csvParaExportar?.let { csv ->
+            val fileName = "meuponto_relatorio_${uiState.periodoSelecionado.descricaoCurta.replace("/", "_")}.csv"
+            val file = File(context.cacheDir, fileName)
+            file.writeText(csv)
+
+            val uri: Uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "Relatório de Ponto - ${uiState.periodoSelecionado.descricaoFormatada}")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            context.startActivity(Intent.createChooser(shareIntent, "Compartilhar Relatório"))
+            viewModel.limparCsvExportado()
         }
     }
 
@@ -127,6 +159,7 @@ fun HistoryScreen(
         onFiltroSelecionado = viewModel::alterarFiltro,
         onToggleDiaExpandido = viewModel::toggleDiaExpandido,
         onLimparFiltro = { viewModel.alterarFiltro(FiltroHistorico.TODOS) },
+        onExportar = viewModel::exportarParaCsv,
         snackbarHostState = snackbarHostState
     )
 }
@@ -145,6 +178,7 @@ fun HistoryContent(
     onFiltroSelecionado: (FiltroHistorico) -> Unit,
     onToggleDiaExpandido: (LocalDate) -> Unit,
     onLimparFiltro: () -> Unit,
+    onExportar: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
@@ -154,7 +188,21 @@ fun HistoryContent(
                 title = "Histórico",
                 subtitle = uiState.apelidoEmprego ?: uiState.nomeEmprego,
                 showBackButton = true,
-                onBackClick = onNavigateBack
+                onBackClick = onNavigateBack,
+                actions = {
+                    if (uiState.hasRegistros) {
+                        IconButton(onClick = onExportar, enabled = !uiState.isExporting) {
+                            if (uiState.isExporting) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Exportar CSV"
+                                )
+                            }
+                        }
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -1543,7 +1591,8 @@ private fun HistoryContentPreview() {
             onIrParaAtual = {},
             onFiltroSelecionado = {},
             onToggleDiaExpandido = {},
-            onLimparFiltro = {}
+            onLimparFiltro = {},
+            onExportar = {}
         )
     }
 }
@@ -1564,7 +1613,8 @@ private fun HistoryContentEmptyPreview() {
             onIrParaAtual = {},
             onFiltroSelecionado = {},
             onToggleDiaExpandido = {},
-            onLimparFiltro = {}
+            onLimparFiltro = {},
+            onExportar = {}
         )
     }
 }

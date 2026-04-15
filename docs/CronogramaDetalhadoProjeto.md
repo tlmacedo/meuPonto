@@ -73,16 +73,18 @@ O projeto será dividido em fases iterativas, com marcos e entregáveis claros.
     *   Definir Use Cases claros para cada validação.
     *   Utilizar `ViewModel`s com `StateFlow` para gerenciar o estado dos formulários.
 
-### Fase 3: Módulo de Controle de Horários - Registro de Ponto (10-15 dias)
+### Fase 3: Módulo de Controle de Horários - Registro de Ponto (10-15 dias) [CONCLUÍDA]
 
 *   **Descrição:** Implementação da funcionalidade principal de registro de ponto, incluindo captura de localização, NSR e foto de comprovante.
 *   **Marcos:**
-    *   Tela principal com botão de registro de ponto.
-    *   Lógica de sugestão de tipo de registro (Entrada, Saída Intervalo, etc.).
-    *   Integração com `LocationService` para captura de localização.
-    *   Integração com `ComprovanteImageStorage` e `ImageOrientationCorrector` para foto de comprovante.
-    *   Campos condicionais para NSR e Justificativa.
-    *   Persistência de registros de ponto (`PontoDao`, `FotoComprovanteDao`).
+    *   [OK] Tela principal com botão de registro de ponto.
+    *   [OK] Lógica de sugestão de tipo de registro (Entrada, Saída Intervalo, etc.).
+    *   [OK] Integração com `LocationService` para captura de localização.
+    *   [OK] Integração com `ComprovanteImageStorage` e `ImageOrientationCorrector` para foto de comprovante.
+    *   [OK] Campos condicionais para NSR e Justificativa.
+    *   [OK] Lógica de observação obrigatória por limite de hora extra (predição baseada na jornada real).
+    *   [OK] Lógica de justificativa obrigatória para inconsistências (jornada incompleta/ímpar).
+    *   [OK] Persistência de registros de ponto (`PontoDao`, `FotoComprovanteDao`).
 *   **Entregáveis:**
     *   Módulo de Registro de Ponto funcional.
     *   Integração com APIs de câmera e localização.
@@ -96,15 +98,18 @@ O projeto será dividido em fases iterativas, com marcos e entregáveis claros.
     *   Executar operações de imagem em `Dispatchers.IO` e WorkManager.
     *   Implementar lógica de fallback para localização (ex: usar última localização conhecida).
 
-### Fase 4: Visualização e Relatórios de Horários (10-15 dias)
+### Fase 4: Visualização e Relatórios de Horários (10-15 dias) [CONCLUÍDA]
 
 *   **Descrição:** Desenvolvimento das telas para visualização dos horários registrados, saldos de banco de horas e relatórios básicos.
 *   **Marcos:**
-    *   Tela de histórico de pontos (lista por dia/mês).
-    *   Tela de detalhes do dia com todos os registros.
-    *   Cálculo de saldo de horas (diário, semanal, mensal).
-    *   Exibição de informações de localização em mapa (se aplicável).
-    *   Filtros e ordenação para o histórico.
+    *   [OK] Tela de histórico de pontos (lista por dia/mês).
+    *   [OK] Tela de detalhes do dia com todos os registros.
+    *   [OK] Cálculo de saldo de horas (diário, semanal, mensal) unificado via `ResumoDia`.
+    *   [OK] Refatoração do `GerarRelatorioMensalUseCase` para paridade de cálculos.
+    *   [OK] Implementação de exportação para CSV (`ExportarRelatorioCsvUseCase`).
+    *   [OK] Interface de compartilhamento de relatório na `HistoryScreen`.
+    *   [PENDENTE] Exibição de informações de localização em mapa (se aplicável).
+    *   [OK] Filtros e ordenação para o histórico.
 *   **Entregáveis:**
     *   Módulo de Visualização de Horários funcional.
     *   Componentes de UI para exibição de dados tabulares e gráficos (se houver).

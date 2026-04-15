@@ -33,7 +33,7 @@ data class AusenciasUiState(
 
     // Filtros
     val filtroTipos: Set<TipoAusencia> = emptySet(),
-    val filtroAno: Int? = null,
+    val filtroAno: Int? = LocalDate.now().year,
     val ordemData: OrdemData = OrdemData.CRESCENTE,
 
     // Estados de UI
@@ -154,7 +154,10 @@ data class AusenciaFormUiState(
     // Textos
     val descricao: String = "",
     val observacao: String = "",
-    val periodoAquisitivo: String = "", // Para FERIAS
+    val dataInicioTrabalho: LocalDate? = null,
+    val dataInicioPeriodoAquisitivo: LocalDate? = null,
+    val dataFimPeriodoAquisitivo: LocalDate? = null,
+    val periodoAquisitivo: String = "", // Comentário do período aquisitivo
 
     // Anexo de imagem
     val imagemUri: String? = null,
@@ -169,6 +172,8 @@ data class AusenciaFormUiState(
     val showTipoSelector: Boolean = false,
     val showDatePickerInicio: Boolean = false,
     val showDatePickerFim: Boolean = false,
+    val showDatePickerInicioPeriodoAquisitivo: Boolean = false,
+    val showDatePickerFimPeriodoAquisitivo: Boolean = false,
     val showTimePickerInicio: Boolean = false,
     val showDuracaoDeclaracaoPicker: Boolean = false,
     val showDuracaoAbonoPicker: Boolean = false,
@@ -201,6 +206,8 @@ data class AusenciaFormUiState(
                 duracaoAbonoMinutos = (ausencia.duracaoAbonoMinutos ?: 60) % 60,
                 descricao = ausencia.descricao ?: "",
                 observacao = ausencia.observacao ?: "",
+                dataInicioPeriodoAquisitivo = ausencia.dataInicioPeriodoAquisitivo,
+                dataFimPeriodoAquisitivo = ausencia.dataFimPeriodoAquisitivo,
                 periodoAquisitivo = ausencia.periodoAquisitivo ?: "",
                 imagemUri = ausencia.imagemUri
             )
@@ -252,6 +259,20 @@ data class AusenciaFormUiState(
     val dataFimFormatada: String
         get() = dataFimCalculada.format(dateFormatter)
 
+    val dataInicioPeriodoAquisitivoFormatada: String
+        get() = dataInicioPeriodoAquisitivo?.format(dateFormatter) ?: "Início"
+
+    val dataFimPeriodoAquisitivoFormatada: String
+        get() = dataFimPeriodoAquisitivo?.format(dateFormatter) ?: "Fim"
+
+    /** Lista de anos disponíveis para o período aquisitivo (do início do trabalho até o ano atual) */
+    val anosDisponiveisPA: List<Int>
+        get() {
+            val anoInicio = dataInicioTrabalho?.year ?: (LocalDate.now().year - 5)
+            val anoFim = LocalDate.now().year
+            return (anoInicio..anoFim).toList()
+        }
+
     val horaInicioFormatada: String
         get() = horaInicio.format(timeFormatter)
 
@@ -278,7 +299,11 @@ data class AusenciaFormUiState(
 
     val isFormValido: Boolean
         get() = when (tipo) {
-            TipoAusencia.FERIAS -> empregoId > 0 && periodoAquisitivo.isNotBlank()
+            TipoAusencia.FERIAS -> {
+                empregoId > 0 &&
+                        dataInicioPeriodoAquisitivo != null &&
+                        dataFimPeriodoAquisitivo != null
+            }
             TipoAusencia.ATESTADO -> empregoId > 0 && observacao.isNotBlank()
             TipoAusencia.DECLARACAO -> {
                 empregoId > 0 &&
@@ -295,8 +320,17 @@ data class AusenciaFormUiState(
     val mensagemValidacao: String?
         get() = when {
             empregoId <= 0 -> "Nenhum emprego ativo encontrado"
-            tipo == TipoAusencia.FERIAS && periodoAquisitivo.isBlank() ->
-                "Informe o período aquisitivo das férias"
+            tipo == TipoAusencia.FERIAS -> {
+                when {
+                    dataInicioPeriodoAquisitivo == null || dataFimPeriodoAquisitivo == null ->
+                        "Informe o período aquisitivo (início e fim)"
+                    dataInicioPeriodoAquisitivo!!.isAfter(dataFimPeriodoAquisitivo) ->
+                        "Início do período aquisitivo não pode ser após o fim"
+                    dataFim < dataInicio ->
+                        "Data de fim não pode ser anterior à data de início"
+                    else -> null
+                }
+            }
             tipo == TipoAusencia.ATESTADO && observacao.isBlank() ->
                 "Informe o motivo do atestado"
             tipo == TipoAusencia.DECLARACAO && observacao.isBlank() ->
@@ -350,6 +384,8 @@ data class AusenciaFormUiState(
             horaInicio = if (tipo == TipoAusencia.DECLARACAO) horaInicio else null,
             duracaoDeclaracaoMinutos = if (tipo == TipoAusencia.DECLARACAO) duracaoDeclaracaoTotalMinutos else null,
             duracaoAbonoMinutos = if (tipo == TipoAusencia.DECLARACAO) duracaoAbonoTotalMinutos else null,
+            dataInicioPeriodoAquisitivo = if (tipo == TipoAusencia.FERIAS) dataInicioPeriodoAquisitivo else null,
+            dataFimPeriodoAquisitivo = if (tipo == TipoAusencia.FERIAS) dataFimPeriodoAquisitivo else null,
             periodoAquisitivo = if (tipo == TipoAusencia.FERIAS) periodoAquisitivo.ifBlank { null } else null,
             imagemUri = imagemUri
         )

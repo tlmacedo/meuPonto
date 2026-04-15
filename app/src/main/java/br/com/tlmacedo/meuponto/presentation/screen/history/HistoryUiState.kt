@@ -308,6 +308,8 @@ data class HistoryUiState(
     val diaInicioFechamento: Int = 1,
     val filtroAtivo: FiltroHistorico = FiltroHistorico.TODOS,
     val isLoading: Boolean = false,
+    val isExporting: Boolean = false,
+    val csvParaExportar: String? = null,
     val errorMessage: String? = null,
     val diaExpandido: LocalDate? = null,
     val saldosAcumuladosPorDia: Map<LocalDate, Int> = emptyMap(),

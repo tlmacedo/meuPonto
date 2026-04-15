@@ -183,6 +183,23 @@ interface AusenciaDao {
     """)
     suspend fun buscarPorTipo(empregoId: Long, tipo: TipoAusencia): List<AusenciaEntity>
 
+    /**
+     * Busca férias por período aquisitivo.
+     */
+    @Query("""
+        SELECT * FROM ausencias
+        WHERE empregoId = :empregoId
+        AND tipo = 'FERIAS'
+        AND ativo = 1
+        AND dataInicioPeriodoAquisitivo = :inicio
+        AND dataFimPeriodoAquisitivo = :fim
+    """)
+    suspend fun buscarFeriasPorPeriodoAquisitivo(
+        empregoId: Long,
+        inicio: LocalDate,
+        fim: LocalDate
+    ): List<AusenciaEntity>
+
     @Query("""
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 

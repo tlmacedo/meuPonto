@@ -1,139 +1,83 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/relatorio/GerarRelatorioMensalUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.relatorio
 
-import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.repository.HorarioPadraoRepository
-import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.ResumoDiaCompleto
+import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /**
  * Caso de uso para gerar relatório mensal de pontos.
+ * Refatorado para utilizar GerarResumoPeriodoUseCase e garantir paridade de cálculos.
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository
+ * @updated 10.0.0 - Refatorado para usar GerarResumoPeriodoUseCase
  */
 class GerarRelatorioMensalUseCase @Inject constructor(
-    private val pontoRepository: PontoRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository,
-    private val horarioPadraoRepository: HorarioPadraoRepository
+    private val gerarResumoPeriodoUseCase: GerarResumoPeriodoUseCase
 ) {
     data class RelatorioMensal(
         val empregoId: Long,
-        val mes: YearMonth,
-        val dias: List<DiaSemana>,
-        val totalTrabalhadoMinutos: Long,
-        val totalEsperadoMinutos: Long,
-        val saldoMinutos: Long,
+        val mesRef: YearMonth,
+        val dataInicio: LocalDate,
+        val dataFim: LocalDate,
+        val dias: List<ResumoDiaCompleto>,
+        val totalTrabalhadoMinutos: Int,
+        val totalEsperadoMinutos: Int,
+        val totalAbonadoMinutos: Int,
+        val saldoMinutos: Int,
         val diasTrabalhados: Int,
         val diasUteis: Int
     ) {
         val saldoFormatado: String
             get() = saldoMinutos.minutosParaSaldoFormatado()
-    }
+            
+        val totalTrabalhadoFormatado: String
+            get() = totalTrabalhadoMinutos.minutosParaHoraMinuto()
 
-    data class DiaSemana(
-        val data: LocalDate,
-        val pontos: List<Ponto>,
-        val trabalhadoMinutos: Long,
-        val esperadoMinutos: Long,
-        val saldoMinutos: Long,
-        val isDiaUtil: Boolean,
-        val isFeriado: Boolean = false,
-        val observacao: String? = null
-    )
+        val totalEsperadoFormatado: String
+            get() = totalEsperadoMinutos.minutosParaHoraMinuto()
+            
+        val totalAbonadoFormatado: String
+            get() = totalAbonadoMinutos.minutosParaHoraMinuto()
+    }
 
     suspend operator fun invoke(empregoId: Long, mes: YearMonth): RelatorioMensal {
         val versaoJornada = versaoJornadaRepository.buscarVigente(empregoId)
         val diaInicio = versaoJornada?.diaInicioFechamentoRH ?: 1
 
-        val dataInicio = if (diaInicio == 1) {
+        val dataInicio = if (diaInicio <= 1) {
             mes.atDay(1)
         } else {
+            // Se o fechamento é no dia 21, o mês de referência "Maio" 
+            // costuma ser de 21/Abril a 20/Maio.
             mes.minusMonths(1).atDay(diaInicio)
         }
 
-        val dataFim = if (diaInicio == 1) {
+        val dataFim = if (diaInicio <= 1) {
             mes.atEndOfMonth()
         } else {
             mes.atDay(diaInicio - 1)
         }
 
-        val pontos = pontoRepository.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
-        val pontosPorDia = pontos.groupBy { it.data }
-
-        val dias = mutableListOf<DiaSemana>()
-        var dataAtual = dataInicio
-
-        while (!dataAtual.isAfter(dataFim)) {
-            val pontosDoDia = pontosPorDia[dataAtual] ?: emptyList()
-            val isDiaUtil = isDiaUtil(dataAtual)
-            val trabalhadoMinutos = calcularTempoTrabalhado(pontosDoDia)
-            val esperadoMinutos = if (isDiaUtil) getJornadaDiaria(empregoId, dataAtual) else 0L
-
-            dias.add(
-                DiaSemana(
-                    data = dataAtual,
-                    pontos = pontosDoDia.sortedBy { it.hora },
-                    trabalhadoMinutos = trabalhadoMinutos,
-                    esperadoMinutos = esperadoMinutos,
-                    saldoMinutos = trabalhadoMinutos - esperadoMinutos,
-                    isDiaUtil = isDiaUtil
-                )
-            )
-
-            dataAtual = dataAtual.plusDays(1)
-        }
-
-        val totalTrabalhado = dias.sumOf { it.trabalhadoMinutos }
-        val totalEsperado = dias.sumOf { it.esperadoMinutos }
-        val diasTrabalhados = dias.count { it.pontos.isNotEmpty() }
-        val diasUteis = dias.count { it.isDiaUtil }
+        val resumoPeriodo = gerarResumoPeriodoUseCase(empregoId, dataInicio, dataFim)
 
         return RelatorioMensal(
             empregoId = empregoId,
-            mes = mes,
-            dias = dias,
-            totalTrabalhadoMinutos = totalTrabalhado,
-            totalEsperadoMinutos = totalEsperado,
-            saldoMinutos = totalTrabalhado - totalEsperado,
-            diasTrabalhados = diasTrabalhados,
-            diasUteis = diasUteis
+            mesRef = mes,
+            dataInicio = dataInicio,
+            dataFim = dataFim,
+            dias = resumoPeriodo.resumos,
+            totalTrabalhadoMinutos = resumoPeriodo.totalTrabalhadoMinutos,
+            totalEsperadoMinutos = resumoPeriodo.totalEsperadoMinutos,
+            totalAbonadoMinutos = resumoPeriodo.totalAbonadoMinutos,
+            saldoMinutos = resumoPeriodo.saldoPeriodoMinutos,
+            diasTrabalhados = resumoPeriodo.diasTrabalhados,
+            diasUteis = resumoPeriodo.diasUteis
         )
-    }
-
-    private fun calcularTempoTrabalhado(pontos: List<Ponto>): Long {
-        if (pontos.isEmpty()) return 0L
-
-        val pontosOrdenados = pontos.sortedBy { it.hora }
-        var totalMinutos = 0L
-        var i = 0
-
-        while (i < pontosOrdenados.size - 1) {
-            val entrada = pontosOrdenados[i]
-            val saida = pontosOrdenados[i + 1]
-            totalMinutos += ChronoUnit.MINUTES.between(entrada.hora, saida.hora)
-            i += 2
-        }
-
-        return totalMinutos
-    }
-
-    private fun isDiaUtil(data: LocalDate): Boolean {
-        return data.dayOfWeek != DayOfWeek.SATURDAY && data.dayOfWeek != DayOfWeek.SUNDAY
-    }
-
-    private suspend fun getJornadaDiaria(empregoId: Long, data: LocalDate): Long {
-        val horarioPadrao = horarioPadraoRepository.buscarPorEmpregoEDiaSemana(
-            empregoId,
-            data.dayOfWeek.value
-        )
-        return horarioPadrao?.jornadaMinutos?.toLong() ?: 480L
     }
 }

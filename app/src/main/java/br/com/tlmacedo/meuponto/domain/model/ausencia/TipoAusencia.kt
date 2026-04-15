@@ -125,8 +125,8 @@ enum class TipoAusencia(
         isPlanejada = true,
         explicacaoImpacto = "Jornada zerada. Se trabalhar, as horas serão contadas como extra.",
         exemploUso = "Férias anuais, férias coletivas, recesso remunerado.",
-        labelObservacao = "Período aquisitivo",
-        placeholderObservacao = "Ex: 2024/2025 ou 01/03/2024 a 28/02/2025"
+        labelObservacao = "Observação / comentário",
+        placeholderObservacao = "Ex: 10/11/2021 a 09/11/2022"
     ),
 
     /**

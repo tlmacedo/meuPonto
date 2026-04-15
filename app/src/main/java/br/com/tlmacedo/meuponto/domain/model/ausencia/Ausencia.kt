@@ -30,7 +30,9 @@ data class Ausencia(
     val duracaoDeclaracaoMinutos: Int? = null,
     val duracaoAbonoMinutos: Int? = null,
 
-    // Campo para FERIAS
+    // Campos para FERIAS
+    val dataInicioPeriodoAquisitivo: LocalDate? = null,
+    val dataFimPeriodoAquisitivo: LocalDate? = null,
     val periodoAquisitivo: String? = null,
 
     // Anexo de imagem
@@ -54,13 +56,17 @@ data class Ausencia(
             empregoId: Long,
             dataInicio: LocalDate,
             dataFim: LocalDate,
-            periodoAquisitivo: String
+            dataInicioPeriodoAquisitivo: LocalDate,
+            dataFimPeriodoAquisitivo: LocalDate,
+            periodoAquisitivo: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
             tipo = TipoAusencia.FERIAS,
             dataInicio = dataInicio,
             dataFim = dataFim,
             descricao = TipoAusencia.FERIAS.descricao,
+            dataInicioPeriodoAquisitivo = dataInicioPeriodoAquisitivo,
+            dataFimPeriodoAquisitivo = dataFimPeriodoAquisitivo,
             periodoAquisitivo = periodoAquisitivo
         )
 

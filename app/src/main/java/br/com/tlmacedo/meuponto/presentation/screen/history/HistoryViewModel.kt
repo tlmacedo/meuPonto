@@ -22,6 +22,8 @@ import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterResumoDiaCompletoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.relatorio.ExportarRelatorioCsvUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.relatorio.GerarResumoPeriodoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,7 +55,9 @@ class HistoryViewModel @Inject constructor(
     private val obterResumoDiaCompletoUseCase: ObterResumoDiaCompletoUseCase,
     private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase,
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
-    private val ajusteSaldoRepository: AjusteSaldoRepository
+    private val ajusteSaldoRepository: AjusteSaldoRepository,
+    private val gerarResumoPeriodoUseCase: GerarResumoPeriodoUseCase,
+    private val exportarRelatorioCsvUseCase: ExportarRelatorioCsvUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -461,5 +465,30 @@ class HistoryViewModel @Inject constructor(
     fun alterarFiltro(filtro: FiltroHistorico) = _uiState.update { it.copy(filtroAtivo = filtro, diaExpandido = null) }
     fun toggleDiaExpandido(data: LocalDate) = _uiState.update { it.copy(diaExpandido = if (it.diaExpandido == data) null else data) }
     fun limparErro() = _uiState.update { it.copy(errorMessage = null) }
+
+    fun exportarParaCsv() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true) }
+            try {
+                val empregoId = empregoIdAtual ?: return@launch
+                val periodo = _uiState.value.periodoSelecionado
+                
+                val resumoPeriodo = gerarResumoPeriodoUseCase(
+                    empregoId, 
+                    periodo.dataInicio, 
+                    periodo.dataFim
+                )
+                
+                val csv = exportarRelatorioCsvUseCase(resumoPeriodo)
+                _uiState.update { it.copy(csvParaExportar = csv, isExporting = false) }
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao exportar CSV")
+                _uiState.update { it.copy(errorMessage = "Erro ao gerar CSV: ${e.message}", isExporting = false) }
+            }
+        }
+    }
+
+    fun limparCsvExportado() = _uiState.update { it.copy(csvParaExportar = null) }
+
     fun recarregar() = carregarConfiguracaoEHistorico()
 }

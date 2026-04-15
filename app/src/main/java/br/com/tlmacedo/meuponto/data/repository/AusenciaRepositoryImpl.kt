@@ -200,6 +200,15 @@ class AusenciaRepositoryImpl @Inject constructor(
             .map { list -> list.map { it.toDomain() } }
     }
 
+    override suspend fun buscarFeriasPorPeriodoAquisitivo(
+        empregoId: Long,
+        inicio: LocalDate,
+        fim: LocalDate
+    ): List<Ausencia> {
+        return ausenciaDao.buscarFeriasPorPeriodoAquisitivo(empregoId, inicio, fim)
+            .map { it.toDomain() }
+    }
+
     // ========================================================================
     // Consultas por Ano/Mês
     // ========================================================================

@@ -25,6 +25,6 @@ sealed interface AusenciaFormUiEvent {
     data object SalvoComSucesso : AusenciaFormUiEvent
     data class MostrarMensagem(val mensagem: String) : AusenciaFormUiEvent
     data class MostrarErro(val mensagem: String) : AusenciaFormUiEvent
-    data object AbrirCamera : AusenciaFormUiEvent
+    data class AbrirCamera(val uri: android.net.Uri) : AusenciaFormUiEvent
     data object AbrirGaleria : AusenciaFormUiEvent
 }

@@ -534,15 +534,19 @@ class HomeViewModel @Inject constructor(
 
     private fun abrirRegistrarPontoModal(dataHora: LocalDateTime) {
         viewModelScope.launch {
+            val empregoId = _uiState.value.empregoAtivo?.id ?: 0L
+            val diaSemana = DiaSemana.fromJavaDayOfWeek(dataHora.dayOfWeek)
+            val horarioDiaSemana = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+
             val resumoComNovoPonto = calcularResumoDiaUseCase(
                 pontos = _uiState.value.pontosHoje + Ponto(
                     id = 0,
-                    empregoId = _uiState.value.empregoAtivo?.id ?: 0L,
+                    empregoId = empregoId,
                     dataHora = dataHora,
                     horaConsiderada = dataHora.toLocalTime()
                 ),
                 data = dataHora.toLocalDate(),
-                horarioDiaSemana = null,
+                horarioDiaSemana = horarioDiaSemana,
                 tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
             )
 
@@ -811,26 +815,31 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun atualizarHoraRegistroModal(hora: LocalTime) {
-        _uiState.update { state ->
-            state.registrarPontoModal?.let { modal ->
-                val novaDataHora = LocalDateTime.of(modal.dataHora.toLocalDate(), hora)
+        viewModelScope.launch {
+            val modal = _uiState.value.registrarPontoModal ?: return@launch
+            val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
+            val novaDataHora = LocalDateTime.of(modal.dataHora.toLocalDate(), hora)
 
-                val resumoComNovoPonto = calcularResumoDiaUseCase(
-                    pontos = state.pontosHoje + Ponto(
-                        id = 0,
-                        empregoId = state.empregoAtivo?.id ?: 0L,
-                        dataHora = novaDataHora,
-                        horaConsiderada = novaDataHora.toLocalTime()
-                    ),
-                    data = novaDataHora.toLocalDate(),
-                    horarioDiaSemana = null,
-                    tipoDiaEspecial = state.resumoDia.tipoDiaEspecial
-                )
+            val diaSemana = DiaSemana.fromJavaDayOfWeek(novaDataHora.dayOfWeek)
+            val horarioDiaSemana = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
 
-                val config = state.configuracaoEmprego
-                val observacaoObrigatoria = config?.comentarioObrigatorioHoraExtra == true &&
-                        (resumoComNovoPonto.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
+            val resumoComNovoPonto = calcularResumoDiaUseCase(
+                pontos = _uiState.value.pontosHoje + Ponto(
+                    id = 0,
+                    empregoId = empregoId,
+                    dataHora = novaDataHora,
+                    horaConsiderada = novaDataHora.toLocalTime()
+                ),
+                data = novaDataHora.toLocalDate(),
+                horarioDiaSemana = horarioDiaSemana,
+                tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
+            )
 
+            val config = _uiState.value.configuracaoEmprego
+            val observacaoObrigatoria = config?.comentarioObrigatorioHoraExtra == true &&
+                    (resumoComNovoPonto.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
+
+            _uiState.update { state ->
                 state.copy(
                     registrarPontoModal = modal.copy(
                         dataHora = novaDataHora,
@@ -839,7 +848,7 @@ class HomeViewModel @Inject constructor(
                         isObservacaoObrigatoria = observacaoObrigatoria
                     )
                 )
-            } ?: state
+            }
         }
     }
 
@@ -925,49 +934,57 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun confirmarRegistroPontoModal() {
-        val modalState = _uiState.value.registrarPontoModal ?: return
-        val empregoId = _uiState.value.empregoAtivo?.id ?: return
-
-        // Validar foto obrigatória
-        if (_uiState.value.fotoObrigatoria && modalState.fotoUri == null) {
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("A foto do comprovante é obrigatória."))
-            }
-            return
-        }
-
-        // Validar NSR obrigatório
-        if (_uiState.value.nsrHabilitado && modalState.nsr.isBlank()) {
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("O NSR é obrigatório."))
-            }
-            return
-        }
-
-        // Validar comentário obrigatório
-        val config = _uiState.value.configuracaoEmprego
-        val resumoComNovoPonto = calcularResumoDiaUseCase(
-            pontos = _uiState.value.pontosHoje + Ponto(
-                id = 0,
-                empregoId = empregoId,
-                dataHora = modalState.dataHora,
-                horaConsiderada = modalState.dataHora.toLocalTime()
-            ),
-            data = modalState.dataHora.toLocalDate(),
-            horarioDiaSemana = null,
-            tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
-        )
-        
-        val comentarioObrigatorio = config?.comentarioObrigatorioHoraExtra == true &&
-                (resumoComNovoPonto.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
-        if (comentarioObrigatorio && modalState.observacao.isBlank()) {
-            viewModelScope.launch {
-                _uiEvent.emit(HomeUiEvent.MostrarErro("A observação é obrigatória quando há horas extras acima de ${config.limiteHoraExtraSemComentario} min."))
-            }
-            return
-        }
-
         viewModelScope.launch {
+            val modalState = _uiState.value.registrarPontoModal ?: return@launch
+            val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
+
+            // Validar foto obrigatória
+            if (_uiState.value.fotoObrigatoria && modalState.fotoUri == null) {
+                _uiEvent.emit(HomeUiEvent.MostrarErro("A foto do comprovante é obrigatória."))
+                return@launch
+            }
+
+            // Validar NSR obrigatório
+            if (_uiState.value.nsrHabilitado && modalState.nsr.isBlank()) {
+                _uiEvent.emit(HomeUiEvent.MostrarErro("O NSR é obrigatório."))
+                return@launch
+            }
+
+            // Validar comentário obrigatório
+            val config = _uiState.value.configuracaoEmprego
+            val diaSemana = DiaSemana.fromJavaDayOfWeek(modalState.dataHora.dayOfWeek)
+            val horarioDiaSemana =
+                horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+
+            val resumoComNovoPonto = calcularResumoDiaUseCase(
+                pontos = _uiState.value.pontosHoje + Ponto(
+                    id = 0,
+                    empregoId = empregoId,
+                    dataHora = modalState.dataHora,
+                    horaConsiderada = modalState.dataHora.toLocalTime()
+                ),
+                data = modalState.dataHora.toLocalDate(),
+                horarioDiaSemana = horarioDiaSemana,
+                tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
+            )
+
+            val comentarioObrigatorio = config?.comentarioObrigatorioHoraExtra == true &&
+                    (resumoComNovoPonto.saldoDiaMinutos > config.limiteHoraExtraSemComentario)
+            if (comentarioObrigatorio && modalState.observacao.isBlank()) {
+                _uiEvent.emit(HomeUiEvent.MostrarErro("A observação é obrigatória quando há horas extras acima de ${config.limiteHoraExtraSemComentario} min."))
+                return@launch
+            }
+
+            // Validar justificativa para inconsistência
+            if (config?.exigeJustificativaInconsistencia == true &&
+                resumoComNovoPonto.temProblemas &&
+                modalState.observacao.isBlank()
+            ) {
+                val problemas = resumoComNovoPonto.listaInconsistencias.joinToString("\n• ", prefix = "• ")
+                _uiEvent.emit(HomeUiEvent.MostrarErro("JUSTIFICATIVA OBRIGATÓRIA\n\nEste dia apresenta as seguintes inconsistências:\n\n$problemas\n\nPor favor, preencha a observação com o motivo."))
+                return@launch
+            }
+
             _uiState.update { state ->
                 state.copy(
                     registrarPontoModal = state.registrarPontoModal?.copy(isSaving = true)
@@ -993,7 +1010,8 @@ class HomeViewModel @Inject constructor(
                         _uiState.update { state ->
                             state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
                         }
-                        val dataFormatada = fotoExistente.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        val dataFormatada =
+                            fotoExistente.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                         _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE DUPLICADO\n\nEste comprovante já foi registrado no dia $dataFormatada e não pode ser reutilizado."))
                         return@launch
                     }
@@ -1004,62 +1022,77 @@ class HomeViewModel @Inject constructor(
                 is RegistrarPontoUseCase.Resultado.Sucesso -> {
                     // Salvar foto se houver
                     modalState.fotoUri?.let { uri ->
-                        salvarFotoComprovante(uri, resultado.pontoId, empregoId, modalState.dataHora, modalState.fotoOrigem)
+                        salvarFotoComprovante(
+                            uri,
+                            resultado.pontoId,
+                            empregoId,
+                            modalState.dataHora,
+                            modalState.fotoOrigem
+                        )
                     }
 
                     _uiState.update { it.copy(registrarPontoModal = null) }
-                    
-                    val horaFormatada = modalState.dataHora.format(DateTimeFormatter.ofPattern("HH:mm"))
+
+                    val horaFormatada =
+                        modalState.dataHora.format(DateTimeFormatter.ofPattern("HH:mm"))
                     val tipoDescricao = _uiState.value.proximoTipo.descricao
                     _uiEvent.emit(
                         HomeUiEvent.MostrarMensagem("$tipoDescricao registrada às $horaFormatada")
                     )
-                    
+
                     carregarPontosDoDia()
                     carregarBancoHoras()
                 }
+
                 is RegistrarPontoUseCase.Resultado.LocalizacaoObrigatoria -> {
                     _uiState.update { state ->
                         state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
                     }
                     _uiEvent.emit(HomeUiEvent.MostrarErro("A localização é obrigatória para este registro. Verifique as permissões de GPS."))
                 }
+
                 is RegistrarPontoUseCase.Resultado.NsrObrigatorio -> {
                     _uiState.update { state ->
                         state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
                     }
                     _uiEvent.emit(HomeUiEvent.MostrarErro("O NSR é obrigatório para este registro."))
                 }
+
                 is RegistrarPontoUseCase.Resultado.HorarioInvalido -> {
                     _uiState.update { state ->
                         state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
                     }
                     _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.motivo))
                 }
+
                 is RegistrarPontoUseCase.Resultado.LimiteAtingido -> {
                     _uiState.update { state ->
                         state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
                     }
                     _uiEvent.emit(HomeUiEvent.MostrarErro("Limite de registros diários atingido."))
                 }
+
                 is RegistrarPontoUseCase.Resultado.VersaoNaoEncontrada -> {
                     _uiState.update { state ->
                         state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
                     }
                     _uiEvent.emit(HomeUiEvent.MostrarErro("Configuração de jornada não encontrada."))
                 }
+
                 is RegistrarPontoUseCase.Resultado.Validacao -> {
                     _uiState.update { state ->
                         state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
                     }
                     _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.erros.joinToString("\n")))
                 }
+
                 is RegistrarPontoUseCase.Resultado.Erro -> {
                     _uiState.update { state ->
                         state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
                     }
                     _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.mensagem))
                 }
+
                 else -> {
                     _uiState.update { state ->
                         state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))

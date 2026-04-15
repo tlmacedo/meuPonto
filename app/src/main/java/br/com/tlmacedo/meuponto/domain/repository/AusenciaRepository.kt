@@ -82,6 +82,15 @@ interface AusenciaRepository {
     suspend fun buscarPorTipo(empregoId: Long, tipo: TipoAusencia): List<Ausencia>
     fun observarPorTipo(empregoId: Long, tipo: TipoAusencia): Flow<List<Ausencia>>
 
+    /**
+     * Busca férias por período aquisitivo.
+     */
+    suspend fun buscarFeriasPorPeriodoAquisitivo(
+        empregoId: Long,
+        inicio: LocalDate,
+        fim: LocalDate
+    ): List<Ausencia>
+
     // ========================================================================
     // Consultas por Ano/Mês
     // ========================================================================

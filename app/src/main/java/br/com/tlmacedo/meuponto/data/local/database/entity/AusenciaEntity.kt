@@ -66,6 +66,8 @@ data class AusenciaEntity(
     val subTipoFolga: String? = null,
 
     // Para FERIAS
+    val dataInicioPeriodoAquisitivo: LocalDate? = null,
+    val dataFimPeriodoAquisitivo: LocalDate? = null,
     val periodoAquisitivo: String? = null,
 
     // Para anexos (ATESTADO, DECLARACAO, FALTA_JUSTIFICADA)
@@ -94,6 +96,8 @@ data class AusenciaEntity(
             horaInicio = horaInicio,
             duracaoDeclaracaoMinutos = duracaoDeclaracaoMinutos,
             duracaoAbonoMinutos = duracaoAbonoMinutos,
+            dataInicioPeriodoAquisitivo = dataInicioPeriodoAquisitivo,
+            dataFimPeriodoAquisitivo = dataFimPeriodoAquisitivo,
             periodoAquisitivo = periodoAquisitivo,
             imagemUri = imagemUri,
             ativo = ativo,
@@ -120,6 +124,8 @@ data class AusenciaEntity(
                 duracaoDeclaracaoMinutos = ausencia.duracaoDeclaracaoMinutos,
                 duracaoAbonoMinutos = ausencia.duracaoAbonoMinutos,
                 subTipoFolga = null, // Deprecated
+                dataInicioPeriodoAquisitivo = ausencia.dataInicioPeriodoAquisitivo,
+                dataFimPeriodoAquisitivo = ausencia.dataFimPeriodoAquisitivo,
                 periodoAquisitivo = ausencia.periodoAquisitivo,
                 imagemUri = ausencia.imagemUri,
                 ativo = ausencia.ativo,

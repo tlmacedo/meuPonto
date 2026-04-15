@@ -48,6 +48,18 @@ sealed interface AusenciaFormAction {
     data object FecharDuracaoAbonoPicker : AusenciaFormAction
 
     // ========================================================================
+    // PERÍODO AQUISITIVO (FERIAS)
+    // ========================================================================
+    data class SelecionarAnoInicioPeriodoAquisitivo(val ano: Int) : AusenciaFormAction
+    data class SelecionarAnoFimPeriodoAquisitivo(val ano: Int) : AusenciaFormAction
+    data class SelecionarDataInicioPeriodoAquisitivo(val data: LocalDate) : AusenciaFormAction
+    data class SelecionarDataFimPeriodoAquisitivo(val data: LocalDate) : AusenciaFormAction
+    data object AbrirDatePickerInicioPeriodoAquisitivo : AusenciaFormAction
+    data object FecharDatePickerInicioPeriodoAquisitivo : AusenciaFormAction
+    data object AbrirDatePickerFimPeriodoAquisitivo : AusenciaFormAction
+    data object FecharDatePickerFimPeriodoAquisitivo : AusenciaFormAction
+
+    // ========================================================================
     // TEXTOS
     // ========================================================================
     data class AtualizarDescricao(val descricao: String) : AusenciaFormAction
@@ -62,6 +74,7 @@ sealed interface AusenciaFormAction {
     data object AbrirImagePicker : AusenciaFormAction
     data object FecharImagePicker : AusenciaFormAction
     data object AbrirCamera : AusenciaFormAction
+    data class OnCameraCaptureResult(val success: Boolean) : AusenciaFormAction
     data object AbrirGaleria : AusenciaFormAction
 
     // ========================================================================

@@ -119,6 +119,31 @@ fun AusenciaCard(
 
                 // Detalhes específicos por tipo
                 when (ausencia.tipo) {
+                    TipoAusencia.FERIAS -> {
+                        // Mostrar período aquisitivo se houver
+                        if (ausencia.dataInicioPeriodoAquisitivo != null && ausencia.dataFimPeriodoAquisitivo != null) {
+                            val inicioStr = ausencia.dataInicioPeriodoAquisitivo.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))
+                            val fimStr = ausencia.dataFimPeriodoAquisitivo.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))
+                            Text(
+                                text = "Aquisitivo: $inicioStr - $fimStr",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else if (!ausencia.periodoAquisitivo.isNullOrBlank()) {
+                            Text(
+                                text = "Aquisitivo: ${ausencia.periodoAquisitivo}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Text(
+                            text = "${ausencia.quantidadeDias} ${if (ausencia.quantidadeDias == 1) "dia" else "dias"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                     TipoAusencia.DECLARACAO -> {
                         ausencia.horaInicio?.let { horaInicio ->
                             Text(

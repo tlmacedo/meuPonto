@@ -20,6 +20,15 @@
 -->
 <paths>
     <!--
+        Diretório de cache raiz.
+        Permite compartilhar arquivos criados diretamente em context.cacheDir
+        como relatórios CSV e arquivos de backup temporários.
+    -->
+    <cache-path
+        name="cache_root"
+        path="." />
+
+    <!--
         Diretório de cache para arquivos temporários da câmera.
         Corresponde a: context.cacheDir/temp_camera/
         Usado por: PhotoCaptureManager.prepareForCameraCapture()
