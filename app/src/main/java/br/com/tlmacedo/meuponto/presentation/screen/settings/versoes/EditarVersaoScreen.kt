@@ -213,6 +213,8 @@ fun EditarVersaoContent(
         topBar = {
             MeuPontoTopBar(
                 title = if (uiState.isNovaVersao) "Nova Versão" else "Editar Versão",
+                subtitle = uiState.empregoApelido?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

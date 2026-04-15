@@ -59,15 +59,16 @@ class AusenciaFormViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val (empregoId, dataInicioTrabalho) = when (val resultado = obterEmpregoAtivoUseCase()) {
+            val (empregoId, dataInicioTrabalho, apelido, logo) = when (val resultado = obterEmpregoAtivoUseCase()) {
                 is ObterEmpregoAtivoUseCase.Resultado.Sucesso -> {
-                    resultado.emprego.id to resultado.emprego.dataInicioTrabalho
+                    val emp = resultado.emprego
+                    listOf(emp.id, emp.dataInicioTrabalho, emp.apelido, emp.logo)
                 }
-                else -> 0L to null
+                else -> listOf(0L, null, null, null)
             }
 
             if (ausenciaId > 0) {
-                carregarAusencia(ausenciaId, dataInicioTrabalho)
+                carregarAusencia(ausenciaId, dataInicioTrabalho as? LocalDate)
             } else {
                 val tipo = tipoInicial?.let {
                     runCatching { TipoAusencia.valueOf(it) }.getOrNull()
@@ -77,12 +78,14 @@ class AusenciaFormViewModel @Inject constructor(
                     runCatching { LocalDate.parse(it) }.getOrNull()
                 } ?: LocalDate.now()
 
-                val periodoAquisitivo = calcularPeriodoAquisitivo(data, dataInicioTrabalho)
+                val periodoAquisitivo = calcularPeriodoAquisitivo(data, dataInicioTrabalho as? LocalDate)
 
                 _uiState.update {
                     it.copy(
-                        empregoId = empregoId,
-                        dataInicioTrabalho = dataInicioTrabalho,
+                        empregoId = empregoId as Long,
+                        dataInicioTrabalho = dataInicioTrabalho as? LocalDate,
+                        empregoApelido = apelido as? String,
+                        empregoLogo = logo as? String,
                         tipo = tipo,
                         dataInicio = data,
                         dataFim = data,

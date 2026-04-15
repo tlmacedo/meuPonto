@@ -18,7 +18,9 @@ data class AuditoriaUiState(
     val mensagemErro: String? = null,
     val showFiltros: Boolean = false,
     val filtroAtivo: FiltroAuditoria = FiltroAuditoria(),
-    val logSelecionado: AuditLog? = null
+    val logSelecionado: AuditLog? = null,
+    val empregoApelido: String? = null,
+    val empregoLogo: String? = null
 ) {
     val quantidadeLogs: Int get() = logs.size
     val temLogs: Boolean get() = logs.isNotEmpty()

@@ -37,7 +37,9 @@ data class EditarFeriadoUiState(
     val successMessage: String? = null,
     val shouldNavigateBack: Boolean = false,
     val empregosDisponiveis: List<Emprego> = emptyList(),
-    val hasChanges: Boolean = false
+    val hasChanges: Boolean = false,
+    val empregoApelido: String = "",
+    val empregoLogo: String? = null
 ) {
     val isEditing: Boolean get() = feriadoId != null
 

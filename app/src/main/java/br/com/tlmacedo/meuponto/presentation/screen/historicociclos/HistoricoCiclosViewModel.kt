@@ -55,67 +55,67 @@ class HistoricoCiclosViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                val emprego = when (val resultado = obterEmpregoAtivoUseCase()) {
-                    is ObterEmpregoAtivoUseCase.Resultado.Sucesso -> resultado.emprego
-                    else -> {
+                obterEmpregoAtivoUseCase.observar().collect { emprego ->
+                    if (emprego == null) {
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 errorMessage = "Nenhum emprego ativo encontrado"
                             )
                         }
-                        return@launch
+                        return@collect
                     }
-                }
 
-                empregoIdAtual = emprego.id
+                    empregoIdAtual = emprego.id
 
-                // Buscar versão vigente para obter configuração do ciclo
-                val versaoVigente = versaoJornadaRepository.buscarVigente(emprego.id)
+                    // Buscar versão vigente para obter configuração do ciclo
+                    val versaoVigente = versaoJornadaRepository.buscarVigente(emprego.id)
 
-                // Calcular duração do ciclo baseado na configuração
-                val duracaoCicloDias = calcularDuracaoCicloDias(versaoVigente)
+                    // Calcular duração do ciclo baseado na configuração
+                    val duracaoCicloDias = calcularDuracaoCicloDias(versaoVigente)
 
-                // Buscar todos os fechamentos de banco de horas
-                val fechamentos = fechamentoPeriodoRepository
-                    .buscarPorEmpregoIdETipo(emprego.id, TipoFechamento.BANCO_HORAS)
-                    .sortedByDescending { it.dataFimPeriodo }
+                    // Buscar todos os fechamentos de banco de horas
+                    val fechamentos = fechamentoPeriodoRepository
+                        .buscarPorEmpregoIdETipo(emprego.id, TipoFechamento.BANCO_HORAS)
+                        .sortedByDescending { it.dataFimPeriodo }
 
-                // Construir lista de ciclos
-                val ciclos = mutableListOf<CicloBancoHoras>()
+                    // Construir lista de ciclos
+                    val ciclos = mutableListOf<CicloBancoHoras>()
 
-                // Adicionar ciclos históricos (fechados)
-                fechamentos.forEach { fechamento ->
-                    ciclos.add(
-                        CicloBancoHoras(
-                            dataInicio = fechamento.dataInicioPeriodo,
-                            dataFim = fechamento.dataFimPeriodo,
-                            saldoInicialMinutos = 0, // Após fechamento, começa do zero
-                            saldoAtualMinutos = fechamento.saldoAnteriorMinutos,
-                            fechamento = fechamento,
-                            isCicloAtual = false
+                    // Adicionar ciclos históricos (fechados)
+                    fechamentos.forEach { fechamento ->
+                        ciclos.add(
+                            CicloBancoHoras(
+                                dataInicio = fechamento.dataInicioPeriodo,
+                                dataFim = fechamento.dataFimPeriodo,
+                                saldoInicialMinutos = 0, // Após fechamento, começa do zero
+                                saldoAtualMinutos = fechamento.saldoAnteriorMinutos,
+                                fechamento = fechamento,
+                                isCicloAtual = false
+                            )
                         )
-                    )
-                }
+                    }
 
-                // Calcular e adicionar ciclo atual
-                val cicloAtual = calcularCicloAtual(
-                    empregoId = emprego.id,
-                    versaoVigente = versaoVigente,
-                    ultimoFechamento = fechamentos.firstOrNull(),
-                    duracaoCicloDias = duracaoCicloDias
-                )
-                if (cicloAtual != null) {
-                    ciclos.add(0, cicloAtual) // Adiciona no início da lista
-                }
-
-                _uiState.update { state ->
-                    state.copy(
-                        ciclos = ciclos,
-                        empregoNome = emprego.nome,
-                        empregoApelido = emprego.apelido ?: "",
-                        isLoading = false
+                    // Calcular e adicionar ciclo atual
+                    val cicloAtual = calcularCicloAtual(
+                        empregoId = emprego.id,
+                        versaoVigente = versaoVigente,
+                        ultimoFechamento = fechamentos.firstOrNull(),
+                        duracaoCicloDias = duracaoCicloDias
                     )
+                    if (cicloAtual != null) {
+                        ciclos.add(0, cicloAtual) // Adiciona no início da lista
+                    }
+
+                    _uiState.update { state ->
+                        state.copy(
+                            ciclos = ciclos,
+                            empregoNome = emprego.nome,
+                            empregoApelido = emprego.apelido ?: "",
+                            empregoLogo = emprego.logo,
+                            isLoading = false
+                        )
+                    }
                 }
 
             } catch (e: Exception) {

@@ -73,7 +73,8 @@ fun HorariosScreen(
         topBar = {
             MeuPontoTopBar(
                 title = "Horários",
-                subtitle = uiState.versaoDescricao,
+                subtitle = "${uiState.empregoApelido?.uppercase()} - ${uiState.versaoDescricao}",
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

@@ -186,7 +186,7 @@ fun HomeScreen(
             topBar = {
                 MeuPontoTopBar(
                     title = "Meu Ponto",
-                    subtitle = uiState.empregoAtivo?.apelido,
+                    subtitle = uiState.empregoAtivo?.apelido?.uppercase(),
                     logo = uiState.empregoAtivo?.logo,
                     showTodayButton = !uiState.isHoje,
                     showHistoryButton = true,
@@ -358,7 +358,7 @@ internal fun HomeContent(
             ProximoPontoCard(uiState.proximoTipo, uiState.horaAtual, { if (!uiState.isFuturo) onAction(HomeAction.RegistrarPontoAgora) }, modifier = Modifier.fillMaxWidth(), habilitado = !uiState.isFuturo && uiState.empregoAtivo != null)
 
             FeriadoBanner(uiState.feriadosDoDia)
-            uiState.ausenciaDoDia?.let { AusenciaBanner(it) }
+            uiState.ausenciaDoDia?.let { AusenciaBanner(it, uiState.metadataFerias) }
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), 0.5.dp, MaterialTheme.colorScheme.outlineVariant)

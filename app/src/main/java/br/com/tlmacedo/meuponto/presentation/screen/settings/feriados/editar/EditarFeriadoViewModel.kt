@@ -10,6 +10,7 @@ import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.presentation.navigation.MeuPontoDestinations
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ import javax.inject.Inject
 class EditarFeriadoViewModel @Inject constructor(
     private val feriadoRepository: FeriadoRepository,
     private val empregoRepository: EmpregoRepository,
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -37,7 +39,21 @@ class EditarFeriadoViewModel @Inject constructor(
 
     init {
         carregarEmpregos()
+        carregarEmpregoAtivo()
         feriadoId?.let { carregarFeriado(it) }
+    }
+
+    private fun carregarEmpregoAtivo() {
+        viewModelScope.launch {
+            obterEmpregoAtivoUseCase.observar().collect { emprego ->
+                _uiState.update {
+                    it.copy(
+                        empregoApelido = emprego?.apelido ?: "",
+                        empregoLogo = emprego?.logo
+                    )
+                }
+            }
+        }
     }
 
     private fun carregarEmpregos() {

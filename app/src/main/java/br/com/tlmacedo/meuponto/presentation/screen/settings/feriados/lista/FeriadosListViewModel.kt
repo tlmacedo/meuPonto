@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.feriado.ImportarFeriadosNacionaisUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -22,11 +24,13 @@ import javax.inject.Inject
  * @author Thiago
  * @since 3.0.0
  * @updated 5.3.0 - Suporte a múltiplos filtros de tipo e ordenação
+ * @updated 12.1.1 - Adicionado suporte ao job metadata
  */
 @HiltViewModel
 class FeriadosListViewModel @Inject constructor(
     private val feriadoRepository: FeriadoRepository,
-    private val importarFeriadosUseCase: ImportarFeriadosNacionaisUseCase
+    private val importarFeriadosUseCase: ImportarFeriadosNacionaisUseCase,
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeriadosListUiState())
@@ -34,6 +38,7 @@ class FeriadosListViewModel @Inject constructor(
 
     init {
         carregarFeriados()
+        carregarEmpregoAtivo()
     }
 
     fun onEvent(event: FeriadosListEvent) {
@@ -108,6 +113,19 @@ class FeriadosListViewModel @Inject constructor(
                     it.copy(
                         mensagemSucesso = null,
                         mensagemErro = null
+                    )
+                }
+            }
+        }
+    }
+
+    private fun carregarEmpregoAtivo() {
+        viewModelScope.launch {
+            obterEmpregoAtivoUseCase.observar().collectLatest { emprego ->
+                _uiState.update {
+                    it.copy(
+                        empregoApelido = emprego?.apelido,
+                        empregoLogo = emprego?.logo
                     )
                 }
             }

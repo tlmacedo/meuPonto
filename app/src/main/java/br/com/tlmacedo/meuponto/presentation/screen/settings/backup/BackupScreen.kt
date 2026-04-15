@@ -432,6 +432,8 @@ fun BackupScreen(
         topBar = {
             MeuPontoTopBar(
                 title = "Backup e Dados",
+                subtitle = (uiState.empregoApelido ?: uiState.empregoNome)?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

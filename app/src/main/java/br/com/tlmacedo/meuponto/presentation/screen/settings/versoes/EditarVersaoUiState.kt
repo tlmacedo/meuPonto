@@ -12,7 +12,9 @@ data class EditarVersaoUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val isNovaVersao: Boolean = true,
-    val empregoId: Long = 0L,  // ✅ Adicionado
+    val empregoId: Long = 0L,
+    val empregoApelido: String? = null,
+    val empregoLogo: String? = null,
     val versaoId: Long? = null,
     val descricao: String = "",
     val dataInicio: LocalDate = LocalDate.now(),

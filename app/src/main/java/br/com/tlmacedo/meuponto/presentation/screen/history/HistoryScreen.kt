@@ -186,7 +186,8 @@ fun HistoryContent(
         topBar = {
             MeuPontoTopBar(
                 title = "Histórico",
-                subtitle = uiState.apelidoEmprego ?: uiState.nomeEmprego,
+                subtitle = (uiState.apelidoEmprego ?: uiState.nomeEmprego)?.uppercase(),
+                logo = uiState.logoEmprego,
                 showBackButton = true,
                 onBackClick = onNavigateBack,
                 actions = {

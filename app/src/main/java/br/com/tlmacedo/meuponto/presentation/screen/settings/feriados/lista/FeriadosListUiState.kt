@@ -22,7 +22,9 @@ data class FeriadosListUiState(
     val feriadoParaExcluir: Feriado? = null,
     val importacaoEmAndamento: Boolean = false,
     val mensagemSucesso: String? = null,
-    val mensagemErro: String? = null
+    val mensagemErro: String? = null,
+    val empregoApelido: String? = null,
+    val empregoLogo: String? = null
 ) {
     val feriadosAgrupados: Map<TipoFeriado, List<Feriado>> get() = feriadosFiltrados.groupBy { it.tipo }
     val totalFeriados: Int get() = feriados.size

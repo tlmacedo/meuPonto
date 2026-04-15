@@ -121,7 +121,8 @@ fun EditarEmpregoScreen(
         topBar = {
             MeuPontoTopBar(
                 title = uiState.tituloTela,
-                subtitle = uiState.apelido.ifBlank { uiState.nome },
+                subtitle = uiState.apelido.ifBlank { uiState.nome }.uppercase(),
+                logo = uiState.logo,
                 showBackButton = true,
                 onBackClick = { viewModel.onAction(EditarEmpregoAction.Cancelar) }
             )

@@ -8,6 +8,7 @@ import br.com.tlmacedo.meuponto.domain.repository.CloudBackupRepository
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.preferencias.SalvarPreferenciasGlobaisUseCase
 import br.com.tlmacedo.meuponto.data.local.datastore.PreferenciasGlobaisDataStore
 import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
@@ -63,7 +64,10 @@ data class BackupUiState(
     val backupsLocais: List<LocalBackupFile> = emptyList(),
     val backupsNuvem: List<CloudFile> = emptyList(),
     val mesesParaLimpeza: Int = 24,
-    val totalImagens: Int = 0
+    val totalImagens: Int = 0,
+    val empregoApelido: String? = null,
+    val empregoNome: String? = null,
+    val empregoLogo: String? = null
 )
 
 /**
@@ -117,7 +121,8 @@ class BackupViewModel @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val feriadoRepository: FeriadoRepository,
     private val preferencesDataStore: PreferenciasGlobaisDataStore,
-    private val salvarPreferenciasGlobaisUseCase: SalvarPreferenciasGlobaisUseCase
+    private val salvarPreferenciasGlobaisUseCase: SalvarPreferenciasGlobaisUseCase,
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BackupUiState())
@@ -129,6 +134,21 @@ class BackupViewModel @Inject constructor(
     init {
         carregarEstatisticas()
         observarPreferencias()
+        carregarEmpregoAtivo()
+    }
+
+    private fun carregarEmpregoAtivo() {
+        viewModelScope.launch {
+            obterEmpregoAtivoUseCase.observar().collectLatest { emprego ->
+                _uiState.update {
+                    it.copy(
+                        empregoApelido = emprego?.apelido,
+                        empregoNome = emprego?.nome,
+                        empregoLogo = emprego?.logo
+                    )
+                }
+            }
+        }
     }
 
     private fun observarPreferencias() {

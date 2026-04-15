@@ -64,6 +64,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.StrokeCap
@@ -163,13 +164,76 @@ private fun LixeiraContent(
                     onFechar = { onAction(LixeiraAction.DesativarModoSelecao) }
                 )
             } else {
-                LixeiraTopBar(
-                    quantidadeItens = uiState.quantidadeItens,
-                    ordenacao = uiState.ordenacao,
-                    onVoltar = { onAction(LixeiraAction.Voltar) },
-                    onAlterarOrdenacao = { onAction(LixeiraAction.AlterarOrdenacao(it)) },
-                    onEsvaziarLixeira = { onAction(LixeiraAction.SolicitarEsvaziarLixeira) },
-                    habilitarEsvaziar = uiState.pontosNaLixeira.isNotEmpty()
+                MeuPontoTopBar(
+                    title = "Lixeira",
+                    subtitle = uiState.empregoApelido?.uppercase(),
+                    logo = uiState.empregoLogo,
+                    showBackButton = true,
+                    onBackClick = { onAction(LixeiraAction.Voltar) },
+                    actions = {
+                        // Ordenação
+                        var showMenuOrdenacao by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { showMenuOrdenacao = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Sort,
+                                    contentDescription = "Ordenar"
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showMenuOrdenacao,
+                                onDismissRequest = { showMenuOrdenacao = false }
+                            ) {
+                                OrdenacaoLixeira.entries.forEach { opcao ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = opcao.label,
+                                                fontWeight = if (opcao == uiState.ordenacao) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        onClick = {
+                                            onAction(LixeiraAction.AlterarOrdenacao(opcao))
+                                            showMenuOrdenacao = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Menu de opções
+                        var showMenuOpcoes by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { showMenuOpcoes = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Mais opções"
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showMenuOpcoes,
+                                onDismissRequest = { showMenuOpcoes = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Esvaziar lixeira") },
+                                    onClick = {
+                                        showMenuOpcoes = false
+                                        onAction(LixeiraAction.SolicitarEsvaziarLixeira)
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteSweep,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    enabled = uiState.pontosNaLixeira.isNotEmpty()
+                                )
+                            }
+                        }
+                    }
                 )
             }
         },
@@ -251,112 +315,6 @@ private fun LixeiraContent(
             onCancelar = { onAction(LixeiraAction.CancelarEsvaziarLixeira) }
         )
     }
-}
-
-// =============================================================================
-// TOP BARS
-// =============================================================================
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LixeiraTopBar(
-    quantidadeItens: Int,
-    ordenacao: OrdenacaoLixeira,
-    onVoltar: () -> Unit,
-    onAlterarOrdenacao: (OrdenacaoLixeira) -> Unit,
-    onEsvaziarLixeira: () -> Unit,
-    habilitarEsvaziar: Boolean
-) {
-    var showMenuOrdenacao by remember { mutableStateOf(false) }
-    var showMenuOpcoes by remember { mutableStateOf(false) }
-
-    TopAppBar(
-        title = {
-            Column {
-                Text("Lixeira")
-                if (quantidadeItens > 0) {
-                    Text(
-                        text = "$quantidadeItens item(ns)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        navigationIcon = {
-            IconButton(onClick = onVoltar) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Voltar"
-                )
-            }
-        },
-        actions = {
-            // Ordenação
-            Box {
-                IconButton(onClick = { showMenuOrdenacao = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Sort,
-                        contentDescription = "Ordenar"
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showMenuOrdenacao,
-                    onDismissRequest = { showMenuOrdenacao = false }
-                ) {
-                    OrdenacaoLixeira.entries.forEach { opcao ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = opcao.label,
-                                    fontWeight = if (opcao == ordenacao) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            onClick = {
-                                onAlterarOrdenacao(opcao)
-                                showMenuOrdenacao = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Menu de opções
-            Box {
-                IconButton(onClick = { showMenuOpcoes = true }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Mais opções"
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showMenuOpcoes,
-                    onDismissRequest = { showMenuOpcoes = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Esvaziar lixeira") },
-                        onClick = {
-                            showMenuOpcoes = false
-                            onEsvaziarLixeira()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.DeleteSweep,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        },
-                        enabled = habilitarEsvaziar
-                    )
-                }
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -19,6 +19,8 @@ data class HorariosUiState(
     val isSaving: Boolean = false,
     val versaoJornadaId: Long = 0L,
     val empregoId: Long = 0L,
+    val empregoApelido: String? = null,
+    val empregoLogo: String? = null,
     val versaoDescricao: String = "",
     val versaoJornada: VersaoJornada? = null,
     val horarios: List<HorarioDiaSemana> = emptyList(),

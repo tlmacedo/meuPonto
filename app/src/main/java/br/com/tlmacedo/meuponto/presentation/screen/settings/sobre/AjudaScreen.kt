@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,6 +35,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 
 /**
@@ -47,14 +50,18 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 @Composable
 fun AjudaScreen(
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: SobreViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             MeuPontoTopBar(
                 title = "Ajuda e Suporte",
+                subtitle = (uiState.empregoApelido ?: uiState.empregoNome)?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

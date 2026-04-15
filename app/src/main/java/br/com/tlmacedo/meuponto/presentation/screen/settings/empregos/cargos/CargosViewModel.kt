@@ -69,9 +69,18 @@ class CargosViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             try {
-                // Carregar nome do emprego
-                val emprego = empregoRepository.buscarPorId(empregoId)
-                _uiState.update { it.copy(nomeEmprego = emprego?.nome ?: "") }
+                // Observar emprego para pegar nome, apelido e logo
+                launch {
+                    empregoRepository.observarPorId(empregoId).collect { emprego ->
+                        _uiState.update {
+                            it.copy(
+                                nomeEmprego = emprego?.nome ?: "",
+                                apelidoEmprego = emprego?.apelido,
+                                logoEmprego = emprego?.logo
+                            )
+                        }
+                    }
+                }
 
                 // Observar cargos e seus ajustes reativamente
                 historicoCargoRepository.listarPorEmprego(empregoId)
@@ -155,6 +164,8 @@ class CargosViewModel @Inject constructor(
 data class CargosUiState(
     val isLoading: Boolean = true,
     val nomeEmprego: String = "",
+    val apelidoEmprego: String? = null,
+    val logoEmprego: String? = null,
     val cargos: List<HistoricoCargo> = emptyList(),
     val cargoAtual: HistoricoCargo? = null,
     val ajustesPorCargo: Map<Long, List<AjusteSalarial>> = emptyMap(),

@@ -33,7 +33,8 @@ import javax.inject.Inject
 @HiltViewModel
 class VersoesJornadaViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val empregoRepository: br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 ) : ViewModel() {
 
     private val empregoId: Long =
@@ -91,6 +92,8 @@ class VersoesJornadaViewModel @Inject constructor(
                 )
             }
 
+            val emprego = empregoRepository.buscarPorId(empregoId)
+
             combine(
                 versaoJornadaRepository.observarPorEmprego(empregoId),
                 versaoJornadaRepository.observarVigente(empregoId)
@@ -111,6 +114,9 @@ class VersoesJornadaViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             empregoId = empregoId,
+                            nomeEmprego = emprego?.nome ?: "",
+                            empregoApelido = emprego?.apelido,
+                            empregoLogo = emprego?.logo,
                             versoes = versoes,
                             versaoVigente = vigente
                         )

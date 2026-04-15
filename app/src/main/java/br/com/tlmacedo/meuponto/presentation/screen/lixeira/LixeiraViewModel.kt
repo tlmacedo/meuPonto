@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ExcluirPontoPermanenteUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.RestaurarPontoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -29,13 +31,15 @@ import javax.inject.Inject
  * @author Thiago
  * @since 9.2.0
  * @updated 11.0.0 - Refatorado para usar UseCases com soft delete
+ * @updated 12.1.1 - Adicionado suporte ao job metadata
  */
 @HiltViewModel
 class LixeiraViewModel @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val empregoRepository: EmpregoRepository,
     private val restaurarPontoUseCase: RestaurarPontoUseCase,
-    private val excluirPontoPermanenteUseCase: ExcluirPontoPermanenteUseCase
+    private val excluirPontoPermanenteUseCase: ExcluirPontoPermanenteUseCase,
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase
 ) : ViewModel() {
 
     companion object {
@@ -55,6 +59,21 @@ class LixeiraViewModel @Inject constructor(
     init {
         carregarEmpregos()
         observarPontosExcluidos()
+        carregarEmpregoAtivo()
+    }
+
+    private fun carregarEmpregoAtivo() {
+        viewModelScope.launch {
+            obterEmpregoAtivoUseCase.observar().collectLatest { emprego ->
+                _uiState.update {
+                    it.copy(
+                        empregoApelido = emprego?.apelido,
+                        empregoNome = emprego?.nome,
+                        empregoLogo = emprego?.logo
+                    )
+                }
+            }
+        }
     }
 
     /**

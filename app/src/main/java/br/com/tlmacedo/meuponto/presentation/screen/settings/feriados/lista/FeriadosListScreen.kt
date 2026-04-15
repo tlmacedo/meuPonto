@@ -146,6 +146,8 @@ fun FeriadosListContent(
         topBar = {
             MeuPontoTopBar(
                 title = "Feriados",
+                subtitle = uiState.empregoApelido?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack,
                 actions = {

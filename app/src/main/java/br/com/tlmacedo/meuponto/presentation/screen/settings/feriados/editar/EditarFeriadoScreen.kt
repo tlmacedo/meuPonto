@@ -43,8 +43,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -180,13 +180,11 @@ fun EditarFeriadoContent(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(uiState.screenTitle) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
-                    }
-                },
+            MeuPontoTopBar(
+                title = uiState.screenTitle,
+                subtitle = uiState.empregoApelido.uppercase(),
+                logo = uiState.empregoLogo,
+                onBackClick = onNavigateBack,
                 actions = {
                     if (uiState.isEditing) {
                         IconButton(

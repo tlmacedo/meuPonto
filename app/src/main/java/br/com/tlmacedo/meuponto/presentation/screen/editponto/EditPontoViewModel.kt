@@ -130,6 +130,8 @@ class EditPontoViewModel @Inject constructor(
                     empregos = empregos,
                     marcadores = marcadores,
                     empregoSelecionado = empregoAtual,
+                    empregoApelido = empregoAtual?.apelido,
+                    empregoLogo = empregoAtual?.logo,
                     // ✅ Decompõe dataHora em data e hora para edição separada
                     data = ponto.dataHora.toLocalDate(),
                     hora = ponto.dataHora.toLocalTime().withSecond(0).withNano(0),
@@ -172,6 +174,8 @@ class EditPontoViewModel @Inject constructor(
                 val marcadores = marcadorRepository.buscarAtivosPorEmprego(emprego.id)
                 _uiState.update { it.copy(
                     empregoSelecionado = emprego,
+                    empregoApelido = emprego.apelido,
+                    empregoLogo = emprego.logo,
                     marcadores = marcadores
                 )}
             } catch (e: Exception) {

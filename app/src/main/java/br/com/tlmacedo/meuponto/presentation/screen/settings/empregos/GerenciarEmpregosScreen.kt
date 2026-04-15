@@ -127,7 +127,8 @@ fun GerenciarEmpregosContent(
             val empregoAtivo = uiState.empregos.find { it.id == uiState.empregoAtivoId }
             MeuPontoTopBar(
                 title = "Gerenciar Empregos",
-                subtitle = empregoAtivo?.apelido,
+                subtitle = (empregoAtivo?.apelido ?: empregoAtivo?.nome)?.uppercase(),
+                logo = empregoAtivo?.logo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

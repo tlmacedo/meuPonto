@@ -303,6 +303,7 @@ data class ResumoPeriodo(
 data class HistoryUiState(
     val nomeEmprego: String? = null,
     val apelidoEmprego: String? = null,
+    val logoEmprego: String? = null,
     val diasHistorico: List<InfoDiaHistorico> = emptyList(),
     val periodoSelecionado: PeriodoHistorico = PeriodoHistorico.periodoAtual(),
     val diaInicioFechamento: Int = 1,

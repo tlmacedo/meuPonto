@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,11 +18,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
@@ -45,6 +48,7 @@ fun MeuPontoTopBar(
     onHistoryClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     actions: @Composable (RowScope.() -> Unit)? = null,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
     modifier: Modifier = Modifier
 ) {
     CenterAlignedTopAppBar(
@@ -54,35 +58,44 @@ fun MeuPontoTopBar(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
                 subtitle?.let {
                     Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = it.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
         },
         navigationIcon = {
-            if (showBackButton) {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Voltar"
-                    )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 4.dp)
+            ) {
+                if (showBackButton) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Voltar"
+                        )
+                    }
                 }
-            } else if (logo != null) {
-                Box(modifier = Modifier.padding(start = 8.dp)) {
-                    LocalImage(
-                        imagePath = logo,
-                        contentDescription = "Logo",
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(MaterialTheme.shapes.small),
-                        contentScale = ContentScale.Crop
-                    )
+                
+                logo?.let {
+                    Box(modifier = Modifier.padding(start = if (showBackButton) 0.dp else 8.dp)) {
+                        LocalImage(
+                            imagePath = it,
+                            contentDescription = "Logo",
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(MaterialTheme.shapes.small),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
             }
         },
@@ -116,6 +129,7 @@ fun MeuPontoTopBar(
                 }
             }
         },
+        scrollBehavior = scrollBehavior,
         modifier = modifier
     )
 }

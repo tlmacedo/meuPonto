@@ -206,7 +206,8 @@ internal fun EditarCargoContent(
         topBar = {
             MeuPontoTopBar(
                 title = if (uiState.isNovoCargo) "Novo Cargo" else "Editar Cargo",
-                subtitle = uiState.nomeEmprego,
+                subtitle = uiState.nomeEmprego.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = { onAction(EditarCargoAction.Cancelar) }
             )

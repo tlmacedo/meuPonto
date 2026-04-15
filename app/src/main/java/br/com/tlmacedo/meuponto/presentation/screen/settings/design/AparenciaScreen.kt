@@ -79,6 +79,8 @@ fun AparenciaScreen(
         topBar = {
             MeuPontoTopBar(
                 title = "Aparência",
+                subtitle = (uiState.empregoApelido ?: uiState.empregoNome)?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

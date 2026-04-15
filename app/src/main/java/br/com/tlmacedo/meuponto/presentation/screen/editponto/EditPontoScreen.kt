@@ -29,7 +29,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import br.com.tlmacedo.meuponto.R
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 
 /**
  * Tela de edição de ponto existente.
@@ -98,16 +98,12 @@ fun EditPontoScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Editar Ponto") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.btn_voltar)
-                        )
-                    }
-                },
+            MeuPontoTopBar(
+                title = "Editar Ponto",
+                subtitle = (uiState.empregoApelido?.uppercase() ?: (uiState.empregoSelecionado?.apelido ?: uiState.empregoSelecionado?.nome)?.uppercase()),
+                logo = uiState.empregoLogo ?: uiState.empregoSelecionado?.logo,
+                showBackButton = true,
+                onBackClick = onNavigateBack,
                 actions = {
                     IconButton(
                         onClick = { mostrarConfirmacaoExclusao = true },

@@ -54,6 +54,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.BuildConfig
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import coil.compose.AsyncImage
@@ -67,9 +69,11 @@ import coil.compose.AsyncImage
 @Composable
 fun ReportarProblemaScreen(
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ReportarProblemaViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var descricao by remember { mutableStateOf("") }
     var passos by remember { mutableStateOf("") }
     var evidencias by remember { mutableStateOf<List<Uri>>(emptyList()) }
@@ -85,7 +89,8 @@ fun ReportarProblemaScreen(
         topBar = {
             MeuPontoTopBar(
                 title = "Reportar Problema",
-                subtitle = "Beta Feedback",
+                subtitle = (uiState.empregoApelido ?: uiState.empregoNome)?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

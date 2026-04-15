@@ -155,6 +155,8 @@ data class AusenciaFormUiState(
     val descricao: String = "",
     val observacao: String = "",
     val dataInicioTrabalho: LocalDate? = null,
+    val empregoApelido: String? = null,
+    val empregoLogo: String? = null,
     val dataInicioPeriodoAquisitivo: LocalDate? = null,
     val dataFimPeriodoAquisitivo: LocalDate? = null,
     val periodoAquisitivo: String = "", // Comentário do período aquisitivo

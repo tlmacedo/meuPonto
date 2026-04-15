@@ -9,5 +9,7 @@ data class CompararVersoesUiState(
     val isLoading: Boolean = true,
     val versao1: VersaoJornada? = null,
     val versao2: VersaoJornada? = null,
+    val empregoApelido: String? = null,
+    val empregoLogo: String? = null,
     val errorMessage: String? = null
 )

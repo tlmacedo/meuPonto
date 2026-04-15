@@ -81,7 +81,12 @@ class EditarCargoViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val emprego = empregoRepository.buscarPorId(empregoId)
-                _uiState.update { it.copy(nomeEmprego = emprego?.nome ?: "") }
+                _uiState.update {
+                    it.copy(
+                        nomeEmprego = emprego?.apelido ?: emprego?.nome ?: "",
+                        empregoLogo = emprego?.logo
+                    )
+                }
 
                 if (cargoId > 0L) {
                     // Modo edição
@@ -327,6 +332,7 @@ data class EditarCargoUiState(
     val isSaving: Boolean = false,
     val isNovoCargo: Boolean = true,
     val nomeEmprego: String = "",
+    val empregoLogo: String? = null,
     val cargoId: Long = 0L,
     val funcao: String = "",
     val funcaoErro: String? = null,

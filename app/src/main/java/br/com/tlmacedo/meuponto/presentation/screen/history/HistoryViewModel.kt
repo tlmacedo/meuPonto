@@ -81,32 +81,37 @@ class HistoryViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                val resultadoEmprego = obterEmpregoAtivoUseCase()
-                val emprego = (resultadoEmprego as? ObterEmpregoAtivoUseCase.Resultado.Sucesso)?.emprego
-                val empregoId = emprego?.id
+                obterEmpregoAtivoUseCase.observar().collect { emprego ->
+                    val empregoId = emprego?.id
 
-                if (empregoId == null) {
-                    _uiState.update { it.copy(isLoading = false) }
-                    return@launch
+                    if (empregoId == null) {
+                        _uiState.update { it.copy(isLoading = false) }
+                        return@collect
+                    }
+
+                    empregoIdAtual = empregoId
+                    val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
+                    versaoVigenteAtual = versaoVigente
+
+                    val diaInicio = versaoVigente?.diaInicioFechamentoRH ?: 1
+                    val periodoInicial = if (_uiState.value.nomeEmprego == null) {
+                        PeriodoHistorico.periodoAtual(diaInicio)
+                    } else {
+                        _uiState.value.periodoSelecionado.copy(diaInicioFechamento = diaInicio)
+                    }
+
+                    _uiState.update { state ->
+                        state.copy(
+                            nomeEmprego = emprego.nome,
+                            apelidoEmprego = emprego.apelido,
+                            logoEmprego = emprego.logo,
+                            periodoSelecionado = periodoInicial,
+                            diaInicioFechamento = diaInicio
+                        )
+                    }
+
+                    carregarHistorico()
                 }
-
-                empregoIdAtual = empregoId
-                val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
-                versaoVigenteAtual = versaoVigente
-
-                val diaInicio = versaoVigente?.diaInicioFechamentoRH ?: 1
-                val periodoInicial = PeriodoHistorico.periodoAtual(diaInicio)
-
-                _uiState.update { state ->
-                    state.copy(
-                        nomeEmprego = emprego.nome,
-                        apelidoEmprego = emprego.apelido,
-                        periodoSelecionado = periodoInicial,
-                        diaInicioFechamento = diaInicio
-                    )
-                }
-
-                carregarHistorico()
 
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao carregar configuração e histórico")

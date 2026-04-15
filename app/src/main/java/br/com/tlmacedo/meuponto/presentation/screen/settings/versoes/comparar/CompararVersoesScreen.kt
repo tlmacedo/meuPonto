@@ -58,6 +58,8 @@ fun CompararVersoesContent(
         topBar = {
             MeuPontoTopBar(
                 title = "Comparar Versões",
+                subtitle = uiState.empregoApelido?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

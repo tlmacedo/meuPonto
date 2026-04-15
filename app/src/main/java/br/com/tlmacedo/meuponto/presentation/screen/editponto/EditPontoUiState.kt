@@ -48,6 +48,8 @@ data class EditPontoUiState(
     val empregos: List<Emprego> = emptyList(),
     val marcadores: List<Marcador> = emptyList(),
     val empregoSelecionado: Emprego? = null,
+    val empregoApelido: String? = null,
+    val empregoLogo: String? = null,
     val data: LocalDate = LocalDate.now(),
     val hora: LocalTime = LocalTime.now(),
     val observacao: String = "",

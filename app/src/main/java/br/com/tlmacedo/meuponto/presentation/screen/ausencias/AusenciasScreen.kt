@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaCard
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaFilterChips
 import kotlinx.coroutines.flow.collectLatest
@@ -110,16 +111,12 @@ fun AusenciasScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text("Ausências") },
-                navigationIcon = {
-                    IconButton(onClick = { viewModel.onAction(AusenciasAction.Voltar) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Voltar"
-                        )
-                    }
-                },
+            MeuPontoTopBar(
+                title = "Ausências",
+                subtitle = uiState.empregoAtivo?.apelido?.uppercase(),
+                logo = uiState.empregoAtivo?.logo,
+                showBackButton = true,
+                onBackClick = { viewModel.onAction(AusenciasAction.Voltar) },
                 scrollBehavior = scrollBehavior
             )
         },

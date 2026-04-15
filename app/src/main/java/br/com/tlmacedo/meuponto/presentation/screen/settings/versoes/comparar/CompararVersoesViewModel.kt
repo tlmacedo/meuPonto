@@ -20,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CompararVersoesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val empregoRepository: br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 ) : ViewModel() {
 
     private val versaoId1: Long =
@@ -60,11 +61,14 @@ class CompararVersoesViewModel @Inject constructor(
                         )
                     }
                 } else {
+                    val emprego = empregoRepository.buscarPorId(v1.empregoId)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             versao1 = v1,
-                            versao2 = v2
+                            versao2 = v2,
+                            empregoApelido = emprego?.apelido ?: emprego?.nome,
+                            empregoLogo = emprego?.logo
                         )
                     }
                 }

@@ -74,6 +74,8 @@ fun NotificacoesScreen(
         topBar = {
             MeuPontoTopBar(
                 title = "Notificações",
+                subtitle = (uiState.empregoApelido ?: uiState.empregoNome)?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

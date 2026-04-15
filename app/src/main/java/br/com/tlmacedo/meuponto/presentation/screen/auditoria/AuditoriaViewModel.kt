@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.AuditLog
 import br.com.tlmacedo.meuponto.domain.repository.AuditLogRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -19,10 +21,12 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 11.0.0
+ * @updated 12.1.1 - Adicionado suporte ao job metadata
  */
 @HiltViewModel
 class AuditoriaViewModel @Inject constructor(
-    private val auditLogRepository: AuditLogRepository
+    private val auditLogRepository: AuditLogRepository,
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuditoriaUiState())
@@ -30,6 +34,7 @@ class AuditoriaViewModel @Inject constructor(
 
     init {
         carregarLogs()
+        carregarEmpregoAtivo()
     }
 
     fun onEvent(event: AuditoriaEvent) {
@@ -41,6 +46,19 @@ class AuditoriaViewModel @Inject constructor(
             is AuditoriaEvent.SelecionarLog -> selecionarLog(event.log)
             is AuditoriaEvent.FecharDetalhes -> fecharDetalhes()
             is AuditoriaEvent.LimparMensagem -> limparMensagem()
+        }
+    }
+
+    private fun carregarEmpregoAtivo() {
+        viewModelScope.launch {
+            obterEmpregoAtivoUseCase.observar().collectLatest { emprego ->
+                _uiState.update {
+                    it.copy(
+                        empregoApelido = emprego?.apelido,
+                        empregoLogo = emprego?.logo
+                    )
+                }
+            }
         }
     }
 

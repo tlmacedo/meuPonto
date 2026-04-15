@@ -29,7 +29,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +36,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 
 /**
@@ -57,14 +57,14 @@ fun PrivacidadeScreen(
     modifier: Modifier = Modifier,
     viewModel: PrivacidadeViewModel = hiltViewModel()
 ) {
-    val biometriaHabilitada by viewModel.biometriaHabilitada.collectAsState()
-    val ocultarPreview by viewModel.ocultarPreview.collectAsState()
-    val bloqueioAutomatico by viewModel.bloqueioAutomatico.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             MeuPontoTopBar(
                 title = "Privacidade",
+                subtitle = (uiState.empregoApelido ?: uiState.empregoNome)?.uppercase(),
+                logo = uiState.empregoLogo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -91,7 +91,7 @@ fun PrivacidadeScreen(
                         title = "Bloqueio por biometria",
                         subtitle = "Exigir impressão digital ou reconhecimento facial para abrir o app",
                         icon = Icons.Outlined.Fingerprint,
-                        checked = biometriaHabilitada,
+                        checked = uiState.biometriaHabilitada,
                         onCheckedChange = { viewModel.toggleBiometria(it) }
                     )
 
@@ -99,9 +99,9 @@ fun PrivacidadeScreen(
                         title = "Bloqueio automático",
                         subtitle = "Bloquear o app após ficar em segundo plano",
                         icon = Icons.Outlined.Lock,
-                        checked = bloqueioAutomatico,
+                        checked = uiState.bloqueioAutomatico,
                         onCheckedChange = { viewModel.toggleBloqueioAutomatico(it) },
-                        enabled = biometriaHabilitada
+                        enabled = uiState.biometriaHabilitada
                     )
                 }
             }
@@ -119,7 +119,7 @@ fun PrivacidadeScreen(
                         title = "Ocultar na tela de recentes",
                         subtitle = "Esconder conteúdo do app quando alternar entre aplicativos",
                         icon = Icons.Outlined.VisibilityOff,
-                        checked = ocultarPreview,
+                        checked = uiState.ocultarPreview,
                         onCheckedChange = { viewModel.toggleOcultarPreview(it) }
                     )
                 }

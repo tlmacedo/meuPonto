@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.design
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,10 @@ data class NotificacoesUiState(
     val alertaHoraExtra: Boolean = true,
     val alertaJornadaMaxima: Boolean = true,
     val vibracaoHabilitada: Boolean = true,
-    val somHabilitado: Boolean = true
+    val somHabilitado: Boolean = true,
+    val empregoApelido: String? = null,
+    val empregoNome: String? = null,
+    val empregoLogo: String? = null
 )
 
 /**
@@ -59,7 +63,8 @@ sealed interface NotificacoesEvent {
  */
 @HiltViewModel
 class NotificacoesViewModel @Inject constructor(
-    private val preferenciasRepository: PreferenciasRepository
+    private val preferenciasRepository: PreferenciasRepository,
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NotificacoesUiState())
@@ -70,6 +75,7 @@ class NotificacoesViewModel @Inject constructor(
 
     init {
         carregarPreferencias()
+        carregarEmpregoAtivo()
     }
 
     fun onAction(action: NotificacoesAction) {
@@ -82,6 +88,20 @@ class NotificacoesViewModel @Inject constructor(
             NotificacoesAction.ToggleAlertaJornadaMaxima -> toggleAlertaJornadaMaxima()
             NotificacoesAction.ToggleVibracao -> toggleVibracao()
             NotificacoesAction.ToggleSom -> toggleSom()
+        }
+    }
+
+    private fun carregarEmpregoAtivo() {
+        viewModelScope.launch {
+            obterEmpregoAtivoUseCase.observar().collectLatest { emprego ->
+                _uiState.update {
+                    it.copy(
+                        empregoApelido = emprego?.apelido,
+                        empregoNome = emprego?.nome,
+                        empregoLogo = emprego?.logo
+                    )
+                }
+            }
         }
     }
 

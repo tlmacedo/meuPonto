@@ -44,14 +44,25 @@ class VersoesJornadaViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
+            // Observar emprego para pegar nome, apelido e logo
+            launch {
+                empregoRepository.observarPorId(empregoId).collect { emprego ->
+                    _uiState.update {
+                        it.copy(
+                            nomeEmprego = emprego?.nome ?: "Emprego",
+                            apelidoEmprego = emprego?.apelido,
+                            logoEmprego = emprego?.logo
+                        )
+                    }
+                }
+            }
             
-            val emprego = empregoRepository.buscarPorId(empregoId)
             val versoes = versaoJornadaRepository.listarPorEmprego(empregoId)
                 .sortedByDescending { it.dataInicio }
 
             _uiState.update {
                 it.copy(
-                    nomeEmprego = emprego?.nome ?: "Emprego",
                     versoes = versoes,
                     isLoading = false
                 )

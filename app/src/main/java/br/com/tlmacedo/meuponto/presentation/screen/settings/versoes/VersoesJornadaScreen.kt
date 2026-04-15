@@ -131,7 +131,8 @@ fun VersoesJornadaContent(
             } else {
                 MeuPontoTopBar(
                     title = "Versões de Jornada",
-                    subtitle = uiState.nomeEmprego,
+                    subtitle = (uiState.empregoApelido ?: uiState.nomeEmprego).uppercase(),
+                    logo = uiState.empregoLogo,
                     showBackButton = true,
                     onBackClick = onNavigateBack
                 )

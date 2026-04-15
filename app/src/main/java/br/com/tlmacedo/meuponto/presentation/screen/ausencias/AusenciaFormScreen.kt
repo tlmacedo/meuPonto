@@ -85,6 +85,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.presentation.components.DurationInputField
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import coil.compose.AsyncImage
@@ -146,19 +147,12 @@ fun AusenciaFormScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(uiState.tituloTela) },
-                navigationIcon = {
-                    IconButton(onClick = { viewModel.onAction(AusenciaFormAction.Cancelar) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Voltar"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            MeuPontoTopBar(
+                title = uiState.tituloTela,
+                subtitle = uiState.empregoApelido?.uppercase(),
+                logo = uiState.empregoLogo,
+                showBackButton = true,
+                onBackClick = { viewModel.onAction(AusenciaFormAction.Cancelar) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }

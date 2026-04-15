@@ -71,6 +71,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.AcaoAuditoria
 import br.com.tlmacedo.meuponto.domain.model.AuditLog
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -101,12 +102,33 @@ fun AuditoriaScreen(
 
     Scaffold(
         topBar = {
-            AuditoriaTopBar(
-                quantidadeLogs = uiState.quantidadeLogs,
-                temFiltrosAtivos = uiState.filtroAtivo.temFiltrosAtivos,
-                onNavigateBack = onNavigateBack,
-                onToggleFiltros = { viewModel.onEvent(AuditoriaEvent.ToggleFiltros) },
-                onLimparFiltros = { viewModel.onEvent(AuditoriaEvent.LimparFiltros) }
+            MeuPontoTopBar(
+                title = "Auditoria",
+                subtitle = uiState.empregoApelido?.uppercase(),
+                logo = uiState.empregoLogo,
+                showBackButton = true,
+                onBackClick = onNavigateBack,
+                actions = {
+                    if (uiState.filtroAtivo.temFiltrosAtivos) {
+                        IconButton(onClick = { viewModel.onEvent(AuditoriaEvent.LimparFiltros) }) {
+                            Icon(
+                                imageVector = Icons.Default.FilterListOff,
+                                contentDescription = "Limpar filtros"
+                            )
+                        }
+                    }
+                    IconButton(onClick = { viewModel.onEvent(AuditoriaEvent.ToggleFiltros) }) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Filtros",
+                            tint = if (uiState.filtroAtivo.temFiltrosAtivos) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }

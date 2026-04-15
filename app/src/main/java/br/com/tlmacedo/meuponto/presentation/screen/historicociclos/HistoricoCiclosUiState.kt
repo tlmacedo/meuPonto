@@ -22,7 +22,8 @@ data class HistoricoCiclosUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val empregoNome: String = "",
-    val empregoApelido: String = ""
+    val empregoApelido: String = "",
+    val empregoLogo: String? = null
 ) {
     /**
      * Verifica se há ciclos para exibir.

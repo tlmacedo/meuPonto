@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.design
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,10 @@ import javax.inject.Inject
  */
 data class AparenciaUiState(
     val isLoading: Boolean = true,
-    val temaSelecionado: String = "system"
+    val temaSelecionado: String = "system",
+    val empregoApelido: String? = null,
+    val empregoNome: String? = null,
+    val empregoLogo: String? = null
 )
 
 /**
@@ -45,7 +49,8 @@ sealed interface AparenciaEvent {
  */
 @HiltViewModel
 class AparenciaViewModel @Inject constructor(
-    private val preferenciasRepository: PreferenciasRepository
+    private val preferenciasRepository: PreferenciasRepository,
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AparenciaUiState())
@@ -56,11 +61,26 @@ class AparenciaViewModel @Inject constructor(
 
     init {
         observarTema()
+        carregarEmpregoAtivo()
     }
 
     fun onAction(action: AparenciaAction) {
         when (action) {
             is AparenciaAction.SelecionarTema -> selecionarTema(action.tema)
+        }
+    }
+
+    private fun carregarEmpregoAtivo() {
+        viewModelScope.launch {
+            obterEmpregoAtivoUseCase.observar().collectLatest { emprego ->
+                _uiState.update {
+                    it.copy(
+                        empregoApelido = emprego?.apelido,
+                        empregoNome = emprego?.nome,
+                        empregoLogo = emprego?.logo
+                    )
+                }
+            }
         }
     }
 

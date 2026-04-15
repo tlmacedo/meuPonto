@@ -90,7 +90,8 @@ fun VersoesJornadaContent(
         topBar = {
             MeuPontoTopBar(
                 title = "Histórico de Jornadas",
-                subtitle = uiState.nomeEmprego, // Aqui nomeEmprego já é o apelido vindo do UI State
+                subtitle = uiState.apelidoEmprego?.uppercase() ?: uiState.nomeEmprego,
+                logo = uiState.logoEmprego,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

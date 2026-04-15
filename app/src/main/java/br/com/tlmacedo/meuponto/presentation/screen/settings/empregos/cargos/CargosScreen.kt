@@ -125,7 +125,8 @@ internal fun CargosContent(
         topBar = {
             MeuPontoTopBar(
                 title = "Cargos e Salários",
-                subtitle = uiState.nomeEmprego,
+                subtitle = uiState.apelidoEmprego?.uppercase() ?: uiState.nomeEmprego,
+                logo = uiState.logoEmprego,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
+import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.presentation.navigation.MeuPontoDestinations
@@ -36,6 +37,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HorariosViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val empregoRepository: EmpregoRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository
 ) : ViewModel() {
@@ -113,6 +115,8 @@ class HorariosViewModel @Inject constructor(
 
             try {
                 val versao = versaoJornadaRepository.buscarPorId(versaoJornadaId)
+                val emprego = empregoRepository.buscarPorId(empregoId)
+
                 if (versao == null) {
                     _uiState.update {
                         it.copy(
@@ -126,7 +130,9 @@ class HorariosViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         versaoDescricao = versao.descricao ?: "Versão ${versao.numeroVersao}",
-                        versaoJornada = versao
+                        versaoJornada = versao,
+                        empregoApelido = emprego?.apelido ?: emprego?.nome,
+                        empregoLogo = emprego?.logo
                     )
                 }
 

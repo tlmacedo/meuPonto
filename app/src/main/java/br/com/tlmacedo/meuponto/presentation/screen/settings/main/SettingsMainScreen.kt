@@ -213,7 +213,8 @@ fun SettingsMainContent(
         topBar = {
             MeuPontoTopBar(
                 title = "Configurações",
-                subtitle = uiState.empregoAtual?.apelido,
+                subtitle = uiState.empregoAtual?.apelido?.uppercase(),
+                logo = uiState.empregoAtual?.logo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

@@ -8,6 +8,8 @@ import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 data class VersoesJornadaUiState(
     val empregoId: Long = -1L,
     val nomeEmprego: String = "",
+    val apelidoEmprego: String? = null,
+    val logoEmprego: String? = null,
     val versoes: List<VersaoJornada> = emptyList(),
     val isLoading: Boolean = true,
     val erro: String? = null

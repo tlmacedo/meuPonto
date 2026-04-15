@@ -124,7 +124,8 @@ fun EmpregoSettingsDetailScreen(
         topBar = {
             MeuPontoTopBar(
                 title = uiState.nomeEmprego,
-                subtitle = uiState.emprego?.apelido,
+                subtitle = (uiState.emprego?.apelido ?: uiState.emprego?.nome)?.uppercase(),
+                logo = uiState.emprego?.logo,
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )

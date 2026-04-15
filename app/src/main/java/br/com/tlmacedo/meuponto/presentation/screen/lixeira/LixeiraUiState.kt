@@ -28,7 +28,10 @@ data class LixeiraUiState(
     val showConfirmacaoRestaurar: Boolean = false,
     val showConfirmacaoExcluir: Boolean = false,
     val showConfirmacaoEsvaziar: Boolean = false,
-    val pontoParaAcao: Ponto? = null
+    val pontoParaAcao: Ponto? = null,
+    val empregoApelido: String? = null,
+    val empregoNome: String? = null,
+    val empregoLogo: String? = null
 ) {
     /**
      * Lista de pontos filtrados e ordenados para exibição.

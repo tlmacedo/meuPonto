@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.versoes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.versaojornada.AtualizarVersaoJornadaUseCase
@@ -33,6 +34,7 @@ import javax.inject.Inject
 @HiltViewModel
 class EditarVersaoViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val empregoRepository: EmpregoRepository,
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
     private val versaoJornadaUseCases: VersaoJornadaUseCases
@@ -68,6 +70,7 @@ class EditarVersaoViewModel @Inject constructor(
                 carregarVersao(versaoId)
             }
             else -> {
+                carregarDadosEmprego(empregoId)
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -75,6 +78,22 @@ class EditarVersaoViewModel @Inject constructor(
                         empregoId = empregoId
                     )
                 }
+            }
+        }
+    }
+
+    private fun carregarDadosEmprego(id: Long) {
+        viewModelScope.launch {
+            try {
+                val emprego = empregoRepository.buscarPorId(id)
+                _uiState.update {
+                    it.copy(
+                        empregoApelido = emprego?.apelido ?: emprego?.nome,
+                        empregoLogo = emprego?.logo
+                    )
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao carregar dados do emprego")
             }
         }
     }
@@ -141,6 +160,7 @@ class EditarVersaoViewModel @Inject constructor(
 
             try {
                 val versao = versaoJornadaRepository.buscarPorId(id)
+                val emprego = empregoRepository.buscarPorId(empregoId)
 
                 if (versao != null) {
                     if (versao.empregoId != empregoId) {
@@ -170,6 +190,8 @@ class EditarVersaoViewModel @Inject constructor(
                             dataFim = versao.dataFim,
                             numeroVersao = versao.numeroVersao,
                             vigente = versao.vigente,
+                            empregoApelido = emprego?.apelido ?: emprego?.nome,
+                            empregoLogo = emprego?.logo,
                             jornadaMaximaDiariaMinutos = versao.jornadaMaximaDiariaMinutos,
                             intervaloMinimoInterjornadaMinutos = versao.intervaloMinimoInterjornadaMinutos,
                             intervaloMinimoAlmocoMinutos = versao.intervaloMinimoAlmocoMinutos,

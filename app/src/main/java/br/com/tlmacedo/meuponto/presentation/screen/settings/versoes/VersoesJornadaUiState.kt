@@ -11,6 +11,8 @@ data class VersoesJornadaUiState(
     val isCriando: Boolean = false,
     val empregoId: Long = 0L,
     val nomeEmprego: String = "",
+    val empregoApelido: String? = null,
+    val empregoLogo: String? = null,
     val versoes: List<VersaoJornada> = emptyList(),
     val versaoVigente: VersaoJornada? = null,
     val mostrarDialogExcluir: Boolean = false,
