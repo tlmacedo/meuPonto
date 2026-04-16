@@ -11,6 +11,8 @@ import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.CalcularMetadataFeriasUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
@@ -29,7 +31,8 @@ data class ResumoDiaCompleto(
     val feriadosDoDia: List<Feriado> = listOfNotNull(feriado),
     val horarioDiaSemana: HorarioDiaSemana?,
     val tipoDiaEspecial: TipoDiaEspecial,
-    val descricaoDiaEspecial: String?
+    val descricaoDiaEspecial: String?,
+    val metadataFerias: MetadataFerias? = null
 ) {
     val pontos: List<Ponto> get() = resumoDia.pontos
     val horasTrabalhadas: Duration get() = resumoDia.horasTrabalhadas
@@ -59,7 +62,8 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
     private val ausenciaRepository: AusenciaRepository,
     private val feriadoRepository: FeriadoRepository,
     private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val calcularMetadataFeriasUseCase: CalcularMetadataFeriasUseCase
 ) {
 
     suspend operator fun invoke(empregoId: Long, data: LocalDate): ResumoDiaCompleto {
@@ -98,7 +102,10 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             tempoAbonadoMinutos = tempoAbonadoMinutos
         )
 
-        return ResumoDiaCompleto(data, resumoDia, ausencias, feriado, feriados, horarioDia, tipoDiaEspecial, descricao)
+        val ausenciaPrincipal = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO } ?: ausencias.firstOrNull()
+        val metadataFerias = ausenciaPrincipal?.let { calcularMetadataFeriasUseCase(it) }
+
+        return ResumoDiaCompleto(data, resumoDia, ausencias, feriado, feriados, horarioDia, tipoDiaEspecial, descricao, metadataFerias)
     }
 
     fun invokeComDados(
@@ -110,7 +117,8 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         horarioDia: HorarioDiaSemana?,
         cargaHorariaBasePadrao: Int = 480,
         acrescimoPontes: Int = 0,
-        toleranciaIntervaloGlobal: Int = 0
+        toleranciaIntervaloGlobal: Int = 0,
+        metadataFerias: MetadataFerias? = null
     ): ResumoDiaCompleto {
         val (tipoDiaEspecial, descricao) = determinarTipoDiaEspecial(ausencias, feriado)
         val tempoAbonadoMinutos = ausencias
@@ -131,7 +139,7 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             tempoAbonadoMinutos = tempoAbonadoMinutos
         )
 
-        return ResumoDiaCompleto(data, resumoDia, ausencias, feriado, feriados, horarioDia, tipoDiaEspecial, descricao)
+        return ResumoDiaCompleto(data, resumoDia, ausencias, feriado, feriados, horarioDia, tipoDiaEspecial, descricao, metadataFerias)
     }
 
     fun observar(empregoId: Long, data: LocalDate): Flow<ResumoDiaCompleto> {
@@ -154,7 +162,10 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             val acrescimoPontes = versaoJornada?.acrescimoMinutosDiasPontes ?: 0
             val toleranciaGlobal = versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0
 
-            invokeComDados(data, pontos, ausenciasAtivas, feriado, feriados, horarioDia, cargaBasePadrao, acrescimoPontes, toleranciaGlobal)
+            val ausenciaPrincipal = ausenciasAtivas.firstOrNull { it.tipo != TipoAusencia.DECLARACAO } ?: ausenciasAtivas.firstOrNull()
+            val metadata = ausenciaPrincipal?.let { calcularMetadataFeriasUseCase(it) }
+
+            invokeComDados(data, pontos, ausenciasAtivas, feriado, feriados, horarioDia, cargaBasePadrao, acrescimoPontes, toleranciaGlobal, metadata)
         }
     }
 

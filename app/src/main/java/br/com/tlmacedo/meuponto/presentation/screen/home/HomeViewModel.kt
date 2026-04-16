@@ -1335,6 +1335,7 @@ class HomeViewModel @Inject constructor(
                         resumoDia = resumoCompleto.resumoDia,
                         feriadosDoDia = resumoCompleto.feriadosDoDia,
                         ausenciaDoDia = resumoCompleto.ausenciaPrincipal,
+                        metadataFerias = resumoCompleto.metadataFerias,
                         versaoJornadaAtual = null,
                         proximoTipo = proximoTipo,
                         isLoading = false

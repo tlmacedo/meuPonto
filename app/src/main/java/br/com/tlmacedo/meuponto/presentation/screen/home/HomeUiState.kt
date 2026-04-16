@@ -16,6 +16,7 @@ import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import java.time.LocalDate
@@ -199,6 +200,7 @@ data class HomeUiState(
     val feriadosDoDia: List<Feriado> = emptyList(),
     // Ausências
     val ausenciaDoDia: Ausencia? = null,
+    val metadataFerias: MetadataFerias? = null,
     // Loading e dialogs
     val isLoading: Boolean = false,
     val isLoadingEmpregos: Boolean = false,

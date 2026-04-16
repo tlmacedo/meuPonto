@@ -52,24 +52,46 @@ import br.com.tlmacedo.meuponto.presentation.theme.SurfaceVariant
 import br.com.tlmacedo.meuponto.presentation.theme.WarningLight
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private val horaFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private val dateFormatterCompleto = DateTimeFormatter.ofPattern("dd/MM/yyyy (EEE)", Locale("pt", "BR"))
+private val dateFormatterSimples = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+
+/**
+ * Formata período de gozo de férias no formato completo.
+ */
+private fun formatarGozoFerias(dataInicio: LocalDate, dataFim: LocalDate): String {
+    return "${dataInicio.format(dateFormatterCompleto)} ~ ${dataFim.format(dateFormatterCompleto)}"
+}
+
+/**
+ * Formata período aquisitivo no formato simples.
+ */
+private fun formatarAquisitivoFerias(inicio: LocalDate?, fim: LocalDate?): String? {
+    if (inicio == null || fim == null) return null
+    return "${inicio.format(dateFormatterSimples)} ~ ${fim.format(dateFormatterSimples)}"
+}
 
 /**
  * Banner que exibe informações sobre ausências do dia (férias, atestado, folga, etc.).
  * Layout otimizado para Declarações com informações compactas.
  *
  * @param ausencia Ausência do dia
+ * @param metadataFerias Metadados de férias (opcional)
  * @param modifier Modifier opcional
  *
  * @author Thiago
  * @since 4.0.0
- * @updated 5.5.0 - Layout melhorado para Declarações
+ * @updated 13.0.0 - Suporte a metadados de férias (período e dias restantes)
  */
 @Composable
 fun AusenciaBanner(
     ausencia: Ausencia,
+    metadataFerias: MetadataFerias? = null,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = ausencia.tipo.getBackgroundColor()
@@ -105,11 +127,16 @@ fun AusenciaBanner(
 
                 // Tipo da ausência
                 val textoTipo = buildString {
-                    append(ausencia.tipo.descricao)
-                    if (ausencia.tipo == TipoAusencia.FERIAS)
-                        append(" (${ausencia.periodoAquisitivo})")
+                    if (ausencia.tipo == TipoAusencia.FERIAS) {
+                        append("Férias: ${formatarGozoFerias(ausencia.dataInicio, ausencia.dataFim)}")
+                        append(" (${ausencia.quantidadeDias} dias)")
+                    } else {
+                        append(ausencia.tipo.descricao)
+                        if (ausencia.tipo != TipoAusencia.FERIAS)
+                            ausencia.periodoAquisitivo?.let { append(" ($it)") }
 
-                    ausencia.tipoFolga?.let { append(" (${it.descricao})") }
+                        ausencia.tipoFolga?.let { append(" (${it.descricao})") }
+                    }
                 }
 
                 Text(
@@ -150,6 +177,11 @@ fun AusenciaBanner(
 
             // Conteúdo específico por tipo
             when (ausencia.tipo) {
+                TipoAusencia.FERIAS -> FeriasContent(
+                    ausencia = ausencia,
+                    metadata = metadataFerias,
+                    contentColor = contentColor
+                )
                 TipoAusencia.DECLARACAO -> DeclaracaoContent(
                     ausencia = ausencia,
                     contentColor = contentColor
@@ -159,6 +191,66 @@ fun AusenciaBanner(
                     contentColor = contentColor
                 )
             }
+        }
+    }
+}
+
+/**
+ * Conteúdo específico para Férias - exibe detalhes do período e saldo.
+ */
+@Composable
+private fun FeriasContent(
+    ausencia: Ausencia,
+    metadata: MetadataFerias?,
+    contentColor: Color
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Linha 1: Período Aquisitivo e Sequência
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Chip: Período Aquisitivo
+            formatarAquisitivoFerias(
+                ausencia.dataInicioPeriodoAquisitivo,
+                ausencia.dataFimPeriodoAquisitivo
+            )?.let { periodo ->
+                InfoChip(
+                    text = "Aquisitivo: $periodo",
+                    icon = Icons.Default.Schedule,
+                    contentColor = contentColor
+                )
+            }
+
+            // Chip: Sequência (ex: 1º período)
+            metadata?.let {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = contentColor.copy(alpha = 0.2f)
+                ) {
+                    Text(
+                        text = "${it.sequenciaPeriodo}º período",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        // Linha 2: Saldo restante (se houver metadados)
+        metadata?.let {
+            Text(
+                text = if (it.diasRestantes > 0)
+                    "Restam ${it.diasRestantes} dias deste período aquisitivo"
+                else
+                    "Todo o período aquisitivo foi utilizado",
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
     }
 }
@@ -338,8 +430,8 @@ private fun DefaultAusenciaContent(
  */
 @Composable
 private fun InfoChip(
-    icon: ImageVector,
     text: String,
+    icon: ImageVector,
     contentColor: Color,
     modifier: Modifier = Modifier
 ) {
