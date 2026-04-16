@@ -36,7 +36,7 @@ class CriarAusenciaUseCase @Inject constructor(
     suspend operator fun invoke(
         empregoId: Long,
         tipo: TipoAusencia,
-        tipoFolga: TipoFolga? = null,  // ← ADICIONAR
+        tipoFolga: TipoFolga? = null,
         dataInicio: LocalDate,
         dataFim: LocalDate = dataInicio,
         descricao: String? = null,
@@ -44,6 +44,8 @@ class CriarAusenciaUseCase @Inject constructor(
         horaInicio: LocalTime? = null,
         duracaoDeclaracaoMinutos: Int? = null,
         duracaoAbonoMinutos: Int? = null,
+        dataInicioPeriodoAquisitivo: LocalDate? = null,
+        dataFimPeriodoAquisitivo: LocalDate? = null,
         periodoAquisitivo: String? = null,
         imagemUri: String? = null
     ): ResultadoCriarAusencia {
@@ -75,6 +77,8 @@ class CriarAusenciaUseCase @Inject constructor(
             horaInicio = horaInicio,
             duracaoDeclaracaoMinutos = duracaoDeclaracaoMinutos,
             duracaoAbonoMinutos = duracaoAbonoMinutos,
+            dataInicioPeriodoAquisitivo = dataInicioPeriodoAquisitivo,
+            dataFimPeriodoAquisitivo = dataFimPeriodoAquisitivo,
             periodoAquisitivo = periodoAquisitivo,
             imagemUri = imagemUri,
             ativo = true,
@@ -106,6 +110,8 @@ class CriarAusenciaUseCase @Inject constructor(
             horaInicio = ausencia.horaInicio,
             duracaoDeclaracaoMinutos = ausencia.duracaoDeclaracaoMinutos,
             duracaoAbonoMinutos = ausencia.duracaoAbonoMinutos,
+            dataInicioPeriodoAquisitivo = ausencia.dataInicioPeriodoAquisitivo,
+            dataFimPeriodoAquisitivo = ausencia.dataFimPeriodoAquisitivo,
             periodoAquisitivo = ausencia.periodoAquisitivo,
             imagemUri = ausencia.imagemUri
         )

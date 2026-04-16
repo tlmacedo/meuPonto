@@ -24,6 +24,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +40,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import java.time.format.TextStyle
@@ -80,109 +87,168 @@ fun AusenciaCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Indicador de tipo (emoji)
-            Box(
+            // Informações da ausência (agrupadas para acessibilidade)
+            val descAcessibilidade = stringResource(
+                R.string.ausencia_acessibilidade_card,
+                ausencia.tipo.descricao,
+                formatarDataComDiaSemana(ausencia)
+            )
+            val descIcone = stringResource(R.string.ausencia_icone_de, ausencia.tipo.descricao)
+
+            Row(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(ausencia.tipo.cor.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
+                    .weight(1f)
+                    .semantics(mergeDescendants = true) {
+                        role = Role.Button
+                        contentDescription = descAcessibilidade
+                    },
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = ausencia.emoji,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Informações da ausência
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                // Nome do tipo
-                Text(
-                    text = ausencia.tipoDescricaoCompleta,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                // Data com dia da semana
-                Text(
-                    text = formatarDataComDiaSemana(ausencia),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                // Detalhes específicos por tipo
-                when (ausencia.tipo) {
-                    TipoAusencia.FERIAS -> {
-                        // Mostrar período aquisitivo se houver
-                        if (ausencia.dataInicioPeriodoAquisitivo != null && ausencia.dataFimPeriodoAquisitivo != null) {
-                            val inicioStr = ausencia.dataInicioPeriodoAquisitivo.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))
-                            val fimStr = ausencia.dataFimPeriodoAquisitivo.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))
-                            Text(
-                                text = "Aquisitivo: $inicioStr - $fimStr",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else if (!ausencia.periodoAquisitivo.isNullOrBlank()) {
-                            Text(
-                                text = "Aquisitivo: ${ausencia.periodoAquisitivo}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                // Indicador de tipo (emoji)
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(ausencia.tipo.cor.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = ausencia.emoji,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.semantics {
+                            contentDescription = descIcone
                         }
-
-                        Text(
-                            text = "${ausencia.quantidadeDias} ${if (ausencia.quantidadeDias == 1) "dia" else "dias"}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    TipoAusencia.DECLARACAO -> {
-                        ausencia.horaInicio?.let { horaInicio ->
-                            Text(
-                                text = "🕐 ${horaInicio.toString().substring(0, 5)} • ${formatarMinutos(ausencia.duracaoDeclaracaoMinutos ?: 0)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        ausencia.duracaoAbonoMinutos?.let { abono ->
-                            Text(
-                                text = "✅ Abono: ${formatarMinutos(abono)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                    else -> {
-                        // Mostrar quantidade de dias para períodos
-                        if (ausencia.quantidadeDias > 1 || ausencia.isPeriodo) {
-                            Text(
-                                text = "${ausencia.quantidadeDias} ${if (ausencia.quantidadeDias == 1) "dia" else "dias"}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
+                    )
                 }
 
-                // Observação (se houver)
-                ausencia.observacao?.takeIf { it.isNotBlank() }?.let { obs ->
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Informações da ausência
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Nome do tipo
                     Text(
-                        text = obs,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = stringResource(when (ausencia.tipo) {
+                            TipoAusencia.FERIAS -> R.string.tipo_ausencia_ferias
+                            TipoAusencia.ATESTADO -> R.string.tipo_ausencia_atestado
+                            TipoAusencia.DECLARACAO -> R.string.tipo_ausencia_declaracao
+                            TipoAusencia.FALTA_JUSTIFICADA -> R.string.tipo_ausencia_falta_justificada
+                            TipoAusencia.FOLGA -> R.string.tipo_ausencia_folga
+                            TipoAusencia.FALTA_INJUSTIFICADA -> R.string.tipo_ausencia_falta_injustificada
+                        }),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+
+                    // Data com dia da semana
+                    Text(
+                        text = formatarDataComDiaSemana(ausencia),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Detalhes específicos por tipo
+                    when (ausencia.tipo) {
+                        TipoAusencia.FERIAS -> {
+                            // Mostrar período aquisitivo se houver
+                            if (ausencia.dataInicioPeriodoAquisitivo != null && ausencia.dataFimPeriodoAquisitivo != null) {
+                                val inicioStr = ausencia.dataInicioPeriodoAquisitivo.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))
+                                val fimStr = ausencia.dataFimPeriodoAquisitivo.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))
+                                Text(
+                                    text = "${stringResource(R.string.ausencia_periodo_aquisitivo)}: $inicioStr - $fimStr",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else if (!ausencia.periodoAquisitivo.isNullOrBlank()) {
+                                Text(
+                                    text = "${stringResource(R.string.ausencia_periodo_aquisitivo)}: ${ausencia.periodoAquisitivo}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = if (ausencia.quantidadeDias == 1)
+                                        stringResource(R.string.ausencia_periodo_dias_singular, 1)
+                                    else
+                                        stringResource(R.string.ausencia_periodo_dias_plural, ausencia.quantidadeDias),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+
+                                // Badge de período se for férias e tiver PA
+                                if (ausencia.dataInicioPeriodoAquisitivo != null) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        modifier = Modifier.padding(vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.ausencia_ferias_badge),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        TipoAusencia.DECLARACAO -> {
+                            ausencia.horaInicio?.let { horaInicio ->
+                                val horaStr = horaInicio.toString().substring(0, 5)
+                                val duracaoStr = formatarMinutosString(ausencia.duracaoDeclaracaoMinutos ?: 0)
+                                Text(
+                                    text = "🕐 $horaStr • $duracaoStr",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            ausencia.duracaoAbonoMinutos?.let { abono ->
+                                val abonoStr = formatarMinutosString(abono)
+                                Text(
+                                    text = stringResource(R.string.ausencia_abono_valor, abonoStr),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        else -> {
+                            // Mostrar quantidade de dias para períodos
+                            if (ausencia.quantidadeDias > 1 || ausencia.isPeriodo) {
+                                Text(
+                                    text = if (ausencia.quantidadeDias == 1)
+                                        stringResource(R.string.ausencia_periodo_dias_singular, 1)
+                                    else
+                                        stringResource(R.string.ausencia_periodo_dias_plural, ausencia.quantidadeDias),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    // Observação (se houver)
+                    ausencia.observacao?.takeIf { it.isNotBlank() }?.let { obs ->
+                        Text(
+                            text = obs,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 
@@ -191,7 +257,7 @@ fun AusenciaCard(
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Mais opções"
+                        contentDescription = stringResource(R.string.ausencia_mais_opcoes)
                     )
                 }
 
@@ -200,7 +266,7 @@ fun AusenciaCard(
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Editar") },
+                        text = { Text(stringResource(R.string.btn_editar)) },
                         onClick = {
                             showMenu = false
                             onEditar()
@@ -211,7 +277,7 @@ fun AusenciaCard(
                     )
                     DropdownMenuItem(
                         text = {
-                            Text(if (ausencia.ativo) "Desativar" else "Ativar")
+                            Text(if (ausencia.ativo) stringResource(R.string.ausencia_desativar) else stringResource(R.string.ausencia_ativar))
                         },
                         onClick = {
                             showMenu = false
@@ -228,7 +294,7 @@ fun AusenciaCard(
                     DropdownMenuItem(
                         text = {
                             Text(
-                                "Excluir",
+                                stringResource(R.string.btn_excluir),
                                 color = MaterialTheme.colorScheme.error
                             )
                         },
@@ -282,13 +348,14 @@ private fun formatarDataComDiaSemana(ausencia: Ausencia): String {
     }
 }
 
-private fun formatarMinutos(minutos: Int): String {
+@Composable
+private fun formatarMinutosString(minutos: Int): String {
     val horas = minutos / 60
     val mins = minutos % 60
     return when {
-        horas > 0 && mins > 0 -> "${horas}h ${mins}min"
-        horas > 0 -> "${horas}h"
-        else -> "${mins}min"
+        horas > 0 && mins > 0 -> stringResource(R.string.ausencia_minutos_completo, horas, mins)
+        horas > 0 -> stringResource(R.string.ausencia_minutos_apenas_horas, horas)
+        else -> stringResource(R.string.ausencia_minutos_apenas_minutos, mins)
     }
 }
 

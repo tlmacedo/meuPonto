@@ -314,6 +314,19 @@ enum class TipoAusencia(
     // ============================================================================
 
     /**
+     * Preposição para frases de retorno (ex: "retorno das férias", "retorno do atestado").
+     */
+    val preposicao: String
+        get() = when (this) {
+            FERIAS -> "das férias"
+            ATESTADO -> "do atestado"
+            DECLARACAO -> "da declaração"
+            FALTA_JUSTIFICADA -> "da falta"
+            FOLGA -> "da folga"
+            FALTA_INJUSTIFICADA -> "da falta"
+        }
+
+    /**
      * Indica se a ausência é considerada justificada.
      *
      * Para [ATESTADO], sempre é justificada, mas o abono é condicional

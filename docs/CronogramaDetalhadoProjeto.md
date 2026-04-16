@@ -52,7 +52,7 @@ O projeto será dividido em fases iterativas, com marcos e entregáveis claros.
     *   Utilizar a biblioteca `androidx.biometric` para compatibilidade.
     *   Armazenar tokens em `EncryptedSharedPreferences` ou `Security-Sensitive DataStore`.
 
-### Fase 2: Módulo de Configurações - Gerenciamento de Empregos e Jornadas (15-20 dias)
+### Fase 2: Módulo de Configurações - Gerenciamento de Empregos e Jornadas (15-20 dias) [CONCLUÍDA]
 
 *   **Descrição:** Desenvolvimento das telas e lógica para cadastro e gerenciamento de empregos, versões de jornada, regras de jornada e horários por dia da semana.
 *   **Marcos:**
@@ -121,12 +121,18 @@ O projeto será dividido em fases iterativas, com marcos e entregáveis claros.
     *   Otimizar queries do Room e usar `Flow` para atualizações reativas.
     *   Implementar paginação ou carregamento sob demanda para listas longas.
 
-### Fase 5: Refinamentos, Testes e Otimizações (7-10 dias)
+### Fase 5: Refinamentos, Testes e Otimizações (7-10 dias) [EM ANDAMENTO]
 
 *   **Descrição:** Fase dedicada a testes abrangentes (unitários, de integração, UI), otimização de performance, correção de bugs e melhorias de usabilidade.
 *   **Marcos:**
-    *   Cobertura de testes unitários e de integração adequada.
-    *   Testes de UI (Espresso/Compose Test) para fluxos críticos.
+    *   [OK] Centralizar lógica de metadados de férias (`CalcularMetadataFeriasUseCase`).
+    *   [OK] Melhorar consistência visual entre `AusenciaBanner` (Home) e `AusenciaCard` (Lista).
+    *   [OK] Implementar sugestão automática de período aquisitivo no formulário de ausências.
+    *   [OK] Cobertura de testes unitários para `CalcularMetadataFeriasUseCase`.
+    *   [OK] Revisão de acessibilidade e strings (Ausências e Férias).
+    *   [OK] UX refinements in the vacation form (show sequence and remaining days live in UI).
+    *   [OK] Auditoria de strings e internacionalização do módulo de Ausências.
+    *   [PENDENTE] Auditoria final de acessibilidade (TalkBack) em todas as telas.
     *   Identificação e correção de bugs.
     *   Otimização de performance (UI, banco de dados, rede).
     *   Revisão de código e refatoração.

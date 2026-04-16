@@ -23,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.OrdemData
 
@@ -64,8 +66,8 @@ fun AusenciaFilterChips(
                 label = {
                     Text(
                         text = when (ordemData) {
-                            OrdemData.CRESCENTE -> "Recentes"
-                            OrdemData.DECRESCENTE -> "Antigas"
+                            OrdemData.CRESCENTE -> stringResource(R.string.historico_ordenacao_mais_recentes)
+                            OrdemData.DECRESCENTE -> stringResource(R.string.historico_ordenacao_mais_antigas)
                         },
                         style = MaterialTheme.typography.labelMedium
                     )
@@ -76,7 +78,7 @@ fun AusenciaFilterChips(
                             OrdemData.CRESCENTE -> Icons.Default.ArrowUpward
                             OrdemData.DECRESCENTE -> Icons.Default.ArrowDownward
                         },
-                        contentDescription = "Ordenação"
+                        contentDescription = stringResource(R.string.historico_filtrar)
                     )
                 },
                 colors = AssistChipDefaults.assistChipColors(
@@ -120,11 +122,11 @@ fun AusenciaFilterChips(
                 FilterChip(
                     selected = false,
                     onClick = onLimparFiltros,
-                    label = { Text("Limpar filtros") },
+                    label = { Text(stringResource(R.string.ausencia_filtros_limpar)) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Clear,
-                            contentDescription = "Limpar filtros",
+                            contentDescription = stringResource(R.string.ausencia_filtros_limpar),
                             tint = MaterialTheme.colorScheme.onErrorContainer
                         )
                     },

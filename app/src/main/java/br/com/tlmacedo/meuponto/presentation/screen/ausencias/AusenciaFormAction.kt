@@ -50,8 +50,7 @@ sealed interface AusenciaFormAction {
     // ========================================================================
     // PERÍODO AQUISITIVO (FERIAS)
     // ========================================================================
-    data class SelecionarAnoInicioPeriodoAquisitivo(val ano: Int) : AusenciaFormAction
-    data class SelecionarAnoFimPeriodoAquisitivo(val ano: Int) : AusenciaFormAction
+    data class SelecionarCicloPeriodoAquisitivo(val ciclo: String) : AusenciaFormAction
     data class SelecionarDataInicioPeriodoAquisitivo(val data: LocalDate) : AusenciaFormAction
     data class SelecionarDataFimPeriodoAquisitivo(val data: LocalDate) : AusenciaFormAction
     data object AbrirDatePickerInicioPeriodoAquisitivo : AusenciaFormAction

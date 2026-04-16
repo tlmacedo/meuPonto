@@ -34,9 +34,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusenciaCor
 
@@ -68,7 +75,7 @@ fun TipoAusenciaSelector(
         ) {
             // Título
             Text(
-                text = "Tipo de Ausência",
+                text = stringResource(R.string.ausencia_tipo),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
@@ -83,11 +90,11 @@ fun TipoAusenciaSelector(
             ) {
                 LegendaItem(
                     cor = MaterialTheme.colorScheme.primaryContainer,
-                    texto = "Abonado (não gera débito)"
+                    texto = stringResource(R.string.ausencia_legenda_abonado)
                 )
                 LegendaItem(
                     cor = MaterialTheme.colorScheme.tertiaryContainer,
-                    texto = "Gera débito no banco"
+                    texto = stringResource(R.string.ausencia_legenda_debito)
                 )
             }
 
@@ -160,6 +167,10 @@ private fun TipoAusenciaItem(
         else -> MaterialTheme.colorScheme.tertiaryContainer
     }
 
+    val iconeDescricaoPrefix = stringResource(R.string.ausencia_icone_de)
+    val estadoSelecionado = stringResource(R.string.estado_selecionado)
+    val clickLabel = stringResource(R.string.ausencia_selecionar_tipo, tipo.descricao)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -169,7 +180,13 @@ private fun TipoAusenciaItem(
                 color = borderColor,
                 shape = RoundedCornerShape(12.dp)
             )
-            .clickable(onClick = onClick),
+            .semantics(mergeDescendants = true) {
+                role = Role.RadioButton
+            }
+            .clickable(
+                onClick = onClick,
+                onClickLabel = clickLabel
+            ),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -192,7 +209,10 @@ private fun TipoAusenciaItem(
                     // Emoji grande
                     Text(
                         text = tipo.emoji,
-                        style = MaterialTheme.typography.headlineMedium
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.semantics {
+                            contentDescription = "$iconeDescricaoPrefix ${tipo.descricao}"
+                        }
                     )
 
                     Column {
@@ -228,7 +248,7 @@ private fun TipoAusenciaItem(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "Selecionado",
+                            contentDescription = estadoSelecionado,
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(18.dp)
                         )
@@ -297,7 +317,7 @@ private fun TipoAusenciaItem(
                         style = MaterialTheme.typography.labelSmall
                     )
                     Text(
-                        text = "Pode requerer documento comprobatório",
+                        text = stringResource(R.string.ausencia_requer_documento_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -331,7 +351,13 @@ fun TipoAusenciaChip(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+            }
+            .clickable(
+                onClick = onClick,
+                onClickLabel = stringResource(R.string.ausencia_alterar_tipo)
+            ),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -366,7 +392,7 @@ fun TipoAusenciaChip(
             }
 
             Text(
-                text = "Alterar",
+                text = stringResource(R.string.btn_alterar),
                 style = MaterialTheme.typography.labelMedium,
                 color = contentColor.copy(alpha = 0.7f)
             )

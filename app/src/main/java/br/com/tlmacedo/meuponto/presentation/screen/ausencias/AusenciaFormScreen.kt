@@ -9,6 +9,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -44,8 +44,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
@@ -63,8 +63,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
@@ -78,12 +76,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
+import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
+import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.DurationInputField
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
@@ -98,7 +104,7 @@ import java.time.LocalTime
  *
  * @author Thiago
  * @since 4.0.0
- * @updated 5.5.0 - Removido SubTipoFolga
+ * @updated 5.7.0 - Melhorias de acessibilidade
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -179,39 +185,63 @@ fun AusenciaFormScreen(
                 // ============================================================
                 // TIPO DE AUSÊNCIA
                 // ============================================================
-                SectionTitle("Tipo de Ausência")
+                SectionTitle(stringResource(R.string.ausencia_tipo))
                 TipoAusenciaChip(
                     tipo = uiState.tipo,
                     onClick = { viewModel.onAction(AusenciaFormAction.AbrirTipoSelector) }
                 )
 
-                // Card informativo sobre o impacto do tipo selecionado
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
+                // Feedback visual para Férias
+                AnimatedVisibility(
+                    visible = uiState.tipo == TipoAusencia.FERIAS && uiState.metadataFerias != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionTitle("Resumo do Ciclo de Férias")
+                        AusenciaBanner(
+                            ausencia = uiState.toAusencia(),
+                            metadataFerias = uiState.metadataFerias,
+                            verificarDiaEspecialUseCase = viewModel.verificarDiaEspecialUseCase,
+                            ausenciaRepository = viewModel.ausenciaRepository,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Column {
-                            Text(
-                                text = uiState.tipo.impactoResumido,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium
+                    }
+                }
+
+                // Card informativo sobre o impacto do tipo selecionado
+                AnimatedVisibility(
+                    visible = uiState.tipo != TipoAusencia.FERIAS,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
                             )
-                            Text(
-                                text = uiState.tipo.explicacaoImpacto,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column {
+                                Text(
+                                    text = uiState.tipo.impactoResumido,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = uiState.tipo.explicacaoImpacto,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -225,7 +255,7 @@ fun AusenciaFormScreen(
                     exit = fadeOut() + shrinkVertically()
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SectionTitle("Tipo de Folga")
+                        SectionTitle(stringResource(R.string.ausencia_tipo_folga))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -278,7 +308,7 @@ fun AusenciaFormScreen(
                     exit = fadeOut() + shrinkVertically()
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SectionTitle("Período")
+                        SectionTitle(stringResource(R.string.ausencia_periodo))
 
                         // Seletor de modo
                         Row(
@@ -290,7 +320,7 @@ fun AusenciaFormScreen(
                                 onClick = {
                                     viewModel.onAction(AusenciaFormAction.SelecionarModoPeriodo(ModoPeriodo.DATA_FINAL))
                                 },
-                                label = { Text("Data final") },
+                                label = { Text(stringResource(R.string.ausencia_data_fim_curto)) },
                                 modifier = Modifier.weight(1f)
                             )
                             FilterChip(
@@ -298,7 +328,7 @@ fun AusenciaFormScreen(
                                 onClick = {
                                     viewModel.onAction(AusenciaFormAction.SelecionarModoPeriodo(ModoPeriodo.QUANTIDADE_DIAS))
                                 },
-                                label = { Text("Qtd. dias") },
+                                label = { Text(stringResource(R.string.ausencia_qtd_dias_curto)) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -310,7 +340,7 @@ fun AusenciaFormScreen(
                             // Data início
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Data início",
+                                    text = stringResource(R.string.ausencia_data_inicio),
                                     style = MaterialTheme.typography.labelMedium
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -318,7 +348,11 @@ fun AusenciaFormScreen(
                                     onClick = { viewModel.onAction(AusenciaFormAction.AbrirDatePickerInicio) },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Icon(Icons.Default.CalendarMonth, null, Modifier.size(18.dp))
+                                    Icon(
+                                        Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Spacer(Modifier.width(8.dp))
                                     Text(uiState.dataInicioFormatada)
                                 }
@@ -328,7 +362,7 @@ fun AusenciaFormScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 if (uiState.modoPeriodo == ModoPeriodo.DATA_FINAL) {
                                     Text(
-                                        text = "Data fim",
+                                        text = stringResource(R.string.ausencia_data_fim_curto),
                                         style = MaterialTheme.typography.labelMedium
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
@@ -336,13 +370,17 @@ fun AusenciaFormScreen(
                                         onClick = { viewModel.onAction(AusenciaFormAction.AbrirDatePickerFim) },
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Icon(Icons.Default.CalendarMonth, null, Modifier.size(18.dp))
+                                        Icon(
+                                            Icons.Default.CalendarMonth,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                         Spacer(Modifier.width(8.dp))
                                         Text(uiState.dataFimFormatada)
                                     }
                                 } else {
                                     Text(
-                                        text = "Quantidade de dias",
+                                        text = stringResource(R.string.ausencia_quantidade_dias),
                                         style = MaterialTheme.typography.labelMedium
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
@@ -369,14 +407,17 @@ fun AusenciaFormScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Total:",
+                                    text = stringResource(R.string.ausencia_total),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
                                     text = "${uiState.totalDias} ${if (uiState.totalDias == 1) "dia" else "dias"}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Total de ${uiState.totalDias} ${if (uiState.totalDias == 1) "dia" else "dias"}"
+                                    }
                                 )
                             }
                         }
@@ -392,7 +433,7 @@ fun AusenciaFormScreen(
                     exit = fadeOut() + shrinkVertically()
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        SectionTitle("Data e Horário")
+                        SectionTitle(stringResource(R.string.ausencia_data_horario))
 
                         // Data
                         Row(
@@ -400,7 +441,7 @@ fun AusenciaFormScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Data:",
+                                text = stringResource(R.string.ausencia_data_label),
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.width(80.dp)
                             )
@@ -419,7 +460,7 @@ fun AusenciaFormScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Hora início:",
+                                text = stringResource(R.string.ausencia_hora_inicio_label),
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.width(80.dp)
                             )
@@ -442,7 +483,7 @@ fun AusenciaFormScreen(
                                 val minutos = totalMinutos % 60
                                 viewModel.onAction(AusenciaFormAction.AtualizarDuracaoDeclaracao(horas, minutos))
                             },
-                            label = "Tempo da declaração",
+                            label = stringResource(R.string.ausencia_tempo_declaracao),
                             minValue = 1, // Mínimo 1 minuto
                             maxValue = 720, // Máximo 12 horas
                             modifier = Modifier.fillMaxWidth()
@@ -457,7 +498,7 @@ fun AusenciaFormScreen(
                                 val minutos = totalMinutos % 60
                                 viewModel.onAction(AusenciaFormAction.AtualizarDuracaoAbono(horas, minutos))
                             },
-                            label = "Tempo que será abonado",
+                            label = stringResource(R.string.ausencia_tempo_abonado),
                             minValue = 0,
                             maxValue = maxAbono, // Não pode ser maior que a declaração
                             modifier = Modifier.fillMaxWidth()
@@ -481,11 +522,11 @@ fun AusenciaFormScreen(
                                 )
                                 Column {
                                     Text(
-                                        text = "Intervalo: ${uiState.horaInicioFormatada} - ${uiState.horaFimFormatada}",
+                                        text = "${stringResource(R.string.ausencia_intervalo)}: ${uiState.horaInicioFormatada} - ${uiState.horaFimFormatada}",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     Text(
-                                        text = "Duração: ${uiState.duracaoDeclaracaoFormatada} | Abono: ${uiState.duracaoAbonoFormatada}",
+                                        text = "${stringResource(R.string.ausencia_duracao)}: ${uiState.duracaoDeclaracaoFormatada} | ${stringResource(R.string.ausencia_abono)}: ${uiState.duracaoAbonoFormatada}",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -504,37 +545,70 @@ fun AusenciaFormScreen(
                     exit = fadeOut() + shrinkVertically()
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SectionTitle("Período Aquisitivo *")
+                        SectionTitle("${stringResource(R.string.ausencia_periodo_aquisitivo)} *")
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Data início PA
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "Ano início",
+                            // Seletor de Ciclo
+                            Column(modifier = Modifier.weight(1.5f)) {
+                                Text(
+                                    text = "Ciclo",
                                     style = MaterialTheme.typography.labelMedium
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
-                                YearSelector(
-                                    selectedYear = uiState.dataInicioPeriodoAquisitivo?.year ?: LocalDate.now().year,
-                                    years = uiState.anosDisponiveisPA,
-                                    onYearSelected = { viewModel.onAction(AusenciaFormAction.SelecionarAnoInicioPeriodoAquisitivo(it)) }
+                                CicloSelector(
+                                    selectedCiclo = uiState.cicloSelecionadoPA ?: "",
+                                    ciclos = uiState.ciclosDisponiveisPA,
+                                    onCicloSelected = {
+                                        viewModel.onAction(
+                                            AusenciaFormAction.SelecionarCicloPeriodoAquisitivo(it)
+                                        )
+                                    }
                                 )
                             }
 
-                            // Data fim PA
+                            // Datas no Banco (informativo)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Ano fim",
+                                    text = "No banco",
                                     style = MaterialTheme.typography.labelMedium
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
-                                YearSelector(
-                                    selectedYear = uiState.dataFimPeriodoAquisitivo?.year ?: LocalDate.now().year,
-                                    years = uiState.anosDisponiveisPA,
-                                    onYearSelected = { viewModel.onAction(AusenciaFormAction.SelecionarAnoFimPeriodoAquisitivo(it)) }
-                                )
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                            alpha = 0.5f
+                                        )
+                                    ),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                                            .fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = uiState.dataInicioPeriodoAquisitivoFormatada,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = " - ",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            text = uiState.dataFimPeriodoAquisitivoFormatada,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -566,7 +640,7 @@ fun AusenciaFormScreen(
                     exit = fadeOut() + shrinkVertically()
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SectionTitle("Anexo (opcional)")
+                        SectionTitle(stringResource(R.string.ausencia_anexo_opcional))
 
                         if (uiState.imagemUri != null) {
                             // Preview da imagem
@@ -594,7 +668,7 @@ fun AusenciaFormScreen(
                                     ) {
                                         Icon(
                                             Icons.Default.Close,
-                                            "Remover anexo",
+                                            stringResource(R.string.foto_excluir),
                                             tint = MaterialTheme.colorScheme.error
                                         )
                                     }
@@ -612,7 +686,7 @@ fun AusenciaFormScreen(
                                 ) {
                                     Icon(Icons.Default.CameraAlt, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Câmera")
+                                    Text(stringResource(R.string.ausencia_camera))
                                 }
                                 OutlinedButton(
                                     onClick = { viewModel.onAction(AusenciaFormAction.AbrirGaleria) },
@@ -620,7 +694,7 @@ fun AusenciaFormScreen(
                                 ) {
                                     Icon(Icons.Default.Image, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Galeria")
+                                    Text(stringResource(R.string.ausencia_galeria))
                                 }
                             }
                         }
@@ -739,6 +813,48 @@ fun AusenciaFormScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun CicloSelector(
+    selectedCiclo: String,
+    ciclos: List<String>,
+    onCicloSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedCiclo,
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                .fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            ciclos.forEach { ciclo ->
+                DropdownMenuItem(
+                    text = { Text(ciclo) },
+                    onClick = {
+                        onCicloSelected(ciclo)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun YearSelector(
     selectedYear: Int,
     years: List<Int>,
@@ -785,7 +901,8 @@ private fun SectionTitle(text: String) {
         text = text,
         style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.Medium,
-        color = MaterialTheme.colorScheme.primary
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.semantics { heading() }
     )
 }
 
@@ -806,20 +923,23 @@ private fun QuantidadeDiasSelector(
             onClick = { if (quantidade > 1) onQuantidadeChange(quantidade - 1) },
             enabled = quantidade > 1
         ) {
-            Icon(Icons.Default.Remove, "Diminuir")
+            Icon(Icons.Default.Remove, stringResource(R.string.btn_remover))
         }
 
         Text(
             text = quantidade.toString(),
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.semantics {
+                contentDescription = "$quantidade ${if (quantidade == 1) "dia" else "dias"}"
+            }
         )
 
         IconButton(
             onClick = { if (quantidade < 365) onQuantidadeChange(quantidade + 1) },
             enabled = quantidade < 365
         ) {
-            Icon(Icons.Default.Add, "Aumentar")
+            Icon(Icons.Default.Add, stringResource(R.string.btn_adicionar))
         }
     }
 }
@@ -845,12 +965,12 @@ private fun DatePickerDialogWrapper(
                     }
                 }
             ) {
-                Text("OK")
+                Text(stringResource(R.string.btn_ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.btn_cancelar))
             }
         }
     ) {
@@ -882,7 +1002,7 @@ private fun TimePickerDialogWrapper(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Selecione o horário",
+                text = stringResource(R.string.ausencia_selecione_horario),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -901,7 +1021,7 @@ private fun TimePickerDialogWrapper(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.btn_cancelar))
                 }
                 Button(
                     onClick = {
@@ -909,7 +1029,7 @@ private fun TimePickerDialogWrapper(
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.btn_ok))
                 }
             }
 

@@ -1,4 +1,3 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/AusenciaFormViewModel.kt
 package br.com.tlmacedo.meuponto.presentation.screen.ausencias
 
 import androidx.lifecycle.SavedStateHandle
@@ -6,11 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.AtualizarAusenciaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.CriarAusenciaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ResultadoAtualizarAusencia
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ResultadoCriarAusencia
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.CalcularMetadataFeriasUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,16 +31,18 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 4.0.0
- * @updated 5.5.0 - Removido SubTipoFolga
+ * @updated 5.8.0 - Lógica de ciclos e saldos de férias aprimorada
  */
 @HiltViewModel
 class AusenciaFormViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val ausenciaRepository: AusenciaRepository,
+    val ausenciaRepository: AusenciaRepository,
     private val criarAusenciaUseCase: CriarAusenciaUseCase,
     private val atualizarAusenciaUseCase: AtualizarAusenciaUseCase,
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
-    private val photoCaptureManager: br.com.tlmacedo.meuponto.util.foto.PhotoCaptureManager
+    private val calcularMetadataFeriasUseCase: CalcularMetadataFeriasUseCase,
+    private val photoCaptureManager: br.com.tlmacedo.meuponto.util.foto.PhotoCaptureManager,
+    val verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase
 ) : ViewModel() {
 
     private val ausenciaId: Long = savedStateHandle.get<Long>("ausenciaId") ?: 0L
@@ -59,81 +63,127 @@ class AusenciaFormViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val (empregoId, dataInicioTrabalho, apelido, logo) = when (val resultado = obterEmpregoAtivoUseCase()) {
-                is ObterEmpregoAtivoUseCase.Resultado.Sucesso -> {
-                    val emp = resultado.emprego
-                    listOf(emp.id, emp.dataInicioTrabalho, emp.apelido, emp.logo)
+            val resultadoEmprego = obterEmpregoAtivoUseCase()
+            if (resultadoEmprego is ObterEmpregoAtivoUseCase.Resultado.Sucesso) {
+                val emp = resultadoEmprego.emprego
+                val dataInicioTrabalho = emp.dataInicioTrabalho
+                val ciclos = gerarCiclosDisponiveis(dataInicioTrabalho)
+
+                if (ausenciaId > 0) {
+                    carregarAusencia(ausenciaId, dataInicioTrabalho, ciclos)
+                } else {
+                    val tipo = tipoInicial?.let {
+                        runCatching { TipoAusencia.valueOf(it) }.getOrNull()
+                    } ?: TipoAusencia.FERIAS
+
+                    val data = dataInicial?.let {
+                        runCatching { LocalDate.parse(it) }.getOrNull()
+                    } ?: LocalDate.now()
+
+                    val (paInicio, paFim) = if (tipo == TipoAusencia.FERIAS) {
+                        val sugerido = sugerirCicloComSaldo(dataInicioTrabalho, emp.id)
+                        sugerido?.first to sugerido?.second
+                    } else {
+                        null to null
+                    }
+
+                    _uiState.update {
+                        it.copy(
+                            empregoId = emp.id,
+                            dataInicioTrabalho = dataInicioTrabalho,
+                            ciclosDisponiveisPA = ciclos,
+                            empregoApelido = emp.apelido,
+                            empregoLogo = emp.logo,
+                            tipo = tipo,
+                            dataInicio = data,
+                            dataFim = data,
+                            dataInicioPeriodoAquisitivo = paInicio,
+                            dataFimPeriodoAquisitivo = paFim,
+                            isEdicao = false,
+                            isLoading = false
+                        )
+                    }
+                    if (tipo == TipoAusencia.FERIAS) {
+                        atualizarMetadataFerias(data)
+                    }
                 }
-                else -> listOf(0L, null, null, null)
+            } else {
+                _uiState.update { it.copy(isLoading = false, erro = "Nenhum emprego ativo encontrado") }
+            }
+        }
+    }
+
+    private fun gerarCiclosDisponiveis(dataInicioTrabalho: LocalDate?): List<String> {
+        val inicioJob = dataInicioTrabalho ?: return emptyList()
+        val hoje = LocalDate.now()
+        val diaMesInicio = java.time.MonthDay.from(inicioJob)
+
+        val anoInicioTrabalho = inicioJob.year
+        return (anoInicioTrabalho.. hoje.year.minus(1)).map { ano ->
+            val inicioPA = diaMesInicio.atYear(ano)
+            val fimPA = inicioPA.plusYears(1).minusDays(1)
+            val fimConcessivo = fimPA.plusYears(1)
+
+            val status = when {
+                hoje.isAfter(fimConcessivo) -> "utilizado"
+                hoje.isAfter(fimPA) -> "concessivo"
+                else -> "aquisitivo"
             }
 
-            if (ausenciaId > 0) {
-                carregarAusencia(ausenciaId, dataInicioTrabalho as? LocalDate)
-            } else {
-                val tipo = tipoInicial?.let {
-                    runCatching { TipoAusencia.valueOf(it) }.getOrNull()
-                } ?: TipoAusencia.FERIAS
+            "$ano/${ano + 1} $status"
+        }
+    }
 
-                val data = dataInicial?.let {
-                    runCatching { LocalDate.parse(it) }.getOrNull()
-                } ?: LocalDate.now()
+    private suspend fun sugerirCicloComSaldo(
+        dataInicioTrabalho: LocalDate?,
+        empregoId: Long
+    ): Pair<LocalDate, LocalDate>? {
+        val inicioJob = dataInicioTrabalho ?: return null
+        val hoje = LocalDate.now()
+        val diaMesInicio = java.time.MonthDay.from(inicioJob)
 
-                val periodoAquisitivo = calcularPeriodoAquisitivo(data, dataInicioTrabalho as? LocalDate)
+        val anoInicioTrabalho = inicioJob.year
+        for (ano in anoInicioTrabalho..hoje.year) {
+            val inicioPA = diaMesInicio.atYear(ano)
+            val fimPA = inicioPA.plusYears(1).minusDays(1)
+            
+            val feriasExistentes = ausenciaRepository.buscarFeriasPorPeriodoAquisitivo(
+                empregoId, inicioPA, fimPA
+            )
+            val diasMarcados = feriasExistentes.sumOf { it.quantidadeDias }
+            
+            if (diasMarcados < 30) {
+                return inicioPA to fimPA
+            }
+        }
+        
+        val inicioUltimo = diaMesInicio.atYear(hoje.year)
+        return inicioUltimo to inicioUltimo.plusYears(1).minusDays(1)
+    }
 
+    private fun carregarAusencia(id: Long, dataInicioTrabalho: LocalDate?, ciclos: List<String>) {
+        viewModelScope.launch {
+            val ausencia = ausenciaRepository.buscarPorId(id)
+
+            if (ausencia != null) {
                 _uiState.update {
-                    it.copy(
-                        empregoId = empregoId as Long,
-                        dataInicioTrabalho = dataInicioTrabalho as? LocalDate,
-                        empregoApelido = apelido as? String,
-                        empregoLogo = logo as? String,
-                        tipo = tipo,
-                        dataInicio = data,
-                        dataFim = data,
-                        dataInicioPeriodoAquisitivo = periodoAquisitivo?.first,
-                        dataFimPeriodoAquisitivo = periodoAquisitivo?.second,
-                        isEdicao = false,
-                        isLoading = false
+                    AusenciaFormUiState.fromAusencia(ausencia).copy(
+                        isLoading = false,
+                        dataInicioTrabalho = dataInicioTrabalho,
+                        ciclosDisponiveisPA = ciclos
                     )
                 }
+                if (ausencia.tipo == TipoAusencia.FERIAS) {
+                    atualizarMetadataFerias(ausencia.dataInicio)
+                }
+            } else {
+                _uiState.update { it.copy(isLoading = false, erro = "Ausência não encontrada") }
             }
-        }
-    }
-
-    private fun calcularPeriodoAquisitivo(
-        dataReferencia: LocalDate,
-        dataInicioTrabalho: LocalDate?
-    ): Pair<LocalDate, LocalDate>? {
-        var inicio = dataInicioTrabalho ?: return null
-        var fim = inicio.plusYears(1).minusDays(1)
-
-        while (dataReferencia.isAfter(fim)) {
-            inicio = inicio.plusYears(1)
-            fim = fim.plusYears(1)
-        }
-
-        return Pair(inicio, fim)
-    }
-
-    private suspend fun carregarAusencia(id: Long, dataInicioTrabalho: LocalDate?) {
-        val ausencia = ausenciaRepository.buscarPorId(id)
-
-        if (ausencia != null) {
-            _uiState.update { 
-                AusenciaFormUiState.fromAusencia(ausencia).copy(
-                    isLoading = false,
-                    dataInicioTrabalho = dataInicioTrabalho
-                ) 
-            }
-        } else {
-            _uiState.update { it.copy(isLoading = false, erro = "Ausência não encontrada") }
         }
     }
 
     fun onAction(action: AusenciaFormAction) {
         when (action) {
-            // ================================================================
-            // TIPO DE AUSÊNCIA
-            // ================================================================
             is AusenciaFormAction.SelecionarTipo -> selecionarTipo(action.tipo)
             is AusenciaFormAction.AbrirTipoSelector -> {
                 _uiState.update { it.copy(showTipoSelector = true) }
@@ -144,10 +194,6 @@ class AusenciaFormViewModel @Inject constructor(
             is AusenciaFormAction.SelecionarTipoFolga -> {
                 _uiState.update { it.copy(tipoFolga = action.tipoFolga) }
             }
-
-            // ================================================================
-            // PERÍODO
-            // ================================================================
             is AusenciaFormAction.SelecionarModoPeriodo -> {
                 _uiState.update { it.copy(modoPeriodo = action.modo) }
             }
@@ -156,6 +202,9 @@ class AusenciaFormViewModel @Inject constructor(
             is AusenciaFormAction.AtualizarQuantidadeDias -> {
                 val dias = action.dias.coerceIn(1, 365)
                 _uiState.update { it.copy(quantidadeDias = dias) }
+                if (_uiState.value.tipo == TipoAusencia.FERIAS) {
+                    atualizarMetadataFerias()
+                }
             }
             is AusenciaFormAction.AbrirDatePickerInicio -> {
                 _uiState.update { it.copy(showDatePickerInicio = true) }
@@ -169,10 +218,6 @@ class AusenciaFormViewModel @Inject constructor(
             is AusenciaFormAction.FecharDatePickerFim -> {
                 _uiState.update { it.copy(showDatePickerFim = false) }
             }
-
-            // ================================================================
-            // HORÁRIOS (DECLARAÇÃO)
-            // ================================================================
             is AusenciaFormAction.SelecionarHoraInicio -> {
                 _uiState.update { it.copy(horaInicio = action.hora, showTimePickerInicio = false) }
             }
@@ -183,7 +228,6 @@ class AusenciaFormViewModel @Inject constructor(
                         duracaoDeclaracaoMinutos = action.minutos.coerceIn(0, 59),
                         showDuracaoDeclaracaoPicker = false
                     )
-                    // Ajustar abono se necessário
                     if (novoState.duracaoAbonoTotalMinutos > novoState.duracaoDeclaracaoTotalMinutos) {
                         novoState.copy(
                             duracaoAbonoHoras = action.horas,
@@ -201,7 +245,6 @@ class AusenciaFormViewModel @Inject constructor(
                     val totalAbono = novasHoras * 60 + novosMinutos
                     val totalDeclaracao = state.duracaoDeclaracaoTotalMinutos
 
-                    // Não permitir abono maior que declaração
                     if (totalAbono <= totalDeclaracao) {
                         state.copy(
                             duracaoAbonoHoras = novasHoras,
@@ -234,31 +277,28 @@ class AusenciaFormViewModel @Inject constructor(
             is AusenciaFormAction.FecharDuracaoAbonoPicker -> {
                 _uiState.update { it.copy(showDuracaoAbonoPicker = false) }
             }
-
-            // ================================================================
-            // PERÍODO AQUISITIVO (FERIAS)
-            // ================================================================
-            is AusenciaFormAction.SelecionarAnoInicioPeriodoAquisitivo -> {
+            is AusenciaFormAction.SelecionarCicloPeriodoAquisitivo -> {
                 _uiState.update { state ->
                     val dataInicioTrabalho = state.dataInicioTrabalho ?: return@update state
-                    val novaData = state.dataInicioPeriodoAquisitivo?.withYear(action.ano) 
-                        ?: dataInicioTrabalho.withYear(action.ano)
-                    state.copy(dataInicioPeriodoAquisitivo = novaData)
+                    val anoInicio = action.ciclo.substring(0, 4).toInt()
+                    
+                    val novaDataInicio = dataInicioTrabalho.withYear(anoInicio)
+                    val novaDataFim = novaDataInicio.plusYears(1).minusDays(1)
+                    
+                    state.copy(
+                        dataInicioPeriodoAquisitivo = novaDataInicio,
+                        dataFimPeriodoAquisitivo = novaDataFim
+                    )
                 }
-            }
-            is AusenciaFormAction.SelecionarAnoFimPeriodoAquisitivo -> {
-                _uiState.update { state ->
-                    val dataInicioTrabalho = state.dataInicioTrabalho ?: return@update state
-                    val novaData = state.dataFimPeriodoAquisitivo?.withYear(action.ano) 
-                        ?: dataInicioTrabalho.plusYears(1).minusDays(1).withYear(action.ano)
-                    state.copy(dataFimPeriodoAquisitivo = novaData)
-                }
+                atualizarMetadataFerias(_uiState.value.dataInicio)
             }
             is AusenciaFormAction.SelecionarDataInicioPeriodoAquisitivo -> {
                 _uiState.update { it.copy(dataInicioPeriodoAquisitivo = action.data, showDatePickerInicioPeriodoAquisitivo = false) }
+                atualizarMetadataFerias(_uiState.value.dataInicio)
             }
             is AusenciaFormAction.SelecionarDataFimPeriodoAquisitivo -> {
                 _uiState.update { it.copy(dataFimPeriodoAquisitivo = action.data, showDatePickerFimPeriodoAquisitivo = false) }
+                atualizarMetadataFerias(_uiState.value.dataInicio)
             }
             is AusenciaFormAction.AbrirDatePickerInicioPeriodoAquisitivo -> {
                 _uiState.update { it.copy(showDatePickerInicioPeriodoAquisitivo = true) }
@@ -272,10 +312,6 @@ class AusenciaFormViewModel @Inject constructor(
             is AusenciaFormAction.FecharDatePickerFimPeriodoAquisitivo -> {
                 _uiState.update { it.copy(showDatePickerFimPeriodoAquisitivo = false) }
             }
-
-            // ================================================================
-            // TEXTOS
-            // ================================================================
             is AusenciaFormAction.AtualizarDescricao -> {
                 _uiState.update { it.copy(descricao = action.descricao) }
             }
@@ -285,10 +321,6 @@ class AusenciaFormViewModel @Inject constructor(
             is AusenciaFormAction.AtualizarPeriodoAquisitivo -> {
                 _uiState.update { it.copy(periodoAquisitivo = action.periodo) }
             }
-
-            // ================================================================
-            // ANEXO DE IMAGEM
-            // ================================================================
             is AusenciaFormAction.SelecionarImagem -> {
                 _uiState.update {
                     it.copy(
@@ -333,10 +365,6 @@ class AusenciaFormViewModel @Inject constructor(
                     _uiEvent.emit(AusenciaFormUiEvent.AbrirGaleria)
                 }
             }
-
-            // ================================================================
-            // AÇÕES PRINCIPAIS
-            // ================================================================
             is AusenciaFormAction.Salvar -> salvar()
             is AusenciaFormAction.Cancelar -> {
                 viewModelScope.launch {
@@ -355,35 +383,31 @@ class AusenciaFormViewModel @Inject constructor(
                 tipo = tipo,
                 descricao = if (state.descricao.isBlank()) tipo.descricao else state.descricao,
                 showTipoSelector = false,
-                // CORREÇÃO: manter o tipoFolga do state
                 tipoFolga = state.tipoFolga,
                 horaInicio = if (tipo == TipoAusencia.DECLARACAO) LocalTime.of(8, 0) else state.horaInicio,
                 periodoAquisitivo = if (tipo == TipoAusencia.FERIAS) state.periodoAquisitivo else "",
                 imagemUri = if (tipo.permiteAnexo) state.imagemUri else null
             )
         }
+        if (tipo == TipoAusencia.FERIAS) {
+            atualizarMetadataFerias(_uiState.value.dataInicio)
+        } else {
+            _uiState.update { it.copy(metadataFerias = null) }
+        }
     }
 
     private fun selecionarDataInicio(data: LocalDate) {
         viewModelScope.launch {
-            val dataInicioTrabalho = when (val resultado = obterEmpregoAtivoUseCase()) {
-                is ObterEmpregoAtivoUseCase.Resultado.Sucesso -> resultado.emprego.dataInicioTrabalho
-                else -> null
-            }
-
             _uiState.update { state ->
                 val novaDataFim = if (state.dataFim < data) data else state.dataFim
-                val periodoAquisitivo = if (state.tipo == TipoAusencia.FERIAS) {
-                    calcularPeriodoAquisitivo(data, dataInicioTrabalho)
-                } else null
-
                 state.copy(
                     dataInicio = data,
                     dataFim = novaDataFim,
-                    dataInicioPeriodoAquisitivo = periodoAquisitivo?.first ?: state.dataInicioPeriodoAquisitivo,
-                    dataFimPeriodoAquisitivo = periodoAquisitivo?.second ?: state.dataFimPeriodoAquisitivo,
                     showDatePickerInicio = false
                 )
+            }
+            if (_uiState.value.tipo == TipoAusencia.FERIAS) {
+                atualizarMetadataFerias(_uiState.value.dataInicio)
             }
         }
     }
@@ -396,41 +420,48 @@ class AusenciaFormViewModel @Inject constructor(
                 showDatePickerFim = false
             )
         }
+        if (_uiState.value.tipo == TipoAusencia.FERIAS) {
+            atualizarMetadataFerias(_uiState.value.dataInicio)
+        }
+    }
+
+    private fun atualizarMetadataFerias(referencia: LocalDate? = null) {
+        viewModelScope.launch {
+            val state = _uiState.value
+            val metadata = calcularMetadataFeriasUseCase(state.toAusencia(), referencia)
+            _uiState.update { it.copy(metadataFerias = metadata) }
+        }
     }
 
     private suspend fun validarRegrasFerias(state: AusenciaFormUiState): String? {
         val inicioAquisitivo = state.dataInicioPeriodoAquisitivo ?: return "Período aquisitivo não informado"
         val fimAquisitivo = state.dataFimPeriodoAquisitivo ?: return "Período aquisitivo não informado"
 
-        // 1. Buscar todas as férias já registradas para este período aquisitivo
         val feriasExistentes = ausenciaRepository.buscarFeriasPorPeriodoAquisitivo(
             state.empregoId, inicioAquisitivo, fimAquisitivo
         ).filter { it.id != state.id }
 
         val diasNovos = state.totalDias
+        
+        if (diasNovos < 5) {
+            return "Nenhum período de férias pode ser inferior a 5 dias corridos."
+        }
+
         val diasExistentes = feriasExistentes.sumOf { it.quantidadeDias }
         val totalDias = diasExistentes + diasNovos
 
-        // Regra: Máximo 30 dias por período aquisitivo
         if (totalDias > 30) {
             return "O total de dias de férias para este período ($totalDias) excede o limite legal de 30 dias. Já existem $diasExistentes dias registrados."
         }
 
-        // Regra: Máximo 3 splits (períodos)
         val totalPeriodos = feriasExistentes.size + 1
         if (totalPeriodos > 3) {
             return "As férias só podem ser divididas em no máximo 3 períodos. Este seria o ${totalPeriodos}º."
         }
 
-        // Regra: Um dos períodos deve ter pelo menos 15 dias
         val todosPeriodos = feriasExistentes.map { it.quantidadeDias } + diasNovos
-        if (totalDias == 30 && todosPeriodos.none { it >= 15 }) {
-            return "Pelo menos um dos períodos de férias deve ter no mínimo 15 dias corridos."
-        }
-
-        // Regra: Períodos menores não podem ter menos de 5 dias
-        if (todosPeriodos.any { it < 5 }) {
-            return "Nenhum período de férias pode ser inferior a 5 dias corridos."
+        if (totalDias == 30 && todosPeriodos.none { it >= 14 }) {
+            return "Pelo menos um dos períodos de férias deve ter no mínimo 14 dias corridos."
         }
 
         return null
@@ -439,7 +470,6 @@ class AusenciaFormViewModel @Inject constructor(
     private fun salvar() {
         val state = _uiState.value
 
-        // Validação básica (UI)
         state.mensagemValidacao?.let { mensagem ->
             _uiState.update { it.copy(erro = mensagem) }
             return
@@ -448,7 +478,6 @@ class AusenciaFormViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSalvando = true, erro = null) }
 
-            // Validação de regras de negócio para Férias
             if (state.tipo == TipoAusencia.FERIAS) {
                 val erroNegocio = validarRegrasFerias(state)
                 if (erroNegocio != null) {

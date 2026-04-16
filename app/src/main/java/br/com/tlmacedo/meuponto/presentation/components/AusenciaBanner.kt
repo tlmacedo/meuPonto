@@ -50,6 +50,9 @@ import br.com.tlmacedo.meuponto.presentation.theme.SidiaGreen
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaSoftGreen
 import br.com.tlmacedo.meuponto.presentation.theme.SurfaceVariant
 import br.com.tlmacedo.meuponto.presentation.theme.WarningLight
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
@@ -57,45 +60,56 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+
 private val horaFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val dateFormatterCompleto = DateTimeFormatter.ofPattern("dd/MM/yyyy (EEE)", Locale("pt", "BR"))
 private val dateFormatterSimples = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
-/**
- * Formata período de gozo de férias no formato completo.
- */
-private fun formatarGozoFerias(dataInicio: LocalDate, dataFim: LocalDate): String {
-    return "${dataInicio.format(dateFormatterCompleto)} ~ ${dataFim.format(dateFormatterCompleto)}"
-}
-
-/**
- * Formata período aquisitivo no formato simples.
- */
-private fun formatarAquisitivoFerias(inicio: LocalDate?, fim: LocalDate?): String? {
-    if (inicio == null || fim == null) return null
-    return "${inicio.format(dateFormatterSimples)} ~ ${fim.format(dateFormatterSimples)}"
-}
-
-/**
- * Banner que exibe informações sobre ausências do dia (férias, atestado, folga, etc.).
- * Layout otimizado para Declarações com informações compactas.
- *
- * @param ausencia Ausência do dia
- * @param metadataFerias Metadados de férias (opcional)
- * @param modifier Modifier opcional
- *
- * @author Thiago
- * @since 4.0.0
- * @updated 13.0.0 - Suporte a metadados de férias (período e dias restantes)
- */
 @Composable
 fun AusenciaBanner(
     ausencia: Ausencia,
     metadataFerias: MetadataFerias? = null,
+    verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase? = null,
+    ausenciaRepository: AusenciaRepository? = null,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = ausencia.tipo.getBackgroundColor()
     val contentColor = ausencia.tipo.getContentColor()
+
+    // Cálculo assíncrono do dia de retorno
+    val dataRetornoState = if (verificarDiaEspecialUseCase != null && ausenciaRepository != null) {
+        produceState<LocalDate?>(initialValue = null, ausencia.dataFim) {
+            value = withContext(Dispatchers.IO) {
+                var dataCandidata = ausencia.dataFim.plusDays(1)
+                var encontrado = false
+                // Busca nos próximos 30 dias para evitar loop infinito em caso de erro de dados
+                for (i in 0..30) {
+                    val diaEspecial = verificarDiaEspecialUseCase(
+                        data = dataCandidata,
+                        empregoId = ausencia.empregoId
+                    )
+                    
+                    val temAusencia = ausenciaRepository.existeAusenciaEmData(
+                        empregoId = ausencia.empregoId,
+                        data = dataCandidata
+                    )
+
+                    if (diaEspecial.isDiaUtil && !temAusencia) {
+                        encontrado = true
+                        break
+                    }
+                    dataCandidata = dataCandidata.plusDays(1)
+                }
+                if (encontrado) dataCandidata else null
+            }
+        }
+    } else null
 
     Card(
         modifier = modifier
@@ -127,15 +141,10 @@ fun AusenciaBanner(
 
                 // Tipo da ausência
                 val textoTipo = buildString {
-                    if (ausencia.tipo == TipoAusencia.FERIAS) {
-                        append("Férias: ${formatarGozoFerias(ausencia.dataInicio, ausencia.dataFim)}")
-                        append(" (${ausencia.quantidadeDias} dias)")
-                    } else {
-                        append(ausencia.tipo.descricao)
-                        if (ausencia.tipo != TipoAusencia.FERIAS)
-                            ausencia.periodoAquisitivo?.let { append(" ($it)") }
-
-                        ausencia.tipoFolga?.let { append(" (${it.descricao})") }
+                    append(stringResource(R.string.banner_ausencia_hoje, ausencia.tipo.descricao))
+                    dataRetornoState?.value?.let { retorno ->
+                        append(", retorno é dia ")
+                        append(retorno.format(dateFormatterCompleto))
                     }
                 }
 
@@ -196,6 +205,21 @@ fun AusenciaBanner(
 }
 
 /**
+ * Formata período de gozo de férias no formato completo.
+ */
+private fun formatarGozoFerias(dataInicio: LocalDate, dataFim: LocalDate): String {
+    return "${dataInicio.format(dateFormatterCompleto)} ~ ${dataFim.format(dateFormatterCompleto)}"
+}
+
+/**
+ * Formata período aquisitivo no formato simples.
+ */
+private fun formatarAquisitivoFerias(inicio: LocalDate?, fim: LocalDate?): String? {
+    if (inicio == null || fim == null) return null
+    return "${inicio.format(dateFormatterSimples)} ~ ${fim.format(dateFormatterSimples)}"
+}
+
+/**
  * Conteúdo específico para Férias - exibe detalhes do período e saldo.
  */
 @Composable
@@ -204,8 +228,16 @@ private fun FeriasContent(
     metadata: MetadataFerias?,
     contentColor: Color
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        // Linha 1: Período Aquisitivo e Sequência
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Linha 1: Período de Gozo Completo
+        Text(
+            text = formatarGozoFerias(ausencia.dataInicio, ausencia.dataFim),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = contentColor
+        )
+
+        // Linha 2: Período Aquisitivo e Sequência
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -216,7 +248,7 @@ private fun FeriasContent(
                 ausencia.dataFimPeriodoAquisitivo
             )?.let { periodo ->
                 InfoChip(
-                    text = "Aquisitivo: $periodo",
+                    text = stringResource(R.string.ausencia_periodo_aquisitivo) + ": $periodo",
                     icon = Icons.Default.Schedule,
                     contentColor = contentColor
                 )
@@ -229,7 +261,7 @@ private fun FeriasContent(
                     color = contentColor.copy(alpha = 0.2f)
                 ) {
                     Text(
-                        text = "${it.sequenciaPeriodo}º período",
+                        text = stringResource(R.string.ausencia_sequencia_ferias, it.sequenciaPeriodo),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = contentColor,
@@ -239,17 +271,83 @@ private fun FeriasContent(
             }
         }
 
-        // Linha 2: Saldo restante (se houver metadados)
-        metadata?.let {
+        // Nova Grade de Informações de Saldo
+        metadata?.let { m ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Primeira linha: Marcados e Aproveitados
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SaldoItem(
+                        label = stringResource(R.string.ausencia_ferias_saldo_marcados),
+                        valor = "${m.diasMarcados}/${m.diasGanhos} d",
+                        contentColor = contentColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SaldoItem(
+                        label = stringResource(R.string.ausencia_ferias_saldo_aproveitados),
+                        valor = "${m.diasAproveitados} d",
+                        contentColor = contentColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                // Segunda linha: Restantes para Marcar e Aproveitar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SaldoItem(
+                        label = stringResource(R.string.ausencia_ferias_saldo_restante_marcar),
+                        valor = "${m.diasRestantesParaMarcar} d",
+                        contentColor = contentColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SaldoItem(
+                        label = stringResource(R.string.ausencia_ferias_saldo_restante_aproveitar),
+                        valor = "${m.diasRestantesParaAproveitar} d",
+                        contentColor = contentColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SaldoItem(
+    label: String,
+    valor: String,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = contentColor.copy(alpha = 0.05f),
+        shape = RoundedCornerShape(4.dp),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
-                text = if (it.diasRestantes > 0)
-                    "Restam ${it.diasRestantes} dias deste período aquisitivo"
-                else
-                    "Todo o período aquisitivo foi utilizado",
+                text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = contentColor.copy(alpha = 0.7f),
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                fontSize = 10.sp
+            )
+            Text(
+                text = valor,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
             )
         }
     }

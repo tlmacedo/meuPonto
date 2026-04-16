@@ -34,11 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaCard
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaFilterChips
@@ -84,25 +86,28 @@ fun AusenciasScreen(
     if (uiState.showDeleteDialog && uiState.ausenciaParaExcluir != null) {
         AlertDialog(
             onDismissRequest = { viewModel.onAction(AusenciasAction.CancelarExclusao) },
-            title = { Text("Excluir ausência?") },
+            title = { Text(stringResource(R.string.ausencia_excluir)) },
             text = {
                 Text(
-                    "Deseja excluir ${uiState.ausenciaParaExcluir!!.tipoDescricao} " +
-                            "de ${uiState.ausenciaParaExcluir!!.formatarPeriodo()}?"
+                    stringResource(
+                        R.string.ausencia_confirmar_exclusao_pergunta,
+                        uiState.ausenciaParaExcluir!!.tipoDescricao,
+                        uiState.ausenciaParaExcluir!!.formatarPeriodo()
+                    )
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = { viewModel.onAction(AusenciasAction.ConfirmarExclusao) }
                 ) {
-                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.btn_excluir), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { viewModel.onAction(AusenciasAction.CancelarExclusao) }
                 ) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.btn_cancelar))
                 }
             }
         )
@@ -112,7 +117,7 @@ fun AusenciasScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             MeuPontoTopBar(
-                title = "Ausências",
+                title = stringResource(R.string.ausencias_titulo),
                 subtitle = uiState.empregoAtivo?.apelido?.uppercase(),
                 logo = uiState.empregoAtivo?.logo,
                 showBackButton = true,
@@ -124,7 +129,7 @@ fun AusenciasScreen(
             ExtendedFloatingActionButton(
                 onClick = { viewModel.onAction(AusenciasAction.NovaAusencia) },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Nova Ausência") }
+                text = { Text(stringResource(R.string.ausencia_adicionar)) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -160,8 +165,8 @@ fun AusenciasScreen(
                 !uiState.temEmpregoAtivo -> {
                     EmptyState(
                         emoji = "🏢",
-                        titulo = "Nenhum emprego ativo",
-                        mensagem = "Configure um emprego para registrar ausências"
+                        titulo = stringResource(R.string.ausencia_sem_emprego_titulo),
+                        mensagem = stringResource(R.string.ausencia_sem_emprego_desc)
                     )
                 }
 
@@ -169,14 +174,14 @@ fun AusenciasScreen(
                     EmptyState(
                         emoji = "📅",
                         titulo = if (uiState.temFiltrosAtivos) {
-                            "Nenhuma ausência encontrada"
+                            stringResource(R.string.ausencia_vazia_filtros_titulo)
                         } else {
-                            "Nenhuma ausência cadastrada"
+                            stringResource(R.string.ausencia_vazia_titulo)
                         },
                         mensagem = if (uiState.temFiltrosAtivos) {
-                            "Tente ajustar os filtros selecionados"
+                            stringResource(R.string.ausencia_vazia_filtros_desc)
                         } else {
-                            "Toque no botão para registrar férias, folgas ou faltas"
+                            stringResource(R.string.ausencia_vazia_desc)
                         },
                         showLimparFiltros = uiState.temFiltrosAtivos,
                         onLimparFiltros = { viewModel.onAction(AusenciasAction.LimparFiltros) }
@@ -200,7 +205,11 @@ fun AusenciasScreen(
                                 modifier = Modifier.padding(bottom = 8.dp)
                             ) {
                                 Text(
-                                    text = "${uiState.totalAusenciasFiltradas} ausência(s) • ${uiState.totalDiasAusencia} dia(s)",
+                                    text = stringResource(
+                                        R.string.ausencia_total_resumo,
+                                        uiState.totalAusenciasFiltradas,
+                                        uiState.totalDiasAusencia
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -280,7 +289,7 @@ private fun EmptyState(
 
             if (showLimparFiltros) {
                 TextButton(onClick = onLimparFiltros) {
-                    Text("Limpar filtros")
+                    Text(stringResource(R.string.ausencia_filtros_limpar))
                 }
             }
         }

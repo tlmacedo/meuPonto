@@ -103,7 +103,7 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         )
 
         val ausenciaPrincipal = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO } ?: ausencias.firstOrNull()
-        val metadataFerias = ausenciaPrincipal?.let { calcularMetadataFeriasUseCase(it) }
+        val metadataFerias = ausenciaPrincipal?.let { calcularMetadataFeriasUseCase(it, data) }
 
         return ResumoDiaCompleto(data, resumoDia, ausencias, feriado, feriados, horarioDia, tipoDiaEspecial, descricao, metadataFerias)
     }
@@ -163,7 +163,7 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             val toleranciaGlobal = versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0
 
             val ausenciaPrincipal = ausenciasAtivas.firstOrNull { it.tipo != TipoAusencia.DECLARACAO } ?: ausenciasAtivas.firstOrNull()
-            val metadata = ausenciaPrincipal?.let { calcularMetadataFeriasUseCase(it) }
+            val metadata = ausenciaPrincipal?.let { calcularMetadataFeriasUseCase(it, data) }
 
             invokeComDados(data, pontos, ausenciasAtivas, feriado, feriados, horarioDia, cargaBasePadrao, acrescimoPontes, toleranciaGlobal, metadata)
         }

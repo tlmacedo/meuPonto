@@ -5,6 +5,7 @@ import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -179,7 +180,13 @@ data class AusenciaFormUiState(
     val showTimePickerInicio: Boolean = false,
     val showDuracaoDeclaracaoPicker: Boolean = false,
     val showDuracaoAbonoPicker: Boolean = false,
-    val showImagePicker: Boolean = false
+    val showImagePicker: Boolean = false,
+
+    // Ciclos e Férias
+    val ciclosDisponiveisPA: List<String> = emptyList(),
+
+    // Metadados de Férias (Real-time)
+    val metadataFerias: MetadataFerias? = null
 ) {
     companion object {
         private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -251,29 +258,25 @@ data class AusenciaFormUiState(
     val mostrarTipoFolga: Boolean
         get() = tipo == TipoAusencia.FOLGA
 
-    // ========================================================================
-    // FORMATAÇÕES
-    // ========================================================================
+    /** Ciclo atualmente selecionado (ex: "2022/2023") */
+    val cicloSelecionadoPA: String?
+        get() = dataInicioPeriodoAquisitivo?.let { inicio ->
+            val ano = inicio.year
+            val cicloBase = "$ano/${ano + 1}"
+            ciclosDisponiveisPA.find { it.startsWith(cicloBase) } ?: cicloBase
+        }
 
     val dataInicioFormatada: String
         get() = dataInicio.format(dateFormatter)
 
     val dataFimFormatada: String
-        get() = dataFimCalculada.format(dateFormatter)
+        get() = dataFim.format(dateFormatter)
 
     val dataInicioPeriodoAquisitivoFormatada: String
-        get() = dataInicioPeriodoAquisitivo?.format(dateFormatter) ?: "Início"
+        get() = dataInicioPeriodoAquisitivo?.format(dateFormatter) ?: ""
 
     val dataFimPeriodoAquisitivoFormatada: String
-        get() = dataFimPeriodoAquisitivo?.format(dateFormatter) ?: "Fim"
-
-    /** Lista de anos disponíveis para o período aquisitivo (do início do trabalho até o ano atual) */
-    val anosDisponiveisPA: List<Int>
-        get() {
-            val anoInicio = dataInicioTrabalho?.year ?: (LocalDate.now().year - 5)
-            val anoFim = LocalDate.now().year
-            return (anoInicio..anoFim).toList()
-        }
+        get() = dataFimPeriodoAquisitivo?.format(dateFormatter) ?: ""
 
     val horaInicioFormatada: String
         get() = horaInicio.format(timeFormatter)

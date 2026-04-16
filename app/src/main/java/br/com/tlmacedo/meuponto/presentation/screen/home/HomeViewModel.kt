@@ -27,9 +27,11 @@ import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
+import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.FecharCicloUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.InicializarCiclosRetroativosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.ReverterFechamentoIncorretoUseCase
@@ -103,7 +105,9 @@ class HomeViewModel @Inject constructor(
     private val locationService: LocationService,
     private val ocrService: OcrService,
     private val fotoComprovanteDao: FotoComprovanteDao,
-    private val imageHashCalculator: ImageHashCalculator
+    private val imageHashCalculator: ImageHashCalculator,
+    val verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase,
+    val ausenciaRepository: AusenciaRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())

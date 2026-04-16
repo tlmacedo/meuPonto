@@ -60,6 +60,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
 import br.com.tlmacedo.meuponto.presentation.components.EdicaoModal
@@ -209,6 +211,8 @@ fun HomeScreen(
                 HomeContent(
                     uiState = uiState,
                     onAction = viewModel::onAction,
+                    verificarDiaEspecialUseCase = viewModel.verificarDiaEspecialUseCase,
+                    ausenciaRepository = viewModel.ausenciaRepository,
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -325,6 +329,8 @@ private fun HomeDialogs(
 internal fun HomeContent(
     uiState: HomeUiState,
     onAction: (HomeAction) -> Unit,
+    verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase?,
+    ausenciaRepository: AusenciaRepository?,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -358,7 +364,14 @@ internal fun HomeContent(
             ProximoPontoCard(uiState.proximoTipo, uiState.horaAtual, { if (!uiState.isFuturo) onAction(HomeAction.RegistrarPontoAgora) }, modifier = Modifier.fillMaxWidth(), habilitado = !uiState.isFuturo && uiState.empregoAtivo != null)
 
             FeriadoBanner(uiState.feriadosDoDia)
-            uiState.ausenciaDoDia?.let { AusenciaBanner(it, uiState.metadataFerias) }
+            uiState.ausenciaDoDia?.let {
+                AusenciaBanner(
+                    ausencia = it,
+                    metadataFerias = uiState.metadataFerias,
+                    verificarDiaEspecialUseCase = verificarDiaEspecialUseCase,
+                    ausenciaRepository = ausenciaRepository
+                )
+            }
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), 0.5.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -394,5 +407,12 @@ internal fun HomeContent(
 private fun HomeScreenPreview() {
     val hoje = LocalDate.now()
     val uiState = HomeUiState(dataSelecionada = hoje, resumoDia = ResumoDia(data = hoje), isLoading = false)
-    MeuPontoTheme { HomeContent(uiState, {}) }
+    MeuPontoTheme {
+        HomeContent(
+            uiState = uiState,
+            onAction = {},
+            verificarDiaEspecialUseCase = null,
+            ausenciaRepository = null
+        )
+    }
 }

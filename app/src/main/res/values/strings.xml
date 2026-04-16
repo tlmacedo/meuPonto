@@ -28,10 +28,12 @@
     <string name="btn_restaurar">Restaurar</string>
     <string name="btn_compartilhar">Compartilhar</string>
     <string name="btn_adicionar">Adicionar</string>
+    <string name="btn_remover">Remover</string>
     <string name="btn_ok">OK</string>
     <string name="btn_sim">Sim</string>
     <string name="btn_nao">Não</string>
     <string name="btn_voltar">Voltar</string>
+    <string name="btn_alterar">Alterar</string>
     <string name="btn_continuar">Continuar</string>
     <string name="btn_concluir">Concluir</string>
     <string name="btn_limpar">Limpar</string>
@@ -44,6 +46,7 @@
          ==================================================================== -->
     <string name="estado_carregando">Carregando…</string>
     <string name="estado_vazio">Nenhum item encontrado</string>
+    <string name="estado_selecionado">Selecionado</string>
     <string name="estado_erro">Ocorreu um erro. Tente novamente.</string>
     <string name="estado_sem_conexao">Sem conexão com a internet</string>
     <string name="em_desenvolvimento">Em Desenvolvimento</string>
@@ -90,6 +93,8 @@
     <string name="historico_sem_registros">Nenhum registro encontrado</string>
     <string name="historico_sem_registros_periodo">Nenhum registro no período selecionado</string>
     <string name="historico_periodo">Período</string>
+    <string name="historico_ordenacao_mais_recentes">Recentes</string>
+    <string name="historico_ordenacao_mais_antigas">Antigas</string>
 
     <!-- ====================================================================
          LANÇAMENTO DE PONTO
@@ -366,6 +371,96 @@
     <string name="jornada_label">Jornada</string>
 
     <!-- ====================================================================
+         AUSÊNCIAS (Férias, Atestados, Folgas, etc.)
+         ==================================================================== -->
+    <string name="ausencias_titulo">Ausências</string>
+    <string name="ausencia_adicionar">Lançar Ausência</string>
+    <string name="ausencia_editar">Editar Ausência</string>
+    <string name="ausencia_excluir">Excluir Ausência</string>
+    <string name="ausencia_tipo">Tipo de Ausência</string>
+    <string name="ausencia_data_inicio">Data de Início</string>
+    <string name="ausencia_data_fim">Data de Fim</string>
+    <string name="ausencia_hora_inicio">Hora de Início</string>
+    <string name="ausencia_hora_fim">Hora de Fim</string>
+    <string name="ausencia_motivo">Motivo</string>
+    <string name="ausencia_observacao">Observação</string>
+    <string name="ausencia_comprovante">Comprovante</string>
+    <string name="ausencia_periodo_aquisitivo">Período Aquisitivo (PA)</string>
+    <string name="ausencia_periodo_gozo">Período de Gozo</string>
+    <string name="ausencia_dias_restantes">Dias restantes</string>
+    <string name="ausencia_sequencia_ferias">%dª parcela</string>
+    <string name="ausencia_ferias_badge">Férias</string>
+    <string name="ausencia_total_resumo">%1$d ausência(s) • %2$d dia(s)</string>
+    <string name="ausencia_sem_emprego_titulo">Nenhum emprego ativo</string>
+    <string name="ausencia_sem_emprego_desc">Configure um emprego para registrar ausências</string>
+    <string name="ausencia_vazia_titulo">Nenhuma ausência cadastrada</string>
+    <string name="ausencia_vazia_desc">Toque no botão para registrar férias, folgas ou faltas</string>
+    <string name="ausencia_vazia_filtros_titulo">Nenhuma ausência encontrada</string>
+    <string name="ausencia_vazia_filtros_desc">Tente ajustar os filtros selecionados</string>
+    <string name="ausencia_filtros_limpar">Limpar filtros</string>
+    <string name="ausencia_selecionar_tipo">Selecionar %1$s</string>
+    <string name="ausencia_alterar_tipo">Alterar tipo de ausência</string>
+    <string name="ausencia_confirmar_exclusao_pergunta">Deseja excluir %1$s de %2$s?</string>
+    <string name="ausencia_periodo_dias_singular">%1$d dia</string>
+    <string name="ausencia_periodo_dias_plural">%1$d dias</string>
+    <string name="ausencia_abono_valor">Abono: %1$s</string>
+    <string name="ausencia_ativar">Ativar</string>
+    <string name="ausencia_desativar">Desativar</string>
+    <string name="ausencia_mais_opcoes">Mais opções</string>
+    <string name="ausencia_acessibilidade_card">Ausência de %1$s em %2$s</string>
+    <string name="ausencia_minutos_completo">%1$dh %2$dmin</string>
+    <string name="ausencia_minutos_apenas_horas">%1$dh</string>
+    <string name="ausencia_minutos_apenas_minutos">%1$dmin</string>
+    <string name="ausencia_quantidade_dias">Quantidade de dias</string>
+    <string name="ausencia_total">Total:</string>
+    <string name="ausencia_periodo">Período</string>
+    <string name="ausencia_data_fim_curto">Data fim</string>
+    <string name="ausencia_qtd_dias_curto">Qtd. dias</string>
+    <string name="ausencia_ano_inicio">Ano início</string>
+    <string name="ausencia_ano_fim">Ano fim</string>
+    <string name="ausencia_anexo_opcional">Anexo (opcional)</string>
+    <string name="ausencia_requer_documento_hint">Pode requerer documento comprobatório</string>
+    <string name="ausencia_ferias_saldo_ganhos">Total dias disponíveis</string>
+    <string name="ausencia_ferias_saldo_marcados">Dias já marcados</string>
+    <string name="ausencia_ferias_saldo_aproveitados">Dias já aproveitados</string>
+    <string name="ausencia_ferias_saldo_restante_marcar">Restante para marcar</string>
+    <string name="ausencia_ferias_saldo_restante_aproveitar">Restante para aproveitar</string>
+    <string name="ausencia_tempo_declaracao">Tempo da declaração</string>
+    <string name="ausencia_tempo_abonado">Tempo que será abonado</string>
+    <string name="ausencia_intervalo">Intervalo</string>
+    <string name="ausencia_duracao">Duração</string>
+    <string name="ausencia_abono">Abono</string>
+    <string name="ausencia_camera">Câmera</string>
+    <string name="ausencia_galeria">Galeria</string>
+    <string name="ausencia_selecione_horario">Selecione o horário</string>
+    <string name="ausencia_icone_de">Ícone de</string>
+    <string name="ausencia_legenda_abonado">Abonado (não gera débito)</string>
+    <string name="ausencia_legenda_debito">Gera débito no banco</string>
+    <string name="ausencia_tipo_folga">Tipo de folga</string>
+    <string name="ausencia_data_horario">Data e horário</string>
+    <string name="ausencia_data_label">Data:</string>
+    <string name="ausencia_hora_inicio_label">Hora início:</string>
+
+    <!-- ====================================================================
+         TIPOS DE AUSÊNCIA (Descrições amigáveis)
+         ==================================================================== -->
+    <string name="tipo_ausencia_ferias">Férias</string>
+    <string name="tipo_ausencia_atestado">Atestado</string>
+    <string name="tipo_ausencia_declaracao">Declaração</string>
+    <string name="tipo_ausencia_falta_justificada">Falta Justificada</string>
+    <string name="tipo_ausencia_folga">Folga</string>
+    <string name="tipo_ausencia_falta_injustificada">Falta Injustificada</string>
+
+    <!-- ====================================================================
+         BANNER DE AUSÊNCIA (Home)
+         ==================================================================== -->
+    <string name="banner_ausencia_hoje">Você está de %s hoje</string>
+    <string name="banner_ausencia_ferias_ate">Férias até %s</string>
+    <string name="banner_ausencia_ferias_dia_retorno">Retornar das férias no dia %s</string>"
+    <string name="banner_ausencia_pa_label">PA: %s a %s</string>
+    <string name="banner_ausencia_dias_restantes_plural">Restam %d dias</string>
+
+    <!-- ====================================================================
          SOBRE O APP
          ==================================================================== -->
     <string name="sobre_titulo">Sobre o MeuPonto</string>
@@ -387,6 +482,11 @@
     <plurals name="lixeira_dias_expiracao">
         <item quantity="one">Expira em %d dia</item>
         <item quantity="other">Expira em %d dias</item>
+    </plurals>
+
+    <plurals name="ausencia_ferias_dias_restantes">
+        <item quantity="one">Resta %d dia</item>
+        <item quantity="other">Restam %d dias</item>
     </plurals>
 
 </resources>
