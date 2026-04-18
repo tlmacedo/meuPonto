@@ -22,6 +22,7 @@ object MeuPontoDestinations {
     const val HISTORY = "history"
     const val HISTORICO_CICLOS = "historico_ciclos"
     const val SETTINGS = "settings"
+    const val ONBOARDING = "onboarding"
 
     // Argumentos
     const val ARG_DATA = "data"

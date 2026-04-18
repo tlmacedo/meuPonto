@@ -1,17 +1,37 @@
 package br.com.tlmacedo.meuponto.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import br.com.tlmacedo.meuponto.presentation.MainViewModel
+import br.com.tlmacedo.meuponto.presentation.screen.onboarding.OnboardingScreen
 
 @Composable
-fun RootNavGraph() {
+fun RootNavGraph(
+    viewModel: MainViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
+    val isPrimeiraExecucao by viewModel.isPrimeiraExecucao.collectAsState()
 
     NavHost(
         navController = navController,
-        startDestination = AuthDestinations.ROUTE
+        startDestination = if (isPrimeiraExecucao) MeuPontoDestinations.ONBOARDING else AuthDestinations.ROUTE
     ) {
+        // 0. Onboarding
+        composable(MeuPontoDestinations.ONBOARDING) {
+            OnboardingScreen(
+                onFinish = {
+                    navController.navigate(AuthDestinations.ROUTE) {
+                        popUpTo(MeuPontoDestinations.ONBOARDING) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         // 1. Módulo de Autenticação
         authNavGraph(navController = navController)
 

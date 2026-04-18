@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
+import kotlinx.coroutines.flow.map
+
 /**
  * ViewModel global para gerenciar o estado do aplicativo que deve persistir
  * entre diferentes telas, como o tema selecionado.
@@ -26,5 +28,15 @@ class MainViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = "system"
+        )
+
+    /**
+     * Observa se é a primeira execução para controlar o fluxo de Onboarding.
+     */
+    val isPrimeiraExecucao: StateFlow<Boolean> = preferenciasRepository.observarPrimeiraExecucao()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
         )
 }
