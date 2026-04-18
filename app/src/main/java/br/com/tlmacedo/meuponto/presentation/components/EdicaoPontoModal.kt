@@ -38,6 +38,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -339,7 +340,7 @@ fun EdicaoModal(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                         isError = motivoSelecionado == MotivoEdicao.NENHUM,
                         enabled = !isSaving

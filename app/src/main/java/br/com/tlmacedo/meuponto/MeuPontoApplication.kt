@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import br.com.tlmacedo.meuponto.domain.service.MigracaoManager
 import br.com.tlmacedo.meuponto.worker.TrashCleanupWorker
+import br.com.tlmacedo.meuponto.util.logging.CrashlyticsTree
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,12 +73,13 @@ class MeuPontoApplication : Application(), Configuration.Provider {
     }
 
     /**
-     * Inicializa o Timber com DebugTree apenas em debug.
-     * Em produção nenhuma árvore é plantada até a configuração do Crashlytics (Fase 6).
+     * Inicializa o Timber com DebugTree em debug e CrashlyticsTree em release.
      */
     private fun inicializarLogging() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
+        } else {
+            Timber.plant(CrashlyticsTree())
         }
         Timber.d("MeuPonto Application iniciada")
     }

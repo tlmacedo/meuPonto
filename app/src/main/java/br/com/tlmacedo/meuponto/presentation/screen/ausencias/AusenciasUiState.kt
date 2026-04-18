@@ -46,7 +46,7 @@ data class AusenciasUiState(
     val ausenciaParaExcluir: Ausencia? = null
 ) {
     companion object {
-        private val localeBR = Locale("pt", "BR")
+        private val localeBR = Locale.forLanguageTag("pt-BR")
     }
 
     // ========================================================================

@@ -227,7 +227,7 @@ private fun TipoBadge(tipo: TipoFeriado) {
  * - Feriados únicos: "15/11/2026 (Domingo)"
  */
 private fun formatarData(feriado: Feriado): String {
-    val locale = Locale("pt", "BR")
+    val locale = Locale.forLanguageTag("pt-BR")
 
     return when (feriado.recorrencia) {
         RecorrenciaFeriado.ANUAL -> {

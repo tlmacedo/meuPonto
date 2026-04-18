@@ -24,16 +24,18 @@ import java.util.Locale
 // FORMATADORES (privados — evitar instanciar repetidamente)
 // ============================================================================
 
+private val localeBR = Locale.forLanguageTag("pt-BR")
+
 private val formatadorDataCompleta =
-    DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
+    DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", localeBR)
 private val formatadorDataCurta =
-    DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("pt", "BR"))
+    DateTimeFormatter.ofPattern("dd/MM/yyyy", localeBR)
 private val formatadorDataMesAno =
-    DateTimeFormatter.ofPattern("MMMM 'de' yyyy", Locale("pt", "BR"))
+    DateTimeFormatter.ofPattern("MMMM 'de' yyyy", localeBR)
 private val formatadorHora =
-    DateTimeFormatter.ofPattern("HH:mm", Locale("pt", "BR"))
+    DateTimeFormatter.ofPattern("HH:mm", localeBR)
 private val formatadorHoraCompleta =
-    DateTimeFormatter.ofPattern("HH:mm:ss", Locale("pt", "BR"))
+    DateTimeFormatter.ofPattern("HH:mm:ss", localeBR)
 
 // ============================================================================
 // LocalDate EXTENSIONS

@@ -2,31 +2,28 @@ package br.com.tlmacedo.meuponto.data.service
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
+import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
 import br.com.tlmacedo.meuponto.domain.model.PontoOcrResult
+import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.util.ImageProcessor
 import br.com.tlmacedo.meuponto.util.foto.ImageOrientationCorrector
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.File
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 import java.util.regex.Pattern
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
-
-import br.com.tlmacedo.meuponto.util.ComprovanteImageStorage
-import com.google.mlkit.vision.text.Text
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.util.UUID
 
 /**
  * Serviço de OCR para extração de dados de comprovantes de ponto.
@@ -36,10 +33,10 @@ import java.util.UUID
  */
 @Singleton
 class OcrService @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val orientationCorrector: ImageOrientationCorrector,
-    private val empregoRepository: br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository,
-    private val comprovanteImageStorage: ComprovanteImageStorage
+    private val empregoRepository: EmpregoRepository,
+    private val pontoDao: PontoDao
 ) {
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
@@ -78,8 +75,9 @@ class OcrService @Inject constructor(
                     right - left, bottom - top
                 )
                 
-                // Melhora a imagem do comprovante recortado
-                val processedBitmap = ImageProcessor.processForOcr(croppedBitmap)
+                // Melhora a imagem do comprovante recortado usando apenas os filtros,
+                // já que o recorte manual por bloco já foi feito.
+                val processedBitmap = ImageProcessor.applyOcrFilters(croppedBitmap)
                 
                 val fullText = blocos.joinToString("\n") { it.text }
                 val nsr = extrairNsr(fullText)
@@ -89,12 +87,16 @@ class OcrService @Inject constructor(
                 val pis = extrairPis(fullText)
                 val cnpj = extrairCnpj(fullText)
 
+                val isDuplicado = nsr?.let { pontoDao.existeNsr(it, empregoId) } ?: false
+
                 // Salva a imagem recortada e melhorada temporariamente ou associa ao resultado
                 // Para simplificar agora, salvamos no diretório de comprovantes com um nome temp
                 val fileName = "ocr_crop_${UUID.randomUUID()}.jpg"
                 val tempFile = File(context.cacheDir, fileName)
-                java.io.FileOutputStream(tempFile).use { out ->
-                    processedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                withContext(Dispatchers.IO) {
+                    java.io.FileOutputStream(tempFile).use { out ->
+                        processedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                    }
                 }
 
                 var razaoSocial: String? = null
@@ -112,7 +114,8 @@ class OcrService @Inject constructor(
                         pis = pis,
                         cnpj = cnpj,
                         razaoSocial = razaoSocial,
-                        imagemRecortadaPath = tempFile.absolutePath
+                        imagemRecortadaPath = tempFile.absolutePath,
+                        isDuplicado = isDuplicado
                     ))
                 }
                 
@@ -173,76 +176,13 @@ class OcrService @Inject constructor(
     }
 
     /**
-     * Extrai NSR, Data, Hora e Usuário de uma imagem.
-     * @param uri URI da imagem
-     * @param horariosHabituais Lista de horários de trabalho do usuário para ajudar no "check" da hora
-     * @param aplicarFiltros Se true, aplica grayscale e contraste antes do OCR
-     */
-    suspend fun extrairDadosComprovante(
-        uri: Uri,
-        horariosHabituais: List<LocalTime> = emptyList(),
-        aplicarFiltros: Boolean = false
-    ): PontoOcrResult? {
-        return try {
-            val originalBitmap = orientationCorrector.loadBitmapWithCorrectOrientation(uri)
-                ?: return null
-
-            val processedBitmap = if (aplicarFiltros) {
-                // Aplica apenas filtros (grayscale/contraste) pois a imagem da câmera já vem recortada
-                br.com.tlmacedo.meuponto.util.ImageProcessor.applyOcrFilters(originalBitmap)
-            } else {
-                originalBitmap
-            }
-
-            val image = InputImage.fromBitmap(processedBitmap, 0)
-            val visionText = recognizer.process(image).await()
-
-            // Reciclar bitmaps após processamento
-            if (processedBitmap !== originalBitmap) processedBitmap.recycle()
-            originalBitmap.recycle()
-
-            val text = visionText.text
-            val nsr = extrairNsr(text)
-            val data = extrairData(text)
-            val hora = extrairHoraMelhorada(text, horariosHabituais)
-            val nome = extrairNomeTrabalhador(text)
-            val pis = extrairPis(text)
-            val cnpj = extrairCnpj(text)
-
-            // Busca o empregador pelo CNPJ se encontrado
-            var razaoSocial: String? = null
-            if (cnpj != null) {
-                val empregador = empregoRepository.buscarPorCnpj(cnpj)
-                razaoSocial = empregador?.razaoSocial ?: empregador?.nome
-            }
-
-            if (nsr != null || data != null || hora != null) {
-                PontoOcrResult(
-                    nsr = nsr,
-                    data = data,
-                    hora = hora,
-                    nomeTrabalhador = nome,
-                    pis = pis,
-                    cnpj = cnpj,
-                    razaoSocial = razaoSocial
-                )
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Erro ao processar OCR do comprovante")
-            null
-        }
-    }
-
-    /**
      * Busca um padrão de NSR no texto.
      * Para os modelos Inner REP Plus, o NSR costuma ter 9 dígitos.
      */
     private fun extrairNsr(text: String): String? {
         // Normaliza o texto para tratar erros comuns de leitura do label
         // Adicionado suporte a "N.S.R." e variações com pontos
-        val textNormalizado = text.replace(Regex("(?:N[S\\s]R|MSR|N5R|N\\s*S\\s*R|N\\.S\\.R\\.)", RegexOption.IGNORE_CASE), "NSR")
+        val textNormalizado = text.replace(Regex("N[S\\s]R|MSR|N5R|N\\s*S\\s*R|N\\.S\\.R\\.", RegexOption.IGNORE_CASE), "NSR")
         
         // Identifica o número do REP (17 dígitos) para evitar que ele seja confundido com o NSR
         val repPattern = Pattern.compile("\\b(\\d{17})\\b")
@@ -293,7 +233,7 @@ class OcrService @Inject constructor(
             if (matcher.find()) {
                 try {
                     return java.time.LocalDate.parse(matcher.group(1), formatters[i])
-                } catch (e: Exception) { continue }
+                } catch (_: Exception) { continue }
             }
         }
         return null
@@ -401,7 +341,7 @@ class OcrService @Inject constructor(
                     val m = partes[1].toInt()
                     return LocalTime.of(h, m)
                 }
-            } catch (e: Exception) { /* ignora e segue para busca geral */ }
+            } catch (_: Exception) { /* ignora e segue para busca geral */ }
         }
 
         while (matcher.find()) {
@@ -424,7 +364,7 @@ class OcrService @Inject constructor(
 
                     horasEncontradas.add(LocalTime.of(h, m, s))
                 }
-            } catch (e: Exception) { continue }
+            } catch (_: Exception) { continue }
         }
 
         if (horasEncontradas.isEmpty()) return null

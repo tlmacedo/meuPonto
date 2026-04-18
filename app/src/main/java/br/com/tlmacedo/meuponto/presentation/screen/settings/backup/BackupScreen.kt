@@ -66,6 +66,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.repository.CloudFile
 import br.com.tlmacedo.meuponto.domain.repository.LocalBackupFile
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.Scope
+import com.google.api.services.drive.DriveScopes
 import kotlinx.coroutines.flow.collectLatest
 import java.time.Instant
 import java.time.LocalDateTime
@@ -157,13 +161,13 @@ fun BackupScreen(
                     importLauncher.launch(arrayOf("*/*")) // Permitir qualquer arquivo, o repo trata
                 }
                 is BackupEvent.SolicitarAutenticacaoGoogle -> {
-                        val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
-                        com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
-                    )
+                    @Suppress("DEPRECATION")
+                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestEmail()
-                        .requestScopes(com.google.android.gms.common.api.Scope(com.google.api.services.drive.DriveScopes.DRIVE_FILE))
+                        .requestScopes(Scope(DriveScopes.DRIVE_FILE))
                         .build()
-                    val client = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+                    @Suppress("DEPRECATION")
+                    val client = GoogleSignIn.getClient(context, gso)
                     googleAuthLauncher.launch(client.signInIntent)
                 }
             }

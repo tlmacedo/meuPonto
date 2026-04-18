@@ -33,7 +33,7 @@ fun DateTimeDisplay(
     // Formatadores
     val formatadorData = DateTimeFormatter.ofPattern(
         "EEEE, dd 'de' MMMM",
-        Locale("pt", "BR")
+        Locale.forLanguageTag("pt-BR")
     )
     val formatadorHora = DateTimeFormatter.ofPattern("HH:mm:ss")
 

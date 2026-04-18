@@ -50,7 +50,7 @@ fun CalendarView(
     val firstDayOfMonth = yearMonth.atDay(1)
     val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7 // 0 = Sunday, 1 = Monday, ...
 
-    val locale = Locale("pt", "BR")
+    val locale = Locale.forLanguageTag("pt-BR")
     val daysOfWeek = remember {
         listOf(
             DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY,

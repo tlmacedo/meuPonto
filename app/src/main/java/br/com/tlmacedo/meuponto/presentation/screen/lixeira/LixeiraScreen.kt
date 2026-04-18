@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -176,7 +177,7 @@ private fun LixeiraContent(
                         Box {
                             IconButton(onClick = { showMenuOrdenacao = true }) {
                                 Icon(
-                                    imageVector = Icons.Default.Sort,
+                                    imageVector = Icons.AutoMirrored.Filled.Sort,
                                     contentDescription = "Ordenar"
                                 )
                             }

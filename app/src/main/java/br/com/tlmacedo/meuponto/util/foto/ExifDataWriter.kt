@@ -106,13 +106,13 @@ class ExifDataWriter @Inject constructor() {
                 }
             }
 
-            val latLong = FloatArray(2)
-            val hasGps = exif.getLatLong(latLong)
+            val latLong = exif.latLong
+            val hasGps = latLong != null
 
             FotoExifMetadata(
                 dateTime = dateTime,
-                latitude = if (hasGps) latLong[0].toDouble() else null,
-                longitude = if (hasGps) latLong[1].toDouble() else null,
+                latitude = latLong?.get(0),
+                longitude = latLong?.get(1),
                 altitude = exif.getAltitude(Double.NaN).takeIf { !it.isNaN() },
                 userComment = exif.getAttribute(ExifInterface.TAG_USER_COMMENT),
                 description = exif.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION),

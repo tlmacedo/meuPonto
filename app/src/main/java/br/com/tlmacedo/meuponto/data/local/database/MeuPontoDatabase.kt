@@ -15,6 +15,7 @@ import br.com.tlmacedo.meuponto.data.local.database.dao.EmpregoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.FechamentoPeriodoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.FeriadoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.FotoComprovanteDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.GeocodificacaoCacheDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.HistoricoCargoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.HorarioDiaSemanaDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.MarcadorDao
@@ -31,6 +32,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.EmpregoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.FechamentoPeriodoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.FeriadoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.FotoComprovanteEntity
+import br.com.tlmacedo.meuponto.data.local.database.entity.GeocodificacaoCacheEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.HistoricoCargoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.HorarioDiaSemanaEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.MarcadorEntity
@@ -49,6 +51,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         FechamentoPeriodoEntity::class,
         FeriadoEntity::class,
         FotoComprovanteEntity::class,
+        GeocodificacaoCacheEntity::class,
         HistoricoCargoEntity::class,
         HorarioDiaSemanaEntity::class,
         MarcadorEntity::class,
@@ -57,7 +60,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         UsuarioEntity::class,
         AusenciaEntity::class
     ],
-    version = 38, // Incremented version to fix IllegalStateException after schema change
+    version = 39, // Incremented version for GeocodificacaoCache
     exportSchema = true // Mantenha como true para gerar o schema.json
 )
 @TypeConverters(Converters::class)
@@ -71,6 +74,7 @@ abstract class MeuPontoDatabase : RoomDatabase() {
     abstract fun fechamentoPeriodoDao(): FechamentoPeriodoDao
     abstract fun feriadoDao(): FeriadoDao
     abstract fun fotoComprovanteDao(): FotoComprovanteDao
+    abstract fun geocodificacaoCacheDao(): GeocodificacaoCacheDao
     abstract fun historicoCargoDao(): HistoricoCargoDao
     abstract fun horarioDiaSemanaDao(): HorarioDiaSemanaDao
     abstract fun marcadorDao(): MarcadorDao

@@ -21,6 +21,7 @@ import javax.inject.Singleton
 object NetworkModule {
     @Provides
     @Singleton
+    @Suppress("DEPRECATION")
     fun provideGson(): Gson {
         return GsonBuilder().setLenient().create()
     }

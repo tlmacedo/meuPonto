@@ -320,7 +320,7 @@ fun AusenciaCard(
  * Formata a data da ausência incluindo o dia da semana.
  */
 private fun formatarDataComDiaSemana(ausencia: Ausencia): String {
-    val locale = Locale("pt", "BR")
+    val locale = Locale.forLanguageTag("pt-BR")
     val dataInicio = ausencia.dataInicio
     val dataFim = ausencia.dataFim
 

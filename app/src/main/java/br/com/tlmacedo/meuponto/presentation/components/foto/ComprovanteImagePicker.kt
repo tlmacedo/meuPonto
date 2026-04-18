@@ -86,7 +86,6 @@ fun ComprovanteImagePicker(
                 if (cameraPermissionState.status.isGranted) {
                     onLaunchCustomCamera()
                 } else {
-                    actionInProgress = true
                     cameraPermissionState.launchPermissionRequest()
                 }
             },
@@ -94,13 +93,19 @@ fun ComprovanteImagePicker(
                 Timber.d("Google Document Scanner selecionado")
                 context.findActivity()?.let { activity ->
                     if (docScanner != null && scannerLauncher != null) {
-                        docScanner.startScan(activity, scannerLauncher)
+                        docScanner.startScan(
+                            activity = activity,
+                            scannerLauncher = scannerLauncher,
+                            onFailure = { e ->
+                                Timber.e(e, "Erro ao iniciar Google Document Scanner")
+                                onPermissionDenied("Scanner indisponível. Verifique o Google Play Services.")
+                            }
+                        )
                     }
                 }
             },
             onGallerySelected = {
                 Timber.d("Galeria selecionada")
-                actionInProgress = true
                 galleryLauncher.launch("image/*")
             }
         )

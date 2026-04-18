@@ -32,7 +32,7 @@ data class PeriodoRH(
      */
     val mesReferenciaDescricao: String
         get() {
-            val formatter = DateTimeFormatter.ofPattern("MMMM/yyyy", Locale("pt", "BR"))
+            val formatter = DateTimeFormatter.ofPattern("MMMM/yyyy", Locale.forLanguageTag("pt-BR"))
             return mesReferencia.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
         }
 

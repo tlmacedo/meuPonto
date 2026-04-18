@@ -5,24 +5,24 @@ import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
 import br.com.tlmacedo.meuponto.data.local.database.util.DatabaseCheckpointManager
 import br.com.tlmacedo.meuponto.data.local.datastore.PreferenciasGlobaisDataStore
 import br.com.tlmacedo.meuponto.domain.repository.CloudBackupRepository
+import br.com.tlmacedo.meuponto.domain.repository.CloudFile
+import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.http.FileContent
+import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.drive.model.File
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import kotlinx.coroutines.flow.first
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.io.InputStream
-import java.time.Instant
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.Collections
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -30,9 +30,6 @@ import java.util.zip.ZipOutputStream
 import java.io.File as JavaFile
 import javax.inject.Inject
 import javax.inject.Singleton
-import com.google.api.client.http.FileContent
-import br.com.tlmacedo.meuponto.domain.repository.CloudFile
-import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 
 /**
  * Implementação do repositório de backup na nuvem usando Google Drive REST API.
@@ -41,9 +38,10 @@ import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
  * @author Thiago
  * @since 12.0.0
  */
+@Suppress("DEPRECATION")
 @Singleton
 class CloudBackupRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val database: MeuPontoDatabase,
     private val checkpointManager: DatabaseCheckpointManager,
     private val preferencesDataStore: PreferenciasGlobaisDataStore,
@@ -135,52 +133,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
             tempZipFile.delete()
             Timber.d("Backup do banco (zip) enviado: $zipFileName")
 
-            // 4. Upload de Fotos (individuais, sem compactar)
-            val pathsSnapshot = database.fotoComprovanteDao().listarPathsPorEmprego(empregoId)
-            val pathsPontos = database.pontoDao().listarPorEmprego(empregoId).first()
-                .mapNotNull { it.fotoComprovantePath }
-
-            val todosOsPaths = (pathsSnapshot + pathsPontos).distinct()
-            val baseDirImagens = JavaFile(context.filesDir, "comprovantes")
-            
-            if (todosOsPaths.isNotEmpty()) {
-                val folderPhotosId = getOrCreateFolder(service, "photos", folderEmpregoId)
-                
-                todosOsPaths.forEach { path ->
-                    val (fotoFile, relativePath) = if (path.startsWith("comprovantes/")) {
-                        JavaFile(context.filesDir, path) to path.removePrefix("comprovantes/")
-                    } else {
-                        JavaFile(baseDirImagens, path) to path
-                    }
-
-                    if (fotoFile.exists()) {
-                        // Extrair Ano e Mês do path (formato esperado: emprego_X/YYYY/MM/arquivo.jpg)
-                        // ou apenas YYYY/MM/arquivo.jpg
-                        val parts = relativePath.split("/")
-                        if (parts.size >= 3) {
-                            val ano = parts[parts.size - 3]
-                            val mes = parts[parts.size - 2]
-                            val fileName = parts.last()
-
-                            val folderAnoId = getOrCreateFolder(service, ano, folderPhotosId)
-                            val folderMesId = getOrCreateFolder(service, mes, folderAnoId)
-
-                            // Verificar se o arquivo já existe para evitar duplicidade
-                            if (!fileQueryExists(service, fileName, folderMesId)) {
-                                val fileMetadata = File().apply {
-                                    name = fileName
-                                    parents = listOf(folderMesId)
-                                }
-                                val mediaContent = FileContent("image/jpeg", fotoFile)
-                                service.files().create(fileMetadata, mediaContent).execute()
-                                Timber.d("Foto enviada: $ano/$mes/$fileName")
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 5. Registrar sucesso
+            // 4. Registrar sucesso
             preferencesDataStore.registrarBackupRealizado(isNuvem = true)
             limparBackupsLocais()
 
@@ -195,16 +148,15 @@ class CloudBackupRepositoryImpl @Inject constructor(
         val query = "name = '$folderName' and mimeType = 'application/vnd.google-apps.folder' and '$parentId' in parents and trashed = false"
         val result = service.files().list().setQ(query).execute()
         
-        return if (result.files != null && result.files.isNotEmpty()) {
-            result.files[0].id
-        } else {
-            val fileMetadata = File().apply {
-                name = folderName
-                mimeType = "application/vnd.google-apps.folder"
-                parents = listOf(parentId)
+        return result.files?.firstOrNull()?.id
+            ?: run {
+                val fileMetadata = File().apply {
+                    name = folderName
+                    mimeType = "application/vnd.google-apps.folder"
+                    parents = listOf(parentId)
+                }
+                service.files().create(fileMetadata).setFields("id").execute().id
             }
-            service.files().create(fileMetadata).setFields("id").execute().id
-        }
     }
 
     private fun fileQueryExists(service: Drive, fileName: String, parentId: String): Boolean {
@@ -241,10 +193,9 @@ class CloudBackupRepositoryImpl @Inject constructor(
                         .setPageSize(1)
                         .execute()
 
-                    if (files.files.isNullOrEmpty()) {
-                        return@withContext Result.failure(Exception("Nenhum backup de banco encontrado na nuvem"))
-                    }
-                    files.files[0].id
+                    val targetFileId = files.files?.firstOrNull()?.id
+                        ?: return@withContext Result.failure(Exception("Nenhum backup de banco encontrado na nuvem"))
+                    targetFileId
                 }
 
                 val targetFile = service.files().get(targetFileId).setFields("name, mimeType").execute()
@@ -297,8 +248,62 @@ class CloudBackupRepositoryImpl @Inject constructor(
         }
 
     override suspend fun sincronizarFotos(): Result<Unit> = withContext(Dispatchers.IO) {
-        // ... (mantém implementação anterior)
-        Result.success(Unit) 
+        try {
+            val service = driveService ?: return@withContext Result.failure(Exception("Usuário não autenticado"))
+
+            val empregoId = preferencesRepository.obterEmpregoAtivoId()
+                ?: return@withContext Result.failure(Exception("Nenhum emprego ativo encontrado"))
+
+            val emprego = database.empregoDao().buscarPorId(empregoId)
+                ?: return@withContext Result.failure(Exception("Emprego não encontrado"))
+
+            val hashEmprego = (emprego.apelido ?: emprego.nome).hashCode().toString(16).take(10)
+
+            val folderMeuPontoId = getOrCreateFolder(service, "Meu Ponto", "root")
+            val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
+            val folderPhotosId = getOrCreateFolder(service, "photos", folderEmpregoId)
+
+            val pathsSnapshot = database.fotoComprovanteDao().listarPathsPorEmprego(empregoId)
+            val pathsPontos = database.pontoDao().listarPorEmprego(empregoId).first()
+                .mapNotNull { it.fotoComprovantePath }
+
+            val todosOsPaths = (pathsSnapshot + pathsPontos).distinct()
+            val baseDirImagens = JavaFile(context.filesDir, "comprovantes")
+
+            todosOsPaths.forEach { path ->
+                val (fotoFile, relativePath) = if (path.startsWith("comprovantes/")) {
+                    JavaFile(context.filesDir, path) to path.removePrefix("comprovantes/")
+                } else {
+                    JavaFile(baseDirImagens, path) to path
+                }
+
+                if (fotoFile.exists()) {
+                    val parts = relativePath.split("/")
+                    if (parts.size >= 3) {
+                        val ano = parts[parts.size - 3]
+                        val mes = parts[parts.size - 2]
+                        val fileName = parts.last()
+
+                        val folderAnoId = getOrCreateFolder(service, ano, folderPhotosId)
+                        val folderMesId = getOrCreateFolder(service, mes, folderAnoId)
+
+                        if (!fileQueryExists(service, fileName, folderMesId)) {
+                            val fileMetadata = File().apply {
+                                name = fileName
+                                parents = listOf(folderMesId)
+                            }
+                            val mediaContent = FileContent("image/jpeg", fotoFile)
+                            service.files().create(fileMetadata, mediaContent).execute()
+                            Timber.d("Foto sincronizada com a nuvem: $ano/$mes/$fileName")
+                        }
+                    }
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "Erro ao sincronizar fotos com a nuvem")
+            Result.failure(e)
+        }
     }
 
     override suspend fun listarBackupsNuvem(): Result<List<CloudFile>> = withContext(Dispatchers.IO) {
@@ -326,8 +331,8 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 CloudFile(
                     id = file.id,
                     name = file.name,
-                    size = file.getSize() ?: 0L,
-                    modifiedTime = file.getModifiedTime()?.getValue() ?: 0L,
+                    size = file.size?.toLong() ?: 0L,
+                    modifiedTime = file.modifiedTime?.value ?: 0L,
                     mimeType = file.mimeType
                 )
             } ?: emptyList()
@@ -404,7 +409,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
 
     override suspend fun desconectarConta(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val signInClient = GoogleSignIn.getClient(context, com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
+            val signInClient = GoogleSignIn.getClient(context, GoogleSignInOptions.DEFAULT_SIGN_IN)
             signInClient.signOut()
             signInClient.revokeAccess()
             

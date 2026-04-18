@@ -33,7 +33,7 @@ import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val localeBR = Locale("pt", "BR")
+private val localeBR = Locale.forLanguageTag("pt-BR")
 private val formatterData = DateTimeFormatter.ofPattern("dd/MM/yyyy", localeBR)
 private val formatterDataCurta = DateTimeFormatter.ofPattern("dd/MM", localeBR)
 

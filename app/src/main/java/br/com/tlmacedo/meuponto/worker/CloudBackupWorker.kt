@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import br.com.tlmacedo.meuponto.domain.repository.CloudBackupRepository
+import br.com.tlmacedo.meuponto.domain.service.SistemaNotificacaoService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import timber.log.Timber
@@ -19,7 +20,8 @@ import timber.log.Timber
 class CloudBackupWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val cloudBackupRepository: CloudBackupRepository
+    private val cloudBackupRepository: CloudBackupRepository,
+    private val sistemaNotificacaoService: SistemaNotificacaoService
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -42,13 +44,23 @@ class CloudBackupWorker @AssistedInject constructor(
                         Result.success()
                     },
                     onFailure = { e ->
-                        Timber.e(e, "Erro ao realizar backup na nuvem")
+                        Timber.e(e, "Erro ao realizar backup na nuvem (tentativa: $runAttemptCount)")
+                        
+                        if (runAttemptCount >= 2) {
+                            sistemaNotificacaoService.notificarErroBackup(e.message ?: "Erro desconhecido")
+                        }
+
                         if (runAttemptCount < 3) Result.retry() else Result.failure()
                     }
                 )
         } catch (e: Exception) {
             Timber.e(e, "Falha crítica no CloudBackupWorker")
-            Result.failure()
+            
+            if (runAttemptCount >= 2) {
+                sistemaNotificacaoService.notificarErroBackup(e.message ?: "Falha crítica")
+            }
+
+            if (runAttemptCount < 3) Result.retry() else Result.failure()
         }
     }
 

@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
+import androidx.core.graphics.createBitmap
 
 /**
  * Utilitário para processamento de imagem visando melhorar o OCR.
@@ -17,7 +18,7 @@ object ImageProcessor {
     fun toGrayscale(src: Bitmap): Bitmap {
         val height = src.height
         val width = src.width
-        val dest = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val dest = createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(dest)
         val paint = Paint()
         val colorMatrix = ColorMatrix()
@@ -33,7 +34,7 @@ object ImageProcessor {
      * @param contrast 1.0 é normal, > 1.0 aumenta o contraste.
      */
     fun adjustContrast(src: Bitmap, contrast: Float): Bitmap {
-        val dest = Bitmap.createBitmap(src.width, src.height, src.config ?: Bitmap.Config.ARGB_8888)
+        val dest = createBitmap(src.width, src.height, src.config ?: Bitmap.Config.ARGB_8888)
         val canvas = Canvas(dest)
         val paint = Paint()
         
@@ -48,17 +49,51 @@ object ImageProcessor {
         
         paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
         canvas.drawBitmap(src, 0f, 0f, paint)
+        // Libera a memória do bitmap original se não for mais necessário
+        // src.recycle() // Removido para evitar reciclar bitmaps ainda em uso por outros métodos
         return dest
     }
 
     /**
-     * Aplica filtros de melhoria para OCR (Grayscale e Contraste) sem recortar.
+     * Aplica binarização (Otsu-like simplified) para melhorar OCR em textos claros/escuros.
      */
-    fun applyOcrFilters(src: Bitmap, contrast: Float = 1.6f): Bitmap {
+    fun toBinary(src: Bitmap, threshold: Int = 128): Bitmap {
+        val width = src.width
+        val height = src.height
+        val dest = createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val pixels = IntArray(width * height)
+        src.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        for (i in pixels.indices) {
+            val color = pixels[i]
+            val r = (color shr 16) and 0xFF
+            val g = (color shr 8) and 0xFF
+            val b = color and 0xFF
+            val gray = (r * 0.299 + g * 0.587 + b * 0.114).toInt()
+            val binary = if (gray > threshold) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
+            pixels[i] = binary
+        }
+
+        dest.setPixels(pixels, 0, width, 0, 0, width, height)
+        return dest
+    }
+
+    /**
+     * Aplica filtros de melhoria para OCR (Grayscale, Contraste e opcionalmente Binarização).
+     */
+    fun applyOcrFilters(src: Bitmap, contrast: Float = 1.6f, binarize: Boolean = false): Bitmap {
         val grayscale = toGrayscale(src)
-        val final = adjustContrast(grayscale, contrast)
+        val contrasted = adjustContrast(grayscale, contrast)
         
-        if (grayscale != src && grayscale != final) grayscale.recycle()
+        val final = if (binarize) {
+            val binary = toBinary(contrasted)
+            if (contrasted != grayscale) contrasted.recycle()
+            binary
+        } else {
+            contrasted
+        }
+
+        if (grayscale != src && grayscale != contrasted && grayscale != final) grayscale.recycle()
         
         return final
     }
@@ -67,7 +102,7 @@ object ImageProcessor {
      * Recorta o bitmap conforme o overlay da câmera, aplicando margem de segurança.
      * Alinhado com a proporção de máscara 0.63.
      */
-    fun cropForOcr(src: Bitmap): Bitmap {
+    private fun cropForOcr(src: Bitmap): Bitmap {
         val relWidth = 0.85f
         val bitmapRatio = src.width.toFloat() / src.height.toFloat()
         // Proporção da máscara ajustada para 0.63 conforme requisito

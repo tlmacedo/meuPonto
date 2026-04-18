@@ -982,7 +982,7 @@ private fun DiaCard(
                                 append(
                                     resumo.data.dayOfWeek.getDisplayName(
                                         TextStyle.FULL,
-                                        Locale("pt", "BR")
+                                        Locale.forLanguageTag("pt-BR")
                                     ).replaceFirstChar { it.uppercase() }
                                 )
                                 if (infoDia.pontos.size > 0) append(" (${resumo.cargaHorariaDiariaFormatada})")

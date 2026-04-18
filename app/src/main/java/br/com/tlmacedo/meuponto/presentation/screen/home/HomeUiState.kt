@@ -228,7 +228,7 @@ data class HomeUiState(
     val registrarPontoModal: RegistrarPontoModalState? = null
 ) {
     companion object {
-        private val localeBR = Locale("pt", "BR")
+        private val localeBR = Locale.forLanguageTag("pt-BR")
         internal val formatterDiaSemana = DateTimeFormatter.ofPattern("EEEE", localeBR)
         internal val formatterDiaSemanaAbrev = DateTimeFormatter.ofPattern("EEE", localeBR)
         internal val formatterDataCompleta = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM 'de' yyyy", localeBR)

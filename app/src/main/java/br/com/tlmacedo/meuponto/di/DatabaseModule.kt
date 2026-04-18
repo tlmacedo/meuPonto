@@ -17,6 +17,7 @@ import br.com.tlmacedo.meuponto.data.local.database.dao.EmpregoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.FechamentoPeriodoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.FeriadoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.FotoComprovanteDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.GeocodificacaoCacheDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.HistoricoCargoDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.HorarioDiaSemanaDao
 import br.com.tlmacedo.meuponto.data.local.database.dao.MarcadorDao
@@ -142,7 +143,7 @@ object DatabaseModule {
     @Provides @Singleton fun provideConfiguracaoPontesAnoDao(db: MeuPontoDatabase): ConfiguracaoPontesAnoDao = db.configuracaoPontesAnoDao()
     @Provides @Singleton fun provideAusenciaDao(db: MeuPontoDatabase): AusenciaDao = db.ausenciaDao()
     @Provides @Singleton fun provideFotoComprovanteDao(db: MeuPontoDatabase): FotoComprovanteDao = db.fotoComprovanteDao()
-
+    @Provides @Singleton fun provideGeocodificacaoCacheDao(db: MeuPontoDatabase): GeocodificacaoCacheDao = db.geocodificacaoCacheDao()
     @Provides @Singleton fun provideUsuarioDao(db: MeuPontoDatabase): UsuarioDao = db.usuarioDao()
     @Provides @Singleton fun provideHistoricoCargoDao(db: MeuPontoDatabase): HistoricoCargoDao = db.historicoCargoDao()
     @Provides @Singleton fun provideAjusteSalarialDao(db: MeuPontoDatabase): AjusteSalarialDao = db.ajusteSalarialDao()

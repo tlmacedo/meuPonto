@@ -1,7 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/theme/Theme.kt
 package br.com.tlmacedo.meuponto.presentation.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -161,7 +160,7 @@ fun MeuPontoTheme(
         "sidia" -> SidiaLightColorScheme
         "sidia_dark" -> SidiaDarkColorScheme
         "system" -> {
-            if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (dynamicColor) {
                 val context = LocalContext.current
                 if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             } else {

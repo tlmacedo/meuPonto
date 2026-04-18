@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.global
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.tlmacedo.meuponto.data.service.GeofenceManager
 import br.com.tlmacedo.meuponto.domain.model.PreferenciasGlobais.FormatoData
 import br.com.tlmacedo.meuponto.domain.model.PreferenciasGlobais.FormatoHora
 import br.com.tlmacedo.meuponto.domain.model.PreferenciasGlobais.TemaEscuro
@@ -31,7 +32,8 @@ import javax.inject.Inject
 @HiltViewModel
 class GlobalSettingsViewModel @Inject constructor(
     private val obterPreferencias: ObterPreferenciasGlobaisUseCase,
-    private val salvarPreferencias: SalvarPreferenciasGlobaisUseCase
+    private val salvarPreferencias: SalvarPreferenciasGlobaisUseCase,
+    private val geofenceManager: GeofenceManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GlobalSettingsUiState())
@@ -209,6 +211,17 @@ class GlobalSettingsViewModel @Inject constructor(
                 prefs.raioGeofencingMetros,
                 ativo
             )
+
+            // Ativa ou desativa o monitoramento real de Geofence
+            if (ativo && prefs.localizacaoPadraoLatitude != null && prefs.localizacaoPadraoLongitude != null) {
+                geofenceManager.monitorarTrabalho(
+                    prefs.localizacaoPadraoLatitude,
+                    prefs.localizacaoPadraoLongitude,
+                    prefs.raioGeofencingMetros.toFloat()
+                )
+            } else {
+                geofenceManager.pararMonitoramento()
+            }
         }
     }
 

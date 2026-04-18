@@ -20,10 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOff
@@ -338,7 +338,7 @@ fun RegistrarPontoModal(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4,
-                        leadingIcon = { Icon(Icons.Default.Comment, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = null) }
                     )
                     Spacer(modifier = Modifier.height(20.dp))
                 }

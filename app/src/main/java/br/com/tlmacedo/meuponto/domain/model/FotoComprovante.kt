@@ -175,7 +175,7 @@ data class FotoComprovante(
 
     /** Dia da semana formatado em português (ex: "Quarta-feira") */
     val diaSemanaFormatado: String
-        get() = diaSemana.getDisplayName(TextStyle.FULL, Locale("pt", "BR"))
+        get() = diaSemana.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR"))
             .replaceFirstChar { it.uppercase() }
 
     /** Timestamp da foto formatado */

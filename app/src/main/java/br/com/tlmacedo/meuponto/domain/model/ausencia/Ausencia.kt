@@ -44,7 +44,7 @@ data class Ausencia(
     val atualizadoEm: LocalDateTime = LocalDateTime.now()
 ) {
     companion object {
-        private val localeBR = Locale("pt", "BR")
+        private val localeBR = Locale.forLanguageTag("pt-BR")
         private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", localeBR)
         private val dateFormatterShort = DateTimeFormatter.ofPattern("dd/MM", localeBR)
         private val dateFormatterFull = DateTimeFormatter.ofPattern("dd 'de' MMMM", localeBR)

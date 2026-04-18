@@ -36,6 +36,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -599,7 +600,7 @@ private fun DiaMesSelector(
                 modifier = Modifier.weight(1f)
             ) {
                 OutlinedTextField(
-                    value = mesSelecionado?.getDisplayName(TextStyle.FULL, Locale("pt", "BR"))
+                    value = mesSelecionado?.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR"))
                         ?.replaceFirstChar { it.uppercase() } ?: "",
                     onValueChange = {},
                     label = { Text("Mês") },
@@ -608,7 +609,7 @@ private fun DiaMesSelector(
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                 )
                 ExposedDropdownMenu(
                     expanded = expandedMes,
@@ -618,7 +619,7 @@ private fun DiaMesSelector(
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    mes.getDisplayName(TextStyle.FULL, Locale("pt", "BR"))
+                                    mes.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR"))
                                         .replaceFirstChar { it.uppercase() }
                                 )
                             },
@@ -647,7 +648,7 @@ private fun DiaMesSelector(
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                 )
                 ExposedDropdownMenu(
                     expanded = expandedDia,
@@ -768,7 +769,7 @@ private fun UfSelector(
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
         )
         ExposedDropdownMenu(
             expanded = expanded,

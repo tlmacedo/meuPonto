@@ -150,6 +150,14 @@ interface PontoDao {
     @Query("UPDATE pontos SET is_deleted = 0, deleted_at = NULL, updated_at = :updatedAt WHERE id = :pontoId")
     suspend fun restaurar(pontoId: Long, updatedAt: Long)
 
+    @Query("SELECT EXISTS(SELECT 1 FROM pontos WHERE nsr = :nsr AND empregoId = :empregoId AND is_deleted = 0)")
+    suspend fun existeNsr(nsr: String, empregoId: Long): Boolean
+
+    @Query("SELECT * FROM pontos WHERE nsr = :nsr AND empregoId = :empregoId AND is_deleted = 0 LIMIT 1")
+    suspend fun buscarPorNsr(nsr: String, empregoId: Long): PontoEntity?
+
+    // === Manutenção ===
+
     @Query("DELETE FROM pontos WHERE data < :data")
     suspend fun excluirPontosAnterioresA(data: LocalDate): Int
 }

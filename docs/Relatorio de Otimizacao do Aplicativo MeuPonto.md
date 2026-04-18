@@ -21,18 +21,20 @@ OcrService: Uma funcionalidade avançada que agrega muito valor ao aplicativo, a
 
 Conclusão: Os elementos presentes no código são, em sua maioria, bem justificados e contribuem para as funcionalidades centrais do aplicativo. Não há telas recomendadas para remoção com base na análise do código fornecido, pois as classes apresentadas são de infraestrutura e lógica de negócio, não de interface diretamente.
 
-2. Identificação de Incompletudes
+2. Identificação de Incompletudes e Status de Implementação (Fase 1 Concluída)
 
-A análise dos arquivos revela que, embora a base tecnológica seja sólida, existem funcionalidades que podem estar incompletas ou ausentes para um aplicativo de registro de ponto completo e competitivo.
+A análise dos arquivos revela que a base tecnológica é sólida e as principais lacunas da Fase 1 foram sanadas.
 
-2.1. Implementações Incompletas Essenciais
-CloudBackupWorker: O método uploadBackup() utiliza um fold para onSuccess e onFailure, mas a implementação detalhada do CloudBackupRepository não foi fornecida. É crucial garantir que o uploadBackup() seja robusto, com tratamento de erros de rede, retentativas inteligentes e feedback claro ao usuário sobre o status do backup. A sincronização de fotos (sincronizarFotos()) também precisa de uma implementação completa e eficiente, considerando o volume de dados e a largura de banda.
-DocumentScannerWrapper: O TODO para Handle failure (e.g., Google Play Services not available) indica uma lacuna importante no tratamento de erros. A falha na inicialização do scanner de documentos deve ser tratada de forma amigável ao usuário, talvez oferecendo uma alternativa ou instruindo sobre a necessidade dos Google Play Services.
-OcrService:
-Tratamento de Erros na Extração de Dados: Embora haja try-catch para o processo geral, a extração de dados específicos (NSR, Data, Hora, Nome, PIS, CNPJ) pode ser aprimorada com validações mais rigorosas e estratégias de fallback para garantir a precisão.
-Associação de Imagem Recortada: O PontoOcrResult inclui imagemRecortadaPath, mas a gestão e o ciclo de vida dessas imagens temporárias precisam ser bem definidos para evitar acúmulo de arquivos desnecessários.
-Melhoria da Imagem para OCR: A função ImageProcessor.processForOcr(croppedBitmap) é mencionada, mas sua implementação detalhada não foi fornecida. É vital que essa função aplique técnicas de pré-processamento de imagem (como binarização, remoção de ruído, correção de perspectiva) para maximizar a precisão do OCR.
-PreferencesDataStore e PreferenciasGlobaisDataStore: Embora bem implementados para persistência de preferências, a integração dessas preferências com a UI e a lógica de negócio do aplicativo precisa ser completa. Por exemplo, a preferência registroAutomaticoGeofencing deve acionar e desativar corretamente o geofencing.
+2.1. Implementações Concluídas (Fases 1 e 2)
+- CloudBackupWorker & Repository: A implementação do `uploadBackup()` e `sincronizarFotos()` no `CloudBackupRepositoryImpl` agora é robusta, incluindo tratamento de erros, política de retentativas (retry) e restrição obrigatória de uso de rede Wi-Fi (NetworkType.UNMETERED) configurada no agendamento do Worker.
+- DocumentScannerWrapper: A lacuna de tratamento de falha foi resolvida com a implementação do método `isScannerAvailable()`, que verifica a presença e o status do Google Play Services antes de iniciar o scanner, fornecendo um fallback de erro amigável.
+- LocationService & Inteligência Geográfica: O tratamento de `SecurityException` foi padronizado. Implementado o **Cache de Geocodificação Reversa** (Room/DAO) para reduzir chamadas à API e melhorar a performance. Coordenadas são arredondadas para 4 casas decimais para otimização de cache.
+- Geofencing: Implementação completa do `GeofenceManager`, `GeofenceBroadcastReceiver` e `GeofenceWorker` para registro automático de ponto em background baseado na localização.
+- OcrService & ImageProcessor: Implementado pré-processamento de imagem (binarização/filtros) para OCR e lógica de extração com contexto temporal e validação de NSR.
+- Firebase Crashlytics: Integrado e configurado no projeto para monitoramento real de falhas.
+
+2.2. Implementações em Andamento ou Pendentes (Fase 3 e seguintes)
+- PreferencesDataStore e PreferenciasGlobaisDataStore: A integração técnica está pronta, mas a UI para configurar essas preferências (Carga horária, Tolerâncias, etc.) será o foco da Fase 3.
 2.2. Telas Ausentes Essenciais
 
 Com base nas funcionalidades presentes no código e nas expectativas de um aplicativo de ponto moderno, as seguintes telas são essenciais e parecem estar ausentes:

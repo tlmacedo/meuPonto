@@ -57,7 +57,7 @@ data class PeriodoHistorico(
 ) {
     val descricaoFormatada: String
         get() {
-            val locale = Locale("pt", "BR")
+            val locale = Locale.forLanguageTag("pt-BR")
             return if (diaInicioFechamento == 1) {
                 val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
                 dataInicio.format(formatter).replaceFirstChar { it.uppercase() }
@@ -74,7 +74,7 @@ data class PeriodoHistorico(
 
     val descricaoCurta: String
         get() {
-            val locale = Locale("pt", "BR")
+            val locale = Locale.forLanguageTag("pt-BR")
             return if (diaInicioFechamento == 1) {
                 val formatter = DateTimeFormatter.ofPattern("MMM/yyyy", locale)
                 dataInicio.format(formatter).replaceFirstChar { it.uppercase() }

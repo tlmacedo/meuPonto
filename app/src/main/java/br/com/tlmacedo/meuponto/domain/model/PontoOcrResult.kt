@@ -17,5 +17,6 @@ data class PontoOcrResult(
     val pis: String? = null,
     val cnpj: String? = null,
     val razaoSocial: String? = null,
-    val imagemRecortadaPath: String? = null
+    val imagemRecortadaPath: String? = null,
+    val isDuplicado: Boolean = false
 )

@@ -15,9 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
@@ -492,7 +492,7 @@ private fun SelectionTopBar(
         actions = {
             if (count == 2) {
                 IconButton(onClick = onComparar) {
-                    Icon(Icons.Default.CompareArrows, contentDescription = "Comparar")
+                    Icon(Icons.AutoMirrored.Filled.CompareArrows, contentDescription = "Comparar")
                 }
             }
         },
