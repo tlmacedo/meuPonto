@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "meuponto-placeholder",
-    "storage_bucket": "meuponto-placeholder.appspot.com"
+    "project_number": "889141402925",
+    "project_id": "meuponto-7ac8f",
+    "storage_bucket": "meuponto-7ac8f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:889141402925:android:cc199610075ae1b431c7a4",
         "android_client_info": {
           "package_name": "br.com.tlmacedo.meuponto"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "placeholder_api_key"
+          "current_key": "AIzaSyBalwVvW9Slk6eUwepqprw66Cu-IsQBBUE"
         }
       ],
       "services": {

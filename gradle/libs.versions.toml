@@ -2,7 +2,7 @@
 [versions]
 agp = "8.13.2"
 hiltWork = "1.2.0"
-kotlin = "2.0.21"
+kotlin = "2.1.0"
 coreKtx = "1.15.0"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.9.3"
@@ -17,7 +17,7 @@ timber = "5.0.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-ksp = "2.0.21-1.0.28"
+ksp = "2.1.0-1.0.29"
 # Networking
 retrofit = "2.11.0"
 okhttp = "4.12.0"
@@ -50,8 +50,8 @@ googlePlayServicesAuth = "21.5.1"
 googleApiClientAndroid = "2.9.0"
 googleApiServicesDrive = "v3-rev20241027-2.0.0"
 googleHttpClientAndroid = "1.45.3"
-google-services = "4.4.2"
-firebase-bom = "33.7.0"
+google-services = "4.4.4"
+firebase-bom = "34.12.0"
 firebase-crashlytics-gradle = "3.0.2"
 
 

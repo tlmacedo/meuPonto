@@ -66,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.repository.CloudFile
 import br.com.tlmacedo.meuponto.domain.repository.LocalBackupFile
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.util.FileUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
@@ -659,7 +660,7 @@ fun BackupScreen(
                                     ListItem(
                                         headlineContent = { Text(data) },
                                         supportingContent = {
-                                            Text("Tamanho compactado: ${backup.size / 1024} KB")
+                                            Text("Tamanho compactado: ${FileUtils.formatarTamanho(backup.size)}")
                                         },
                                         leadingContent = {
                                             Icon(
@@ -745,7 +746,7 @@ fun BackupScreen(
                                     ListItem(
                                         headlineContent = { Text(data) },
                                         supportingContent = {
-                                            Text("${backup.tamanho / 1024} KB")
+                                            Text(FileUtils.formatarTamanho(backup.tamanho))
                                         },
                                         leadingContent = {
                                             Icon(

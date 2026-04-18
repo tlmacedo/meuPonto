@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import br.com.tlmacedo.meuponto.util.FileUtils
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
@@ -392,8 +393,7 @@ class BackupViewModel @Inject constructor(
     }
 
     private fun formatarTamanho(bytes: Long): String {
-        val mb = bytes / (1024.0 * 1024.0)
-        return String.format(java.util.Locale.US, "%.2f MB", mb)
+        return FileUtils.formatarTamanho(bytes)
     }
 
     private fun exportarBackup(outputStream: OutputStream) {

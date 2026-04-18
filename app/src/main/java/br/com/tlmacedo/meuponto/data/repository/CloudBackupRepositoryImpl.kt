@@ -129,11 +129,14 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 parents = listOf(folderBackupsId)
             }
             val mediaContent = FileContent("application/zip", tempZipFile)
-            service.files().create(dbMetadata, mediaContent).execute()
+            service.files().create(dbMetadata, mediaContent)
+                .setFields("id, name, size, modifiedTime")
+                .execute()
             tempZipFile.delete()
             Timber.d("Backup do banco (zip) enviado: $zipFileName")
 
-            // 4. Registrar sucesso
+            // 4. Sincronizar Fotos e Registrar sucesso
+            sincronizarFotos()
             preferencesDataStore.registrarBackupRealizado(isNuvem = true)
             limparBackupsLocais()
 
@@ -270,32 +273,46 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val todosOsPaths = (pathsSnapshot + pathsPontos).distinct()
             val baseDirImagens = JavaFile(context.filesDir, "comprovantes")
 
-            todosOsPaths.forEach { path ->
+            // Agrupar arquivos por Ano/Mes para reduzir chamadas de listagem
+            val arquivosPorDiretorio = todosOsPaths.mapNotNull { path ->
                 val (fotoFile, relativePath) = if (path.startsWith("comprovantes/")) {
                     JavaFile(context.filesDir, path) to path.removePrefix("comprovantes/")
                 } else {
                     JavaFile(baseDirImagens, path) to path
                 }
-
+                
                 if (fotoFile.exists()) {
                     val parts = relativePath.split("/")
                     if (parts.size >= 3) {
                         val ano = parts[parts.size - 3]
                         val mes = parts[parts.size - 2]
                         val fileName = parts.last()
+                        Triple(ano, mes, fotoFile to fileName)
+                    } else null
+                } else null
+            }.groupBy { "${it.first}/${it.second}" }
 
-                        val folderAnoId = getOrCreateFolder(service, ano, folderPhotosId)
-                        val folderMesId = getOrCreateFolder(service, mes, folderAnoId)
+            arquivosPorDiretorio.forEach { (diretorio, items) ->
+                val (ano, mes) = diretorio.split("/")
+                val folderAnoId = getOrCreateFolder(service, ano, folderPhotosId)
+                val folderMesId = getOrCreateFolder(service, mes, folderAnoId)
 
-                        if (!fileQueryExists(service, fileName, folderMesId)) {
-                            val fileMetadata = File().apply {
-                                name = fileName
-                                parents = listOf(folderMesId)
-                            }
-                            val mediaContent = FileContent("image/jpeg", fotoFile)
-                            service.files().create(fileMetadata, mediaContent).execute()
-                            Timber.d("Foto sincronizada com a nuvem: $ano/$mes/$fileName")
+                // Obter lista de arquivos já existentes nesta pasta (cache local da iteração)
+                val arquivosExistentes = service.files().list()
+                    .setQ("'$folderMesId' in parents and trashed = false")
+                    .setFields("files(name)")
+                    .execute().files?.map { it.name }?.toSet() ?: emptySet()
+
+                items.forEach { (_, _, fileInfo) ->
+                    val (fotoFile, fileName) = fileInfo
+                    if (fileName !in arquivosExistentes) {
+                        val fileMetadata = File().apply {
+                            name = fileName
+                            parents = listOf(folderMesId)
                         }
+                        val mediaContent = FileContent("image/jpeg", fotoFile)
+                        service.files().create(fileMetadata, mediaContent).execute()
+                        Timber.d("Foto sincronizada com a nuvem: $ano/$mes/$fileName")
                     }
                 }
             }
@@ -331,7 +348,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 CloudFile(
                     id = file.id,
                     name = file.name,
-                    size = file.size?.toLong() ?: 0L,
+                    size = file.getSize() ?: 0L,
                     modifiedTime = file.modifiedTime?.value ?: 0L,
                     mimeType = file.mimeType
                 )
