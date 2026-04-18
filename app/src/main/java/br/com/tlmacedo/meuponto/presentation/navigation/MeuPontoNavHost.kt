@@ -89,6 +89,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToHistoricoCiclos = {
                 navController.navigate(MeuPontoDestinations.HISTORICO_CICLOS)
+            },
+            onNavigateToEditarJornada = { empregoId ->
+                navController.navigate(MeuPontoDestinations.versoesJornada(empregoId))
             }
         )
     }

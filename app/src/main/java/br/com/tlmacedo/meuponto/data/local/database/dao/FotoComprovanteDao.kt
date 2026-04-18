@@ -112,9 +112,9 @@ interface FotoComprovanteDao {
     """)
     suspend fun marcarComoSincronizado(
         id: Long,
-        sincronizadoEm: String,
+        sincronizadoEm: java.time.Instant,
         cloudFileId: String,
-        atualizadoEm: String
+        atualizadoEm: java.time.Instant
     )
 
     // ════════════════════════════════════════════════════════════════════════

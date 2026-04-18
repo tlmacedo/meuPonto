@@ -2,6 +2,7 @@
 package br.com.tlmacedo.meuponto.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalHospital
@@ -77,6 +79,7 @@ fun ResumoCard(
     versaoJornada: VersaoJornada? = null,
     dataHoraInicioContador: LocalDateTime? = null,
     mostrarContador: Boolean = false,
+    onEditarJornada: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val textoPrincipal = Color.White
@@ -94,7 +97,12 @@ fun ResumoCard(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (onEditarJornada != null) Modifier.clickable { onEditarJornada() }
+                else Modifier
+            )
     ) {
         Box(
             modifier = Modifier
@@ -120,21 +128,37 @@ fun ResumoCard(
                             color = textoPrincipal
                         )
                         // Info jornada
-                        when {
-                            resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL -> {
-                                DiaEspecialJornadaInfo(
-                                    tipoDiaEspecial = resumoDia.tipoDiaEspecial,
-                                    corTexto = textoTerciario
-                                )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                when {
+                                    resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL -> {
+                                        DiaEspecialJornadaInfo(
+                                            tipoDiaEspecial = resumoDia.tipoDiaEspecial,
+                                            corTexto = textoTerciario
+                                        )
+                                    }
+                                    resumoDia.isFeriado -> {
+                                        FeriadoJornadaInfo(corTexto = textoTerciario)
+                                    }
+                                    else -> {
+                                        JornadaVersaoInfoCompact(
+                                            cargaHorariaFormatada = resumoDia.cargaHorariaDiariaFormatada,
+                                            versaoJornada = versaoJornada,
+                                            corTexto = textoTerciario
+                                        )
+                                    }
+                                }
                             }
-                            resumoDia.isFeriado -> {
-                                FeriadoJornadaInfo(corTexto = textoTerciario)
-                            }
-                            else -> {
-                                JornadaVersaoInfoCompact(
-                                    cargaHorariaFormatada = resumoDia.cargaHorariaDiariaFormatada,
-                                    versaoJornada = versaoJornada,
-                                    corTexto = textoTerciario
+                            
+                            if (onEditarJornada != null) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Editar jornada",
+                                    tint = textoTerciario,
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }

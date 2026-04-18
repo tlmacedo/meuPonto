@@ -101,6 +101,7 @@ fun HomeScreen(
     onNavigateToEditarPonto: (Long) -> Unit = {},
     onNavigateToNovoEmprego: () -> Unit = {},
     onNavigateToEditarEmprego: (Long) -> Unit = {},
+    onNavigateToEditarJornada: (Long) -> Unit = {},
     onNavigateToHistoricoCiclos: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -145,6 +146,7 @@ fun HomeScreen(
                 is HomeUiEvent.NavegarParaNovoEmprego -> onNavigateToNovoEmprego()
                 is HomeUiEvent.NavegarParaEditarEmprego -> onNavigateToEditarEmprego(event.empregoId)
                 is HomeUiEvent.NavegarParaHistoricoCiclos -> onNavigateToHistoricoCiclos()
+                is HomeUiEvent.NavegarParaEditarJornada -> onNavigateToEditarJornada(event.empregoId)
                 is HomeUiEvent.SolicitarPermissaoLocalizacao -> {
                     context.findActivity()?.let { activity ->
                         ActivityCompat.requestPermissions(
@@ -359,6 +361,7 @@ internal fun HomeContent(
                 bancoHoras = uiState.bancoHoras,
                 horaAtual = uiState.horaAtual,
                 versaoJornada = uiState.versaoJornadaAtual,
+                onEditarJornada = { onAction(HomeAction.NavegarParaEditarJornada) },
                 modifier = Modifier.fillMaxWidth()
             )
             ProximoPontoCard(uiState.proximoTipo, uiState.horaAtual, { if (!uiState.isFuturo) onAction(HomeAction.RegistrarPontoAgora) }, modifier = Modifier.fillMaxWidth(), habilitado = !uiState.isFuturo && uiState.empregoAtivo != null)

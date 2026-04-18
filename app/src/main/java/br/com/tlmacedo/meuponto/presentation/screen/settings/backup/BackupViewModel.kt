@@ -13,10 +13,13 @@ import br.com.tlmacedo.meuponto.domain.usecase.preferencias.SalvarPreferenciasGl
 import br.com.tlmacedo.meuponto.data.local.datastore.PreferenciasGlobaisDataStore
 import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
 import br.com.tlmacedo.meuponto.worker.CloudBackupWorker
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkRequest
 import androidx.work.WorkManager
 import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -490,17 +493,22 @@ class BackupViewModel @Inject constructor(
 
     private fun agendarBackupNuvem() {
         val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.UNMETERED)
-            .setRequiresCharging(true)
+            .setRequiredNetworkType(NetworkType.CONNECTED) // Qualquer conexão para maior chance
+            .setRequiresBatteryNotLow(true) // Não precisa estar carregando, mas não pode estar em economia
             .build()
 
         val request = PeriodicWorkRequestBuilder<CloudBackupWorker>(24, TimeUnit.HOURS)
             .setConstraints(constraints)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                WorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             CloudBackupWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request
         )
     }

@@ -5,24 +5,32 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.presentation.components.NumberPicker
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -33,7 +41,7 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    val pagerState = rememberPagerState(pageCount = { 7 })
     val scope = rememberCoroutineScope()
 
     // Gerenciador de Permissões
@@ -41,7 +49,7 @@ fun OnboardingScreen(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { _ ->
         // Avança independentemente do resultado (o usuário pode negar e configurar depois)
-        scope.launch { pagerState.animateScrollToPage(3) }
+        scope.launch { pagerState.animateScrollToPage(6) }
     }
 
     LaunchedEffect(uiState.isConcluido) {
@@ -58,15 +66,19 @@ fun OnboardingScreen(
                     when (pagerState.currentPage) {
                         0 -> scope.launch { pagerState.animateScrollToPage(1) }
                         1 -> scope.launch { pagerState.animateScrollToPage(2) }
-                        2 -> {
-                            val permissions = mutableListOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                                Manifest.permission.POST_NOTIFICATIONS
-                            )
+                        2 -> scope.launch { pagerState.animateScrollToPage(3) }
+                        3 -> scope.launch { pagerState.animateScrollToPage(4) }
+                        4 -> scope.launch { pagerState.animateScrollToPage(5) }
+                        5 -> {
+                            val permissions = mutableListOf<String>()
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+                            permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
                             permissionLauncher.launch(permissions.toTypedArray())
                         }
-                        3 -> viewModel.nextStep()
+                        6 -> viewModel.nextStep()
                     }
                 },
                 onBack = {
@@ -74,6 +86,7 @@ fun OnboardingScreen(
                 },
                 canContinue = when (pagerState.currentPage) {
                     1 -> uiState.nomeEmprego.isNotBlank()
+                    2 -> uiState.diasTrabalho.isNotEmpty()
                     else -> true
                 }
             )
@@ -92,8 +105,26 @@ fun OnboardingScreen(
                     nomeEmprego = uiState.nomeEmprego,
                     onNomeChange = viewModel::onNomeEmpregoChange
                 )
-                2 -> PermissionsPage()
-                3 -> ScheduleSetupPage(
+                2 -> WorkingDaysPage(
+                    diasSelecionados = uiState.diasTrabalho,
+                    onToggleDia = viewModel::onDiaTrabalhoToggle
+                )
+                3 -> RegistrationOptionsPage(
+                    uiState = uiState,
+                    onFotoChange = viewModel::onFotoHabilitadaChange,
+                    onLocalizacaoChange = viewModel::onLocalizacaoHabilitadaChange,
+                    onNsrChange = viewModel::onNsrHabilitadoChange
+                )
+                4 -> RhInfoPage(
+                    uiState = uiState,
+                    onDiaFechamentoChange = viewModel::onDiaFechamentoRHChange,
+                    onBancoHorasChange = viewModel::onBancoHorasHabilitadoChange
+                )
+                5 -> CloudSyncPage(
+                    habilitado = uiState.backupNuvemHabilitado,
+                    onHabilitadoChange = viewModel::onBackupNuvemHabilitadoChange
+                )
+                6 -> ScheduleSetupPage(
                     cargaHoraria = uiState.cargaHorariaDiaria,
                     onCargaHorariaChange = viewModel::onCargaHorariaChange
                 )
@@ -166,12 +197,219 @@ private fun ScheduleSetupPage(
 }
 
 @Composable
+private fun WorkingDaysPage(
+    diasSelecionados: Set<DiaSemana>,
+    onToggleDia: (DiaSemana) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Quais dias você trabalha?",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Selecione os dias da semana que fazem parte da sua jornada padrão.",
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            DiaSemana.entries.forEach { dia ->
+                val selecionado = diasSelecionados.contains(dia)
+                Surface(
+                    onClick = { onToggleDia(dia) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (selecionado) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = selecionado,
+                            onCheckedChange = { onToggleDia(dia) }
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = dia.descricao,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun WelcomePage() {
     OnboardingPageContent(
         icon = Icons.Default.Timer,
         title = "Bem-vindo ao MeuPonto",
-        description = "Sua jornada de trabalho organizada e transparente. Registre seus pontos, gerencie ausências e tenha o controle total das suas horas."
+        description = "Sua jornada de trabalho organizada e transparente.\n\nRegistre seus pontos com precisão, gerencie seus horários e tenha relatórios detalhados na palma da sua mão."
     )
+}
+
+@Composable
+private fun RegistrationOptionsPage(
+    uiState: OnboardingUiState,
+    onFotoChange: (Boolean) -> Unit,
+    onLocalizacaoChange: (Boolean) -> Unit,
+    onNsrChange: (Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Settings,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "Opções de Registro",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+
+        OnboardingSwitchItem(
+            title = "Foto de Comprovante",
+            description = "Solicitar foto ao registrar o ponto.",
+            checked = uiState.fotoHabilitada,
+            onCheckedChange = onFotoChange
+        )
+        OnboardingSwitchItem(
+            title = "Localização",
+            description = "Registrar coordenadas GPS do ponto.",
+            checked = uiState.localizacaoHabilitada,
+            onCheckedChange = onLocalizacaoChange
+        )
+        OnboardingSwitchItem(
+            title = "Habilitar NSR",
+            description = "Número Sequencial de Registro (REP).",
+            checked = uiState.nsrHabilitado,
+            onCheckedChange = onNsrChange
+        )
+    }
+}
+
+@Composable
+private fun RhInfoPage(
+    uiState: OnboardingUiState,
+    onDiaFechamentoChange: (Int) -> Unit,
+    onBancoHorasChange: (Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "RH e Banco de Horas",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Dia de fechamento do RH:",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.fillMaxWidth()
+        )
+        NumberPicker(
+            value = uiState.diaFechamentoRH,
+            onValueChange = onDiaFechamentoChange,
+            range = 1..28,
+            modifier = Modifier.padding(vertical = 16.dp)
+        )
+
+        OnboardingSwitchItem(
+            title = "Banco de Horas",
+            description = "Compensar horas extras e atrasos.",
+            checked = uiState.bancoHorasHabilitado,
+            onCheckedChange = onBancoHorasChange
+        )
+    }
+}
+
+@Composable
+private fun CloudSyncPage(
+    habilitado: Boolean,
+    onHabilitadoChange: (Boolean) -> Unit
+) {
+    OnboardingPageContent(
+        icon = Icons.Default.CloudUpload,
+        title = "Sincronização na Nuvem",
+        description = "Mantenha seus dados seguros e sincronizados entre dispositivos. Recomendamos manter o backup ativado.",
+        content = {
+            Spacer(modifier = Modifier.height(32.dp))
+            OnboardingSwitchItem(
+                title = "Backup Automático",
+                description = "Sincronizar fotos e registros na nuvem.",
+                checked = habilitado,
+                onCheckedChange = onHabilitadoChange
+            )
+        }
+    )
+}
+
+@Composable
+private fun OnboardingSwitchItem(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Surface(
+        onClick = { onCheckedChange(!checked) },
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
 }
 
 @Composable
@@ -230,7 +468,8 @@ private fun PermissionsPage() {
 private fun OnboardingPageContent(
     icon: ImageVector,
     title: String,
-    description: String
+    description: String,
+    content: @Composable ColumnScope.() -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -259,6 +498,7 @@ private fun OnboardingPageContent(
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        content()
     }
 }
 
@@ -290,8 +530,8 @@ private fun OnboardingBottomBar(
             enabled = canContinue,
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
         ) {
-            Text(if (currentPage == 3) "Começar" else "Próximo")
-            if (currentPage < 3) {
+            Text(if (currentPage == 6) "Começar" else "Próximo")
+            if (currentPage < 6) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
             }

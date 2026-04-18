@@ -39,8 +39,10 @@ Este documento detalha as 5 fases de otimização do aplicativo MeuPonto, servin
 ## 👥 Fase 3: Onboarding e Regras de Negócio (Em Andamento 🚧)
 *Foco: Experiência do usuário e personalização do contrato de trabalho.*
 
-- [ ] **3.1. Fluxo de Boas-Vindas (Onboarding)**
-    - [ ] Criar sequência de telas para configuração inicial (Emprego, Jornada, Permissões).
+- [x] **3.1. Fluxo de Boas-Vindas (Onboarding)**
+    - [x] Implementar detecção inteligente de primeira execução (DataStore + Banco de Dados).
+    - [x] Criar sequência de 7 telas (Bem-vindo, Empresa, Dias, Opções Registro, RH/Banco, Sincronização, Permissões).
+    - [x] Persistência automática das configurações iniciais em múltiplas entidades (Emprego, Config, Versão).
 - [ ] **3.2. Interface de Configurações de Jornada**
     - [ ] Tela para editar Carga Horária, Intervalo Mínimo e Tolerâncias.
     - [ ] Integração total com `PreferencesDataStore`.

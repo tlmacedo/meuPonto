@@ -23,7 +23,23 @@ import java.time.LocalTime
 data class OnboardingUiState(
     val currentPage: Int = 0,
     val nomeEmprego: String = "",
+    val diasTrabalho: Set<DiaSemana> = setOf(
+        DiaSemana.SEGUNDA, DiaSemana.TERCA, DiaSemana.QUARTA, DiaSemana.QUINTA, DiaSemana.SEXTA
+    ),
     val cargaHorariaDiaria: Int = 480,
+    
+    // Opções de Registro
+    val fotoHabilitada: Boolean = true,
+    val localizacaoHabilitada: Boolean = true,
+    val nsrHabilitado: Boolean = false,
+    
+    // Info RH e Banco de Horas
+    val diaFechamentoRH: Int = 1,
+    val bancoHorasHabilitado: Boolean = false,
+    
+    // Sincronização
+    val backupNuvemHabilitado: Boolean = true,
+    
     val isConcluido: Boolean = false
 )
 
@@ -40,12 +56,47 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(nomeEmprego = novoNome) }
     }
 
+    fun onDiaTrabalhoToggle(dia: DiaSemana) {
+        _uiState.update { state ->
+            val novosDias = if (state.diasTrabalho.contains(dia)) {
+                state.diasTrabalho - dia
+            } else {
+                state.diasTrabalho + dia
+            }
+            state.copy(diasTrabalho = novosDias)
+        }
+    }
+
     fun onCargaHorariaChange(minutos: Int) {
         _uiState.update { it.copy(cargaHorariaDiaria = minutos) }
     }
 
+    fun onFotoHabilitadaChange(habilitada: Boolean) {
+        _uiState.update { it.copy(fotoHabilitada = habilitada) }
+    }
+
+    fun onLocalizacaoHabilitadaChange(habilitada: Boolean) {
+        _uiState.update { it.copy(localizacaoHabilitada = habilitada) }
+    }
+
+    fun onNsrHabilitadoChange(habilitado: Boolean) {
+        _uiState.update { it.copy(nsrHabilitado = habilitado) }
+    }
+
+    fun onDiaFechamentoRHChange(dia: Int) {
+        _uiState.update { it.copy(diaFechamentoRH = dia) }
+    }
+
+    fun onBancoHorasHabilitadoChange(habilitado: Boolean) {
+        _uiState.update { it.copy(bancoHorasHabilitado = habilitado) }
+    }
+
+    fun onBackupNuvemHabilitadoChange(habilitado: Boolean) {
+        _uiState.update { it.copy(backupNuvemHabilitado = habilitado) }
+    }
+
     fun nextStep() {
-        if (_uiState.value.currentPage < 3) {
+        if (_uiState.value.currentPage < 6) {
             _uiState.update { it.copy(currentPage = it.currentPage + 1) }
         } else {
             concluirOnboarding()
@@ -72,6 +123,10 @@ class OnboardingViewModel @Inject constructor(
             // 1.1 Criar configuração padrão para o novo emprego
             val novaConfiguracao = ConfiguracaoEmpregoEntity(
                 empregoId = idInserido,
+                fotoHabilitada = _uiState.value.fotoHabilitada,
+                habilitarLocalizacao = _uiState.value.localizacaoHabilitada,
+                habilitarNsr = _uiState.value.nsrHabilitado,
+                fotoBackupNuvemHabilitado = _uiState.value.backupNuvemHabilitado,
                 criadoEm = LocalDateTime.now(),
                 atualizadoEm = LocalDateTime.now()
             )
@@ -84,7 +139,9 @@ class OnboardingViewModel @Inject constructor(
                 descricao = "Jornada Inicial",
                 vigente = true,
                 cargaHorariaDiariaMinutos = _uiState.value.cargaHorariaDiaria,
-                cargaHorariaSemanalMinutos = _uiState.value.cargaHorariaDiaria * 5, // Assume 5 dias por padrão
+                cargaHorariaSemanalMinutos = _uiState.value.cargaHorariaDiaria * _uiState.value.diasTrabalho.size,
+                diaInicioFechamentoRH = _uiState.value.diaFechamentoRH,
+                bancoHorasHabilitado = _uiState.value.bancoHorasHabilitado,
                 criadoEm = LocalDateTime.now(),
                 atualizadoEm = LocalDateTime.now()
             )
@@ -97,33 +154,19 @@ class OnboardingViewModel @Inject constructor(
             val voltaIntervalo = saidaIntervalo.plusHours(1)
             val saida = voltaIntervalo.plusMinutes((cargaMinutos - 240).toLong())
 
-            val horariosPadrao = listOf(
-                DiaSemana.SEGUNDA, DiaSemana.TERCA, DiaSemana.QUARTA, DiaSemana.QUINTA, DiaSemana.SEXTA
-            ).map { dia ->
-                HorarioDiaSemanaEntity(
-                    empregoId = idInserido,
-                    versaoJornadaId = versaoId,
-                    diaSemana = dia,
-                    cargaHorariaMinutos = cargaMinutos,
-                    entradaIdeal = entrada,
-                    saidaIntervaloIdeal = saidaIntervalo,
-                    voltaIntervaloIdeal = voltaIntervalo,
-                    saidaIdeal = saida,
-                    criadoEm = LocalDateTime.now(),
-                    atualizadoEm = LocalDateTime.now()
-                )
-            }
-            horariosPadrao.forEach { database.horarioDiaSemanaDao().inserir(it) }
-
-            // 1.4 Criar horários de folga para Sábado e Domingo
-            listOf(DiaSemana.SABADO, DiaSemana.DOMINGO).forEach { dia ->
+            DiaSemana.entries.forEach { dia ->
+                val isDiaTrabalho = _uiState.value.diasTrabalho.contains(dia)
                 database.horarioDiaSemanaDao().inserir(
                     HorarioDiaSemanaEntity(
                         empregoId = idInserido,
                         versaoJornadaId = versaoId,
                         diaSemana = dia,
-                        ativo = false,
-                        cargaHorariaMinutos = 0,
+                        ativo = isDiaTrabalho,
+                        cargaHorariaMinutos = if (isDiaTrabalho) cargaMinutos else 0,
+                        entradaIdeal = if (isDiaTrabalho) entrada else null,
+                        saidaIntervaloIdeal = if (isDiaTrabalho) saidaIntervalo else null,
+                        voltaIntervaloIdeal = if (isDiaTrabalho) voltaIntervalo else null,
+                        saidaIdeal = if (isDiaTrabalho) saida else null,
                         criadoEm = LocalDateTime.now(),
                         atualizadoEm = LocalDateTime.now()
                     )

@@ -24,4 +24,5 @@ sealed interface HomeUiEvent {
 
     data object NavegarParaHistoricoCiclos : HomeUiEvent
     data object SolicitarPermissaoLocalizacao : HomeUiEvent
+    data class NavegarParaEditarJornada(val empregoId: Long) : HomeUiEvent
 }

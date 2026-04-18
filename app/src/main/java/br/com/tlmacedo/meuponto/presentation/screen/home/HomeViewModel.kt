@@ -193,6 +193,7 @@ class HomeViewModel @Inject constructor(
             is HomeAction.FecharDialogFechamentoCiclo -> fecharDialogFechamentoCiclo()
             is HomeAction.ConfirmarFechamentoCiclo -> confirmarFechamentoCiclo()
             is HomeAction.NavegarParaHistoricoCiclos -> navegarParaHistoricoCiclos()
+            is HomeAction.NavegarParaEditarJornada -> navegarParaEditarJornada()
 
             // NOVO MODAL DE REGISTRO
             is HomeAction.AbrirRegistrarPontoModal -> abrirRegistrarPontoModal(action.dataHora)
@@ -1708,6 +1709,13 @@ class HomeViewModel @Inject constructor(
     private fun navegarParaConfiguracoes() {
         viewModelScope.launch {
             _uiEvent.emit(HomeUiEvent.NavegarParaConfiguracoes)
+        }
+    }
+
+    private fun navegarParaEditarJornada() {
+        val empregoId = _uiState.value.empregoAtivo?.id ?: return
+        viewModelScope.launch {
+            _uiEvent.emit(HomeUiEvent.NavegarParaEditarJornada(empregoId))
         }
     }
 

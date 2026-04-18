@@ -163,6 +163,7 @@ sealed interface HomeAction {
     data class EditarPonto(val pontoId: Long) : HomeAction
     data object NavegarParaHistorico : HomeAction
     data object NavegarParaConfiguracoes : HomeAction
+    data object NavegarParaEditarJornada : HomeAction
 
     // ══════════════════════════════════════════════════════════════════════
     // AÇÕES INTERNAS

@@ -117,25 +117,31 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val zipFileName = "meuponto_db_$timestamp.zip"
             val tempZipFile = JavaFile(context.cacheDir, zipFileName)
 
-            ZipOutputStream(FileOutputStream(tempZipFile)).use { zos ->
-                val dbEntry = ZipEntry(MeuPontoDatabase.DATABASE_NAME)
-                zos.putNextEntry(dbEntry)
-                FileInputStream(dbFile).use { it.copyTo(zos) }
-                zos.closeEntry()
+            try {
+                ZipOutputStream(FileOutputStream(tempZipFile)).use { zos ->
+                    val dbEntry = ZipEntry(MeuPontoDatabase.DATABASE_NAME)
+                    zos.putNextEntry(dbEntry)
+                    FileInputStream(dbFile).use { it.copyTo(zos) }
+                    zos.closeEntry()
+                }
+
+                val dbMetadata = File().apply {
+                    name = zipFileName
+                    parents = listOf(folderBackupsId)
+                }
+                val mediaContent = FileContent("application/zip", tempZipFile)
+                service.files().create(dbMetadata, mediaContent)
+                    .setFields("id, name, size, modifiedTime")
+                    .execute()
+                Timber.d("Backup do banco (zip) enviado: $zipFileName")
+            } finally {
+                if (tempZipFile.exists()) tempZipFile.delete()
             }
 
-            val dbMetadata = File().apply {
-                name = zipFileName
-                parents = listOf(folderBackupsId)
-            }
-            val mediaContent = FileContent("application/zip", tempZipFile)
-            service.files().create(dbMetadata, mediaContent)
-                .setFields("id, name, size, modifiedTime")
-                .execute()
-            tempZipFile.delete()
-            Timber.d("Backup do banco (zip) enviado: $zipFileName")
+            // 4. Manter apenas os 5 backups mais recentes na nuvem
+            limparBackupsAntigosNuvem(service, folderBackupsId)
 
-            // 4. Sincronizar Fotos e Registrar sucesso
+            // 5. Sincronizar Fotos e Registrar sucesso
             sincronizarFotos()
             preferencesDataStore.registrarBackupRealizado(isNuvem = true)
             limparBackupsLocais()
@@ -144,6 +150,27 @@ class CloudBackupRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "Erro no upload de backup para nuvem")
             Result.failure(e)
+        }
+    }
+
+    private fun limparBackupsAntigosNuvem(service: Drive, folderBackupsId: String) {
+        try {
+            val query = "'$folderBackupsId' in parents and name contains 'meuponto_db' and trashed = false"
+            val result = service.files().list()
+                .setQ(query)
+                .setOrderBy("modifiedTime desc")
+                .setFields("files(id, name)")
+                .execute()
+
+            val files = result.files ?: return
+            if (files.size > 5) {
+                files.drop(5).forEach { file ->
+                    service.files().delete(file.id).execute()
+                    Timber.d("Backup antigo removido da nuvem: ${file.name}")
+                }
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Erro ao limpar backups antigos da nuvem")
         }
     }
 
@@ -266,59 +293,76 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
             val folderPhotosId = getOrCreateFolder(service, "photos", folderEmpregoId)
 
-            val pathsSnapshot = database.fotoComprovanteDao().listarPathsPorEmprego(empregoId)
-            val pathsPontos = database.pontoDao().listarPorEmprego(empregoId).first()
-                .mapNotNull { it.fotoComprovantePath }
+            // Busca apenas fotos que ainda não foram sincronizadas
+            val fotosNaoSincronizadas = database.fotoComprovanteDao().buscarNaoSincronizadasPorEmprego(empregoId)
+            if (fotosNaoSincronizadas.isEmpty()) {
+                Timber.d("Nenhuma foto pendente de sincronização")
+                return@withContext Result.success(Unit)
+            }
 
-            val todosOsPaths = (pathsSnapshot + pathsPontos).distinct()
-            val baseDirImagens = JavaFile(context.filesDir, "comprovantes")
+            Timber.d("Iniciando sincronização de ${fotosNaoSincronizadas.size} fotos")
 
-            // Agrupar arquivos por Ano/Mes para reduzir chamadas de listagem
-            val arquivosPorDiretorio = todosOsPaths.mapNotNull { path ->
-                val (fotoFile, relativePath) = if (path.startsWith("comprovantes/")) {
-                    JavaFile(context.filesDir, path) to path.removePrefix("comprovantes/")
-                } else {
-                    JavaFile(baseDirImagens, path) to path
-                }
-                
-                if (fotoFile.exists()) {
-                    val parts = relativePath.split("/")
-                    if (parts.size >= 3) {
-                        val ano = parts[parts.size - 3]
-                        val mes = parts[parts.size - 2]
-                        val fileName = parts.last()
-                        Triple(ano, mes, fotoFile to fileName)
-                    } else null
-                } else null
-            }.groupBy { "${it.first}/${it.second}" }
+            // Agrupar arquivos por Ano/Mes para reduzir chamadas de criação de pasta
+            val fotosAgrupadas = fotosNaoSincronizadas.groupBy { 
+                val data = it.data
+                "${data.year}/${data.monthValue.toString().padStart(2, '0')}"
+            }
 
-            arquivosPorDiretorio.forEach { (diretorio, items) ->
+            fotosAgrupadas.forEach { (diretorio, fotos) ->
                 val (ano, mes) = diretorio.split("/")
                 val folderAnoId = getOrCreateFolder(service, ano, folderPhotosId)
                 val folderMesId = getOrCreateFolder(service, mes, folderAnoId)
 
-                // Obter lista de arquivos já existentes nesta pasta (cache local da iteração)
-                val arquivosExistentes = service.files().list()
-                    .setQ("'$folderMesId' in parents and trashed = false")
-                    .setFields("files(name)")
-                    .execute().files?.map { it.name }?.toSet() ?: emptySet()
-
-                items.forEach { (_, _, fileInfo) ->
-                    val (fotoFile, fileName) = fileInfo
-                    if (fileName !in arquivosExistentes) {
-                        val fileMetadata = File().apply {
-                            name = fileName
-                            parents = listOf(folderMesId)
+                fotos.forEach { fotoEntity ->
+                    try {
+                        val fotoFile = JavaFile(context.filesDir, fotoEntity.fotoPath)
+                        if (!fotoFile.exists()) {
+                            Timber.w("Arquivo de foto não encontrado localmente: ${fotoEntity.fotoPath}")
+                            return@forEach
                         }
-                        val mediaContent = FileContent("image/jpeg", fotoFile)
-                        service.files().create(fileMetadata, mediaContent).execute()
-                        Timber.d("Foto sincronizada com a nuvem: $ano/$mes/$fileName")
+
+                        // Verifica se o arquivo já existe na nuvem por nome para evitar duplicatas acidentais
+                        if (!fileQueryExists(service, fotoFile.name, folderMesId)) {
+                            val fileMetadata = File().apply {
+                                name = fotoFile.name
+                                parents = listOf(folderMesId)
+                            }
+                            val mediaContent = FileContent("image/jpeg", fotoFile)
+                            val uploadedFile = service.files().create(fileMetadata, mediaContent)
+                                .setFields("id")
+                                .execute()
+                            
+                            // Marca como sincronizado no banco local
+                            database.fotoComprovanteDao().marcarComoSincronizado(
+                                id = fotoEntity.id,
+                                sincronizadoEm = java.time.Instant.now(),
+                                cloudFileId = uploadedFile.id,
+                                atualizadoEm = java.time.Instant.now()
+                            )
+                            Timber.d("Foto sincronizada com a nuvem: $diretorio/${fotoFile.name}")
+                        } else {
+                            // Já existe na nuvem, apenas marca como sincronizado localmente se necessário
+                            // (Idealmente buscaríamos o ID real do arquivo existente)
+                            val cloudId = service.files().list()
+                                .setQ("name = '${fotoFile.name}' and '$folderMesId' in parents")
+                                .setFields("files(id)")
+                                .execute().files?.firstOrNull()?.id ?: ""
+
+                            database.fotoComprovanteDao().marcarComoSincronizado(
+                                id = fotoEntity.id,
+                                sincronizadoEm = java.time.Instant.now(),
+                                cloudFileId = cloudId,
+                                atualizadoEm = java.time.Instant.now()
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Erro ao sincronizar foto individual: ${fotoEntity.fotoPath}")
                     }
                 }
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Erro ao sincronizar fotos com a nuvem")
+            Timber.e(e, "Erro crítico ao sincronizar fotos com a nuvem")
             Result.failure(e)
         }
     }
