@@ -34,6 +34,9 @@ data class ConfiguracaoEmprego(
     val habilitarLocalizacao: Boolean = false,
     val localizacaoAutomatica: Boolean = false,
     val exibirLocalizacaoDetalhes: Boolean = true,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val raioGeofencing: Int = 200,
 
     // ════════════════════════════════════════════════════════════════════════
     // FOTO DE COMPROVANTE

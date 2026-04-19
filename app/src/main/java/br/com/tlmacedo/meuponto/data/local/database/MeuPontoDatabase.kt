@@ -60,7 +60,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         UsuarioEntity::class,
         AusenciaEntity::class
     ],
-    version = 39, // Incremented version for GeocodificacaoCache
+    version = 40, // Incremented version for Geofencing fields in ConfiguracaoEmprego
     exportSchema = true // Mantenha como true para gerar o schema.json
 )
 @TypeConverters(Converters::class)

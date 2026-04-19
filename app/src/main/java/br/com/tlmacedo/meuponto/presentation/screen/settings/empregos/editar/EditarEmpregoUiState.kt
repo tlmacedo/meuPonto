@@ -50,6 +50,9 @@ data class EditarEmpregoUiState(
     val habilitarLocalizacao: Boolean = false,
     val localizacaoAutomatica: Boolean = false,
     val exibirLocalizacaoDetalhes: Boolean = true,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val raioGeofencing: Int = 200,
     val fotoHabilitada: Boolean = false,
     val fotoObrigatoria: Boolean = false,
     val fotoValidarComprovante: Boolean = false,
@@ -63,6 +66,9 @@ data class EditarEmpregoUiState(
     val originalHabilitarLocalizacao: Boolean = false,
     val originalLocalizacaoAutomatica: Boolean = false,
     val originalExibirLocalizacaoDetalhes: Boolean = true,
+    val originalLatitude: Double? = null,
+    val originalLongitude: Double? = null,
+    val originalRaioGeofencing: Int = 200,
     val originalFotoHabilitada: Boolean = false,
     val originalFotoObrigatoria: Boolean = false,
     val originalFotoValidarComprovante: Boolean = false,
@@ -84,7 +90,8 @@ data class EditarEmpregoUiState(
     // Pickers
     val showInicioTrabalhoPicker: Boolean = false,
     val showTerminoTrabalhoPicker: Boolean = false,
-    val showInicioCicloBHPicker: Boolean = false
+    val showInicioCicloBHPicker: Boolean = false,
+    val showLocationPicker: Boolean = false
 ) {
     private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
@@ -116,6 +123,9 @@ data class EditarEmpregoUiState(
                     habilitarLocalizacao != originalHabilitarLocalizacao ||
                     localizacaoAutomatica != originalLocalizacaoAutomatica ||
                     exibirLocalizacaoDetalhes != originalExibirLocalizacaoDetalhes ||
+                    latitude != originalLatitude ||
+                    longitude != originalLongitude ||
+                    raioGeofencing != originalRaioGeofencing ||
                     fotoHabilitada != originalFotoHabilitada ||
                     fotoObrigatoria != originalFotoObrigatoria ||
                     fotoValidarComprovante != originalFotoValidarComprovante ||

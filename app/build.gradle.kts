@@ -71,6 +71,11 @@ android {
     }
 }
 
+secrets {
+    propertiesFileName = "secrets.properties"
+    defaultPropertiesFileName = "local.defaults.properties"
+}
+
 dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))

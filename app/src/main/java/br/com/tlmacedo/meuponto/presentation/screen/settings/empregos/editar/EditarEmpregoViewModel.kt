@@ -4,6 +4,8 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.tlmacedo.meuponto.data.service.GeofenceManager
+import br.com.tlmacedo.meuponto.data.service.LocationService
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.AtualizarEmpregoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.AtualizarEmpregoUseCase.Parametros
@@ -31,7 +33,9 @@ class EditarEmpregoViewModel @Inject constructor(
     private val obterEmpregoComConfiguracaoUseCase: ObterEmpregoComConfiguracaoUseCase,
     private val criarEmpregoUseCase: CriarEmpregoUseCase,
     private val atualizarEmpregoUseCase: AtualizarEmpregoUseCase,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val geofenceManager: GeofenceManager,
+    val locationService: LocationService
 ) : ViewModel() {
 
     private val empregoId: Long = savedStateHandle.get<Long>(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
@@ -75,6 +79,9 @@ class EditarEmpregoViewModel @Inject constructor(
             is EditarEmpregoAction.AlterarHabilitarLocalizacao -> _uiState.update { it.copy(habilitarLocalizacao = action.habilitar) }
             is EditarEmpregoAction.AlterarLocalizacaoAutomatica -> _uiState.update { it.copy(localizacaoAutomatica = action.habilitar) }
             is EditarEmpregoAction.AlterarExibirLocalizacaoDetalhes -> _uiState.update { it.copy(exibirLocalizacaoDetalhes = action.exibir) }
+            is EditarEmpregoAction.AlterarCoordenadas -> _uiState.update { it.copy(latitude = action.lat, longitude = action.lon, showLocationPicker = false) }
+            is EditarEmpregoAction.AlterarRaioGeofencing -> _uiState.update { it.copy(raioGeofencing = action.raio) }
+            is EditarEmpregoAction.SetShowLocationPicker -> _uiState.update { it.copy(showLocationPicker = action.show) }
             is EditarEmpregoAction.AlterarFotoHabilitada -> _uiState.update { it.copy(fotoHabilitada = action.habilitar) }
             is EditarEmpregoAction.AlterarFotoObrigatoria -> _uiState.update { it.copy(fotoObrigatoria = action.obrigatoria) }
             is EditarEmpregoAction.AlterarFotoValidarComprovante -> _uiState.update { it.copy(fotoValidarComprovante = action.validar) }
@@ -150,6 +157,9 @@ class EditarEmpregoViewModel @Inject constructor(
                             habilitarLocalizacao = config.habilitarLocalizacao,
                             localizacaoAutomatica = config.localizacaoAutomatica,
                             exibirLocalizacaoDetalhes = config.exibirLocalizacaoDetalhes,
+                            latitude = config.latitude,
+                            longitude = config.longitude,
+                            raioGeofencing = config.raioGeofencing,
                             fotoHabilitada = config.fotoHabilitada,
                             fotoObrigatoria = config.fotoObrigatoria,
                             fotoValidarComprovante = config.fotoValidarComprovante,
@@ -163,6 +173,9 @@ class EditarEmpregoViewModel @Inject constructor(
                             originalHabilitarLocalizacao = config.habilitarLocalizacao,
                             originalLocalizacaoAutomatica = config.localizacaoAutomatica,
                             originalExibirLocalizacaoDetalhes = config.exibirLocalizacaoDetalhes,
+                            originalLatitude = config.latitude,
+                            originalLongitude = config.longitude,
+                            originalRaioGeofencing = config.raioGeofencing,
                             originalFotoHabilitada = config.fotoHabilitada,
                             originalFotoObrigatoria = config.fotoObrigatoria,
                             originalFotoValidarComprovante = config.fotoValidarComprovante,
@@ -222,6 +235,9 @@ class EditarEmpregoViewModel @Inject constructor(
                 habilitarLocalizacao = state.originalHabilitarLocalizacao,
                 localizacaoAutomatica = state.originalLocalizacaoAutomatica,
                 exibirLocalizacaoDetalhes = state.originalExibirLocalizacaoDetalhes,
+                latitude = state.originalLatitude,
+                longitude = state.originalLongitude,
+                raioGeofencing = state.originalRaioGeofencing,
                 fotoHabilitada = state.originalFotoHabilitada,
                 fotoObrigatoria = state.originalFotoObrigatoria,
                 fotoValidarComprovante = state.originalFotoValidarComprovante,
@@ -260,6 +276,9 @@ class EditarEmpregoViewModel @Inject constructor(
                 habilitarLocalizacao = state.originalHabilitarLocalizacao,
                 localizacaoAutomatica = state.originalLocalizacaoAutomatica,
                 exibirLocalizacaoDetalhes = state.originalExibirLocalizacaoDetalhes,
+                latitude = state.originalLatitude,
+                longitude = state.originalLongitude,
+                raioGeofencing = state.originalRaioGeofencing,
                 fotoHabilitada = state.originalFotoHabilitada,
                 fotoObrigatoria = state.originalFotoObrigatoria,
                 fotoValidarComprovante = state.originalFotoValidarComprovante,
@@ -298,6 +317,9 @@ class EditarEmpregoViewModel @Inject constructor(
                 habilitarLocalizacao = state.habilitarLocalizacao,
                 localizacaoAutomatica = state.localizacaoAutomatica,
                 exibirLocalizacaoDetalhes = state.exibirLocalizacaoDetalhes,
+                latitude = state.latitude,
+                longitude = state.longitude,
+                raioGeofencing = state.raioGeofencing,
                 fotoHabilitada = state.fotoHabilitada,
                 fotoObrigatoria = state.fotoObrigatoria,
                 fotoValidarComprovante = state.fotoValidarComprovante,
@@ -324,6 +346,15 @@ class EditarEmpregoViewModel @Inject constructor(
             try {
                 when (val resultado = atualizarEmpregoUseCase(params)) {
                     is AtualizarEmpregoUseCase.Resultado.Sucesso -> {
+                        if (params.localizacaoAutomatica && params.latitude != null && params.longitude != null) {
+                            geofenceManager.monitorarTrabalho(
+                                params.latitude,
+                                params.longitude,
+                                params.raioGeofencing.toFloat()
+                            )
+                        } else {
+                            geofenceManager.pararMonitoramento()
+                        }
                         _eventos.emit(EditarEmpregoEvent.MostrarErro(sucessoMsg))
                         carregarEmprego(params.empregoId)
                     }
@@ -364,12 +395,22 @@ class EditarEmpregoViewModel @Inject constructor(
                         tipoNsr = state.tipoNsr,
                         habilitarLocalizacao = state.habilitarLocalizacao,
                         localizacaoAutomatica = state.localizacaoAutomatica,
+                        latitude = state.latitude,
+                        longitude = state.longitude,
+                        raioGeofencing = state.raioGeofencing,
                         fotoHabilitada = state.fotoHabilitada,
                         fotoObrigatoria = state.fotoObrigatoria
                     )
 
                     when (val resultado = criarEmpregoUseCase(params)) {
                         is CriarEmpregoUseCase.Resultado.Sucesso -> {
+                            if (params.localizacaoAutomatica && params.latitude != null && params.longitude != null) {
+                                geofenceManager.monitorarTrabalho(
+                                    params.latitude,
+                                    params.longitude,
+                                    params.raioGeofencing.toFloat()
+                                )
+                            }
                             _eventos.emit(EditarEmpregoEvent.SalvoComSucesso("Emprego criado com sucesso"))
                         }
                         is CriarEmpregoUseCase.Resultado.Validacao -> {
@@ -395,6 +436,9 @@ class EditarEmpregoViewModel @Inject constructor(
                         habilitarLocalizacao = state.habilitarLocalizacao,
                         localizacaoAutomatica = state.localizacaoAutomatica,
                         exibirLocalizacaoDetalhes = state.exibirLocalizacaoDetalhes,
+                        latitude = state.latitude,
+                        longitude = state.longitude,
+                        raioGeofencing = state.raioGeofencing,
                         fotoHabilitada = state.fotoHabilitada,
                         fotoObrigatoria = state.fotoObrigatoria,
                         fotoValidarComprovante = state.fotoValidarComprovante,
@@ -414,6 +458,15 @@ class EditarEmpregoViewModel @Inject constructor(
 
                     when (val resultado = atualizarEmpregoUseCase(params)) {
                         is AtualizarEmpregoUseCase.Resultado.Sucesso -> {
+                            if (params.localizacaoAutomatica && params.latitude != null && params.longitude != null) {
+                                geofenceManager.monitorarTrabalho(
+                                    params.latitude,
+                                    params.longitude,
+                                    params.raioGeofencing.toFloat()
+                                )
+                            } else {
+                                geofenceManager.pararMonitoramento()
+                            }
                             _eventos.emit(EditarEmpregoEvent.SalvoComSucesso("Alterações salvas com sucesso"))
                         }
                         is AtualizarEmpregoUseCase.Resultado.NaoEncontrado -> {

@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PinDrop
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
@@ -55,6 +56,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -77,8 +79,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.tlmacedo.meuponto.data.service.LocationService
+import br.com.tlmacedo.meuponto.domain.model.Localizacao
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.presentation.components.LocalImage
+import br.com.tlmacedo.meuponto.presentation.components.LocationPickerDialog
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.OutlinedNumberField
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
@@ -146,6 +151,7 @@ fun EditarEmpregoScreen(
                 onSetShowInicioTrabalhoPicker = viewModel::setShowInicioTrabalhoPicker,
                 onSetShowTerminoTrabalhoPicker = viewModel::setShowTerminoTrabalhoPicker,
                 onSetShowInicioCicloBHPicker = viewModel::setShowInicioCicloBHPicker,
+                locationService = viewModel.locationService,
                 onNavigateToVersoes = onNavigateToVersoes,
                 onNavigateToCargos = onNavigateToCargos,
                 modifier = Modifier.padding(paddingValues)
@@ -162,10 +168,25 @@ internal fun EditarEmpregoContent(
     onSetShowInicioTrabalhoPicker: (Boolean) -> Unit,
     onSetShowTerminoTrabalhoPicker: (Boolean) -> Unit,
     onSetShowInicioCicloBHPicker: (Boolean) -> Unit,
+    locationService: LocationService? = null,
     onNavigateToVersoes: (() -> Unit)? = null,
     onNavigateToCargos: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    // LOCATION PICKER
+    if (uiState.showLocationPicker && locationService != null) {
+        LocationPickerDialog(
+            localizacaoInicial = if (uiState.latitude != null && uiState.longitude != null) {
+                Localizacao(uiState.latitude, uiState.longitude)
+            } else null,
+            onConfirm = { loc ->
+                onAction(EditarEmpregoAction.AlterarCoordenadas(loc.latitude, loc.longitude))
+            },
+            onDismiss = { onAction(EditarEmpregoAction.SetShowLocationPicker(false)) },
+            locationService = locationService
+        )
+    }
+
     // DATE PICKER - Data Início Trabalho
     if (uiState.showInicioTrabalhoPicker) {
         val datePickerState = rememberDatePickerState(
@@ -502,6 +523,146 @@ internal fun EditarEmpregoContent(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // ⚙️ OPÇÕES DE REGISTRO
+        item {
+            FormSection(
+                title = "Opções de Registro",
+                icon = Icons.Default.Settings,
+                isExpanded = uiState.secaoExpandida == SecaoFormulario.OPCOES_DE_REGISTRO,
+                onToggle = { onAction(EditarEmpregoAction.ToggleSecao(SecaoFormulario.OPCOES_DE_REGISTRO)) },
+                showSaveButton = uiState.temMudancasOpcoesRegistro,
+                onSave = { onAction(EditarEmpregoAction.SalvarOpcoesRegistro) },
+                isSaving = uiState.isSaving,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    SwitchOption(
+                        title = "Habilitar NSR",
+                        description = "Permitir informar Número Sequencial de Registro",
+                        checked = uiState.habilitarNsr,
+                        onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarNsr(it)) }
+                    )
+
+                    AnimatedVisibility(visible = uiState.habilitarNsr) {
+                        Column(modifier = Modifier.padding(start = 16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = uiState.tipoNsr == TipoNsr.NUMERICO,
+                                    onClick = { onAction(EditarEmpregoAction.AlterarTipoNsr(TipoNsr.NUMERICO)) }
+                                )
+                                Text("Apenas Números")
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = uiState.tipoNsr == TipoNsr.ALFANUMERICO,
+                                    onClick = { onAction(EditarEmpregoAction.AlterarTipoNsr(TipoNsr.ALFANUMERICO)) }
+                                )
+                                Text("Alfanumérico (Letras e Números)")
+                            }
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    SwitchOption(
+                        title = "Habilitar Localização",
+                        description = "Capturar GPS no momento do registro",
+                        checked = uiState.habilitarLocalizacao,
+                        onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarLocalizacao(it)) }
+                    )
+
+                    AnimatedVisibility(visible = uiState.habilitarLocalizacao) {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            SwitchOption(
+                                title = "Localização Automática",
+                                description = "Registrar sem intervenção manual quando estiver no local",
+                                checked = uiState.localizacaoAutomatica,
+                                onCheckedChange = { onAction(EditarEmpregoAction.AlterarLocalizacaoAutomatica(it)) }
+                            )
+
+                            // Configuração de Geofencing
+                            OutlinedCard(
+                                onClick = { onAction(EditarEmpregoAction.SetShowLocationPicker(true)) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PinDrop,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            "Local de Trabalho",
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
+                                        Text(
+                                            text = if (uiState.latitude != null && uiState.longitude != null)
+                                                "Coordenadas: %.6f, %.6f".format(uiState.latitude, uiState.longitude)
+                                            else "Nenhum local definido",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                    Icon(Icons.Default.ChevronRight, contentDescription = null)
+                                }
+                            }
+
+                            Column {
+                                Text(
+                                    text = "Raio de Geofencing: ${uiState.raioGeofencing}m",
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Slider(
+                                    value = uiState.raioGeofencing.toFloat(),
+                                    onValueChange = { onAction(EditarEmpregoAction.AlterarRaioGeofencing(it.toInt())) },
+                                    valueRange = 50f..1000f,
+                                    steps = 19
+                                )
+                                Text(
+                                    text = "Define a área de alcance para o registro automático ou lembretes.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    SwitchOption(
+                        title = "Habilitar Foto",
+                        description = "Capturar foto no momento do registro",
+                        checked = uiState.fotoHabilitada,
+                        onCheckedChange = { onAction(EditarEmpregoAction.AlterarFotoHabilitada(it)) }
+                    )
+
+                    AnimatedVisibility(visible = uiState.fotoHabilitada) {
+                        Column(modifier = Modifier.padding(start = 16.dp)) {
+                            SwitchOption(
+                                title = "Foto Obrigatória",
+                                description = "Impedir registro sem foto",
+                                checked = uiState.fotoObrigatoria,
+                                onCheckedChange = { onAction(EditarEmpregoAction.AlterarFotoObrigatoria(it)) }
+                            )
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    SwitchOption(
+                        title = "Habilitar Comentários",
+                        description = "Permitir observações no registro",
+                        checked = uiState.comentarioHabilitado,
+                        onCheckedChange = { onAction(EditarEmpregoAction.AlterarComentarioHabilitado(it)) }
+                    )
                 }
             }
         }

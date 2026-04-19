@@ -51,6 +51,10 @@ data class ConfiguracaoEmpregoEntity(
     val localizacaoAutomatica: Boolean = false,
     @ColumnInfo(defaultValue = "1")
     val exibirLocalizacaoDetalhes: Boolean = true,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    @ColumnInfo(defaultValue = "200")
+    val raioGeofencing: Int = 200,
 
     // ════════════════════════════════════════════════════════════════════════
     // FOTO DE COMPROVANTE
@@ -143,6 +147,9 @@ fun ConfiguracaoEmpregoEntity.toDomain(): ConfiguracaoEmprego =
         habilitarLocalizacao = habilitarLocalizacao,
         localizacaoAutomatica = localizacaoAutomatica,
         exibirLocalizacaoDetalhes = exibirLocalizacaoDetalhes,
+        latitude = latitude,
+        longitude = longitude,
+        raioGeofencing = raioGeofencing,
         fotoHabilitada = fotoHabilitada,
         fotoObrigatoria = fotoObrigatoria,
         fotoFormato = fotoFormato,
@@ -181,6 +188,9 @@ fun ConfiguracaoEmprego.toEntity(): ConfiguracaoEmpregoEntity =
         habilitarLocalizacao = habilitarLocalizacao,
         localizacaoAutomatica = localizacaoAutomatica,
         exibirLocalizacaoDetalhes = exibirLocalizacaoDetalhes,
+        latitude = latitude,
+        longitude = longitude,
+        raioGeofencing = raioGeofencing,
         fotoHabilitada = fotoHabilitada,
         fotoObrigatoria = fotoObrigatoria,
         fotoFormato = fotoFormato,
