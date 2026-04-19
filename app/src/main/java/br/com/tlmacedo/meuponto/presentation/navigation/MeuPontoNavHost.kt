@@ -44,6 +44,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista.Feri
 import br.com.tlmacedo.meuponto.presentation.screen.settings.global.GlobalSettingsScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.horarios.HorariosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.jornada.JornadaScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.comprovantes.ComprovantesScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.SettingsMainScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.AjudaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.ReportarProblemaScreen

@@ -32,6 +32,8 @@ import br.com.tlmacedo.meuponto.domain.repository.LixeiraRepository
 import br.com.tlmacedo.meuponto.domain.repository.MarcadorRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.data.repository.FotoComprovanteRepositoryImpl
+import br.com.tlmacedo.meuponto.domain.repository.FotoComprovanteRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -57,4 +59,5 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindHistoricoCargoRepository(impl: HistoricoCargoRepositoryImpl): HistoricoCargoRepository
     @Binds @Singleton abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
     @Binds @Singleton abstract fun bindCloudBackupRepository(impl: CloudBackupRepositoryImpl): CloudBackupRepository
+    @Binds @Singleton abstract fun bindFotoComprovanteRepository(impl: FotoComprovanteRepositoryImpl): FotoComprovanteRepository
 }
