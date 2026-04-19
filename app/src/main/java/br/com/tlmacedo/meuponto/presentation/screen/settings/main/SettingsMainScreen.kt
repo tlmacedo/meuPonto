@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Business
@@ -114,6 +115,7 @@ fun SettingsMainScreen(
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
+    onNavigateToJornada: () -> Unit,
     viewModel: SettingsMainViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -152,6 +154,7 @@ fun SettingsMainScreen(
         onNavigateToLixeira = onNavigateToLixeira,
         onNavigateToAuditoria = onNavigateToAuditoria,
         onNavigateToOpcoesRegistro = onNavigateToOpcoesRegistro,
+        onNavigateToJornada = onNavigateToJornada,
         onTrocarEmprego = { viewModel.onAction(SettingsMainAction.TrocarEmprego(it)) },
         onAlternarSecao = { viewModel.onAction(SettingsMainAction.AlternarExpansaoSecao(it)) },
         snackbarHostState = snackbarHostState
@@ -181,6 +184,7 @@ fun SettingsMainContent(
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
+    onNavigateToJornada: () -> Unit,
     onTrocarEmprego: (Emprego) -> Unit,
     onAlternarSecao: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -345,6 +349,12 @@ fun SettingsMainContent(
                             subtitle = "Proteção do app e biometria",
                             icon = Icons.Outlined.Security,
                             onClick = onNavigateToPrivacidade
+                        )
+                        SettingsNavigationItem(
+                            title = "Configuração de Jornada",
+                            subtitle = "Padrões de carga horária e tolerâncias",
+                            icon = Icons.Outlined.AccessTime,
+                            onClick = onNavigateToJornada
                         )
                     }
                 }
@@ -805,6 +815,7 @@ private fun SettingsMainContentPreview() {
             onNavigateToLixeira = {},
             onNavigateToAuditoria = {},
             onNavigateToOpcoesRegistro = {},
+            onNavigateToJornada = {},
             onTrocarEmprego = {},
             onAlternarSecao = {}
         )

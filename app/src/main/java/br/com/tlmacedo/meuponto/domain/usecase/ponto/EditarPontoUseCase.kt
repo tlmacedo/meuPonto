@@ -187,8 +187,8 @@ class EditarPontoUseCase @Inject constructor(
             // REGISTRAR AUDITORIA
             // ═══════════════════════════════════════════════════════════════════
 
-            val dadosAnteriores = pontoExistente.toAuditMap().toMutableMap()
-            val dadosNovos = pontoAtualizado.toAuditMap().toMutableMap()
+            val dadosAnteriores = pontoExistente.toAuditMapLocal().toMutableMap()
+            val dadosNovos = pontoAtualizado.toAuditMapLocal().toMutableMap()
 
             // Adiciona metadata de lixeira para rollback
             if (trashPath != null) {
@@ -225,7 +225,7 @@ class EditarPontoUseCase @Inject constructor(
     /**
      * Converte Ponto para Map para serialização no audit log.
      */
-    private fun Ponto.toAuditMap(): Map<String, Any?> = mapOf(
+    private fun Ponto.toAuditMapLocal(): Map<String, Any?> = mapOf(
         "id" to id,
         "empregoId" to empregoId,
         "dataHora" to dataHora.toString(),

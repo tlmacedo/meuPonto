@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun OpcoesRegistroScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToLocalizacao: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OpcoesRegistroViewModel = hiltViewModel()
 ) {
@@ -69,6 +70,7 @@ fun OpcoesRegistroScreen(
                     onNavigateBack()
                 }
                 OpcoesRegistroEvent.Voltar -> onNavigateBack()
+                is OpcoesRegistroEvent.NavegarParaLocalizacao -> onNavigateToLocalizacao(evento.empregoId)
             }
         }
     }
@@ -188,6 +190,21 @@ private fun OpcoesRegistroContent(
                             checked = uiState.exibirLocalizacaoDetalhes,
                             onCheckedChange = { onAction(OpcoesRegistroAction.AlterarExibirLocalizacaoDetalhes(it)) }
                         )
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        Button(
+                            onClick = { onAction(OpcoesRegistroAction.ConfigurarLocalizacao) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Configurar Local de Trabalho")
+                        }
                     }
                 }
             }

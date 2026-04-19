@@ -263,7 +263,7 @@ class PontoRepositoryImpl @Inject constructor(
 
     // === Helpers ===
 
-    private fun Ponto.toAuditMap(): Map<String, Any?> = mapOf(
+    private fun Ponto.toAuditMapLocal(): Map<String, Any?> = mapOf(
         "id" to id,
         "empregoId" to empregoId,
         "data" to data.format(dateFormatter),

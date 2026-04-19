@@ -218,6 +218,58 @@ interface PreferenciasRepository {
     fun observarNotificacoesHabilitadas(): Flow<Boolean>
 
     // ========================================================================
+    // Configurações de Jornada (Padrões Globais)
+    // ========================================================================
+
+    /**
+     * Obtém a carga horária diária padrão em minutos.
+     * Valor default: 480 (8 horas).
+     */
+    suspend fun obterCargaHorariaPadrao(): Int
+
+    /**
+     * Define a carga horária diária padrão.
+     */
+    suspend fun definirCargaHorariaPadrao(minutos: Int)
+
+    /**
+     * Observa a carga horária padrão.
+     */
+    fun observarCargaHorariaPadrao(): Flow<Int>
+
+    /**
+     * Obtém o intervalo mínimo padrão em minutos.
+     * Valor default: 60 (1 hora).
+     */
+    suspend fun obterIntervaloMinimoPadrao(): Int
+
+    /**
+     * Define o intervalo mínimo padrão.
+     */
+    suspend fun definirIntervaloMinimoPadrao(minutos: Int)
+
+    /**
+     * Observa o intervalo mínimo padrão.
+     */
+    fun observarIntervaloMinimoPadrao(): Flow<Int>
+
+    /**
+     * Obtém a tolerância geral padrão em minutos.
+     * Valor default: 10 minutos.
+     */
+    suspend fun obterToleranciaGeralPadrao(): Int
+
+    /**
+     * Define a tolerância geral padrão.
+     */
+    suspend fun definirToleranciaGeralPadrao(minutos: Int)
+
+    /**
+     * Observa a tolerância geral padrão.
+     */
+    fun observarToleranciaGeralPadrao(): Flow<Int>
+
+    // ========================================================================
     // Utilitários
     // ========================================================================
 

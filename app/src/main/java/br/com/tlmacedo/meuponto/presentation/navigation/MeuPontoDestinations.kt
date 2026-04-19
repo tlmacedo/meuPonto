@@ -46,6 +46,7 @@ object MeuPontoDestinations {
     const val EMPREGO_SETTINGS = "emprego/{$ARG_EMPREGO_ID}/settings"
     const val CONFIGURACOES_GERAIS = "emprego/{$ARG_EMPREGO_ID}/configuracoes_gerais"
     const val OPCOES_REGISTRO = "emprego/{$ARG_EMPREGO_ID}/opcoes_registro"
+    const val LOCALIZACAO_TRABALHO = "emprego/{$ARG_EMPREGO_ID}/localizacao_trabalho"
 
     // Jornada (legacy - sem emprego específico)
     const val CONFIGURACAO_JORNADA = "configuracao_jornada"
@@ -128,6 +129,7 @@ object MeuPontoDestinations {
     fun novoCargoEmprego(empregoId: Long) = "emprego/$empregoId/cargos/novo"
     fun editarCargoEmprego(empregoId: Long, cargoId: Long) = "emprego/$empregoId/cargos/$cargoId"
     fun opcoesRegistro(empregoId: Long) = "emprego/$empregoId/opcoes_registro"
+    fun localizacaoTrabalho(empregoId: Long) = "emprego/$empregoId/localizacao_trabalho"
 
     fun novaAusencia(tipo: String? = null, data: String? = null): String {
         return buildString {

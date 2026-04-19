@@ -96,7 +96,7 @@ class ExcluirPontoUseCase @Inject constructor(
             }
 
             // 2. Registrar auditoria ANTES de excluir (inclui trashPath para rollback)
-            val auditData = ponto.toAuditMap().toMutableMap()
+            val auditData = ponto.toAuditMapLocal().toMutableMap()
             if (trashPath != null) {
                 auditData["_trashPath"] = trashPath
             }
@@ -137,7 +137,7 @@ class ExcluirPontoUseCase @Inject constructor(
         return Resultado.Validacao(listOf("O motivo da exclusão é obrigatório"))
     }
 
-    private fun Ponto.toAuditMap(): Map<String, Any?> = mapOf(
+    private fun Ponto.toAuditMapLocal(): Map<String, Any?> = mapOf(
         "id" to id,
         "empregoId" to empregoId,
         "dataHora" to dataHora.toString(),

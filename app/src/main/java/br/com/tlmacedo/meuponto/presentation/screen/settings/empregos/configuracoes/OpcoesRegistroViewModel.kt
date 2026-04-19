@@ -62,6 +62,7 @@ class OpcoesRegistroViewModel @Inject constructor(
             is OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario -> _uiState.update { it.copy(limiteHoraExtraSemComentario = action.limite) }
             is OpcoesRegistroAction.AlterarExibirDuracaoTurno -> _uiState.update { it.copy(exibirDuracaoTurno = action.exibir) }
             is OpcoesRegistroAction.AlterarExibirDuracaoIntervalo -> _uiState.update { it.copy(exibirDuracaoIntervalo = action.exibir) }
+            OpcoesRegistroAction.ConfigurarLocalizacao -> viewModelScope.launch { _eventos.emit(OpcoesRegistroEvent.NavegarParaLocalizacao(empregoId)) }
             OpcoesRegistroAction.Salvar -> salvar()
             OpcoesRegistroAction.Voltar -> viewModelScope.launch { _eventos.emit(OpcoesRegistroEvent.Voltar) }
         }
@@ -170,9 +171,11 @@ sealed interface OpcoesRegistroAction {
     data class AlterarExibirDuracaoIntervalo(val exibir: Boolean) : OpcoesRegistroAction
     data object Salvar : OpcoesRegistroAction
     data object Voltar : OpcoesRegistroAction
+    data object ConfigurarLocalizacao : OpcoesRegistroAction
 }
 
 sealed interface OpcoesRegistroEvent {
     data class SalvoComSucesso(val mensagem: String) : OpcoesRegistroEvent
     data object Voltar : OpcoesRegistroEvent
+    data class NavegarParaLocalizacao(val empregoId: Long) : OpcoesRegistroEvent
 }

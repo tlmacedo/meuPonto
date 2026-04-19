@@ -68,7 +68,7 @@ import kotlinx.coroutines.Dispatchers
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 
 private val horaFormatter = DateTimeFormatter.ofPattern("HH:mm")
-private val dateFormatterCompleto = DateTimeFormatter.ofPattern("dd/MM/yyyy (EEE)", Locale("pt", "BR"))
+private val dateFormatterCompleto = DateTimeFormatter.ofPattern("dd/MM/yyyy (EEE)", Locale.forLanguageTag("pt-BR"))
 private val dateFormatterSimples = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
 @Composable

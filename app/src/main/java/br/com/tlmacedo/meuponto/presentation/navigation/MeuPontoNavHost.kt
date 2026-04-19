@@ -34,6 +34,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.lixeira.LixeiraScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsDetailScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracoes.LocalizacaoTrabalhoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracoes.OpcoesRegistroScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.CargosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.EditarCargoScreen
@@ -42,6 +43,7 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.Edi
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista.FeriadosListScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.global.GlobalSettingsScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.horarios.HorariosScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.jornada.JornadaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.SettingsMainScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.AjudaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.ReportarProblemaScreen
@@ -229,6 +231,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToOpcoesRegistro = { empregoId ->
                 navController.navigate(MeuPontoDestinations.opcoesRegistro(empregoId))
+            },
+            onNavigateToJornada = {
+                navController.navigate(MeuPontoDestinations.CONFIGURACAO_JORNADA)
             }
         )
     }
@@ -275,7 +280,29 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
         )
     ) {
         OpcoesRegistroScreen(
-            onNavigateBack = { navController.popBackStack() }
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToLocalizacao = { id ->
+                navController.navigate(MeuPontoDestinations.localizacaoTrabalho(id))
+            }
+        )
+    }
+
+    composable(
+        route = MeuPontoDestinations.LOCALIZACAO_TRABALHO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_EMPREGO_ID) {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        LocalizacaoTrabalhoScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onConfirmSelection = { lat, lng, raio ->
+                // Ao confirmar, voltamos para a tela anterior passando os dados (ou salvando direto)
+                // Por simplicidade aqui, vamos salvar via ViewModel de OpcoesRegistro se possível
+                // ou apenas voltar e deixar a tela anterior recarregar se o ViewModel salvou.
+                navController.popBackStack()
+            }
         )
     }
 
@@ -600,8 +627,7 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
     // ===== OUTRAS CONFIGURAÇÕES (Legacy/Placeholder) =====
 
     composable(MeuPontoDestinations.CONFIGURACAO_JORNADA) {
-        PlaceholderScreen(
-            titulo = "Configuração de Jornada",
+        JornadaScreen(
             onNavigateBack = { navController.popBackStack() }
         )
     }

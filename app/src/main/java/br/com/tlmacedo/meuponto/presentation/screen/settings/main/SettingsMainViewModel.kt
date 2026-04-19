@@ -129,6 +129,7 @@ class SettingsMainViewModel @Inject constructor(
     /**
      * Observa mudanças no emprego ativo, lista de empregos e saldo mensal.
      */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun observarDados() {
         viewModelScope.launch {
             val empregosFlow = listarEmpregosUseCase.observarTodos()
@@ -196,6 +197,7 @@ class SettingsMainViewModel @Inject constructor(
     /**
      * Observa o saldo mensal de forma reativa, reagindo a mudanças nos pontos.
      */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun observarSaldoMensal(empregoId: Long) =
         calcularBancoHorasUseCase.invoke(empregoId)
             .flatMapLatest {

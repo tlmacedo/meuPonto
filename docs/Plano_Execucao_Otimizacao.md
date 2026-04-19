@@ -43,12 +43,12 @@ Este documento detalha as 5 fases de otimização do aplicativo MeuPonto, servin
     - [x] Implementar detecção inteligente de primeira execução (DataStore + Banco de Dados).
     - [x] Criar sequência de 7 telas (Bem-vindo, Empresa, Dias, Opções Registro, RH/Banco, Sincronização, Permissões).
     - [x] Persistência automática das configurações iniciais em múltiplas entidades (Emprego, Config, Versão).
-- [ ] **3.2. Interface de Configurações de Jornada**
-    - [ ] Tela para editar Carga Horária, Intervalo Mínimo e Tolerâncias.
-    - [ ] Integração total com `PreferencesDataStore`.
-- [ ] **3.3. Configuração de Localização**
-    - [ ] Criar seletor de local de trabalho no mapa.
-    - [ ] Configuração visual do raio de Geofencing.
+- [x] **3.2. Interface de Configurações de Jornada**
+    - [x] Tela para editar Carga Horária, Intervalo Mínimo e Tolerâncias.
+    - [x] Integração total com `PreferencesDataStore`.
+- [x] **3.3. Configuração de Localização**
+    - [x] Criar seletor de local de trabalho no mapa.
+    - [x] Configuração visual do raio de Geofencing.
 
 ---
 

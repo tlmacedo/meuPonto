@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -47,6 +48,11 @@ class PreferenciasRepositoryImpl @Inject constructor(
         val BIOMETRIA_HABILITADA = booleanPreferencesKey("biometria_habilitada")
         val BLOQUEIO_AUTOMATICO_HABILITADO = booleanPreferencesKey("bloqueio_automatico_habilitada")
         val OCULTAR_PREVIEW_HABILITADO = booleanPreferencesKey("ocultar_preview_habilitada")
+
+        // Jornada
+        val CARGA_HORARIA_PADRAO = intPreferencesKey("carga_horaria_padrao")
+        val INTERVALO_MINIMO_PADRAO = intPreferencesKey("intervalo_minimo_padrao")
+        val TOLERANCIA_GERAL_PADRAO = intPreferencesKey("tolerancia_geral_padrao")
     }
 
     private object Defaults {
@@ -57,6 +63,10 @@ class PreferenciasRepositoryImpl @Inject constructor(
         const val BIOMETRIA_HABILITADA = false
         const val BLOQUEIO_AUTOMATICO_HABILITADA = false
         const val OCULTAR_PREVIEW_HABILITADA = false
+        
+        const val CARGA_HORARIA_PADRAO = 480 // 8 horas
+        const val INTERVALO_MINIMO_PADRAO = 60 // 1 hora
+        const val TOLERANCIA_GERAL_PADRAO = 10 // 10 minutos
     }
 
     // ========================================================================
@@ -226,6 +236,61 @@ class PreferenciasRepositoryImpl @Inject constructor(
         return context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.NOTIFICACOES_HABILITADAS]
                 ?: Defaults.NOTIFICACOES_HABILITADAS
+        }
+    }
+
+    // ========================================================================
+    // Configurações de Jornada (Padrões Globais)
+    // ========================================================================
+
+    override suspend fun obterCargaHorariaPadrao(): Int {
+        return context.dataStore.data.first()[PreferencesKeys.CARGA_HORARIA_PADRAO]
+            ?: Defaults.CARGA_HORARIA_PADRAO
+    }
+
+    override suspend fun definirCargaHorariaPadrao(minutos: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CARGA_HORARIA_PADRAO] = minutos
+        }
+    }
+
+    override fun observarCargaHorariaPadrao(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.CARGA_HORARIA_PADRAO] ?: Defaults.CARGA_HORARIA_PADRAO
+        }
+    }
+
+    override suspend fun obterIntervaloMinimoPadrao(): Int {
+        return context.dataStore.data.first()[PreferencesKeys.INTERVALO_MINIMO_PADRAO]
+            ?: Defaults.INTERVALO_MINIMO_PADRAO
+    }
+
+    override suspend fun definirIntervaloMinimoPadrao(minutos: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.INTERVALO_MINIMO_PADRAO] = minutos
+        }
+    }
+
+    override fun observarIntervaloMinimoPadrao(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.INTERVALO_MINIMO_PADRAO] ?: Defaults.INTERVALO_MINIMO_PADRAO
+        }
+    }
+
+    override suspend fun obterToleranciaGeralPadrao(): Int {
+        return context.dataStore.data.first()[PreferencesKeys.TOLERANCIA_GERAL_PADRAO]
+            ?: Defaults.TOLERANCIA_GERAL_PADRAO
+    }
+
+    override suspend fun definirToleranciaGeralPadrao(minutos: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.TOLERANCIA_GERAL_PADRAO] = minutos
+        }
+    }
+
+    override fun observarToleranciaGeralPadrao(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.TOLERANCIA_GERAL_PADRAO] ?: Defaults.TOLERANCIA_GERAL_PADRAO
         }
     }
 
