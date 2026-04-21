@@ -21,4 +21,5 @@ interface FotoComprovanteRepository {
     suspend fun excluirPorPontoId(pontoId: Long)
     suspend fun buscarPorHash(hash: String): FotoComprovante?
     suspend fun calcularTamanhoTotal(): Long
+    suspend fun listarPathsPorEmprego(empregoId: Long): List<String>
 }

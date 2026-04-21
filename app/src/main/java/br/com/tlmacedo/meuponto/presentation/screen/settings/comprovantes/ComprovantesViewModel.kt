@@ -9,6 +9,7 @@ import br.com.tlmacedo.meuponto.domain.usecase.foto.DeleteComprovanteImageUseCas
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.presentation.screen.history.PeriodoHistorico
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -27,7 +28,8 @@ class ComprovantesViewModel @Inject constructor(
     private val preferenciasRepository: PreferenciasRepository,
     private val deleteUseCase: DeleteComprovanteImageUseCase,
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val storageManager: br.com.tlmacedo.meuponto.util.foto.FotoStorageManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ComprovantesUiState())
@@ -72,6 +74,25 @@ class ComprovantesViewModel @Inject constructor(
             is ComprovantesAction.ExcluirComprovante -> excluirComprovante(action.id)
             ComprovantesAction.LimparCache -> limparArquivosOrfaos()
             ComprovantesAction.Refresh -> carregarComprovantes()
+            ComprovantesAction.AnalisarFotosLocais -> analisarFotosLocais()
+        }
+    }
+
+    private fun analisarFotosLocais() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
+                val pathsNoBanco = repository.listarPathsPorEmprego(empregoId).toSet()
+                val removidos = storageManager.cleanupOrphanFiles(pathsNoBanco)
+                
+                carregarComprovantes()
+                _eventos.emit(ComprovantesEvent.ShowError("Análise concluída. $removidos arquivos órfãos removidos."))
+            } catch (e: Exception) {
+                _eventos.emit(ComprovantesEvent.ShowError("Erro ao analisar arquivos: ${e.message}"))
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
         }
     }
 
@@ -98,6 +119,7 @@ class ComprovantesViewModel @Inject constructor(
             Timber.d("Iniciando carregarComprovantes")
 
             obterEmpregoAtivoUseCase.observar().collectLatest { emprego ->
+                _uiState.update { it.copy(empregoAtivo = emprego) }
                 var empregoId = emprego?.id
 
                 if (empregoId == null) {

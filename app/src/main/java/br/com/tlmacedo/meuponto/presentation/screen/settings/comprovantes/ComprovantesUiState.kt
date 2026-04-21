@@ -17,7 +17,8 @@ data class ComprovantesUiState(
     val filtroAssociacao: FiltroAssociacao = FiltroAssociacao.TODOS,
     val storageUsageBytes: Long = 0,
     val error: String? = null,
-    val isFiltroPersonalizado: Boolean = false
+    val isFiltroPersonalizado: Boolean = false,
+    val empregoAtivo: br.com.tlmacedo.meuponto.domain.model.Emprego? = null
 ) {
     val totalCount: Int get() = items.size
     val totalSizeMb: Double get() = storageUsageBytes / (1024.0 * 1024.0)
@@ -34,6 +35,7 @@ sealed interface ComprovantesAction {
     data class ExcluirComprovante(val id: Long) : ComprovantesAction
     object LimparCache : ComprovantesAction
     object Refresh : ComprovantesAction
+    object AnalisarFotosLocais : ComprovantesAction
 }
 
 sealed interface ComprovantesEvent {

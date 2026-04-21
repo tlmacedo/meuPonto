@@ -64,12 +64,17 @@ fun ComprovantesScreen(
             } else {
                 MeuPontoTopBar(
                     title = "Gerenciador de Comprovantes",
-                    subtitle = "${uiState.totalCount} fotos • ${String.format("%.2f", uiState.totalSizeMb)} MB",
+                    subtitle = uiState.empregoAtivo?.apelido ?: uiState.empregoAtivo?.nome,
+                    logo = uiState.empregoAtivo?.logo,
                     showBackButton = true,
                     onBackClick = onNavigateBack,
                     actions = {
                         IconButton(onClick = { showDatePicker = true }) {
                             Icon(Icons.Default.CalendarMonth, contentDescription = "Filtrar Data")
+                        }
+                        
+                        IconButton(onClick = { viewModel.onAction(ComprovantesAction.AnalisarFotosLocais) }) {
+                            Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = "Analisar Fotos")
                         }
                         
                         var showFiltroMenu by remember { mutableStateOf(false) }
@@ -108,37 +113,70 @@ fun ComprovantesScreen(
         },
         modifier = modifier
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (uiState.items.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Nenhum comprovante encontrado.")
-                    Text(
-                        text = "Período: ${uiState.dataInicio} a ${uiState.dataFim}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Button(onClick = { showDatePicker = true }, modifier = Modifier.padding(top = 16.dp)) {
-                        Text("Alterar Período")
+        Column(modifier = Modifier.padding(paddingValues)) {
+            // Faixa de Informações do Filtro
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Período: ${uiState.dataInicio.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))} a ${uiState.dataFim.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Filtro: ${when(uiState.filtroAssociacao) {
+                                FiltroAssociacao.TODOS -> "Todos os registros"
+                                FiltroAssociacao.COM_PONTO -> "Apenas vinculados"
+                                FiltroAssociacao.SEM_PONTO -> "Não vinculados"
+                            }}",
+                            style = MaterialTheme.typography.labelSmall
+                        )
                     }
+                    Text(
+                        text = "${uiState.totalCount} fotos • ${String.format("%.2f", uiState.totalSizeMb)} MB",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
-        } else {
-            ComprovantesGrid(
-                items = uiState.items,
-                selectedIds = uiState.selectedIds,
-                onItemClick = { foto ->
-                    if (uiState.isSelectionMode) {
-                        viewModel.onAction(ComprovantesAction.AlternarSelecao(foto.id))
-                    } else {
-                        viewModel.onAction(ComprovantesAction.SelecionarComprovante(foto))
+
+            if (uiState.isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (uiState.items.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Nenhum comprovante encontrado.")
+                        Button(onClick = { showDatePicker = true }, modifier = Modifier.padding(top = 16.dp)) {
+                            Text("Alterar Período")
+                        }
                     }
-                },
-                onItemLongClick = { viewModel.onAction(ComprovantesAction.AlternarSelecao(it.id)) },
-                modifier = Modifier.padding(paddingValues)
-            )
+                }
+            } else {
+                ComprovantesGrid(
+                    items = uiState.items,
+                    selectedIds = uiState.selectedIds,
+                    onItemClick = { foto ->
+                        if (uiState.isSelectionMode) {
+                            viewModel.onAction(ComprovantesAction.AlternarSelecao(foto.id))
+                        } else {
+                            viewModel.onAction(ComprovantesAction.SelecionarComprovante(foto))
+                        }
+                    },
+                    onItemLongClick = { viewModel.onAction(ComprovantesAction.AlternarSelecao(it.id)) },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
 
         if (showDatePicker) {

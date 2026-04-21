@@ -48,4 +48,7 @@ class FotoComprovanteRepositoryImpl @Inject constructor(
 
     override suspend fun calcularTamanhoTotal(): Long =
         fotoComprovanteDao.calcularTamanhoTotal() ?: 0L
+
+    override suspend fun listarPathsPorEmprego(empregoId: Long): List<String> =
+        fotoComprovanteDao.listarPathsPorEmprego(empregoId)
 }
