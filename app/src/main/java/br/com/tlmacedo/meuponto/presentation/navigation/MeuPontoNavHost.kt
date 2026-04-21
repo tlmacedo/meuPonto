@@ -230,6 +230,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNavigateToAuditoria = {
                 navController.navigate(MeuPontoDestinations.AUDITORIA)
             },
+            onNavigateToComprovantes = {
+                navController.navigate(MeuPontoDestinations.COMPROVANTES_MANAGER)
+            },
             onNavigateToOpcoesRegistro = { empregoId ->
                 navController.navigate(MeuPontoDestinations.opcoesRegistro(empregoId))
             },
@@ -673,6 +676,12 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
 
     composable(MeuPontoDestinations.AUDITORIA) {
         AuditoriaScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(MeuPontoDestinations.COMPROVANTES_MANAGER) {
+        ComprovantesScreen(
             onNavigateBack = { navController.popBackStack() }
         )
     }

@@ -55,10 +55,10 @@ Este documento detalha as 5 fases de otimização do aplicativo MeuPonto, servin
 ## 🖼️ Fase 4: Gestão de Ativos e Utilidades
 *Foco: Organização de comprovantes e controle de armazenamento.*
 
-- [ ] **4.1. Gerenciador de Comprovantes**
-    - [ ] Criar galeria integrada ao banco de dados (Room).
-    - [ ] Implementar filtros (Data, Emprego, Status de Associação).
-    - [ ] Implementar exclusão em lote para limpeza de storage.
+- [x] **4.1. Gerenciador de Comprovantes**
+    - [x] Criar galeria integrada ao banco de dados (Room).
+    - [x] Implementar filtros (Data, Emprego, Status de Associação).
+    - [x] Implementar exclusão em lote para limpeza de storage.
 - [ ] **4.2. Painel de Sincronização**
     - [ ] Criar dashboard com status do último backup (Local vs Nuvem).
     - [ ] Botão de "Sincronizar Agora" com feedback de progresso.

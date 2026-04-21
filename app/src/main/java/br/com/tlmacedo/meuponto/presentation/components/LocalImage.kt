@@ -24,11 +24,10 @@ fun LocalImage(
         return
     }
 
-    val imageData = if (imagePath.startsWith("content://") || imagePath.startsWith("file://") || imagePath.startsWith("http")) {
-        imagePath
-    } else {
-        // Assume path relativo ao filesDir/logos
-        File(context.filesDir, "logos/$imagePath")
+    val imageData = when {
+        imagePath.startsWith("content://") || imagePath.startsWith("file://") || imagePath.startsWith("http") -> imagePath
+        imagePath.startsWith("/") -> File(imagePath)
+        else -> File(context.filesDir, "logos/$imagePath")
     }
 
     AsyncImage(

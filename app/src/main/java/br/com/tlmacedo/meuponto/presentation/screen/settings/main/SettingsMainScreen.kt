@@ -114,6 +114,7 @@ fun SettingsMainScreen(
     onNavigateToReportarProblema: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
+    onNavigateToComprovantes: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
     onNavigateToJornada: () -> Unit,
     viewModel: SettingsMainViewModel = hiltViewModel()
@@ -153,6 +154,7 @@ fun SettingsMainScreen(
         onNavigateToReportarProblema = onNavigateToReportarProblema,
         onNavigateToLixeira = onNavigateToLixeira,
         onNavigateToAuditoria = onNavigateToAuditoria,
+        onNavigateToComprovantes = onNavigateToComprovantes,
         onNavigateToOpcoesRegistro = onNavigateToOpcoesRegistro,
         onNavigateToJornada = onNavigateToJornada,
         onTrocarEmprego = { viewModel.onAction(SettingsMainAction.TrocarEmprego(it)) },
@@ -183,6 +185,7 @@ fun SettingsMainContent(
     onNavigateToReportarProblema: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
+    onNavigateToComprovantes: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
     onNavigateToJornada: () -> Unit,
     onTrocarEmprego: (Emprego) -> Unit,
@@ -388,6 +391,12 @@ fun SettingsMainContent(
                             title = "Auditoria",
                             subtitle = "Histórico de alterações no sistema",
                             onClick = onNavigateToAuditoria
+                        )
+                        SettingsNavigationItem(
+                            icon = Icons.AutoMirrored.Outlined.EventNote,
+                            title = "Gerenciador de Comprovantes",
+                            subtitle = "Galeria de fotos e recibos",
+                            onClick = onNavigateToComprovantes
                         )
                     }
                 }
@@ -814,6 +823,7 @@ private fun SettingsMainContentPreview() {
             onNavigateToReportarProblema = {},
             onNavigateToLixeira = {},
             onNavigateToAuditoria = {},
+            onNavigateToComprovantes = {},
             onNavigateToOpcoesRegistro = {},
             onNavigateToJornada = {},
             onTrocarEmprego = {},
