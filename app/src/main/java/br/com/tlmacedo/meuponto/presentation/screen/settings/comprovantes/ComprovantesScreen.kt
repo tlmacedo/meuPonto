@@ -289,12 +289,21 @@ private fun ComprovanteGridItem(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
             ) {
-                Text(
-                    text = foto.dataFormatada,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(2.dp),
-                    maxLines = 1
-                )
+                Column(modifier = Modifier.padding(2.dp)) {
+                    Text(
+                        text = "${foto.dataFormatada} ${foto.horaFormatada}",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
+                    if (foto.temObservacao) {
+                        Text(
+                            text = foto.observacao ?: "",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
         }
     }
@@ -309,7 +318,7 @@ private fun ComprovanteDetailsDialog(
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Comprovante: ${foto.dataFormatada}") },
+        title = { Text("Comprovante: ${foto.dataFormatada} ${foto.horaFormatada}") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
@@ -327,6 +336,9 @@ private fun ComprovanteDetailsDialog(
                 
                 DetailRow("Hora:", foto.horaFormatada)
                 DetailRow("Tipo:", foto.tipoPontoDescricao)
+                if (foto.temObservacao) {
+                    DetailRow("Obs:", foto.observacao ?: "")
+                }
                 foto.nsr?.let { DetailRow("NSR:", it) }
                 DetailRow("Tamanho:", foto.fotoTamanhoFormatado)
                 if (foto.temLocalizacao) {

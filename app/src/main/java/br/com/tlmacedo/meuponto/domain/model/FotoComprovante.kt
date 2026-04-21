@@ -88,6 +88,9 @@ data class FotoComprovante(
     val fotoTamanhoBytes: Long,
     val fotoHashMd5: String,
 
+    // Observação do Ponto (opcional)
+    val observacao: String? = null,
+
     // Sincronização
     val sincronizadoNuvem: Boolean = false,
     val sincronizadoEm: Instant? = null,
@@ -128,6 +131,10 @@ data class FotoComprovante(
     /** Verifica se tem NSR */
     val temNsr: Boolean
         get() = !nsr.isNullOrBlank()
+
+    /** Verifica se tem observação */
+    val temObservacao: Boolean
+        get() = !observacao.isNullOrBlank()
 
     /** Verifica se tem endereço formatado */
     val temEndereco: Boolean

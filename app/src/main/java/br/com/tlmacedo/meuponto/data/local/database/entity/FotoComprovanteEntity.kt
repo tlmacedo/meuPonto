@@ -231,6 +231,12 @@ data class FotoComprovanteEntity(
      */
     val fotoHashMd5: String,
 
+    /**
+     * Observação do registro de ponto vinculado.
+     * Copiado do PontoEntity para evitar JOINs custosos na galeria.
+     */
+    val observacao: String? = null,
+
     // ════════════════════════════════════════════════════════════════════════
     // CONTROLE DE SINCRONIZAÇÃO COM NUVEM
     // ════════════════════════════════════════════════════════════════════════
@@ -298,6 +304,7 @@ fun FotoComprovanteEntity.toDomain(): FotoComprovante = FotoComprovante(
     fotoOrigem = fotoOrigem,
     fotoTamanhoBytes = fotoTamanhoBytes,
     fotoHashMd5 = fotoHashMd5,
+    observacao = observacao,
     sincronizadoNuvem = sincronizadoNuvem,
     sincronizadoEm = sincronizadoEm,
     cloudFileId = cloudFileId,
@@ -332,6 +339,7 @@ fun FotoComprovante.toEntity(): FotoComprovanteEntity = FotoComprovanteEntity(
     fotoOrigem = fotoOrigem,
     fotoTamanhoBytes = fotoTamanhoBytes,
     fotoHashMd5 = fotoHashMd5,
+    observacao = observacao,
     sincronizadoNuvem = sincronizadoNuvem,
     sincronizadoEm = sincronizadoEm,
     cloudFileId = cloudFileId,

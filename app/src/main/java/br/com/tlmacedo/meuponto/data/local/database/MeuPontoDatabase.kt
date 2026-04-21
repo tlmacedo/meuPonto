@@ -60,7 +60,7 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.VersaoJornadaEntity
         UsuarioEntity::class,
         AusenciaEntity::class
     ],
-    version = 40, // Incremented version for Geofencing fields in ConfiguracaoEmprego
+    version = 41, // Adicionado campo observacao em FotoComprovanteEntity
     exportSchema = true // Mantenha como true para gerar o schema.json
 )
 @TypeConverters(Converters::class)

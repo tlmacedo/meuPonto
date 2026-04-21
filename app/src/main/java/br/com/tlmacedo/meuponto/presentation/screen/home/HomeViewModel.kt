@@ -1621,6 +1621,7 @@ class HomeViewModel @Inject constructor(
                 fotoOrigem = fotoOrigem,
                 fotoTamanhoBytes = size,
                 fotoHashMd5 = hash,
+                observacao = ponto.observacao,
                 criadoEm = existente?.criadoEm ?: Instant.now(),
                 atualizadoEm = Instant.now()
             )

@@ -44,7 +44,7 @@ class ComprovantesViewModel @Inject constructor(
     fun onAction(action: ComprovantesAction) {
         when (action) {
             is ComprovantesAction.AlterarPeriodo -> {
-                _uiState.update { it.copy(dataInicio = action.inicio, dataFim = action.fim) }
+                _uiState.update { it.copy(dataInicio = action.inicio, dataFim = action.fim, isFiltroPersonalizado = true) }
                 carregarComprovantes()
             }
             is ComprovantesAction.AlterarFiltroAssociacao -> {
@@ -115,20 +115,25 @@ class ComprovantesViewModel @Inject constructor(
                 // Ajusta o período inicial baseado no dia de fechamento do RH
                 val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
                 val diaInicioRH = versaoVigente?.diaInicioFechamentoRH ?: 1
-                val periodoRH = PeriodoHistorico.periodoAtual(diaInicioRH)
-
-                _uiState.update { 
-                    it.copy(
-                        dataInicio = periodoRH.dataInicio,
-                        dataFim = periodoRH.dataFim
-                    )
+                
+                _uiState.update { state ->
+                    if (state.isFiltroPersonalizado) {
+                        state
+                    } else {
+                        val periodoRH = PeriodoHistorico.periodoAtual(diaInicioRH)
+                        state.copy(
+                            dataInicio = periodoRH.dataInicio,
+                            dataFim = periodoRH.dataFim
+                        )
+                    }
                 }
 
-                Timber.d("Buscando fotos para empregoId: $empregoId, periodo: ${periodoRH.dataInicio} ate ${periodoRH.dataFim}")
+                val state = _uiState.value
+                Timber.d("Buscando fotos para empregoId: $empregoId, periodo: ${state.dataInicio} ate ${state.dataFim}")
                 repository.listarPorEmpregoEPeriodo(
                     empregoId,
-                    periodoRH.dataInicio,
-                    periodoRH.dataFim
+                    state.dataInicio,
+                    state.dataFim
                 ).collectLatest { lista ->
                     Timber.d("Fotos retornadas do banco para emprego $empregoId: ${lista.size}")
                     

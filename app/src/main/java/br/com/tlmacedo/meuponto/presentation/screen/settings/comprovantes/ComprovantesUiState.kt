@@ -16,7 +16,8 @@ data class ComprovantesUiState(
     val selectedIds: Set<Long> = emptySet(),
     val filtroAssociacao: FiltroAssociacao = FiltroAssociacao.TODOS,
     val storageUsageBytes: Long = 0,
-    val error: String? = null
+    val error: String? = null,
+    val isFiltroPersonalizado: Boolean = false
 ) {
     val totalCount: Int get() = items.size
     val totalSizeMb: Double get() = storageUsageBytes / (1024.0 * 1024.0)
