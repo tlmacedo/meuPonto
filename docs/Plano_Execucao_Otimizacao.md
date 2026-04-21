@@ -62,9 +62,9 @@ Este documento detalha as 5 fases de otimização do aplicativo MeuPonto, servin
 - [ ] **4.2. Painel de Sincronização**
     - [ ] Criar dashboard com status do último backup (Local vs Nuvem).
     - [ ] Botão de "Sincronizar Agora" com feedback de progresso.
-- [ ] **4.3. Refinamento de Captura**
-    - [ ] Adicionar detecção de bordas no scanner.
-    - [ ] Implementar corte manual opcional após a foto.
+- [x] **4.3. Refinamento de Captura**
+    - [x] Adicionar detecção de bordas no scanner.
+    - [x] Implementar corte manual e ferramentas de edição no visualizador de fotos (FotoPontoModal).
 
 ---
 

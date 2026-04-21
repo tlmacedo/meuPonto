@@ -6,6 +6,7 @@ import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import br.com.tlmacedo.meuponto.domain.repository.FotoComprovanteRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.foto.DeleteComprovanteImageUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.foto.ReconciliarFotosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.presentation.screen.history.PeriodoHistorico
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +28,7 @@ class ComprovantesViewModel @Inject constructor(
     private val repository: FotoComprovanteRepository,
     private val preferenciasRepository: PreferenciasRepository,
     private val deleteUseCase: DeleteComprovanteImageUseCase,
+    private val reconciliarFotosUseCase: ReconciliarFotosUseCase,
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val storageManager: br.com.tlmacedo.meuponto.util.foto.FotoStorageManager
@@ -82,13 +84,20 @@ class ComprovantesViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val empregoId = _uiState.value.empregoAtivo?.id ?: return@launch
-                val pathsNoBanco = repository.listarPathsPorEmprego(empregoId).toSet()
-                val removidos = storageManager.cleanupOrphanFiles(pathsNoBanco)
+                val resultado = reconciliarFotosUseCase.invoke()
                 
                 carregarComprovantes()
-                _eventos.emit(ComprovantesEvent.ShowError("Análise concluída. $removidos arquivos órfãos removidos."))
+                atualizarEstatisticas()
+                
+                val msg = buildString {
+                    append("Reconciliação concluída. ")
+                    if (resultado.importados > 0) append("${resultado.importados} fotos importadas. ")
+                    if (resultado.jaExistentes > 0) append("${resultado.jaExistentes} já estavam no banco. ")
+                    if (resultado.falhas > 0) append("${resultado.falhas} falhas.")
+                }
+                _eventos.emit(ComprovantesEvent.ShowError(msg))
             } catch (e: Exception) {
+                Timber.e(e, "Erro ao reconciliar fotos")
                 _eventos.emit(ComprovantesEvent.ShowError("Erro ao analisar arquivos: ${e.message}"))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }

@@ -143,9 +143,80 @@ object ImageProcessor {
     fun crop(src: Bitmap, left: Float, top: Float, width: Float, height: Float): Bitmap {
         val x = (src.width * left).toInt().coerceIn(0, src.width - 1)
         val y = (src.height * top).toInt().coerceIn(0, src.height - 1)
-        val w = (src.width * width).toInt().coerceAtMost(src.width - x)
-        val h = (src.height * height).toInt().coerceAtMost(src.height - y)
+        val w = (src.width * width).toInt().coerceAtLeast(10).coerceAtMost(src.width - x)
+        val h = (src.height * height).toInt().coerceAtLeast(10).coerceAtMost(src.height - y)
         
         return Bitmap.createBitmap(src, x, y, w, h)
+    }
+
+    /**
+     * Tenta detectar as bordas de um documento (comprovante) no bitmap.
+     * Retorna um Rect com coordenadas relativas (0.0 a 1.0).
+     */
+    fun detectDocumentBounds(src: Bitmap): android.graphics.RectF {
+        val width = src.width
+        val height = src.height
+        
+        // Redimensionar para processamento mais rápido
+        val scale = 0.2f
+        val small = Bitmap.createScaledBitmap(src, (width * scale).toInt(), (height * scale).toInt(), false)
+        
+        val w = small.width
+        val h = small.height
+        val pixels = IntArray(w * h)
+        small.getPixels(pixels, 0, w, 0, 0, w, h)
+        
+        var minX = w
+        var minY = h
+        var maxX = 0
+        var maxY = 0
+        
+        // Converter para luminosidade e encontrar pixels que não são "fundo" (simplificado)
+        // Assume-se que o documento é mais claro que o fundo ou vice-versa
+        val luminances = FloatArray(w * h)
+        var avgLuminance = 0f
+        for (i in pixels.indices) {
+            val color = pixels[i]
+            val r = (color shr 16) and 0xFF
+            val g = (color shr 8) and 0xFF
+            val b = color and 0xFF
+            val lum = (0.299f * r + 0.587f * g + 0.114f * b)
+            luminances[i] = lum
+            avgLuminance += lum
+        }
+        avgLuminance /= (w * h)
+        
+        // Threshold dinâmico baseado na média
+        val threshold = if (avgLuminance > 128) avgLuminance * 0.8f else avgLuminance * 1.2f
+        val isDarkBackground = avgLuminance < 128
+        
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val lum = luminances[y * w + x]
+                val isContent = if (isDarkBackground) lum > threshold else lum < threshold
+                
+                if (isContent) {
+                    if (x < minX) minX = x
+                    if (x > maxX) maxX = x
+                    if (y < minY) minY = y
+                    if (y > maxY) maxY = y
+                }
+            }
+        }
+        
+        small.recycle()
+        
+        if (maxX <= minX || maxY <= minY) {
+            return android.graphics.RectF(0.1f, 0.1f, 0.9f, 0.9f)
+        }
+        
+        // Adicionar uma pequena margem (5%)
+        val padding = 0.05f
+        return android.graphics.RectF(
+            (minX.toFloat() / w - padding).coerceAtLeast(0f),
+            (minY.toFloat() / h - padding).coerceAtLeast(0f),
+            (maxX.toFloat() / w + padding).coerceAtMost(1f),
+            (maxY.toFloat() / h + padding).coerceAtMost(1f)
+        )
     }
 }

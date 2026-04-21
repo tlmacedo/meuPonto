@@ -249,18 +249,20 @@ class CalcularBancoHorasUseCase @Inject constructor(
                 toleranciaIntervaloGlobal = toleranciaGlobal
             )
 
-            if (resumoCompleto.jornadaCompleta) diasTrabalhados++
-            if (ausenciasDoDia.isNotEmpty()) diasComAusencia++
+            if (resumoCompleto.resumoDia.temRegistro) {
+                if (resumoCompleto.jornadaCompleta) diasTrabalhados++
+                if (ausenciasDoDia.isNotEmpty()) diasComAusencia++
 
-            val jornadaEsperada = resumoCompleto.cargaHorariaEfetivaMinutos
-            if (jornadaEsperada > 0 && pontosNoDia.isEmpty() && ausenciasDoDia.isEmpty() && feriadoDoDia == null) {
-                diasUteisSemRegistro++
+                totalAbonosMinutos += resumoCompleto.tempoAbonadoMinutos
+                trabalhadoTotal = trabalhadoTotal.plus(resumoCompleto.horasTrabalhadas)
+                esperadoTotal = esperadoTotal.plus(resumoCompleto.cargaHorariaEfetiva)
+                saldoTotal = saldoTotal.plus(resumoCompleto.saldoDia)
+            } else {
+                val jornadaEsperada = resumoCompleto.cargaHorariaEfetivaMinutos
+                if (jornadaEsperada > 0 && feriadoDoDia == null) {
+                    diasUteisSemRegistro++
+                }
             }
-
-            totalAbonosMinutos += resumoCompleto.tempoAbonadoMinutos
-            trabalhadoTotal = trabalhadoTotal.plus(resumoCompleto.horasTrabalhadas)
-            esperadoTotal = esperadoTotal.plus(resumoCompleto.cargaHorariaEfetiva)
-            saldoTotal = saldoTotal.plus(resumoCompleto.saldoDia)
             dataAtual = dataAtual.plusDays(1)
         }
 

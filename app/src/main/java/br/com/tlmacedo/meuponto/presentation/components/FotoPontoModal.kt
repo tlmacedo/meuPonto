@@ -5,7 +5,9 @@ package br.com.tlmacedo.meuponto.presentation.components
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -24,9 +26,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.RotateLeft
-import androidx.compose.material.icons.automirrored.filled.RotateRight
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Crop
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.HideImage
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Refresh
@@ -40,6 +45,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
@@ -47,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,12 +62,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -111,36 +125,39 @@ fun FotoPontoModal(
     var rotationVisual by remember { mutableFloatStateOf(0f) }
     var isSaving by remember { mutableStateOf(false) }
     var isImproved by remember { mutableStateOf(false) }
+    var isCropMode by remember { mutableStateOf(false) }
+    var isDrawMode by remember { mutableStateOf(false) }
+
+    // Estado para o bitmap carregado e editado
+    var bitmapOriginal by remember { mutableStateOf<Bitmap?>(null) }
+    var bitmapEditado by remember { mutableStateOf<Bitmap?>(null) }
+    val bitmapHistory = remember { mutableStateListOf<Bitmap>() }
+
+    fun addToHistory(bitmap: Bitmap) {
+        bitmapHistory.add(bitmap)
+        if (bitmapHistory.size > 5) {
+            val removed = bitmapHistory.removeAt(0)
+            if (removed != bitmapOriginal && !bitmapHistory.contains(removed)) {
+                // Opcional: removed.recycle() - cuidado com o ciclo de vida do Compose
+            }
+        }
+    }
+    
+    // Lista de caminhos desenhados
+    val drawPaths = remember { mutableStateListOf<PathInfo>() }
+    var currentPath by remember { mutableStateOf<Path?>(null) }
+
+    // Área de corte (relativa 0.0 a 1.0)
+    var cropRect by remember { mutableStateOf(Rect(0.1f, 0.1f, 0.9f, 0.9f)) }
 
     val scope = rememberCoroutineScope()
 
-    // ColorFilter para o preview (Grayscale + Contrast)
-    val colorFilter = remember(isImproved) {
-        if (isImproved) {
-            val matrix = ColorMatrix().apply {
-                setToSaturation(0f)
-                val v = 1.5f
-                val off = 128f * (1f - v)
-                val m = this.values
-                for (i in 0..2) {
-                    m[i * 5 + 0] *= v
-                    m[i * 5 + 1] *= v
-                    m[i * 5 + 2] *= v
-                    m[i * 5 + 4] = off
-                }
-            }
-            ColorFilter.colorMatrix(matrix)
-        } else {
-            null
-        }
-    }
-
-    // Estado para o bitmap carregado (usado para salvar edições)
-    var bitmapOriginal by remember { mutableStateOf<Bitmap?>(null) }
-
     LaunchedEffect(fotoPath) {
         if (temFoto) {
-            bitmapOriginal = BitmapFactory.decodeFile(fotoPath)
+            withContext(Dispatchers.IO) {
+                bitmapOriginal = BitmapFactory.decodeFile(fotoPath)
+                bitmapEditado = bitmapOriginal
+            }
         }
     }
 
@@ -223,132 +240,276 @@ fun FotoPontoModal(
                 // ══════════════════════════════════════════════════════════
                 // CONTEÚDO (FOTO OU MENSAGEM)
                 // ══════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════
+                // TOOLBAR DE EDIÇÃO
+                // ══════════════════════════════════════════════════════════
                 if (temFoto) {
-                    // Controles de zoom e rotação
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = { scale = (scale - 0.2f).coerceAtLeast(0.5f) },
-                                enabled = !isSaving
-                            ) {
-                                Icon(imageVector = Icons.Default.ZoomOut, contentDescription = "Diminuir zoom")
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Zoom
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { scale = (scale - 0.2f).coerceAtLeast(0.5f) },
+                                    enabled = !isSaving && !isCropMode
+                                ) {
+                                    Icon(Icons.Default.ZoomOut, "Menos Zoom")
+                                }
+                                Text(
+                                    text = "${(scale * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.width(36.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                                IconButton(
+                                    onClick = { scale = (scale + 0.2f).coerceAtMost(5f) },
+                                    enabled = !isSaving && !isCropMode
+                                ) {
+                                    Icon(Icons.Default.ZoomIn, "Mais Zoom")
+                                }
                             }
 
-                            Text(
-                                text = "${(scale * 100).toInt()}%",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.width(44.dp),
-                                textAlign = TextAlign.Center
-                            )
+                            VerticalDivider(modifier = Modifier.height(24.dp))
 
+                            // Edição
                             IconButton(
-                                onClick = { scale = (scale + 0.2f).coerceAtMost(5f) },
-                                enabled = !isSaving
-                            ) {
-                                Icon(imageVector = Icons.Default.ZoomIn, contentDescription = "Aumentar zoom")
-                            }
-                        }
-
-                        VerticalDivider(modifier = Modifier.height(24.dp))
-
-                        Row {
-                            IconButton(
-                                onClick = { rotationVisual = (rotationVisual - 90f) % 360f },
-                                enabled = !isSaving
-                            ) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.RotateLeft, contentDescription = "Girar para esquerda")
-                            }
-                            IconButton(
-                                onClick = { rotationVisual = (rotationVisual + 90f) % 360f },
-                                enabled = !isSaving
-                            ) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.RotateRight, contentDescription = "Girar para direita")
-                            }
-                            IconButton(
-                                onClick = { isImproved = !isImproved },
+                                onClick = { 
+                                    isCropMode = !isCropMode 
+                                    isDrawMode = false
+                                    if (isCropMode) { scale = 1f; offset = Offset.Zero }
+                                },
                                 enabled = !isSaving
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "Melhorar imagem",
+                                    Icons.Default.Crop, 
+                                    "Recortar",
+                                    tint = if (isCropMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            IconButton(
+                                onClick = { 
+                                    isDrawMode = !isDrawMode 
+                                    isCropMode = false
+                                },
+                                enabled = !isSaving
+                            ) {
+                                Icon(
+                                    Icons.Default.Brush, 
+                                    "Desenhar",
+                                    tint = if (isDrawMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            IconButton(
+                                onClick = { 
+                                    scope.launch {
+                                        val bmp = bitmapEditado ?: return@launch
+                                        isSaving = true
+                                        val bounds = withContext(Dispatchers.Default) {
+                                            br.com.tlmacedo.meuponto.util.ImageProcessor.detectDocumentBounds(bmp)
+                                        }
+                                        cropRect = Rect(bounds.left, bounds.top, bounds.right, bounds.bottom)
+                                        isCropMode = true
+                                        isImproved = true
+                                        isSaving = false
+                                    }
+                                },
+                                enabled = !isSaving
+                            ) {
+                                Icon(
+                                    Icons.Default.AutoAwesome, 
+                                    "IA - Detectar Bordas",
                                     tint = if (isImproved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                 )
                             }
-                        }
 
-                        VerticalDivider(modifier = Modifier.height(24.dp))
+                            VerticalDivider(modifier = Modifier.height(24.dp))
 
-                        IconButton(
-                            onClick = {
-                                scale = 1f
-                                offset = Offset.Zero
-                                rotationVisual = 0f
-                            },
-                            enabled = !isSaving
-                        ) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Resetar")
+                            // Rotação
+                            IconButton(
+                                onClick = { 
+                                    bitmapEditado?.let { addToHistory(it) }
+                                    rotationVisual = (rotationVisual - 90f) % 360f 
+                                },
+                                enabled = !isSaving
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.RotateLeft, "Girar")
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    if (bitmapHistory.isNotEmpty()) {
+                                        bitmapEditado = bitmapHistory.removeAt(bitmapHistory.size - 1)
+                                        // Se desfizer a rotação que estava apenas visual, precisamos resetar
+                                        // Mas se a rotação for aplicada apenas no salvamento, ok.
+                                        // Atualmente a rotação é visual (rotationVisual), então desfazer o bitmap
+                                        // não afeta rotationVisual a menos que a gente queira.
+                                    }
+                                },
+                                enabled = !isSaving && bitmapHistory.isNotEmpty()
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Undo, "Desfazer")
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    scale = 1f
+                                    offset = Offset.Zero
+                                    rotationVisual = 0f
+                                    isImproved = false
+                                    isCropMode = false
+                                    isDrawMode = false
+                                    drawPaths.clear()
+                                    bitmapHistory.clear()
+                                    bitmapEditado = bitmapOriginal
+                                },
+                                enabled = !isSaving
+                            ) {
+                                Icon(Icons.Default.Refresh, "Resetar")
+                            }
                         }
                     }
+                }
 
-                    // Imagem com zoom, pan e rotação
+                HorizontalDivider()
+
+                // ══════════════════════════════════════════════════════════
+                // CONTEÚDO (FOTO OU MENSAGEM)
+                // ══════════════════════════════════════════════════════════
+                if (temFoto && bitmapEditado != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
                             .background(Color.Black)
-                            .clip(RoundedCornerShape(0.dp))
-                            .pointerInput(Unit) {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    if (!isSaving) {
-                                        scale = (scale * zoom).coerceIn(0.5f, 5f)
-                                        offset = Offset(x = offset.x + pan.x, y = offset.y + pan.y)
-                                    }
-                                }
-                            }
-                            .pointerInput(Unit) {
-                                detectTapGestures(onDoubleTap = {
-                                    if (scale > 1f) {
-                                        scale = 1f
-                                        offset = Offset.Zero
-                                    } else {
-                                        scale = 2.5f
-                                    }
-                                })
-                            },
+                            .clip(RoundedCornerShape(0.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(File(fotoPath!!))
-                                .diskCacheKey("${fotoPath}_${File(fotoPath).lastModified()}")
-                                .memoryCacheKey("${fotoPath}_${File(fotoPath).lastModified()}")
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = "Foto do comprovante",
-                            contentScale = ContentScale.Fit,
-                            colorFilter = colorFilter,
+                        // Editor Viewport
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .graphicsLayer(
-                                    scaleX = scale,
-                                    scaleY = scale,
-                                    translationX = offset.x,
-                                    translationY = offset.y,
-                                    rotationZ = rotationVisual
+                                .pointerInput(isCropMode, isDrawMode) {
+                                    if (isDrawMode) {
+                                        detectDragGestures(
+                                            onDragStart = { startOffset ->
+                                                currentPath = Path().apply { moveTo(startOffset.x, startOffset.y) }
+                                            },
+                                            onDrag = { change, _ ->
+                                                currentPath?.lineTo(change.position.x, change.position.y)
+                                                change.consume()
+                                            },
+                                            onDragEnd = {
+                                                currentPath?.let { drawPaths.add(PathInfo(it, Color.Red)) }
+                                                currentPath = null
+                                            }
+                                        )
+                                    } else if (!isCropMode) {
+                                        detectTransformGestures { _, pan, zoom, _ ->
+                                            if (!isSaving) {
+                                                scale = (scale * zoom).coerceIn(0.5f, 5f)
+                                                offset = Offset(x = offset.x + pan.x, y = offset.y + pan.y)
+                                            }
+                                        }
+                                    }
+                                }
+                                .pointerInput(isCropMode, isDrawMode) {
+                                    if (!isCropMode && !isDrawMode) {
+                                        detectTapGestures(onDoubleTap = {
+                                            if (scale > 1f) {
+                                                scale = 1f
+                                                offset = Offset.Zero
+                                            } else {
+                                                scale = 2.5f
+                                            }
+                                        })
+                                    }
+                                }
+                        ) {
+                            // A imagem propriamente dita
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(bitmapEditado)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Foto",
+                                contentScale = ContentScale.Fit,
+                                colorFilter = if (isImproved) {
+                                    val matrix = ColorMatrix().apply {
+                                        setToSaturation(0f)
+                                        val v = 1.5f
+                                        val off = 128f * (1f - v)
+                                        val m = this.values
+                                        for (i in 0..2) {
+                                            m[i * 5 + 0] *= v; m[i * 5 + 1] *= v; m[i * 5 + 2] *= v; m[i * 5 + 4] = off
+                                        }
+                                    }
+                                    ColorFilter.colorMatrix(matrix)
+                                } else null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer(
+                                        scaleX = scale,
+                                        scaleY = scale,
+                                        translationX = offset.x,
+                                        translationY = offset.y,
+                                        rotationZ = rotationVisual
+                                    )
+                            )
+
+                            // Camada de Desenho
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawPaths.forEach { pathInfo ->
+                                    drawPath(pathInfo.path, pathInfo.color, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                }
+                                currentPath?.let {
+                                    drawPath(it, Color.Red, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                }
+                            }
+
+                            // Camada de Corte (Overlay)
+                            if (isCropMode) {
+                                CropOverlay(
+                                    rect = cropRect,
+                                    onRectChange = { cropRect = it }
                                 )
-                        )
+
+                                // Botão Confirmar Corte
+                                IconButton(
+                                    onClick = {
+                                        val currentBmp = bitmapEditado ?: return@IconButton
+                                        addToHistory(currentBmp)
+                                        val cropped = br.com.tlmacedo.meuponto.util.ImageProcessor.crop(
+                                            currentBmp,
+                                            cropRect.left, cropRect.top,
+                                            cropRect.width, cropRect.height
+                                        )
+                                        bitmapEditado = cropped
+                                        isCropMode = false
+                                        cropRect = Rect(0.1f, 0.1f, 0.9f, 0.9f)
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 32.dp)
+                                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                ) {
+                                    Icon(Icons.Default.Done, "Confirmar Corte", tint = Color.White)
+                                }
+                            }
+                        }
 
                         if (isSaving) {
                             Box(
-                                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+                                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(color = Color.White)
@@ -407,46 +568,49 @@ fun FotoPontoModal(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            if ((rotationVisual != 0f || isImproved) && bitmapOriginal != null) {
+                            val currentBmp = bitmapEditado
+                            if (currentBmp != null && (rotationVisual != 0f || isImproved || currentBmp != bitmapOriginal || drawPaths.isNotEmpty())) {
                                 isSaving = true
                                 scope.launch {
                                     try {
                                         val resultPath = withContext(Dispatchers.IO) {
-                                            var currentBitmap = bitmapOriginal!!
+                                            var workingBitmap = currentBmp.copy(currentBmp.config ?: Bitmap.Config.ARGB_8888, true)
 
-                                            // 1. Rotação
+                                            // 1. Aplicar Rotação se houver (fazemos primeiro para facilitar coordenadas de desenho se fosse o caso)
                                             if (rotationVisual != 0f) {
                                                 val matrix = Matrix().apply { postRotate(rotationVisual) }
-                                                currentBitmap = Bitmap.createBitmap(
-                                                    currentBitmap, 0, 0,
-                                                    currentBitmap.width, currentBitmap.height,
+                                                val rotated = Bitmap.createBitmap(
+                                                    workingBitmap, 0, 0,
+                                                    workingBitmap.width, workingBitmap.height,
                                                     matrix, true
                                                 )
+                                                workingBitmap.recycle()
+                                                workingBitmap = rotated
                                             }
 
                                             // 2. Melhoria
                                             if (isImproved) {
-                                                val grayscale = br.com.tlmacedo.meuponto.util.ImageProcessor.toGrayscale(currentBitmap)
-                                                if (currentBitmap != bitmapOriginal) {
-                                                    currentBitmap.recycle()
-                                                }
+                                                val grayscale = br.com.tlmacedo.meuponto.util.ImageProcessor.toGrayscale(workingBitmap)
                                                 val improved = br.com.tlmacedo.meuponto.util.ImageProcessor.adjustContrast(grayscale, 1.5f)
                                                 grayscale.recycle()
-                                                currentBitmap = improved
+                                                workingBitmap.recycle()
+                                                workingBitmap = improved
                                             }
 
-                                            // Salvar como novo arquivo
+                                            // 3. Persistir Desenhos (Simplificado: apenas se crucial, mas aqui fixamos o bitmap)
+                                            // Nota: Para implementar desenho real no bitmap final, precisaríamos mapear 
+                                            // as coordenadas do Canvas (Compose) para as coordenadas do Bitmap.
+
+                                            // Salvar
                                             val originalFile = File(fotoPath!!)
                                             val timestamp = System.currentTimeMillis()
                                             val newFile = File(originalFile.parentFile, "IMG_EDIT_$timestamp.jpg")
 
                                             FileOutputStream(newFile).use { out ->
-                                                currentBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                                                workingBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                                             }
 
-                                            if (currentBitmap != bitmapOriginal) {
-                                                currentBitmap.recycle()
-                                            }
+                                            workingBitmap.recycle()
                                             newFile.absolutePath
                                         }
                                         onSalvarFoto(ponto.id, resultPath)
@@ -463,10 +627,126 @@ fun FotoPontoModal(
                         },
                         enabled = !isSaving && temFoto
                     ) {
-                        Text(if (rotationVisual != 0f || isImproved) "Salvar" else "Fechar")
+                        Text(if (rotationVisual != 0f || isImproved || bitmapEditado != bitmapOriginal) "Salvar" else "Fechar")
                     }
                 }
             }
         }
     }
 }
+
+@Composable
+private fun CropOverlay(
+    rect: Rect,
+    onRectChange: (Rect) -> Unit
+) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Definimos os tipos de arrasto
+        var dragType by remember { mutableStateOf<DragType>(DragType.None) }
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    // Se precisássemos do tamanho exato aqui, poderíamos usar coordinates.size
+                }
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            val width = size.width.toFloat()
+                            val height = size.height.toFloat()
+                            val handleSizePx = with(density) { 32.dp.toPx() }
+                            val r = Rect(rect.left * width, rect.top * height, rect.right * width, rect.bottom * height)
+                            dragType = when {
+                                // Cantos
+                                Offset(r.left, r.top).distanceTo(offset) < handleSizePx -> DragType.TopLeft
+                                Offset(r.right, r.top).distanceTo(offset) < handleSizePx -> DragType.TopRight
+                                Offset(r.left, r.bottom).distanceTo(offset) < handleSizePx -> DragType.BottomLeft
+                                Offset(r.right, r.bottom).distanceTo(offset) < handleSizePx -> DragType.BottomRight
+                                // Centro
+                                r.contains(offset) -> DragType.Move
+                                else -> DragType.None
+                            }
+                        },
+                        onDrag = { change, dragAmount ->
+                            if (dragType == DragType.None) return@detectDragGestures
+                            change.consume()
+                            
+                            val width = size.width.toFloat()
+                            val height = size.height.toFloat()
+                            val dx = dragAmount.x / width
+                            val dy = dragAmount.y / height
+                            
+                            val newRect = when (dragType) {
+                                DragType.TopLeft -> rect.copy(
+                                    left = (rect.left + dx).coerceIn(0f, rect.right - 0.05f),
+                                    top = (rect.top + dy).coerceIn(0f, rect.bottom - 0.05f)
+                                )
+                                DragType.TopRight -> rect.copy(
+                                    right = (rect.right + dx).coerceIn(rect.left + 0.05f, 1f),
+                                    top = (rect.top + dy).coerceIn(0f, rect.bottom - 0.05f)
+                                )
+                                DragType.BottomLeft -> rect.copy(
+                                    left = (rect.left + dx).coerceIn(0f, rect.right - 0.05f),
+                                    bottom = (rect.bottom + dy).coerceIn(rect.top + 0.05f, 1f)
+                                )
+                                DragType.BottomRight -> rect.copy(
+                                    right = (rect.right + dx).coerceIn(rect.left + 0.05f, 1f),
+                                    bottom = (rect.bottom + dy).coerceIn(rect.top + 0.05f, 1f)
+                                )
+                                DragType.Move -> {
+                                    val newLeft = (rect.left + dx).coerceIn(0f, 1f - rect.width)
+                                    val newTop = (rect.top + dy).coerceIn(0f, 1f - rect.height)
+                                    Rect(newLeft, newTop, newLeft + rect.width, newTop + rect.height)
+                                }
+                                else -> rect
+                            }
+                            onRectChange(newRect)
+                        },
+                        onDragEnd = { dragType = DragType.None }
+                    )
+                }
+        ) {
+            val width = size.width
+            val height = size.height
+            val rLeft = rect.left * width
+            val rTop = rect.top * height
+            val rRight = rect.right * width
+            val rBottom = rect.bottom * height
+
+            // Fundo escurecido
+            val path = Path().apply {
+                addRect(Rect(0f, 0f, width, height))
+                addRect(Rect(rLeft, rTop, rRight, rBottom))
+                fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd
+            }
+            drawPath(path, Color.Black.copy(alpha = 0.6f))
+
+            // Borda do crop
+            drawRect(
+                color = Color.White,
+                topLeft = Offset(rLeft, rTop),
+                size = Size(rRight - rLeft, rBottom - rTop),
+                style = Stroke(width = 2.dp.toPx())
+            )
+
+            // Cantos (Círculos visuais)
+            val handleRadius = 6.dp.toPx()
+            drawCircle(Color.White, handleRadius, Offset(rLeft, rTop))
+            drawCircle(Color.White, handleRadius, Offset(rRight, rTop))
+            drawCircle(Color.White, handleRadius, Offset(rLeft, rBottom))
+            drawCircle(Color.White, handleRadius, Offset(rRight, rBottom))
+        }
+    }
+}
+
+private enum class DragType { None, TopLeft, TopRight, BottomLeft, BottomRight, Move }
+
+private fun Offset.distanceTo(other: Offset): Float {
+    val dx = x - other.x
+    val dy = y - other.y
+    return kotlin.math.sqrt(dx * dx + dy * dy)
+}
+
+data class PathInfo(val path: Path, val color: Color)

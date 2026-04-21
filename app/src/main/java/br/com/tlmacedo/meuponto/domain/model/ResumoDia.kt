@@ -103,6 +103,18 @@ enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
      */
     val isAusenciaJustificada: Boolean
         get() = this in listOf(FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA)
+
+    /**
+     * Verifica se este tipo representa uma ausência (afastamento, folga ou falta).
+     */
+    val isAusencia: Boolean
+        get() = this in listOf(
+            FERIAS,
+            ATESTADO,
+            FALTA_JUSTIFICADA,
+            FOLGA,
+            FALTA_INJUSTIFICADA
+        )
 }
 
 /**
@@ -175,6 +187,13 @@ data class ResumoDia(
     val isPassado: Boolean
         get() = data.isBefore(LocalDate.now())
 
+    /**
+     * Verifica se existe algum registro no dia (ponto, ausência, declaração ou feriado)
+     * que justifique a contabilização de horas e saldo.
+     */
+    val temRegistro: Boolean
+        get() = pontos.isNotEmpty() || tipoDiaEspecial.isAusencia || tipoDiaEspecial.isTipoFeriado || tempoAbonadoMinutos > 0
+
     // ========================================================================
     // TURNO ABERTO E TEMPO EM ANDAMENTO
     // ========================================================================
@@ -223,7 +242,7 @@ data class ResumoDia(
      * Regra: Só começa a contabilizar se tiver no mínimo um registro no dia.
      */
     val horasTrabalhadas: Duration by lazy {
-        if (pontos.isEmpty()) {
+        if (!temRegistro) {
             Duration.ZERO
         } else {
             intervalos
@@ -297,14 +316,14 @@ data class ResumoDia(
      *
      * REGRAS:
      * - Dias futuros: saldo = 0 (não calculado)
-     * - Sem pontos: saldo = 0 (só começa a contabilizar se tiver no mínimo um registro)
+     * - Sem registros: saldo = 0 (só começa a contabilizar se tiver registro de ponto, ausência ou feriado)
      * - Jornada zerada: saldo = trabalhado + abonado - 0 = trabalhado + abonado
      * - Jornada normal: saldo = trabalhado + abonado - jornada (pode ser negativo)
      */
     val saldoDia: Duration
         get() {
-            // Dias futuros e sem pontos não têm saldo calculado
-            if (isFuturo || pontos.isEmpty()) return Duration.ZERO
+            // Dias futuros e sem registros não têm saldo calculado
+            if (isFuturo || !temRegistro) return Duration.ZERO
 
             return horasTrabalhadas.plus(tempoAbonado).minus(cargaHorariaEfetiva)
         }
@@ -316,8 +335,8 @@ data class ResumoDia(
      * Para dias futuros ou sem registros, retorna sempre ZERO.
      */
     fun saldoDiaComAndamento(horaAtual: LocalTime = LocalTime.now()): Duration {
-        // Dias futuros e sem pontos não têm saldo calculado
-        if (isFuturo || pontos.isEmpty()) return Duration.ZERO
+        // Dias futuros e sem registros não têm saldo calculado
+        if (isFuturo || !temRegistro) return Duration.ZERO
 
         return horasTrabalhadasComAndamento(horaAtual).plus(tempoAbonado).minus(cargaHorariaEfetiva)
     }
