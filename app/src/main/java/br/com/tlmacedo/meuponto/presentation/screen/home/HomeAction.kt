@@ -60,6 +60,9 @@ sealed interface HomeAction {
     /** Atualiza a observação no modal de registro */
     data class AtualizarObservacaoRegistroModal(val observacao: String) : HomeAction
 
+    /** Reprocessa o OCR da foto atual no modal de registro */
+    data object ReprocessarOcrRegistroModal : HomeAction
+
     // ── FOTO DE COMPROVANTE (Ações globais/fluxo antigo) ─────────────────────
     /** Abre o diálogo de seleção de fonte da foto (Câmera/Galeria) */
     data object AbrirFotoSourceDialog : HomeAction

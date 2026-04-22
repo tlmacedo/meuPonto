@@ -206,6 +206,13 @@ class HomeViewModel @Inject constructor(
             is HomeAction.CapturarLocalizacaoRegistroModal -> capturarLocalizacaoRegistroModal()
             is HomeAction.ConfirmarRegistroPontoModal -> confirmarRegistroPontoModal()
             is HomeAction.AtualizarObservacaoRegistroModal -> atualizarObservacaoRegistroModal(action.observacao)
+            is HomeAction.ReprocessarOcrRegistroModal -> {
+                val uri = _uiState.value.registrarPontoModal?.fotoUri
+                val origem = _uiState.value.registrarPontoModal?.fotoOrigem ?: br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA
+                if (uri != null) {
+                    atualizarFotoRegistroModal(uri, origem)
+                }
+            }
 
             // FOTO DE COMPROVANTE
             is HomeAction.AbrirFotoSourceDialog -> abrirFotoSourceDialog()

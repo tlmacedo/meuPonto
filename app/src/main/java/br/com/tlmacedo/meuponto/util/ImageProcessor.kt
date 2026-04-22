@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
+import android.graphics.Rect
 import androidx.core.graphics.createBitmap
 
 /**
@@ -135,6 +136,29 @@ object ImageProcessor {
         if (cropped != src && cropped != final) cropped.recycle()
         
         return final
+    }
+
+    /**
+     * Desenha destaques (retângulos) no bitmap para indicar áreas detectadas pelo OCR.
+     */
+    fun drawHighlights(src: Bitmap, rects: List<Rect>, color: Int = 0x50FFEB3B.toInt()): Bitmap {
+        val dest = src.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(dest)
+        val paint = Paint().apply {
+            this.color = color
+            style = Paint.Style.FILL
+        }
+        val borderPaint = Paint().apply {
+            this.color = color or 0xFF000000.toInt() // Torna opaco para a borda
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+        }
+
+        for (rect in rects) {
+            canvas.drawRect(rect, paint)
+            canvas.drawRect(rect, borderPaint)
+        }
+        return dest
     }
 
     /**

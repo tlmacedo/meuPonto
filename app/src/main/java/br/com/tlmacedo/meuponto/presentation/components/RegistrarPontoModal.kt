@@ -86,6 +86,7 @@ fun RegistrarPontoModal(
     onObservacaoChange: (String) -> Unit,
     onCapturarFoto: () -> Unit,
     onRemoverFoto: () -> Unit,
+    onReprocessarOcr: () -> Unit,
     onCapturarLocalizacao: () -> Unit,
     onAbrirTimePicker: () -> Unit,
     onFecharTimePicker: () -> Unit,
@@ -242,6 +243,24 @@ fun RegistrarPontoModal(
                                     Icons.Default.Delete,
                                     contentDescription = "Remover foto",
                                     tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(6.dp)
+                                )
+                            }
+
+                            // Botão Reprocessar OCR
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 8.dp, end = 48.dp) // Posicionado ao lado da lixeira
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable(!state.isProcessingOcr) { onReprocessarOcr() },
+                            ) {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = "Reprocessar OCR",
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                     modifier = Modifier.padding(6.dp)
                                 )
                             }

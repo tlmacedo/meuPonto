@@ -386,13 +386,14 @@ fun ReceiptOverlay(isDetected: Boolean) {
 private class ReceiptAnalyzer(
     private val onReceiptDetected: (Boolean) -> Unit
 ) : ImageAnalysis.Analyzer {
+    // Modelo Latin: Ideal para Português Brasileiro
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private var lastAnalysisTime = 0L
 
     override fun analyze(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
-        // Limitar análise para cada 400ms para poupar bateria/CPU
-        if (currentTime - lastAnalysisTime < 400) {
+        // Limitar análise para cada 300ms para poupar bateria/CPU e melhorar resposta
+        if (currentTime - lastAnalysisTime < 300) {
             imageProxy.close()
             return
         }
@@ -423,6 +424,9 @@ private class ReceiptAnalyzer(
             "COMPROVANTE", "PONTO", "NSR", "DATA", "HORA", 
             "TRABALHADOR", "PIS", "EMPREGADOR", "CNPJ", "SEQ"
         )
+        
+        // Se encontrar "COMPROVANTE" ou "NSR", já é um forte indício
+        if (upperText.contains("COMPROVANTE") || upperText.contains("NSR")) return true
         
         var matches = 0
         for (key in keywords) {
@@ -489,8 +493,8 @@ private fun takePhoto(
                         val relLeft = (1f - relWidth) / 2f
                         val relTop = (1f - relHeight) * 0.35f
                         
-                        // Margem de segurança de 50% sobre as dimensões da máscara
-                        val marginFactor = 0.90f
+                        // Margem de segurança de 15% sobre as dimensões da máscara
+                        val marginFactor = 0.15f
                         val marginW = relWidth * marginFactor
                         val marginH = relHeight * marginFactor
 

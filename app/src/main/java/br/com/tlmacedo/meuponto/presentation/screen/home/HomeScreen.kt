@@ -316,6 +316,7 @@ private fun HomeDialogs(
             onObservacaoChange = { onAction(HomeAction.AtualizarObservacaoRegistroModal(it)) },
             onCapturarFoto = { onAction(HomeAction.AbrirFotoSourceDialog) },
             onRemoverFoto = { onAction(HomeAction.AtualizarFotoRegistroModal(null)) },
+            onReprocessarOcr = { onAction(HomeAction.ReprocessarOcrRegistroModal) },
             onCapturarLocalizacao = { onAction(HomeAction.CapturarLocalizacaoRegistroModal) },
             onAbrirTimePicker = { onAction(HomeAction.AbrirTimePickerRegistroModal) },
             onFecharTimePicker = { onAction(HomeAction.FecharTimePickerRegistroModal) },

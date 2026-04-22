@@ -2,6 +2,7 @@ package br.com.tlmacedo.meuponto.data.service
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Rect
 import android.net.Uri
 import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
 import br.com.tlmacedo.meuponto.domain.model.PontoOcrResult
@@ -36,13 +37,14 @@ class OcrService @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val orientationCorrector: ImageOrientationCorrector,
     private val empregoRepository: EmpregoRepository,
-    private val pontoDao: PontoDao
+    private val pontoDao: PontoDao,
 ) {
+    // Utiliza o modelo Latin por padrão, que é o recomendado para Português Brasileiro (suporta ç, ã, é, etc)
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
     /**
-     * Extrai NSR, Data, Hora e Usuário de uma imagem.
-     * Agora suporta múltiplos comprovantes na mesma imagem.
+     * Extrai NSR, Data, Hora e Usuário de uma imagem com alta precisão.
+     * Utiliza processamento de imagem e OCR de duplo passo.
      */
     suspend fun extrairDadosMultiplosComprovantes(
         uri: Uri,
@@ -53,33 +55,51 @@ class OcrService @Inject constructor(
             val originalBitmap = orientationCorrector.loadBitmapWithCorrectOrientation(uri)
                 ?: return@withContext emptyList()
 
-            val image = InputImage.fromBitmap(originalBitmap, 0)
-            val visionText = recognizer.process(image).await()
+            // PASSO 1: Localizar possíveis comprovantes na imagem completa
+            val firstPassImage = InputImage.fromBitmap(originalBitmap, 0)
+            val firstPassText = recognizer.process(firstPassImage).await()
 
-            val comprovantes = agruparBlocosPorComprovante(visionText)
+            val gruposDeBlocos = agruparBlocosPorComprovante(firstPassText)
             val resultados = mutableListOf<PontoOcrResult>()
 
-            for (blocos in comprovantes) {
-                val boundingBox = calcularBoundingBox(blocos) ?: continue
+            for (blocosPass1 in gruposDeBlocos) {
+                val boundingBox = calcularBoundingBox(blocosPass1) ?: continue
                 
-                // Recorta o comprovante com uma pequena margem
+                // Recorta o comprovante com margem de segurança
                 val padding = (boundingBox.width() * 0.05f).toInt()
                 val left = (boundingBox.left - padding).coerceAtLeast(0)
                 val top = (boundingBox.top - padding).coerceAtLeast(0)
                 val right = (boundingBox.right + padding).coerceAtMost(originalBitmap.width)
                 val bottom = (boundingBox.bottom + padding).coerceAtMost(originalBitmap.height)
                 
-                val croppedBitmap = Bitmap.createBitmap(
-                    originalBitmap, 
-                    left, top, 
-                    right - left, bottom - top
-                )
+                val croppedBitmap = Bitmap.createBitmap(originalBitmap, left, top, right - left, bottom - top)
                 
-                // Melhora a imagem do comprovante recortado usando apenas os filtros,
-                // já que o recorte manual por bloco já foi feito.
-                val processedBitmap = ImageProcessor.applyOcrFilters(croppedBitmap)
+                // PASSO 2: OCR de alta precisão no recorte
+                // Criamos duas versões: uma binarizada para o OCR e uma de alto contraste para o usuário
+                val forOcrBitmap = ImageProcessor.applyOcrFilters(croppedBitmap, contrast = 2.2f, binarize = true)
+                val forDisplayBitmap = ImageProcessor.applyOcrFilters(croppedBitmap, contrast = 1.8f, binarize = false)
                 
-                val fullText = blocos.joinToString("\n") { it.text }
+                val secondPassImage = InputImage.fromBitmap(forOcrBitmap, 0)
+                var secondPassText = recognizer.process(secondPassImage).await()
+                
+                var fullText = secondPassText.text
+                Timber.d("OCR_TEXT_EXTRAIDO (BINARIZED): \n$fullText")
+                
+                // FALLBACK: Se falhou na versão binarizada, tenta na versão de alto contraste (tons de cinza)
+                if (!isComprovantePonto(fullText)) {
+                    val fallbackImage = InputImage.fromBitmap(forDisplayBitmap, 0)
+                    secondPassText = recognizer.process(fallbackImage).await()
+                    fullText = secondPassText.text
+                    Timber.d("OCR_TEXT_EXTRAIDO (FALLBACK_GRAY): \n$fullText")
+                }
+
+                if (!isComprovantePonto(fullText)) {
+                    forOcrBitmap.recycle()
+                    forDisplayBitmap.recycle()
+                    croppedBitmap.recycle()
+                    continue
+                }
+                
                 val nsr = extrairNsr(fullText)
                 val data = extrairData(fullText)
                 val hora = extrairHoraMelhorada(fullText, horariosHabituais)
@@ -87,15 +107,54 @@ class OcrService @Inject constructor(
                 val pis = extrairPis(fullText)
                 val cnpj = extrairCnpj(fullText)
 
+                // Identifica linhas específicas para destaque preciso
+                val highlightedRects = mutableListOf<Rect>()
+                for (block in secondPassText.textBlocks) {
+                    for (line in block.lines) {
+                        val text = line.text.uppercase()
+                        
+                        // Destaque NSR (procura o label ou o valor)
+                        if (nsr != null && (text.contains("NSR") || text.contains(nsr))) {
+                            line.boundingBox?.let { highlightedRects.add(it) }
+                        }
+                        
+                        // Destaque Data (procura formatos comuns de data)
+                        if (data != null) {
+                            val dataStr = data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                            val dataCurta = data.format(DateTimeFormatter.ofPattern("dd/MM/yy"))
+                            if (text.contains(dataStr) || text.contains(dataCurta) || (text.contains("/") && text.length >= 8)) {
+                                line.boundingBox?.let { highlightedRects.add(it) }
+                            }
+                        }
+                        
+                        // Destaque Hora (procura o horário extraído)
+                        if (hora != null) {
+                            val horaStr = hora.format(DateTimeFormatter.ofPattern("HH:mm"))
+                            if (text.contains(horaStr) || (text.contains(":") && text.length >= 4 && text.length <= 8)) {
+                                line.boundingBox?.let { highlightedRects.add(it) }
+                            }
+                        }
+                        
+                        // Destaque Nome do Usuário
+                        if (nome != null && text.contains(nome.uppercase())) {
+                            line.boundingBox?.let { highlightedRects.add(it) }
+                        }
+                    }
+                }
+
+                val finalBitmap = if (highlightedRects.isNotEmpty()) {
+                    ImageProcessor.drawHighlights(forDisplayBitmap, highlightedRects)
+                } else {
+                    forDisplayBitmap
+                }
+
                 val isDuplicado = nsr?.let { pontoDao.existeNsr(it, empregoId) } ?: false
 
-                // Salva a imagem recortada e melhorada temporariamente ou associa ao resultado
-                // Para simplificar agora, salvamos no diretório de comprovantes com um nome temp
                 val fileName = "ocr_crop_${UUID.randomUUID()}.jpg"
                 val tempFile = File(context.cacheDir, fileName)
                 withContext(Dispatchers.IO) {
                     java.io.FileOutputStream(tempFile).use { out ->
-                        processedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                        finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                     }
                 }
 
@@ -119,7 +178,9 @@ class OcrService @Inject constructor(
                     ))
                 }
                 
-                processedBitmap.recycle()
+                if (finalBitmap != forDisplayBitmap) finalBitmap.recycle()
+                forOcrBitmap.recycle()
+                forDisplayBitmap.recycle()
                 croppedBitmap.recycle()
             }
 
@@ -172,12 +233,33 @@ class OcrService @Inject constructor(
                 bottom = maxOf(bottom, box.bottom)
             }
         }
-        return android.graphics.Rect(left, top, right, bottom)
+        return Rect(left, top, right, bottom)
+    }
+
+    /**
+     * Verifica se o texto extraído pertence a um comprovante de registro de ponto.
+     */
+    private fun isComprovantePonto(text: String): Boolean {
+        val t = text.uppercase()
+        // Mais resiliente a erros de OCR comuns no label principal
+        val temLabelComprovante = t.contains("COMPROVANTE") || 
+                                 t.contains("CONPROVANTE") || 
+                                 t.contains("COMPROVANE") ||
+                                 t.contains("RELAÇÃO")
+        
+        val temKeywordsPonto = t.contains("REGISTRO") || 
+                              t.contains("PONTO") || 
+                              t.contains("NSR") || 
+                              t.contains("TRABALHADOR") ||
+                              t.contains("PIS:")
+                              
+        return temLabelComprovante && temKeywordsPonto
     }
 
     /**
      * Busca um padrão de NSR no texto.
      * Para os modelos Inner REP Plus, o NSR costuma ter 9 dígitos.
+     * Agora retorna o número como String sem zeros à esquerda.
      */
     private fun extrairNsr(text: String): String? {
         // Normaliza o texto para tratar erros comuns de leitura do label
@@ -194,11 +276,13 @@ class OcrService @Inject constructor(
 
         val patterns = listOf(
             // Prioridade 1: Label "NSR:" seguido de exatamente 9 dígitos (modelo Inner REP Plus)
-            Pattern.compile("NSR[:\\s.]*(\\d{9})\\b", Pattern.CASE_INSENSITIVE),
-            // Prioridade 2: Label "NSR:" seguido de 9 a 17 dígitos
-            Pattern.compile("NSR[:\\s.]*(\\d{9,17})", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("NSR[:\\s.]*(\\d{9})", Pattern.CASE_INSENSITIVE),
+            // Prioridade 2: Label "NSR:" seguido de 1 a 17 dígitos
+            Pattern.compile("NSR[:\\s.]*(\\d{1,17})", Pattern.CASE_INSENSITIVE),
             // Prioridade 3: Sequência isolada de 9 dígitos que NÃO faça parte do número do REP
-            Pattern.compile("\\b(\\d{9})\\b")
+            Pattern.compile("\\b(\\d{9})\\b"),
+            // Prioridade 4: NSR colado com data ou CNPJ (comum em leituras ruins)
+            Pattern.compile("NSR:(\\d{1,9})", Pattern.CASE_INSENSITIVE)
         )
 
         for (pattern in patterns) {
@@ -207,7 +291,9 @@ class OcrService @Inject constructor(
                 val match = matcher.group(1) ?: matcher.group()
                 // Validação: se o que encontramos é apenas parte do número do REP, ignoramos
                 if (repsEncontrados.any { it.contains(match) }) continue
-                return match
+                
+                // Remove zeros à esquerda e retorna
+                return match.replaceFirst(Regex("^0+"), "").ifEmpty { "0" }
             }
         }
         return null
@@ -231,9 +317,12 @@ class OcrService @Inject constructor(
         for (i in patterns.indices) {
             val matcher = patterns[i].matcher(text)
             if (matcher.find()) {
-                try {
-                    return java.time.LocalDate.parse(matcher.group(1), formatters[i])
-                } catch (_: Exception) { continue }
+                val dateStr = matcher.group(1) ?: continue
+                return try {
+                    java.time.LocalDate.parse(dateStr, formatters[i])
+                } catch (_: Exception) {
+                    null
+                }
             }
         }
         return null
@@ -258,32 +347,37 @@ class OcrService @Inject constructor(
                         line.substring(label.length).trim()
                     }
                     
-                    // Valida se o que restou parece um nome (pelo menos 2 palavras, apenas letras)
-                    if (nomeExtraido.length >= 8 && nomeExtraido.matches(Regex("^[A-Z\\sÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ]+$", RegexOption.IGNORE_CASE))) {
-                        return nomeExtraido.uppercase()
+                    // Remove sufixos comuns que vêm na mesma linha (ex: PIS ou empresa)
+                    val nomeLimpo = nomeExtraido.split(Regex("[-/|]")).first().trim()
+                    
+                    if (nomeLimpo.length >= 5 && nomeLimpo.matches(Regex("^[A-Z\\sÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ]+$", RegexOption.IGNORE_CASE))) {
+                        return nomeLimpo.uppercase()
                     }
                 }
             }
         }
 
-        // 2. Fallback: Procura por linhas que pareçam nomes (letras maiúsculas longas sem números)
+        // 2. Fallback: Procura por linhas que pareçam nomes (letras maiúsculas longas sem muitos números)
+        // Refinado para aceitar nomes mesmo que contenham "SÍDIA" ou "MATRIZ" no final da linha
         for (line in lines) {
             val cleaned = line.trim()
             if (cleaned.isEmpty()) continue
             
-            // Ignora cabeçalhos e campos técnicos conhecidos
-            if (cleaned.contains("COMPROVANTE", true) || 
-                cleaned.contains("SÍDIA", true) ||
-                cleaned.contains("MATRIZ", true) ||
-                cleaned.contains("CNPJ", true) ||
-                cleaned.contains("CPF", true) ||
-                cleaned.contains("AV.", true) ||
-                cleaned.contains("RUA", true) ||
-                cleaned.any { it.isDigit() }) continue
+            // Ignora cabeçalhos e campos técnicos conhecidos (mas mantém a linha se o nome estiver no início)
+            val upperCleaned = cleaned.uppercase()
+            if (upperCleaned.startsWith("COMPROVANTE") || 
+                upperCleaned.startsWith("CNPJ") || 
+                upperCleaned.startsWith("CPF") || 
+                upperCleaned.startsWith("AV.") || 
+                upperCleaned.startsWith("RUA") ||
+                cleaned.count { it.isDigit() } > 5) continue
             
-            // Verifica se a linha tem apenas letras e espaços e é razoavelmente longa (nome completo)
-            if (cleaned.matches(Regex("^[A-Z\\s]{10,50}$"))) {
-                return cleaned
+            // Tenta pegar a parte antes de um hífen ou pipe
+            val possivelNome = cleaned.split(Regex("[-|]")).first().trim()
+            
+            // Verifica se a parte inicial tem apenas letras e espaços e é razoavelmente longa
+            if (possivelNome.matches(Regex("^[A-Z\\sÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ]{8,50}$", RegexOption.IGNORE_CASE))) {
+                return possivelNome.uppercase()
             }
         }
         return null
@@ -323,19 +417,19 @@ class OcrService @Inject constructor(
             .replace(Regex("\\b\\d{2}/\\d{2}/\\d{2}\\b"), " [DATA] ")
 
         // Regex para capturar horas, dando preferência para aquelas que estão perto de "REP" ou "PIS"
-        // Ou que estão no formato HH:mm isolado
-        val pattern = Pattern.compile("\\b([01]?[0-9]|2[0-3])[:.,\\s]([0-5][0-9])(?:[:.,\\s]([0-5][0-9]))?\\b")
+        // Ou que estão no formato HH:mm isolado. Suporta espaço após o separador.
+        val pattern = Pattern.compile("\\b([01]?[0-9]|2[0-3])[:.,\\s]\\s*([0-5][0-9])(?:[:.,\\s]\\s*([0-5][0-9]))?\\b")
         val matcher = pattern.matcher(textoSemDatas)
         
         val horasEncontradas = mutableListOf<LocalTime>()
         
         // Também vamos buscar especificamente o que vem antes de "REP"
-        val patternRep = Pattern.compile("(\\d{2}[:.,\\s]\\d{2})\\s*REP", Pattern.CASE_INSENSITIVE)
+        val patternRep = Pattern.compile("(\\d{2}[:.,\\s]\\s*\\d{2})\\s*REP", Pattern.CASE_INSENSITIVE)
         val matcherRep = patternRep.matcher(textoSemDatas)
         if (matcherRep.find()) {
             val horaStr = matcherRep.group(1)
             try {
-                val partes = horaStr!!.split(Regex("[:.,\\s]"))
+                val partes = horaStr!!.split(Regex("[:.,\\s]")).filter { it.isNotBlank() }
                 if (partes.size >= 2) {
                     val h = partes[0].toInt()
                     val m = partes[1].toInt()

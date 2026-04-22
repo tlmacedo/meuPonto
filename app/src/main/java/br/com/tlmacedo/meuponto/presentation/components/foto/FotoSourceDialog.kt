@@ -49,7 +49,7 @@ fun FotoSourceDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
+            shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
@@ -77,25 +77,27 @@ fun FotoSourceDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     SourceOption(
-//                        icon = Icons.Default.DocumentScanner,
-                        icon = Icons.Default.CameraAlt,
-                        label = "Câmera",
-                        onClick = onCustomCameraSelected
+                        icon = Icons.Default.DocumentScanner,
+                        label = "Escanear",
+                        onClick = onCameraSelected,
+                        modifier = Modifier.weight(1f)
                     )
 
-//                    SourceOption(
-//                        icon = Icons.Default.CameraAlt,
-//                        label = "Câmera",
-//                        onClick = onCameraSelected
-//                    )
+                    SourceOption(
+                        icon = Icons.Default.CameraAlt,
+                        label = "Câmera",
+                        onClick = onCustomCameraSelected,
+                        modifier = Modifier.weight(1f)
+                    )
 
                     SourceOption(
                         icon = Icons.Default.Photo,
                         label = "Galeria",
-                        onClick = onGallerySelected
+                        onClick = onGallerySelected,
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
@@ -116,11 +118,12 @@ fun FotoSourceDialog(
 private fun SourceOption(
     icon: ImageVector,
     label: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.size(120.dp),
+        modifier = modifier.height(110.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
@@ -144,8 +147,23 @@ private fun SourceOption(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview
+@Composable
+private fun FotoSourceDialogPreview() {
+    br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme {
+        FotoSourceDialog(
+            onDismiss = {},
+            onCameraSelected = {},
+            onCustomCameraSelected = {},
+            onGallerySelected = {}
+        )
     }
 }
