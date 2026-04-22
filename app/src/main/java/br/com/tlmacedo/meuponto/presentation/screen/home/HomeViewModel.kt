@@ -372,6 +372,7 @@ class HomeViewModel @Inject constructor(
                 _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ponto atualizado com sucesso"))
                 carregarPontosDoDia()
                 carregarBancoHoras()
+                atualizarWidget()
 
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Erro ao salvar edição: ${e.message}")
@@ -423,6 +424,7 @@ class HomeViewModel @Inject constructor(
                         _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ponto excluído com sucesso"))
                         carregarPontosDoDia()
                         carregarBancoHoras()
+                        atualizarWidget()
                     }
                     is ExcluirPontoUseCase.Resultado.Erro -> {
                         _uiState.update { state ->
@@ -1054,6 +1056,7 @@ class HomeViewModel @Inject constructor(
 
                     carregarPontosDoDia()
                     carregarBancoHoras()
+                    atualizarWidget()
                 }
 
                 is RegistrarPontoUseCase.Resultado.LocalizacaoObrigatoria -> {
@@ -1745,5 +1748,12 @@ class HomeViewModel @Inject constructor(
 
     private fun fecharDatePicker() {
         _uiState.update { it.copy(showDatePicker = false) }
+    }
+
+    private fun atualizarWidget() {
+        val request = androidx.work.OneTimeWorkRequestBuilder<br.com.tlmacedo.meuponto.presentation.widget.WidgetUpdateWorker>()
+            .build()
+        // O WorkManager usa o contexto da aplicação para agendar a tarefa de atualização do widget
+        androidx.work.WorkManager.getInstance(comprovanteImageStorage.appContext).enqueue(request)
     }
 }

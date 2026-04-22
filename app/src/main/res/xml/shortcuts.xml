@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="registrar_ponto"
+        android:enabled="true"
+        android:icon="@drawable/icone_meu_ponto"
+        android:shortcutShortLabel="@string/shortcut_registrar_ponto_short"
+        android:shortcutLongLabel="@string/shortcut_registrar_ponto_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="br.com.tlmacedo.meuponto"
+            android:targetClass="br.com.tlmacedo.meuponto.presentation.MainActivity">
+            <extra android:name="action" android:value="REGISTRAR_PONTO"/>
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="historico_pontos"
+        android:enabled="true"
+        android:icon="@drawable/icone_meu_ponto"
+        android:shortcutShortLabel="@string/shortcut_historico_pontos_short"
+        android:shortcutLongLabel="@string/shortcut_historico_pontos_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="br.com.tlmacedo.meuponto"
+            android:targetClass="br.com.tlmacedo.meuponto.presentation.MainActivity">
+            <extra android:name="action" android:value="ABRIR_HISTORICO"/>
+        </intent>
+    </shortcut>
+</shortcuts>

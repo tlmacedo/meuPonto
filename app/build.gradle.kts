@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.secrets.gradle)
     alias(libs.plugins.google.services)
@@ -114,6 +115,7 @@ dependencies {
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.kotlinx.serialization.json)
     ksp(libs.room.compiler)
     testImplementation(libs.room.testing)
     androidTestImplementation(libs.room.testing)
@@ -166,6 +168,11 @@ dependencies {
         exclude(group = "org.apache.httpcomponents")
     }
     implementation(libs.google.api.services.drive)
+
+    // Jetpack Glance (Widgets)
+    implementation(libs.androidx.glance)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
 
     // Testes
     testImplementation(libs.junit)

@@ -489,4 +489,12 @@
         <item quantity="other">Restam %d dias</item>
     </plurals>
 
+    <!-- ====================================================================
+         SHORTCUTS
+         ==================================================================== -->
+    <string name="shortcut_registrar_ponto_short">Registrar Agora</string>
+    <string name="shortcut_registrar_ponto_long">Registrar Ponto Agora</string>
+    <string name="shortcut_historico_pontos_short">Histórico</string>
+    <string name="shortcut_historico_pontos_long">Ver Histórico de Pontos</string>
+
 </resources>
