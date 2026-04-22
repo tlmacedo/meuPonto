@@ -247,7 +247,7 @@ private fun JornadaVersaoInfoCompact(
         Spacer(modifier = Modifier.width(3.dp))
         Icon(
             imageVector = Icons.Default.Schedule,
-            contentDescription = null,
+            contentDescription = "Jornada esperada",
             tint = corTexto,
             modifier = Modifier.size(12.dp)
         )
@@ -268,7 +268,7 @@ private fun JornadaVersaoInfoCompact(
             )
             Icon(
                 imageVector = Icons.Default.DateRange,
-                contentDescription = null,
+                contentDescription = "Período da jornada",
                 tint = corTexto,
                 modifier = Modifier.size(12.dp)
             )
@@ -296,7 +296,7 @@ private fun FeriadoJornadaInfo(
     ) {
         Icon(
             imageVector = Icons.Outlined.WorkOff,
-            contentDescription = null,
+            contentDescription = "Feriado",
             tint = corTexto,
             modifier = Modifier.size(12.dp)
         )
@@ -322,7 +322,7 @@ private fun DiaEspecialJornadaInfo(
     ) {
         Icon(
             imageVector = tipoDiaEspecial.getIcon(),
-            contentDescription = null,
+            contentDescription = tipoDiaEspecial.descricao,
             tint = tipoDiaEspecial.getCor(),
             modifier = Modifier.size(12.dp)
         )

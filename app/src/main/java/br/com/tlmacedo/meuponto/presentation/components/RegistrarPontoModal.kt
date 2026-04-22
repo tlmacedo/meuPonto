@@ -306,7 +306,7 @@ fun RegistrarPontoModal(
                             ) {
                                 Icon(
                                     Icons.Default.AddAPhoto,
-                                    contentDescription = null,
+                                    contentDescription = "Ícone de câmera",
                                     tint = corPrincipal
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -333,7 +333,7 @@ fun RegistrarPontoModal(
                         keyboardOptions = KeyboardOptions(
                             keyboardType = if (tipoNsr == TipoNsr.NUMERICO) KeyboardType.Number else KeyboardType.Text
                         ),
-                        leadingIcon = { Icon(Icons.Default.Pin, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Default.Pin, contentDescription = "Campo NSR") },
                         trailingIcon = if (state.nsrAutoFilled) {
                             {
                                 Icon(
@@ -357,7 +357,7 @@ fun RegistrarPontoModal(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4,
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Campo Observação") }
                     )
                     Spacer(modifier = Modifier.height(20.dp))
                 }
@@ -387,7 +387,7 @@ fun RegistrarPontoModal(
                             Icon(
                                 imageVector = if (state.erroLocalizacao != null) Icons.Default.LocationOff
                                 else Icons.Default.LocationOn,
-                                contentDescription = null,
+                                contentDescription = if (state.erroLocalizacao != null) "Erro na localização" else "Localização ativa",
                                 tint = if (state.erroLocalizacao != null) MaterialTheme.colorScheme.error
                                 else corPrincipal,
                                 modifier = Modifier.size(24.dp)

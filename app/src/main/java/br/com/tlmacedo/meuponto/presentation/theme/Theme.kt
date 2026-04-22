@@ -16,18 +16,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-private val DefaultLightColorScheme = lightColorScheme(
-    primary = DefaultPrimary,
-    secondary = DefaultSecondary,
-    tertiary = DefaultTertiary
-)
-
-private val DefaultDarkColorScheme = darkColorScheme(
-    primary = Color(0xFFD0BCFF),
-    secondary = Color(0xFFCCC2DC),
-    tertiary = Color(0xFFEFB8C8)
-)
-
 private val SidiaLightColorScheme = lightColorScheme(
     primary = SidiaBlue,
     onPrimary = Color.White,
@@ -150,24 +138,24 @@ private val AppTypography = Typography(
 @Composable
 fun MeuPontoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
+    dynamicColor: Boolean = true, // Ativado por padrão se disponível
     temaForcado: String = "system",
     content: @Composable () -> Unit
 ) {
+    val context = LocalContext.current
     val colorScheme = when (temaForcado) {
-        "light" -> DefaultLightColorScheme
-        "dark" -> DefaultDarkColorScheme
+        "light" -> SidiaLightColorScheme
+        "dark" -> SidiaDarkColorScheme
         "sidia" -> SidiaLightColorScheme
         "sidia_dark" -> SidiaDarkColorScheme
         "system" -> {
             if (dynamicColor) {
-                val context = LocalContext.current
                 if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             } else {
-                if (darkTheme) DefaultDarkColorScheme else DefaultLightColorScheme
+                if (darkTheme) SidiaDarkColorScheme else SidiaLightColorScheme
             }
         }
-        else -> if (darkTheme) DefaultDarkColorScheme else DefaultLightColorScheme
+        else -> if (darkTheme) SidiaDarkColorScheme else SidiaLightColorScheme
     }
 
     MaterialTheme(
