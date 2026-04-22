@@ -52,28 +52,28 @@ Este documento detalha as 5 fases de otimização do aplicativo MeuPonto, servin
 
 ---
 
-## 🖼️ Fase 4: Gestão de Ativos e Utilidades
+## 🖼️ Fase 4: Gestão de Ativos e Utilidades (Concluída ✅)
 *Foco: Organização de comprovantes e controle de armazenamento.*
 
 - [x] **4.1. Gerenciador de Comprovantes**
     - [x] Criar galeria integrada ao banco de dados (Room).
     - [x] Implementar filtros (Data, Emprego, Status de Associação).
     - [x] Implementar exclusão em lote para limpeza de storage.
-- [ ] **4.2. Painel de Sincronização**
-    - [ ] Criar dashboard com status do último backup (Local vs Nuvem).
-    - [ ] Botão de "Sincronizar Agora" com feedback de progresso.
+- [x] **4.2. Painel de Sincronização**
+    - [x] Criar dashboard com status do último backup (Local vs Nuvem).
+    - [x] Botão de "Sincronizar Agora" com feedback de progresso.
 - [x] **4.3. Refinamento de Captura**
     - [x] Adicionar detecção de bordas no scanner.
     - [x] Implementar corte manual e ferramentas de edição no visualizador de fotos (FotoPontoModal).
 
 ---
 
-## ✨ Fase 5: Modernização Visual e Recursos Pro
+## ✨ Fase 5: Modernização Visual e Recursos Pro (Em Andamento 🚧)
 *Foco: Estética Material 3, acessibilidade e performance.*
 
 - [ ] **5.1. Padronização Material Design 3**
     - [ ] Aplicar Cores Dinâmicas em todos os componentes.
-    - [ ] Implementar Shimmers para estados de carregamento.
+    - [x] Implementar Shimmers para estados de carregamento.
 - [ ] **5.2. Sincronização em Tempo Real**
     - [ ] (Opcional) Migrar para Firebase Realtime Database para múltiplos dispositivos.
 - [ ] **5.3. Acessibilidade e Polimento**

@@ -82,7 +82,7 @@ import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
-import br.com.tlmacedo.meuponto.presentation.components.LoadingIndicator
+import br.com.tlmacedo.meuponto.presentation.components.HistoryShimmerItem
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.Info
@@ -250,7 +250,17 @@ fun HistoryContent(
             )
 
             when {
-                uiState.isLoading -> LoadingIndicator()
+                uiState.isLoading -> {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(5) {
+                            HistoryShimmerItem()
+                        }
+                    }
+                }
                 uiState.filtroAtivo == FiltroHistorico.CALENDARIO -> {
                     CalendarView(
                         yearMonth = YearMonth.from(uiState.periodoSelecionado.dataInicio),
