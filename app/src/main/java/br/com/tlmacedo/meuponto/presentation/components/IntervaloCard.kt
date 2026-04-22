@@ -339,38 +339,63 @@ private fun PontoContent(
         Spacer(modifier = Modifier.height(2.dp))
 
         // Hora (com tolerância se aplicável)
-        if (horaConsiderada != null) {
-            Text(
-                text = horaReal,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                fontWeight = FontWeight.Medium,
-                textDecoration = TextDecoration.LineThrough
-            )
-            Text(
-                text = horaConsiderada,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-                color = corPrimaria
-            )
-        } else {
-            Text(
-                text = horaReal,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-                color = if (ponto.temAjusteTolerancia) corPrimaria else MaterialTheme.colorScheme.onSurface
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (horaConsiderada != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = horaReal,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontWeight = FontWeight.Medium,
+                        textDecoration = TextDecoration.LineThrough
+                    )
+                    Text(
+                        text = horaConsiderada,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = corPrimaria
+                    )
+                }
+            } else {
+                Text(
+                    text = horaReal,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = if (ponto.temAjusteTolerancia) corPrimaria else MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            if (ponto.horaAutoFilled) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "Extraído do comprovante",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
 
         // NSR (se disponível)
         if (!nsr.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "# $nsr",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "# $nsr",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                if (ponto.nsrAutoFilled) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "Extraído do comprovante",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
         }
     }
 }

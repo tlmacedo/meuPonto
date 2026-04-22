@@ -105,7 +105,8 @@ sealed interface HomeAction {
         val hora: LocalTime,
         val nsr: String?,
         val motivo: MotivoEdicao,
-        val detalhes: String?
+        val detalhes: String?,
+        val observacao: String? = null
     ) : HomeAction
 
     // ── EXCLUSÃO ────────────────────────────────────────────────────────────

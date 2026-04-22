@@ -56,6 +56,9 @@ data class Ponto(
     val justificativaInconsistencia: String? = null,
     val fotoComprovantePath: String? = null,
     val fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA,
+    val nsrAutoFilled: Boolean = false,
+    val horaAutoFilled: Boolean = false,
+    val dataAutoFilled: Boolean = false,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now(),
     // === Soft Delete ===
@@ -282,7 +285,10 @@ data class Ponto(
             endereco: String? = null,
             marcadorId: Long? = null,
             fotoComprovantePath: String? = null,
-            fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA
+            fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA,
+            nsrAutoFilled: Boolean = false,
+            horaAutoFilled: Boolean = false,
+            dataAutoFilled: Boolean = false
         ): Ponto {
             val agora = LocalDateTime.now()
             return Ponto(
@@ -297,6 +303,9 @@ data class Ponto(
                 marcadorId = marcadorId,
                 fotoComprovantePath = fotoComprovantePath,
                 fotoOrigem = fotoOrigem,
+                nsrAutoFilled = nsrAutoFilled,
+                horaAutoFilled = horaAutoFilled,
+                dataAutoFilled = dataAutoFilled,
                 criadoEm = agora,
                 atualizadoEm = agora
             )
@@ -316,7 +325,10 @@ data class Ponto(
             endereco: String? = null,
             marcadorId: Long? = null,
             fotoComprovantePath: String? = null,
-            fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA
+            fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA,
+            nsrAutoFilled: Boolean = false,
+            horaAutoFilled: Boolean = false,
+            dataAutoFilled: Boolean = false
         ): Ponto {
             val agora = LocalDateTime.now()
             return Ponto(
@@ -331,6 +343,9 @@ data class Ponto(
                 marcadorId = marcadorId,
                 fotoComprovantePath = fotoComprovantePath,
                 fotoOrigem = fotoOrigem,
+                nsrAutoFilled = nsrAutoFilled,
+                horaAutoFilled = horaAutoFilled,
+                dataAutoFilled = dataAutoFilled,
                 criadoEm = agora,
                 atualizadoEm = agora
             )

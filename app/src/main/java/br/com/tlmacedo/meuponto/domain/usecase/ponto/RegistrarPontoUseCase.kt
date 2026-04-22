@@ -54,7 +54,10 @@ class RegistrarPontoUseCase @Inject constructor(
         val nsr: String? = null,
         val latitude: Double? = null,
         val longitude: Double? = null,
-        val endereco: String? = null
+        val endereco: String? = null,
+        val nsrAutoFilled: Boolean = false,
+        val horaAutoFilled: Boolean = false,
+        val dataAutoFilled: Boolean = false
     )
 
     suspend operator fun invoke(parametros: Parametros = Parametros()): Resultado {
@@ -114,6 +117,9 @@ class RegistrarPontoUseCase @Inject constructor(
                 latitude = parametros.latitude,
                 longitude = parametros.longitude,
                 endereco = parametros.endereco,
+                nsrAutoFilled = parametros.nsrAutoFilled,
+                horaAutoFilled = parametros.horaAutoFilled,
+                dataAutoFilled = parametros.dataAutoFilled,
                 criadoEm = agora,
                 atualizadoEm = agora
             )

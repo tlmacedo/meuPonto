@@ -21,7 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -94,21 +96,27 @@ fun EdicaoModal(
     ponto: Ponto,
     tipoDescricao: String,
     onDismiss: () -> Unit,
-    onConfirmar: (hora: LocalTime, nsr: String?, motivo: MotivoEdicao, detalhes: String?) -> Unit,
+    onConfirmar: (hora: LocalTime, nsr: String?, motivo: MotivoEdicao, detalhes: String?, observacao: String?) -> Unit,
     isSaving: Boolean = false,
     mostrarNsr: Boolean = false,
     nsrHabilitado: Boolean = false,
     tipoNsr: TipoNsr = TipoNsr.NUMERICO,
     fotoHabilitada: Boolean = false,
+    comentarioHabilitado: Boolean = true,
     onCapturarFoto: () -> Unit = {},
     onRemoverFoto: () -> Unit = {}
 ) {
     var hora by remember { mutableStateOf(ponto.hora) }
     var nsr by remember { mutableStateOf(ponto.nsr ?: "") }
+    var observacao by remember { mutableStateOf(ponto.observacao ?: "") }
     var motivoSelecionado by remember { mutableStateOf(MotivoEdicao.NENHUM) }
     var detalhes by remember { mutableStateOf("") }
     var mostrarTimePicker by remember { mutableStateOf(false) }
     var expandedDropdown by remember { mutableStateOf(false) }
+
+    var nsrAutoFilled by remember { mutableStateOf(ponto.nsrAutoFilled) }
+    var horaAutoFilled by remember { mutableStateOf(ponto.horaAutoFilled) }
+    var dataAutoFilled by remember { mutableStateOf(ponto.dataAutoFilled) }
 
     val corPrincipal = if (tipoDescricao.contains("Entrada", ignoreCase = true)) EntradaColor else SaidaColor
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -129,7 +137,10 @@ fun EdicaoModal(
             titulo = "Alterar Horário",
             horaInicial = hora,
             onConfirm = { novaHora ->
-                hora = novaHora
+                if (novaHora != hora) {
+                    hora = novaHora
+                    horaAutoFilled = false
+                }
                 mostrarTimePicker = false
             },
             onDismiss = {
@@ -179,6 +190,15 @@ fun EdicaoModal(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (dataAutoFilled) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "Extraído do comprovante",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
 
                     if (!isSaving) {
@@ -216,6 +236,15 @@ fun EdicaoModal(
                             tint = corPrincipal.copy(alpha = 0.6f),
                             modifier = Modifier.size(24.dp)
                         )
+                        if (horaAutoFilled) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "Extraído do comprovante",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                     Text(
                         text = "Toque para ajustar o horário",
@@ -304,7 +333,10 @@ fun EdicaoModal(
                 if (nsrHabilitado) {
                     OutlinedTextField(
                         value = nsr,
-                        onValueChange = { nsr = it },
+                        onValueChange = { 
+                            nsr = it
+                            nsrAutoFilled = false
+                        },
                         label = { Text("NSR *") },
                         placeholder = { Text("Número Sequencial de Registro") },
                         modifier = Modifier.fillMaxWidth(),
@@ -313,6 +345,31 @@ fun EdicaoModal(
                             keyboardType = if (tipoNsr == TipoNsr.NUMERICO) KeyboardType.Number else KeyboardType.Text
                         ),
                         leadingIcon = { Icon(Icons.Default.Pin, contentDescription = null) },
+                        trailingIcon = if (nsrAutoFilled) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "Extraído do comprovante",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else null,
+                        enabled = !isSaving
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+
+                // OBSERVAÇÃO (se habilitada)
+                if (comentarioHabilitado) {
+                    OutlinedTextField(
+                        value = observacao,
+                        onValueChange = { observacao = it },
+                        label = { Text("Observação") },
+                        placeholder = { Text("Adicione um comentário opcional") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 4,
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Campo Observação") },
                         enabled = !isSaving
                     )
                     Spacer(modifier = Modifier.height(20.dp))
@@ -419,7 +476,8 @@ fun EdicaoModal(
                                 hora,
                                 nsr.ifBlank { null },
                                 motivoSelecionado,
-                                if (detalhes.isBlank()) null else detalhes.trim()
+                                if (detalhes.isBlank()) null else detalhes.trim(),
+                                observacao.ifBlank { null }
                             )
                         },
                         modifier = Modifier.weight(1f),

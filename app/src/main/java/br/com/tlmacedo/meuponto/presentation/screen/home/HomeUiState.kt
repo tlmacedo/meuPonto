@@ -163,6 +163,7 @@ data class RegistrarPontoModalState(
     val ocrSucesso: Boolean = false,
     val nsrAutoFilled: Boolean = false,
     val horaAutoFilled: Boolean = false,
+    val dataAutoFilled: Boolean = false,
     val showTimePicker: Boolean = false,
     val isObservacaoObrigatoria: Boolean = false,
     val erroLocalizacao: String? = null

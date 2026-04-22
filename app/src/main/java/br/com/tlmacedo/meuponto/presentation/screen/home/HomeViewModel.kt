@@ -147,7 +147,7 @@ class HomeViewModel @Inject constructor(
             is HomeAction.AtualizarFotoEdicaoModal -> atualizarFotoEdicaoModal(action.uri, action.origem)
             is HomeAction.RemoverFotoEdicaoModal -> removerFotoEdicaoModal()
             is HomeAction.SalvarEdicaoModal -> salvarEdicaoModal(
-                action.pontoId, action.hora, action.nsr, action.motivo, action.detalhes
+                action.pontoId, action.hora, action.nsr, action.motivo, action.detalhes, action.observacao
             )
             is HomeAction.AbrirExclusaoModal -> abrirExclusaoModal(action.ponto)
             is HomeAction.FecharExclusaoModal -> fecharExclusaoModal()
@@ -302,7 +302,8 @@ class HomeViewModel @Inject constructor(
         hora: LocalTime,
         nsr: String?,
         motivo: MotivoEdicao,
-        detalhes: String?
+        detalhes: String?,
+        observacao: String? = null
     ) {
         viewModelScope.launch {
             val modalState = _uiState.value.edicaoModal ?: return@launch
@@ -353,8 +354,11 @@ class HomeViewModel @Inject constructor(
                         fotoComprovantePath = novoPath,
                         fotoOrigem = modalState.fotoOrigem,
                         isEditadoManualmente = true,
+                        nsrAutoFilled = if (nsr != pontoAtual.nsr) false else pontoAtual.nsrAutoFilled,
+                        horaAutoFilled = if (hora != pontoAtual.hora) false else pontoAtual.horaAutoFilled,
+                        dataAutoFilled = pontoAtual.dataAutoFilled,
                         observacao = buildString {
-                            pontoAtual.observacao?.let { append(it).append(" | ") }
+                            observacao?.let { append(it).append(" | ") }
                             append("[Editado: $motivoCompleto]")
                         }.take(500),
                         atualizadoEm = LocalDateTime.now()
@@ -718,6 +722,7 @@ class HomeViewModel @Inject constructor(
                                         LocalDateTime.of(state.registrarPontoModal.dataHora.toLocalDate(), it)
                                     } ?: state.registrarPontoModal.dataHora,
                                     horaAutoFilled = resultado.hora != null,
+                                    dataAutoFilled = resultado.data != null,
                                     fotoUri = finalUri,
                                     isProcessingOcr = false,
                                     ocrSucesso = true
@@ -1012,7 +1017,10 @@ class HomeViewModel @Inject constructor(
                 nsr = if (_uiState.value.nsrHabilitado) modalState.nsr else null,
                 latitude = modalState.latitude,
                 longitude = modalState.longitude,
-                endereco = modalState.endereco
+                endereco = modalState.endereco,
+                nsrAutoFilled = modalState.nsrAutoFilled,
+                horaAutoFilled = modalState.horaAutoFilled,
+                dataAutoFilled = modalState.dataAutoFilled
             )
 
             // 1. Verificação de Duplicidade por Hash (Última trava antes de salvar)

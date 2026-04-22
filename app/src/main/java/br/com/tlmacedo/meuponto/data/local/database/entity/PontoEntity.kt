@@ -89,6 +89,12 @@ data class PontoEntity(
     val fotoComprovantePath: String? = null,
     @ColumnInfo(name = "foto_origem", defaultValue = "0")
     val fotoOrigem: Int = 0,
+    @ColumnInfo(name = "nsr_auto_filled", defaultValue = "0")
+    val nsrAutoFilled: Boolean = false,
+    @ColumnInfo(name = "hora_auto_filled", defaultValue = "0")
+    val horaAutoFilled: Boolean = false,
+    @ColumnInfo(name = "data_auto_filled", defaultValue = "0")
+    val dataAutoFilled: Boolean = false,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
     val atualizadoEm: LocalDateTime = LocalDateTime.now(),
 
@@ -125,6 +131,9 @@ fun PontoEntity.toDomain(): Ponto = Ponto(
     justificativaInconsistencia = justificativaInconsistencia,
     fotoComprovantePath = fotoComprovantePath,
     fotoOrigem = FotoOrigem.fromId(fotoOrigem),
+    nsrAutoFilled = nsrAutoFilled,
+    horaAutoFilled = horaAutoFilled,
+    dataAutoFilled = dataAutoFilled,
     criadoEm = criadoEm,
     atualizadoEm = atualizadoEm,
     isDeleted = isDeleted,
@@ -152,6 +161,9 @@ fun Ponto.toEntity(): PontoEntity = PontoEntity(
     justificativaInconsistencia = justificativaInconsistencia,
     fotoComprovantePath = fotoComprovantePath,
     fotoOrigem = fotoOrigem.id,
+    nsrAutoFilled = nsrAutoFilled,
+    horaAutoFilled = horaAutoFilled,
+    dataAutoFilled = dataAutoFilled,
     criadoEm = criadoEm,
     atualizadoEm = atualizadoEm,
     isDeleted = isDeleted,

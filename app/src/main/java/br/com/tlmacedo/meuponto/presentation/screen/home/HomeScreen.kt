@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.CircularProgressIndicator
@@ -284,7 +285,13 @@ private fun HomeDialogs(
             nsrHabilitado = uiState.nsrHabilitado, tipoNsr = uiState.tipoNsr, fotoHabilitada = uiState.fotoHabilitada,
             onCapturarFoto = { onAction(HomeAction.AbrirFotoSourceDialog) },
             onRemoverFoto = { onAction(HomeAction.RemoverFotoEdicaoModal) },
-            onConfirmar = { h, n, m, d -> onAction(HomeAction.SalvarEdicaoModal(modal.ponto.id, h, n, m, d)) },
+            onConfirmar = { h, n, m, d, o ->
+                onAction(
+                    HomeAction.SalvarEdicaoModal(
+                        modal.ponto.id, h, n, m, d, o
+                    )
+                )
+            },
             onDismiss = { onAction(HomeAction.FecharEdicaoModal) }
         )
     }
@@ -351,6 +358,15 @@ internal fun HomeContent(
                     Icon(Icons.Default.CalendarToday, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(uiState.dataFormatada, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    if (uiState.pontosHoje.any { it.dataAutoFilled }) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "Extraído do comprovante",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
                 IconButton(onClick = { onAction(HomeAction.ProximoDia) }, enabled = uiState.podeNavegarProximo) {
                     Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, "Próximo", Modifier.size(20.dp), if (uiState.podeNavegarProximo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(0.3f))
