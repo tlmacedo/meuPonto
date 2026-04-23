@@ -1,21 +1,22 @@
+// path: app/src/main/java/br/com/tlmacedo/meuponto/presentation/widget/MeuPontoWidget.kt
 package br.com.tlmacedo.meuponto.presentation.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.glance.Button
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.Image
-import androidx.glance.ImageProvider
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
+import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -25,116 +26,521 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.layout.wrapContentHeight
 import androidx.glance.state.GlanceStateDefinition
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import br.com.tlmacedo.meuponto.R
+import androidx.glance.unit.ColorProvider
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import br.com.tlmacedo.meuponto.presentation.MainActivity
-import androidx.glance.currentState
-import androidx.glance.state.PreferencesGlanceStateDefinition
 
 /**
- * Widget de tela inicial para o aplicativo MeuPonto.
- * 
- * Exibe o saldo de horas do dia e permite o registro rápido.
+ * Widget principal do MeuPonto.
  *
- * @author Thiago
- * @since 13.0.0
+ * Lê as chaves do DataStore gravadas pelo WidgetUpdateWorker e exibe
+ * até 5 layouts diferentes conforme o tamanho configurado no provider XML.
+ *
+ * Todas as keys são definidas no companion object [Keys] e lidas via
+ * `prefs[Keys.X]` — nunca passando a Key diretamente onde String é esperada.
  */
 class MeuPontoWidget : GlanceAppWidget() {
 
-    // Define onde o estado do widget será armazenado (DataStore de Preferências do Glance)
-    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+    override val stateDefinition: GlanceStateDefinition<*>
+        get() = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
+            val prefs = currentState<Preferences>()
             GlanceTheme {
-                WidgetContent()
+                WidgetContent(prefs = prefs, context = context)
             }
         }
     }
 
-    @Composable
-    private fun WidgetContent() {
-        // Recupera os dados persistidos no estado do widget
-        val prefs = currentState<androidx.datastore.preferences.core.Preferences>()
-        val horasHoje = prefs[androidx.datastore.preferences.core.stringPreferencesKey("horas_hoje")] ?: "00:00"
-        val proximoPonto = prefs[androidx.datastore.preferences.core.stringPreferencesKey("proximo_ponto")] ?: "Entrada"
-        val apelidoEmprego = prefs[androidx.datastore.preferences.core.stringPreferencesKey("apelido_emprego")] ?: "Meu Ponto"
+    // =========================================================================
+    // CHAVES DO DATASTORE — único ponto de verdade
+    // Devem bater EXATAMENTE com as keys gravadas no WidgetUpdateWorker
+    // =========================================================================
 
+    object Keys {
+        // identificação
+        val KEY_APELIDO        = stringPreferencesKey("apelido_emprego")
+
+        // horas trabalhadas e saldo do dia
+        val KEY_HORAS_HOJE     = stringPreferencesKey("horas_hoje")
+        val KEY_SALDO_DIA      = stringPreferencesKey("saldo_dia")
+        val KEY_SALDO_DIA_NEG  = stringPreferencesKey("saldo_dia_negativo")
+
+        // saldo total (banco de horas)
+        val KEY_SALDO_TOTAL    = stringPreferencesKey("saldo_total")
+        val KEY_SALDO_TOTAL_NEG = stringPreferencesKey("saldo_total_negativo")
+
+        // saldo semanal e mensal (widget 4x2)
+        val KEY_SALDO_SEMANA     = stringPreferencesKey("saldo_semana")
+        val KEY_SALDO_SEMANA_NEG = stringPreferencesKey("saldo_semana_negativo")
+        val KEY_SALDO_MES        = stringPreferencesKey("saldo_mes")
+        val KEY_SALDO_MES_NEG    = stringPreferencesKey("saldo_mes_negativo")
+
+        // registros do dia
+        val KEY_REG1 = stringPreferencesKey("registro_1")
+        val KEY_REG2 = stringPreferencesKey("registro_2")
+        val KEY_REG3 = stringPreferencesKey("registro_3")
+        val KEY_REG4 = stringPreferencesKey("registro_4")
+
+        // previsão de saída e atualização
+        val KEY_PREVISAO     = stringPreferencesKey("previsao_saida")
+        val KEY_ATUALIZACAO  = stringPreferencesKey("ultima_atualizacao")
+    }
+}
+
+// =============================================================================
+// CONTEÚDO DO WIDGET
+// =============================================================================
+
+@Composable
+private fun WidgetContent(prefs: Preferences, context: Context) {
+    val keys = MeuPontoWidget.Keys
+
+    // Leitura correta: prefs[Key] → String?
+    val apelido      = prefs[keys.KEY_APELIDO]       ?: "Meu emprego"
+    val horasHoje    = prefs[keys.KEY_HORAS_HOJE]    ?: "--h --min"
+    val saldoDia     = prefs[keys.KEY_SALDO_DIA]     ?: "+00h 00min"
+    val saldoDiaNeg  = prefs[keys.KEY_SALDO_DIA_NEG] == "true"
+    val saldoTotal   = prefs[keys.KEY_SALDO_TOTAL]   ?: "+00h 00min"
+    val saldoTotalNeg = prefs[keys.KEY_SALDO_TOTAL_NEG] == "true"
+    val saldoSemana  = prefs[keys.KEY_SALDO_SEMANA]  ?: "+00h 00min"
+    val saldoSemanaNeg = prefs[keys.KEY_SALDO_SEMANA_NEG] == "true"
+    val saldoMes     = prefs[keys.KEY_SALDO_MES]     ?: "+00h 00min"
+    val saldoMesNeg  = prefs[keys.KEY_SALDO_MES_NEG] == "true"
+    val reg1         = prefs[keys.KEY_REG1]          ?: "--:--"
+    val reg2         = prefs[keys.KEY_REG2]          ?: "--:--"
+    val reg3         = prefs[keys.KEY_REG3]          ?: "--:--"
+    val reg4         = prefs[keys.KEY_REG4]          ?: "--:--"
+    val previsao     = prefs[keys.KEY_PREVISAO]      ?: "--:--"
+    val atualizacao  = prefs[keys.KEY_ATUALIZACAO]   ?: "--/--/---- --:--"
+
+    Box(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(GlanceTheme.colors.widgetBackground)
+            .clickable(actionStartActivity<MainActivity>())
+    ) {
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .background(GlanceTheme.colors.surface)
-                .padding(12.dp)
-                .clickable(actionStartActivity<MainActivity>()),
-            verticalAlignment = Alignment.Top,
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Header: Ícone + Nome do Emprego Ativo
+            // Cabeçalho: nome do emprego
+            Text(
+                text = apelido.uppercase(),
+                style = TextStyle(
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GlanceTheme.colors.onSurface
+                ),
+                maxLines = 1
+            )
+
+            Spacer(modifier = GlanceModifier.height(8.dp))
+
+            // Linha principal: 3 colunas
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    provider = ImageProvider(R.drawable.icone_meu_ponto),
-                    contentDescription = "Logo App",
-                    modifier = GlanceModifier.size(20.dp)
+                // Coluna 1: Trab. no dia
+                InfoColuna(
+                    titulo = "Trab. no dia",
+                    valor = horasHoje,
+                    isNegativo = false,
+                    modifier = GlanceModifier.defaultWeight()
                 )
-                Spacer(modifier = GlanceModifier.width(8.dp))
-                Text(
-                    text = apelidoEmprego,
-                    style = TextStyle(
-                        color = GlanceTheme.colors.onSurface,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    ),
+
+                Spacer(modifier = GlanceModifier.width(4.dp))
+
+                // Coluna 2: Saldo do dia
+                InfoColuna(
+                    titulo = "Saldo do dia",
+                    valor = saldoDia,
+                    isNegativo = saldoDiaNeg,
+                    modifier = GlanceModifier.defaultWeight()
+                )
+
+                Spacer(modifier = GlanceModifier.width(4.dp))
+
+                // Coluna 3: Saldo total
+                InfoColuna(
+                    titulo = "Saldo total",
+                    valor = saldoTotal,
+                    isNegativo = saldoTotalNeg,
                     modifier = GlanceModifier.defaultWeight()
                 )
             }
 
-            Spacer(modifier = GlanceModifier.height(10.dp))
+            Spacer(modifier = GlanceModifier.height(8.dp))
 
-            // Body: Resumo das Horas Trabalhadas Hoje
-            Column(
-                modifier = GlanceModifier
-                    .fillMaxWidth()
-                    .background(GlanceTheme.colors.secondaryContainer)
-                    .padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Rodapé: previsão de saída
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Trabalhado Hoje",
+                    text = "Previsão de saída: $previsao",
                     style = TextStyle(
-                        color = GlanceTheme.colors.onSecondaryContainer,
-                        fontSize = 10.sp
+                        fontSize = 9.sp,
+                        color = GlanceTheme.colors.onSurfaceVariant
                     )
                 )
-                Text(
-                    text = horasHoje,
-                    style = TextStyle(
-                        color = GlanceTheme.colors.onSecondaryContainer,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+
+                Spacer(modifier = GlanceModifier.defaultWeight())
+
+                // Botão refresh
+                Box(
+                    modifier = GlanceModifier
+                        .clickable {
+                            WorkManager.getInstance(context).enqueueUniqueWork(
+                                WidgetUpdateWorker.WORK_NAME,
+                                ExistingWorkPolicy.REPLACE,
+                                OneTimeWorkRequestBuilder<WidgetUpdateWorker>().build()
+                            )
+                        }
+                ) {
+                    Text(
+                        text = "↻",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = GlanceTheme.colors.primary
+                        )
                     )
-                )
+                }
             }
 
-            Spacer(modifier = GlanceModifier.height(10.dp))
-
-            // Ação Rápida: Botão para Registrar o Próximo Ponto
-            Button(
-                text = "Registrar $proximoPonto",
-                onClick = actionStartActivity<MainActivity>(),
-                modifier = GlanceModifier.fillMaxWidth()
+            // Última atualização
+            Text(
+                text = "Atualizado: $atualizacao",
+                style = TextStyle(
+                    fontSize = 8.sp,
+                    color = GlanceTheme.colors.onSurfaceVariant
+                )
             )
         }
     }
 }
 
+// Widget: saldo total (2x1)
+class MeuPontoWidgetSaldoTotal : GlanceAppWidget() {
+    override val stateDefinition: GlanceStateDefinition<*>
+        get() = PreferencesGlanceStateDefinition
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            val prefs = currentState<Preferences>()
+            val keys  = MeuPontoWidget.Keys
+            GlanceTheme {
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .background(GlanceTheme.colors.widgetBackground)
+                        .padding(12.dp)
+                        .clickable(actionStartActivity<MainActivity>()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    InfoColuna(
+                        titulo = "Saldo total",
+                        valor   = prefs[keys.KEY_SALDO_TOTAL]    ?: "+00h 00min",
+                        isNegativo = prefs[keys.KEY_SALDO_TOTAL_NEG] == "true"
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Widget: trab. no dia (2x1)
+class MeuPontoWidgetTrabDia : GlanceAppWidget() {
+    override val stateDefinition: GlanceStateDefinition<*>
+        get() = PreferencesGlanceStateDefinition
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            val prefs = currentState<Preferences>()
+            val keys  = MeuPontoWidget.Keys
+            GlanceTheme {
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .background(GlanceTheme.colors.widgetBackground)
+                        .padding(12.dp)
+                        .clickable(actionStartActivity<MainActivity>()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    InfoColuna(
+                        titulo = "Trab. no dia",
+                        valor  = prefs[keys.KEY_HORAS_HOJE] ?: "--h --min",
+                        isNegativo = false
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Widget: últimos registros (4x1)
+class MeuPontoWidgetRegistros : GlanceAppWidget() {
+    override val stateDefinition: GlanceStateDefinition<*>
+        get() = PreferencesGlanceStateDefinition
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            val prefs = currentState<Preferences>()
+            val keys  = MeuPontoWidget.Keys
+            GlanceTheme {
+                Column(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .background(GlanceTheme.colors.widgetBackground)
+                        .padding(12.dp)
+                        .clickable(actionStartActivity<MainActivity>()),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Registros de hoje",
+                        style = TextStyle(
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GlanceTheme.colors.onSurface
+                        )
+                    )
+                    Spacer(modifier = GlanceModifier.height(4.dp))
+                    Row(modifier = GlanceModifier.fillMaxWidth()) {
+                        listOf(
+                            prefs[keys.KEY_REG1] ?: "--:--",
+                            prefs[keys.KEY_REG2] ?: "--:--",
+                            prefs[keys.KEY_REG3] ?: "--:--",
+                            prefs[keys.KEY_REG4] ?: "--:--"
+                        ).forEach { reg ->
+                            Box(
+                                modifier = GlanceModifier.defaultWeight(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = reg,
+                                    style = TextStyle(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = GlanceTheme.colors.primary
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = GlanceModifier.height(4.dp))
+                    Text(
+                        text = "Prev. saída: ${prefs[keys.KEY_PREVISAO] ?: "--:--"}",
+                        style = TextStyle(
+                            fontSize = 8.sp,
+                            color = GlanceTheme.colors.onSurfaceVariant
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Widget: detalhado (4x2)
+class MeuPontoWidgetDetalhado : GlanceAppWidget() {
+    override val stateDefinition: GlanceStateDefinition<*>
+        get() = PreferencesGlanceStateDefinition
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            val prefs = currentState<Preferences>()
+            val keys  = MeuPontoWidget.Keys
+            GlanceTheme {
+                Column(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .background(GlanceTheme.colors.widgetBackground)
+                        .padding(12.dp)
+                        .clickable(actionStartActivity<MainActivity>())
+                ) {
+                    // Cabeçalho
+                    Text(
+                        text = (prefs[keys.KEY_APELIDO] ?: "Meu emprego").uppercase(),
+                        style = TextStyle(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GlanceTheme.colors.onSurface
+                        ),
+                        maxLines = 1
+                    )
+
+                    Spacer(modifier = GlanceModifier.height(6.dp))
+
+                    // Linha 1: trab. dia / saldo dia / saldo total
+                    Row(modifier = GlanceModifier.fillMaxWidth()) {
+                        InfoColuna(
+                            titulo = "Trab. no dia",
+                            valor  = prefs[keys.KEY_HORAS_HOJE] ?: "--h --min",
+                            isNegativo = false,
+                            modifier = GlanceModifier.defaultWeight()
+                        )
+                        Spacer(modifier = GlanceModifier.width(4.dp))
+                        InfoColuna(
+                            titulo = "Saldo dia",
+                            valor  = prefs[keys.KEY_SALDO_DIA] ?: "+00h 00min",
+                            isNegativo = prefs[keys.KEY_SALDO_DIA_NEG] == "true",
+                            modifier = GlanceModifier.defaultWeight()
+                        )
+                        Spacer(modifier = GlanceModifier.width(4.dp))
+                        InfoColuna(
+                            titulo = "Saldo total",
+                            valor  = prefs[keys.KEY_SALDO_TOTAL] ?: "+00h 00min",
+                            isNegativo = prefs[keys.KEY_SALDO_TOTAL_NEG] == "true",
+                            modifier = GlanceModifier.defaultWeight()
+                        )
+                    }
+
+                    Spacer(modifier = GlanceModifier.height(4.dp))
+
+                    // Linha 2: saldo semana / saldo mês
+                    Row(modifier = GlanceModifier.fillMaxWidth()) {
+                        InfoColuna(
+                            titulo = "Saldo semana",
+                            valor  = prefs[keys.KEY_SALDO_SEMANA] ?: "+00h 00min",
+                            isNegativo = prefs[keys.KEY_SALDO_SEMANA_NEG] == "true",
+                            modifier = GlanceModifier.defaultWeight()
+                        )
+                        Spacer(modifier = GlanceModifier.width(4.dp))
+                        InfoColuna(
+                            titulo = "Saldo mês",
+                            valor  = prefs[keys.KEY_SALDO_MES] ?: "+00h 00min",
+                            isNegativo = prefs[keys.KEY_SALDO_MES_NEG] == "true",
+                            modifier = GlanceModifier.defaultWeight()
+                        )
+                    }
+
+                    Spacer(modifier = GlanceModifier.height(4.dp))
+
+                    // Linha 3: registros do dia
+                    Row(modifier = GlanceModifier.fillMaxWidth()) {
+                        listOf(
+                            prefs[keys.KEY_REG1] ?: "--:--",
+                            prefs[keys.KEY_REG2] ?: "--:--",
+                            prefs[keys.KEY_REG3] ?: "--:--",
+                            prefs[keys.KEY_REG4] ?: "--:--"
+                        ).forEach { reg ->
+                            Box(
+                                modifier = GlanceModifier.defaultWeight(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = reg,
+                                    style = TextStyle(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = GlanceTheme.colors.primary
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = GlanceModifier.height(4.dp))
+
+                    // Rodapé
+                    Row(modifier = GlanceModifier.fillMaxWidth()) {
+                        Text(
+                            text = "Saída: ${prefs[keys.KEY_PREVISAO] ?: "--:--"}",
+                            style = TextStyle(
+                                fontSize = 8.sp,
+                                color = GlanceTheme.colors.onSurfaceVariant
+                            )
+                        )
+                        Spacer(modifier = GlanceModifier.defaultWeight())
+                        Text(
+                            text = prefs[keys.KEY_ATUALIZACAO] ?: "--",
+                            style = TextStyle(
+                                fontSize = 8.sp,
+                                color = GlanceTheme.colors.onSurfaceVariant
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =============================================================================
+// COMPONENTE REUTILIZÁVEL
+// =============================================================================
+
+@Composable
+private fun InfoColuna(
+    titulo: String,
+    valor: String,
+    isNegativo: Boolean,
+    modifier: GlanceModifier = GlanceModifier
+) {
+    val corValor = if (isNegativo) {
+        ColorProvider(androidx.compose.ui.graphics.Color(0xFFD32F2F))
+    } else {
+        GlanceTheme.colors.primary
+    }
+
+    Column(
+        modifier = modifier.wrapContentHeight(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = titulo,
+            style = TextStyle(
+                fontSize = 8.sp,
+                color = GlanceTheme.colors.onSurfaceVariant
+            ),
+            maxLines = 1
+        )
+        Spacer(modifier = GlanceModifier.height(2.dp))
+        Text(
+            text = valor,
+            style = TextStyle(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = corValor
+            ),
+            maxLines = 1
+        )
+    }
+}
+
+// =============================================================================
+// RECEIVERS
+// =============================================================================
+
 class MeuPontoWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = MeuPontoWidget()
+}
+
+class MeuPontoWidgetSaldoTotalReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = MeuPontoWidgetSaldoTotal()
+}
+
+class MeuPontoWidgetTrabDiaReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = MeuPontoWidgetTrabDia()
+}
+
+class MeuPontoWidgetRegistrosReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = MeuPontoWidgetRegistros()
+}
+
+class MeuPontoWidgetDetalhadoReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = MeuPontoWidgetDetalhado()
 }

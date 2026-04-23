@@ -283,8 +283,13 @@ private fun HomeDialogs(
         EdicaoModal(
             ponto = modal.ponto, tipoDescricao = modal.tipoDescricao, isSaving = modal.isSaving,
             nsrHabilitado = uiState.nsrHabilitado, tipoNsr = uiState.tipoNsr, fotoHabilitada = uiState.fotoHabilitada,
+            fotoUri = modal.fotoUri,
+            fotoPathAbsoluto = modal.fotoPathAbsoluto,
+            fotoRemovida = modal.fotoRemovida,
+            isProcessingOcr = modal.isProcessingOcr,
             onCapturarFoto = { onAction(HomeAction.AbrirFotoSourceDialog) },
             onRemoverFoto = { onAction(HomeAction.RemoverFotoEdicaoModal) },
+            onReprocessarOcr = { onAction(HomeAction.ReprocessarOcrEdicaoModal) },
             onConfirmar = { h, n, m, d, o ->
                 onAction(
                     HomeAction.SalvarEdicaoModal(

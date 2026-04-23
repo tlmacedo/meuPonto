@@ -99,6 +99,9 @@ sealed interface HomeAction {
     /** Remove a foto no modal de edição */
     data object RemoverFotoEdicaoModal : HomeAction
 
+    /** Reprocessa o OCR da foto atual no modal de edição */
+    data object ReprocessarOcrEdicaoModal : HomeAction
+
     /** Salva as alterações do modal de edição */
     data class SalvarEdicaoModal(
         val pontoId: Long,

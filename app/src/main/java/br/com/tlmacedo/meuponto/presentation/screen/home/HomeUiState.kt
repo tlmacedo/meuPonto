@@ -78,8 +78,11 @@ data class EdicaoModalState(
     val indicePonto: Int = 0,
     val isSaving: Boolean = false,
     val fotoUri: Uri? = null,
+    val fotoPathAbsoluto: String? = null,
     val fotoOrigem: FotoOrigem = FotoOrigem.NENHUMA,
-    val fotoRemovida: Boolean = false
+    val fotoRemovida: Boolean = false,
+    val isProcessingOcr: Boolean = false,
+    val ocrSucesso: Boolean = false
 ) {
     /** Determina o tipo do ponto baseado no índice (ímpar = entrada, par = saída) */
     val tipoPonto: TipoPonto

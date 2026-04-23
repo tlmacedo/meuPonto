@@ -97,6 +97,7 @@ object DatabaseModule {
                 MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
                 MIGRATION_41_42
             )
+            .fallbackToDestructiveMigration(true)
             .addCallback(createDatabaseCallback())
             .build()
     }

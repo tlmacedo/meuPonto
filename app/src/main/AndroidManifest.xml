@@ -74,9 +74,9 @@
             android:enabled="true"
             android:exported="false" />
 
-        <!-- Widget MeuPonto -->
+        <!-- Widget 2x1: Saldo total -->
         <receiver
-            android:name=".presentation.widget.MeuPontoWidgetReceiver"
+            android:name=".presentation.widget.MeuPontoWidgetSaldoTotalReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -84,7 +84,46 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/meuponto_widget_info" />
+                android:resource="@xml/meuponto_widget_saldo_total_info" />
+        </receiver>
+
+        <!-- Widget 2x1: Trab. no dia -->
+        <receiver
+            android:name=".presentation.widget.MeuPontoWidgetTrabDiaReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/meuponto_widget_trab_dia_info" />
+        </receiver>
+
+        <!-- Widget 4x1: Últimos registros -->
+        <receiver
+            android:name=".presentation.widget.MeuPontoWidgetRegistrosReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/meuponto_widget_registros_info" />
+        </receiver>
+
+        <!-- Widget 4x2: Detalhado -->
+        <receiver
+            android:name=".presentation.widget.MeuPontoWidgetDetalhadoReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/meuponto_widget_detalhado_info" />
         </receiver>
 
     </application>

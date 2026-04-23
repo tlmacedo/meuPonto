@@ -146,6 +146,7 @@ class HomeViewModel @Inject constructor(
             is HomeAction.FecharEdicaoModal -> fecharEdicaoModal()
             is HomeAction.AtualizarFotoEdicaoModal -> atualizarFotoEdicaoModal(action.uri, action.origem)
             is HomeAction.RemoverFotoEdicaoModal -> removerFotoEdicaoModal()
+            is HomeAction.ReprocessarOcrEdicaoModal -> reprocessarOcrEdicaoModal()
             is HomeAction.SalvarEdicaoModal -> salvarEdicaoModal(
                 action.pontoId, action.hora, action.nsr, action.motivo, action.detalhes, action.observacao
             )
@@ -260,11 +261,18 @@ class HomeViewModel @Inject constructor(
 
     private fun abrirEdicaoModal(ponto: Ponto) {
         val indice = _uiState.value.getIndicePonto(ponto.id)
+        
+        val fotoPathAbsoluto = ponto.fotoComprovantePath?.let { relativePath ->
+            if (relativePath.startsWith("/")) relativePath
+            else comprovanteImageStorage.getComprovantesDirectory()?.resolve(relativePath)?.absolutePath
+        }
+
         _uiState.update {
             it.copy(
                 edicaoModal = EdicaoModalState(
                     ponto = ponto,
-                    indicePonto = indice
+                    indicePonto = indice,
+                    fotoPathAbsoluto = fotoPathAbsoluto
                 )
             )
         }
@@ -280,9 +288,67 @@ class HomeViewModel @Inject constructor(
                 edicaoModal = state.edicaoModal?.copy(
                     fotoUri = uri,
                     fotoOrigem = origem,
-                    fotoRemovida = uri == null
-                )
+                    fotoRemovida = uri == null,
+                    isProcessingOcr = uri != null && state.configuracaoEmprego?.fotoRegistrarPontoOcr == true
+                ),
+                showFotoSourceDialog = false
             )
+        }
+
+        if (uri != null && _uiState.value.configuracaoEmprego?.fotoRegistrarPontoOcr == true) {
+            viewModelScope.launch {
+                val configuracao = _uiState.value.configuracaoEmprego ?: return@launch
+                val dataSelecionada = _uiState.value.dataSelecionada
+                val empregoAtivo = _uiState.value.empregoAtivo ?: return@launch
+                val empregoId = empregoAtivo.id
+                
+                // Busca horários habituais
+                val diaSemana = DiaSemana.fromJavaDayOfWeek(dataSelecionada.dayOfWeek)
+                val horarioDia = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+                val habituais = listOfNotNull(
+                    horarioDia?.entradaIdeal,
+                    horarioDia?.saidaIntervaloIdeal,
+                    horarioDia?.voltaIntervaloIdeal,
+                    horarioDia?.saidaIdeal
+                )
+
+                val resultadosOcr = ocrService.extrairDadosMultiplosComprovantes(
+                    uri = uri,
+                    horariosHabituais = habituais,
+                    empregoId = empregoId
+                )
+                
+                if (resultadosOcr.isNotEmpty()) {
+                    val resultado = resultadosOcr.first()
+                    val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
+                    val finalUri = resultado.imagemRecortadaPath?.let { Uri.fromFile(java.io.File(it)) } ?: uri
+
+                    _uiState.update { state ->
+                        state.copy(
+                            edicaoModal = state.edicaoModal?.copy(
+                                ocrSucesso = true,
+                                isProcessingOcr = false,
+                                fotoUri = finalUri,
+                                ponto = state.edicaoModal.ponto.copy(
+                                    nsr = if (configuracao.habilitarNsr) (nsrLimpissimo ?: state.edicaoModal.ponto.nsr) else state.edicaoModal.ponto.nsr,
+                                    nsrAutoFilled = configuracao.habilitarNsr && nsrLimpissimo != null,
+                                    dataHora = resultado.hora?.let { 
+                                        LocalDateTime.of(state.edicaoModal.ponto.data, it)
+                                    } ?: state.edicaoModal.ponto.dataHora,
+                                    horaAutoFilled = resultado.hora != null,
+                                    dataAutoFilled = resultado.data != null
+                                )
+                            )
+                        )
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Dados extraídos com sucesso!"))
+                } else {
+                    _uiState.update { state ->
+                        state.copy(edicaoModal = state.edicaoModal?.copy(isProcessingOcr = false))
+                    }
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Não foi possível extrair dados automaticamente."))
+                }
+            }
         }
     }
 
@@ -291,10 +357,18 @@ class HomeViewModel @Inject constructor(
             state.copy(
                 edicaoModal = state.edicaoModal?.copy(
                     fotoUri = null,
+                    fotoPathAbsoluto = null,
                     fotoRemovida = true
                 )
             )
         }
+    }
+
+    private fun reprocessarOcrEdicaoModal() {
+        val modal = _uiState.value.edicaoModal ?: return
+        val uri = modal.fotoUri ?: modal.fotoPathAbsoluto?.let { Uri.fromFile(java.io.File(it)) } ?: return
+        
+        atualizarFotoEdicaoModal(uri, modal.fotoOrigem)
     }
 
     private fun salvarEdicaoModal(
@@ -1700,13 +1774,22 @@ class HomeViewModel @Inject constructor(
     private fun confirmarFotoCamera() {
         val uri = _uiState.value.cameraUri ?: return
         fecharFotoSourceDialog()
-        // O HomeScreen já trata o caso do modal de registro.
-        // Se houver necessidade de tratar fora do modal, a lógica entraria aqui.
+        
+        if (_uiState.value.registrarPontoModal != null) {
+            atualizarFotoRegistroModal(uri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
+        } else if (_uiState.value.edicaoModal != null) {
+            atualizarFotoEdicaoModal(uri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
+        }
     }
 
-    private fun selecionarFotoComprovante(uri: Uri) {
+    private fun selecionarFotoComprovante(uri: android.net.Uri) {
         fecharFotoSourceDialog()
-        // Idem ao confirmarFotoCamera
+        
+        if (_uiState.value.registrarPontoModal != null) {
+            atualizarFotoRegistroModal(uri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA)
+        } else if (_uiState.value.edicaoModal != null) {
+            atualizarFotoEdicaoModal(uri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA)
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════

@@ -2,6 +2,7 @@
 
 package br.com.tlmacedo.meuponto.presentation.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Pin
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -102,9 +104,14 @@ fun EdicaoModal(
     nsrHabilitado: Boolean = false,
     tipoNsr: TipoNsr = TipoNsr.NUMERICO,
     fotoHabilitada: Boolean = false,
+    fotoUri: android.net.Uri? = null,
+    fotoPathAbsoluto: String? = null,
+    fotoRemovida: Boolean = false,
+    isProcessingOcr: Boolean = false,
     comentarioHabilitado: Boolean = true,
     onCapturarFoto: () -> Unit = {},
-    onRemoverFoto: () -> Unit = {}
+    onRemoverFoto: () -> Unit = {},
+    onReprocessarOcr: () -> Unit = {}
 ) {
     var hora by remember { mutableStateOf(ponto.hora) }
     var nsr by remember { mutableStateOf(ponto.nsr ?: "") }
@@ -264,9 +271,10 @@ fun EdicaoModal(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
-                    val fotoExistente = !ponto.fotoComprovantePath.isNullOrBlank() && File(ponto.fotoComprovantePath).exists()
+                    val temNovaFoto = fotoUri != null
+                    val temFotoExistente = !fotoRemovida && !fotoPathAbsoluto.isNullOrBlank() && File(fotoPathAbsoluto).exists()
 
-                    if (fotoExistente) {
+                    if (temNovaFoto || temFotoExistente) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -274,7 +282,7 @@ fun EdicaoModal(
                                 .clip(RoundedCornerShape(12.dp))
                         ) {
                             AsyncImage(
-                                model = File(ponto.fotoComprovantePath!!),
+                                model = if (temNovaFoto) fotoUri else File(fotoPathAbsoluto!!),
                                 contentDescription = "Comprovante",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -294,6 +302,65 @@ fun EdicaoModal(
                                     tint = MaterialTheme.colorScheme.onErrorContainer,
                                     modifier = Modifier.padding(6.dp)
                                 )
+                            }
+
+                            // Botão Tirar Outra Foto (Câmera) - Adicionado
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 8.dp, end = 88.dp)
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable(!isProcessingOcr) { onCapturarFoto() },
+                            ) {
+                                Icon(
+                                    Icons.Default.AddAPhoto,
+                                    contentDescription = "Substituir foto",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(6.dp)
+                                )
+                            }
+
+                            // Botão Reprocessar OCR - Adicionado
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 8.dp, end = 48.dp)
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable(!isProcessingOcr) { onReprocessarOcr() },
+                            ) {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = "Reprocessar OCR",
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(6.dp)
+                                )
+                            }
+
+                            if (isProcessingOcr) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(32.dp),
+                                            color = corPrincipal
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Analisando comprovante...",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = corPrincipal,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
                         }
                     } else {

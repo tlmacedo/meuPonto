@@ -5,7 +5,6 @@ import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -81,6 +80,7 @@ import br.com.tlmacedo.meuponto.util.findActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -88,7 +88,8 @@ import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Composable
 fun CameraCaptureScreen(
@@ -99,11 +100,9 @@ fun CameraCaptureScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     
-    var previewUseCase by remember { mutableStateOf<Preview?>(null) }
     var imageCaptureUseCase by remember { mutableStateOf<ImageCapture?>(null) }
-    var analysisUseCase by remember { mutableStateOf<ImageAnalysis?>(null) }
     var cameraSelector by remember { mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA) }
-    var flashMode by remember { mutableStateOf(ImageCapture.FLASH_MODE_OFF) }
+    var flashMode by remember { mutableIntStateOf(ImageCapture.FLASH_MODE_OFF) }
     var isCapturing by remember { mutableStateOf(false) }
     
     // Estados para o Auto-Capture
@@ -120,45 +119,55 @@ fun CameraCaptureScreen(
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         onDispose {
             activity?.requestedOrientation = originalOrientation
+            cameraExecutor.shutdown()
         }
     }
 
     LaunchedEffect(cameraSelector) {
-        val cameraProvider = context.getCameraProvider()
-        
-        previewUseCase = Preview.Builder().build().also {
-            it.setSurfaceProvider(previewView.surfaceProvider)
-        }
-
-        imageCaptureUseCase = ImageCapture.Builder()
-            .setFlashMode(flashMode)
-            .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-            .build()
-
-        analysisUseCase = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build().also {
-                it.setAnalyzer(cameraExecutor, ReceiptAnalyzer { detected ->
-                    isDetected = detected
-                    if (detected) {
-                        consecutiveDetections++
-                    } else {
-                        consecutiveDetections = 0
-                    }
-                })
+        try {
+            val cameraProvider = context.getCameraProvider()
+            
+            val preview = Preview.Builder().build().also {
+                it.surfaceProvider = previewView.surfaceProvider
             }
 
-        try {
+            val imageCapture = ImageCapture.Builder()
+                .setFlashMode(flashMode)
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .build()
+
+            val analysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build().also {
+                    it.setAnalyzer(cameraExecutor, ReceiptAnalyzer { detected ->
+                        isDetected = detected
+                        if (detected) {
+                            consecutiveDetections++
+                        } else {
+                            consecutiveDetections = 0
+                        }
+                    })
+                }
+
+            // Unbind all before binding new use cases
             cameraProvider.unbindAll()
+            
+            // Pequeno delay para permitir que o sistema processe o unbind (evita TimeoutException em alguns dispositivos)
+            kotlinx.coroutines.delay(100)
+
             cameraProvider.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
-                previewUseCase,
-                imageCaptureUseCase,
-                analysisUseCase
+                preview,
+                imageCapture,
+                analysis
             )
+
+            // Atualiza o use case de captura no estado apenas após o bind bem-sucedido
+            imageCaptureUseCase = imageCapture
+
         } catch (e: Exception) {
-            Log.e("CameraCaptureScreen", "Falha ao vincular câmera", e)
+            Timber.e(e, "Falha ao vincular câmera")
         }
     }
 
@@ -178,7 +187,7 @@ fun CameraCaptureScreen(
                 onError = {
                     isCapturing = false
                     autoCaptureTriggered = false
-                    Log.e("CameraCaptureScreen", "Erro ao capturar foto automática", it)
+                    Timber.e(it, "Erro ao capturar foto automática")
                 }
             )
         }
@@ -276,7 +285,7 @@ fun CameraCaptureScreen(
                                 },
                                 onError = {
                                     isCapturing = false
-                                    Log.e("CameraCaptureScreen", "Erro ao capturar foto manual", it)
+                                    Timber.e(it, "Erro ao capturar foto manual")
                                 }
                             )
                         }
@@ -520,7 +529,7 @@ private fun takePhoto(
                         finalBitmap.recycle()
                     }
                 } catch (e: Exception) {
-                    Log.e("CameraCaptureScreen", "Erro ao processar imagem para recorte", e)
+                    Timber.e(e, "Erro ao processar imagem para recorte")
                 }
 
                 onImageCaptured(Uri.fromFile(photoFile))
@@ -533,10 +542,17 @@ private fun takePhoto(
     )
 }
 
-private suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCoroutine { continuation ->
-    ProcessCameraProvider.getInstance(this).also { cameraProvider ->
-        cameraProvider.addListener({
-            continuation.resume(cameraProvider.get())
-        }, ContextCompat.getMainExecutor(this))
+private suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCancellableCoroutine { continuation ->
+    val providerFuture = ProcessCameraProvider.getInstance(this)
+    providerFuture.addListener({
+        try {
+            continuation.resume(providerFuture.get())
+        } catch (e: Exception) {
+            continuation.resumeWithException(e)
+        }
+    }, ContextCompat.getMainExecutor(this))
+    
+    continuation.invokeOnCancellation {
+        providerFuture.cancel(true)
     }
 }

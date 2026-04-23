@@ -247,6 +247,24 @@ fun RegistrarPontoModal(
                                 )
                             }
 
+                            // Botão Tirar Outra Foto (Câmera)
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 8.dp, end = 88.dp) // Posicionado antes do reprocessar
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable(!state.isProcessingOcr) { onCapturarFoto() },
+                            ) {
+                                Icon(
+                                    Icons.Default.AddAPhoto,
+                                    contentDescription = "Tirar outra foto",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(6.dp)
+                                )
+                            }
+
                             // Botão Reprocessar OCR
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
