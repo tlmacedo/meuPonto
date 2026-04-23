@@ -96,6 +96,7 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
         saidaIntervalo: Ponto,
         voltaIntervalo: Ponto,
         horario: HorarioDiaSemana
+
     ): List<InconsistenciaDetectada> {
         val inconsistencias = mutableListOf<InconsistenciaDetectada>()
 

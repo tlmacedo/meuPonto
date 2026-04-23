@@ -32,6 +32,7 @@ data class ToleranciasDia(
         fun criar(
             versaoJornada: VersaoJornada?,
             horarioDia: HorarioDiaSemana?
+
         ): ToleranciasDia {
             return ToleranciasDia(
                 intervaloMaisMinutos = horarioDia?.toleranciaIntervaloMaisMinutos

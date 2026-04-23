@@ -332,6 +332,7 @@ class EditarVersaoViewModel @Inject constructor(
         executarAtualizacaoGranular(
             criarParams(state).copy(
                 cargaHorariaDiariaMinutos = state.cargaHorariaDiariaMinutos,
+                acrescimoMinutosDiasPontes = state.acrescimoMinutosDiasPontes,
                 jornadaMaximaDiariaMinutos = state.jornadaMaximaDiariaMinutos,
                 intervaloMinimoAlmocoMinutos = state.intervaloMinimoAlmocoMinutos,
                 intervaloMinimoDescansoMinutos = state.intervaloMinimoDescansoMinutos,

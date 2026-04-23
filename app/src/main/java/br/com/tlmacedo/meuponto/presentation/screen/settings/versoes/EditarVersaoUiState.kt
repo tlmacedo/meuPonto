@@ -103,6 +103,9 @@ data class EditarVersaoUiState(
     val cargaHorariaDiariaFormatada: String
         get() = formatarMinutosEmHoras(cargaHorariaDiariaMinutos)
 
+    val acrescimoMinutosDiasPontesFormatado: String
+        get() = formatarMinutosEmHoras(acrescimoMinutosDiasPontes, usarFormatoReduzido = true)
+
     val turnoMaximoFormatado: String
         get() = formatarMinutosEmHoras(turnoMaximoMinutos)
 
@@ -139,6 +142,7 @@ data class EditarVersaoUiState(
 
     val temMudancasJornada: Boolean = !isNovaVersao && (
         cargaHorariaDiariaMinutos != originalCargaHorariaDiariaMinutos ||
+            acrescimoMinutosDiasPontes != originalAcrescimoMinutosDiasPontes ||
             jornadaMaximaDiariaMinutos != originalJornadaMaximaDiariaMinutos ||
             intervaloMinimoAlmocoMinutos != originalIntervaloMinimoAlmocoMinutos ||
             intervaloMinimoDescansoMinutos != originalIntervaloMinimoDescansoMinutos ||

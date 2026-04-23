@@ -66,6 +66,7 @@ class HorariosViewModel @Inject constructor(
             is HorariosAction.AlterarCargaHoraria -> alterarCargaHoraria(action.minutos)
             is HorariosAction.AlterarIntervaloMinimo -> alterarIntervaloMinimo(action.minutos)
             is HorariosAction.AlterarToleranciaIntervalo -> alterarToleranciaIntervalo(action.minutos)
+            is HorariosAction.AlterarToleranciaIntervalo -> alterarToleranciaIntervalo(action.minutos)
             is HorariosAction.AbrirTimePicker -> abrirTimePicker(action.campo)
             is HorariosAction.SelecionarHorario -> selecionarHorario(action.horario)
             is HorariosAction.FecharTimePicker -> fecharTimePicker()

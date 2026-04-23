@@ -370,6 +370,16 @@ private fun EditarVersaoForm(
             Spacer(modifier = Modifier.height(16.dp))
 
             SliderComLabel(
+                label = "Acréscimo Diário (Dias Ponte)",
+                valor = uiState.acrescimoMinutosDiasPontes,
+                range = 0f..60f,
+                onValorChange = { onAction(EditarVersaoAction.AlterarAcrescimoDiasPontes(it.toInt())) },
+                formatar = { uiState.acrescimoMinutosDiasPontesFormatado }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SliderComLabel(
                 label = "Jornada Máxima Diária",
                 valor = uiState.jornadaMaximaDiariaMinutos,
                 range = 15f..720f,
