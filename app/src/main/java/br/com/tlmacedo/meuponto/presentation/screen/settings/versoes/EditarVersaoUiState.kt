@@ -100,6 +100,12 @@ data class EditarVersaoUiState(
     val dataFimFormatada: String?
         get() = dataFim?.format(dateFormatter)
 
+    val cargaHorariaDiariaFormatada: String
+        get() = formatarMinutosEmHoras(cargaHorariaDiariaMinutos)
+
+    val turnoMaximoFormatado: String
+        get() = formatarMinutosEmHoras(turnoMaximoMinutos)
+
     val jornadaMaximaFormatada: String
         get() = formatarMinutosEmHoras(jornadaMaximaDiariaMinutos)
 

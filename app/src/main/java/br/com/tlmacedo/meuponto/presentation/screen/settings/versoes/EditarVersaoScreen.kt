@@ -73,6 +73,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.NumberPicker
+import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.SliderComLabel
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
@@ -94,12 +95,15 @@ fun EditarVersaoScreen(
                 is EditarVersaoEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 is EditarVersaoEvent.SalvoComSucesso -> {
                     onNavigateBack()
                 }
+
                 is EditarVersaoEvent.Voltar -> {
                     onNavigateBack()
                 }
+
                 is EditarVersaoEvent.NavegarParaHorarios -> {
                     onNavigateToHorarios(evento.versaoId)
                 }
@@ -197,10 +201,22 @@ fun EditarVersaoContent(
                 ) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(EditarVersaoAction.AlterarDataInicioCicloBancoAtual(null)) }) {
+                TextButton(onClick = {
+                    onAction(
+                        EditarVersaoAction.AlterarDataInicioCicloBancoAtual(
+                            null
+                        )
+                    )
+                }) {
                     Text("Limpar")
                 }
-                TextButton(onClick = { onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(false)) }) {
+                TextButton(onClick = {
+                    onAction(
+                        EditarVersaoAction.MostrarDataInicioCicloBancoPicker(
+                            false
+                        )
+                    )
+                }) {
                     Text("Cancelar")
                 }
             }
@@ -304,7 +320,13 @@ private fun EditarVersaoForm(
                     label = { Text("Data início") },
                     readOnly = true,
                     trailingIcon = {
-                        IconButton(onClick = { onAction(EditarVersaoAction.MostrarDataInicioPicker(true)) }) {
+                        IconButton(onClick = {
+                            onAction(
+                                EditarVersaoAction.MostrarDataInicioPicker(
+                                    true
+                                )
+                            )
+                        }) {
                             Icon(Icons.Default.Edit, contentDescription = "Editar data início")
                         }
                     },
@@ -337,24 +359,28 @@ private fun EditarVersaoForm(
             onSave = { onAction(EditarVersaoAction.SalvarJornada) },
             isSaving = uiState.isSaving
         ) {
-            TimeSelectionRow(
-                label = "Carga Horária Diária",
-                minutos = uiState.cargaHorariaDiariaMinutos,
-                onValueChange = { onAction(EditarVersaoAction.AlterarCargaHorariaDiaria(it)) }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TimeSelectionRow(
-                label = "Jornada Máxima Diária",
-                minutos = uiState.jornadaMaximaDiariaMinutos,
-                onValueChange = { onAction(EditarVersaoAction.AlterarJornadaMaxima(it)) }
+            SliderComLabel(
+                label = "Carga Horária Diária (tempo de trab.)",
+                valor = uiState.cargaHorariaDiariaMinutos,
+                range = 15f..720f,
+                onValorChange = { onAction(EditarVersaoAction.AlterarCargaHorariaDiaria(it.toInt())) },
+                formatar = { uiState.cargaHorariaDiariaFormatada }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             SliderComLabel(
-                label = "Intervalo Almoço Mín.",
+                label = "Jornada Máxima Diária",
+                valor = uiState.jornadaMaximaDiariaMinutos,
+                range = 15f..720f,
+                onValorChange = { onAction(EditarVersaoAction.AlterarJornadaMaxima(it.toInt())) },
+                formatar = { uiState.jornadaMaximaFormatada }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SliderComLabel(
+                label = "Intervalo Mínimo Almoço",
                 valor = uiState.intervaloMinimoAlmocoMinutos,
                 range = 15f..120f,
                 onValorChange = { onAction(EditarVersaoAction.AlterarIntervaloAlmoco(it.toInt())) },
@@ -364,7 +390,7 @@ private fun EditarVersaoForm(
             Spacer(modifier = Modifier.height(16.dp))
 
             SliderComLabel(
-                label = "Intervalo Descanso Mín.",
+                label = "Intervalo Mínimo de Descanso",
                 valor = uiState.intervaloMinimoDescansoMinutos,
                 range = 0f..30f,
                 onValorChange = { onAction(EditarVersaoAction.AlterarIntervaloDescanso(it.toInt())) },
@@ -374,43 +400,59 @@ private fun EditarVersaoForm(
             Spacer(modifier = Modifier.height(16.dp))
 
             SliderComLabel(
-                label = "Tolerância Retorno Intervalo",
+                label = "Tolerância de Retorno do Almoço",
                 valor = uiState.toleranciaRetornoIntervaloMinutos,
-                range = 0f..20f,
+                range = 0f..40f,
                 onValorChange = { onAction(EditarVersaoAction.AlterarToleranciaRetornoIntervalo(it.toInt())) },
                 formatar = { uiState.toleranciaRetornoIntervaloFormatada }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TimeSelectionRow(
-                label = "Interjornada Mínima",
-                minutos = uiState.intervaloMinimoInterjornadaMinutos,
-                onValueChange = { onAction(EditarVersaoAction.AlterarIntervaloInterjornada(it)) }
+            SliderComLabel(
+                label = "Interjornada Mínima (tempo da Saída até Entrada)",
+                valor = uiState.intervaloMinimoInterjornadaMinutos,
+                range = 0f..720f,
+                onValorChange = { onAction(EditarVersaoAction.AlterarIntervaloInterjornada(it.toInt())) },
+                formatar = { uiState.intervaloInterjornadaFormatado }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = uiState.turnoMaximoMinutos.toString(),
-                onValueChange = { it.toIntOrNull()?.let { v -> onAction(EditarVersaoAction.AlterarTurnoMaximo(v)) } },
-                label = { Text("Turno Máximo (minutos)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+            SliderComLabel(
+                label = "Turno Máximo (Entrada e Saída)",
+                valor = uiState.turnoMaximoMinutos,
+                range = 0f..uiState.cargaHorariaDiariaMinutos.toFloat(),
+                onValorChange = { onAction(EditarVersaoAction.AlterarTurnoMaximo(it.toInt())) },
+                formatar = { uiState.turnoMaximoFormatado }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Card(
                 shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
+                        alpha = 0.3f
+                    )
+                ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 ListItem(
-                    headlineContent = { Text("Escala e Horários Padrão", fontWeight = FontWeight.Bold) },
+                    headlineContent = {
+                        Text(
+                            "Escala e Horários Padrão",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
                     supportingContent = { Text("Configure os horários para cada dia da semana") },
                     leadingContent = { Icon(Icons.Default.Timer, contentDescription = null) },
-                    trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
+                    trailingContent = {
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null
+                        )
+                    },
                     colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
                     modifier = Modifier.clickable { onAction(EditarVersaoAction.ConfigurarHorarios) }
                 )
@@ -428,19 +470,22 @@ private fun EditarVersaoForm(
             onSave = { onAction(EditarVersaoAction.SalvarFechamento) },
             isSaving = uiState.isSaving
         ) {
-            Text("Início Fechamento RH", style = MaterialTheme.typography.bodyMedium)
-            NumberPicker(
-                value = uiState.diaInicioFechamentoRH,
-                onValueChange = { onAction(EditarVersaoAction.AlterarDiaInicioFechamentoRH(it)) },
-                range = 1..31,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+
+            SliderComLabel(
+                label = "Dia de Início do Mês RH",
+                valor = uiState.diaInicioFechamentoRH,
+                range = 0f..31f,
+                onValorChange = { onAction(EditarVersaoAction.AlterarDiaInicioFechamentoRH(it.toInt())) },
+                formatar = { uiState.diaInicioFechamentoRH.toString() }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text("Primeiro Dia da Semana", style = MaterialTheme.typography.bodyMedium)
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 DiaSemana.entries.forEach { dia ->
@@ -488,7 +533,13 @@ private fun EditarVersaoForm(
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     CicloBancoSlider(
                         valorProgresso = uiState.progressoCicloBanco,
-                        onProgressoChange = { onAction(EditarVersaoAction.AlterarProgressoCicloBanco(it)) },
+                        onProgressoChange = {
+                            onAction(
+                                EditarVersaoAction.AlterarProgressoCicloBanco(
+                                    it
+                                )
+                            )
+                        },
                         labelCiclo = uiState.labelCicloBanco
                     )
 
@@ -498,7 +549,13 @@ private fun EditarVersaoForm(
                         label = { Text("Data Início Ciclo Atual") },
                         readOnly = true,
                         trailingIcon = {
-                            IconButton(onClick = { onAction(EditarVersaoAction.MostrarDataInicioCicloBancoPicker(true)) }) {
+                            IconButton(onClick = {
+                                onAction(
+                                    EditarVersaoAction.MostrarDataInicioCicloBancoPicker(
+                                        true
+                                    )
+                                )
+                            }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Editar data")
                             }
                         },
@@ -508,7 +565,13 @@ private fun EditarVersaoForm(
                     SwitchListItem(
                         text = "Sugestão de ajuste automático",
                         checked = uiState.habilitarSugestaoAjuste,
-                        onCheckedChange = { onAction(EditarVersaoAction.AlterarHabilitarSugestaoAjuste(it)) }
+                        onCheckedChange = {
+                            onAction(
+                                EditarVersaoAction.AlterarHabilitarSugestaoAjuste(
+                                    it
+                                )
+                            )
+                        }
                     )
                 }
             }
@@ -528,7 +591,13 @@ private fun EditarVersaoForm(
             SwitchListItem(
                 text = "Exigir justificativa em inconsistências",
                 checked = uiState.exigeJustificativaInconsistencia,
-                onCheckedChange = { onAction(EditarVersaoAction.AlterarExigeJustificativaInconsistencia(it)) }
+                onCheckedChange = {
+                    onAction(
+                        EditarVersaoAction.AlterarExigeJustificativaInconsistencia(
+                            it
+                        )
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -654,7 +723,10 @@ private fun ConfiguracaoSection(
                         modifier = Modifier.size(32.dp)
                     ) {
                         if (isSaving) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Check,
@@ -729,7 +801,11 @@ private fun CicloBancoSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom
         ) {
-            Text("Ciclo do Banco", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                "Ciclo do Banco",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
             Text(
                 text = labelCiclo,
                 style = MaterialTheme.typography.titleMedium,
@@ -745,7 +821,9 @@ private fun CicloBancoSlider(
             modifier = Modifier.fillMaxWidth()
         )
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("1 dia", style = MaterialTheme.typography.labelSmall)
