@@ -1,8 +1,11 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/saldo/CalcularSaldoDiaUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.saldo
 
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Ponto
+import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
 import java.time.DayOfWeek
@@ -15,10 +18,12 @@ import javax.inject.Inject
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 2.11.0 - Usa formatadores padronizados de MinutosExtensions
+ * @updated 11.0.0 - Usa VersaoJornada e HorarioDiaSemana para determinar carga horária
  */
 class CalcularSaldoDiaUseCase @Inject constructor(
-    private val pontoRepository: PontoRepository
+    private val pontoRepository: PontoRepository,
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository
 ) {
     data class SaldoDia(
         val data: LocalDate,
@@ -51,6 +56,27 @@ class CalcularSaldoDiaUseCase @Inject constructor(
     }
 
     suspend operator fun invoke(
+        empregoId: Long,
+        data: LocalDate
+    ): SaldoDia {
+        val pontos = pontoRepository.buscarPorEmpregoEData(empregoId, data)
+        val versao = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+        val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
+        val horarioDia = versao?.let {
+            horarioDiaSemanaRepository.buscarPorVersaoEDia(it.id, diaSemana)
+        } ?: horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+
+        val cargaBase = horarioDia?.cargaHorariaMinutos
+            ?: versao?.cargaHorariaDiariaMinutos
+            ?: 480
+        val acrescimo = versao?.acrescimoMinutosDiasPontes ?: 0
+        val cargaEfetiva = if (cargaBase > 0) (cargaBase + acrescimo).toLong() else 0L
+
+        return calcular(pontos, data, cargaEfetiva)
+    }
+
+    @Deprecated("Use invoke(empregoId, data) que busca a carga correta automaticamente")
+    suspend fun invokeLegacy(
         empregoId: Long,
         data: LocalDate,
         cargaHorariaDiariaMinutos: Long = 480L

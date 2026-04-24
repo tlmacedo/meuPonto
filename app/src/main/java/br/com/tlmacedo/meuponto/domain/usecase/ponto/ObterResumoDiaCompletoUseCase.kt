@@ -85,11 +85,11 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             .sumOf { it.duracaoAbonoMinutos ?: 0 }
 
         // Buscar carga e acréscimo da versão de jornada
-        val cargaHorariaBase = horarioDia?.cargaHorariaMinutos
-            ?: versaoJornada?.cargaHorariaDiariaMinutos
-            ?: 480
         val acrescimoPontes = versaoJornada?.acrescimoMinutosDiasPontes ?: 0
-        val cargaHorariaEfetiva = cargaHorariaBase + acrescimoPontes
+        val cargaHorariaBase = (horarioDia?.cargaHorariaMinutos
+            ?: versaoJornada?.cargaHorariaDiariaMinutos
+            ?: 480)
+        val cargaHorariaEfetiva = if (cargaHorariaBase > 0) cargaHorariaBase + acrescimoPontes else 0
 
         val resumoDia = ResumoDia(
             data = data,
@@ -125,8 +125,11 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             .filter { it.tipo == TipoAusencia.DECLARACAO }
             .sumOf { it.duracaoAbonoMinutos ?: 0 }
 
-        val cargaHorariaEfetiva = ((horarioDia?.cargaHorariaMinutos
-            ?: (cargaHorariaBasePadrao + acrescimoPontes)))
+        val cargaHorariaEfetiva = if (horarioDia != null) {
+            if (horarioDia.cargaHorariaMinutos > 0) horarioDia.cargaHorariaMinutos + acrescimoPontes else 0
+        } else {
+            if (cargaHorariaBasePadrao > 0) cargaHorariaBasePadrao + acrescimoPontes else 0
+        }
 
         val resumoDia = ResumoDia(
             data = data,
