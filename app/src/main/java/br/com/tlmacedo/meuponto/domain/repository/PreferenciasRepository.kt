@@ -1,4 +1,4 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/repository/PreferenciasRepository.kt
+// file: app/src/main/java/br/com/tlmacedo/meuponto/domain/repository/PreferenciasRepository.kt
 package br.com.tlmacedo.meuponto.domain.repository
 
 import kotlinx.coroutines.flow.Flow

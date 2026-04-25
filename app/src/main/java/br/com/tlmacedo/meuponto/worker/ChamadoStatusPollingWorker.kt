@@ -23,16 +23,16 @@ class ChamadoStatusPollingWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            // Flow → List via firstOrNull()
             val chamadosAbertos = chamadoRepository
                 .listarChamadosAbertos()
                 .firstOrNull()
                 ?: emptyList()
 
+            var allSucceeded = true
+
             for (chamado in chamadosAbertos) {
                 val statusAnterior: StatusChamado = chamado.status
 
-                // sincronizarChamado recebe String (identificador), não Long
                 val resultSinc = chamadoRepository.sincronizarChamado(chamado.identificador)
 
                 resultSinc.onSuccess { chamadoAtualizado ->
@@ -43,12 +43,27 @@ class ChamadoStatusPollingWorker @AssistedInject constructor(
                             statusNovo = chamadoAtualizado.status
                         )
                     }
+                }.onFailure { e ->
+                    Timber.e(
+                        e,
+                        "Falha ao sincronizar status do chamado ${chamado.identificador} durante o polling."
+                    )
+                    allSucceeded = false
+                    val errorMessage = e.message ?: ""
+                    if (errorMessage.contains("401") || errorMessage.contains(
+                            "unauthorized",
+                            ignoreCase = true
+                        )
+                    ) {
+                        // Se for erro de autenticação, não adianta tentar novamente imediatamente
+                        allSucceeded = false
+                    }
                 }
             }
 
-            Result.success()
+            if (allSucceeded) Result.success() else Result.retry() // Se algum falhou, tenta novamente mais tarde
         } catch (e: Exception) {
-            Timber.e(e, "Erro no ChamadoStatusPollingWorker")
+            Timber.e(e, "Erro crítico no ChamadoStatusPollingWorker")
             Result.retry()
         }
     }

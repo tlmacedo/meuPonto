@@ -29,11 +29,17 @@ class ChamadoSyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val chamadoId = inputData.getLong(KEY_CHAMADO_ID, -1L)
-        if (chamadoId == -1L) return Result.failure()
+        if (chamadoId == -1L) {
+            Timber.e("ChamadoSyncWorker: ID do chamado inválido. Falha.")
+            return Result.failure()
+        }
 
         return try {
             val chamado = chamadoRepository.observarPorId(chamadoId).firstOrNull()
-                ?: return Result.failure()
+                ?: run {
+                    Timber.e("ChamadoSyncWorker: Chamado com ID $chamadoId não encontrado. Falha.")
+                    return Result.failure()
+                }
 
             // Envia para API
             chamadoRepository.sincronizarChamado(chamado.identificador)
@@ -44,12 +50,25 @@ class ChamadoSyncWorker @AssistedInject constructor(
                         Result.success()
                     },
                     onFailure = { e ->
-                        Timber.e(e, "Falha ao sincronizar chamado (tentativa: $runAttemptCount)")
+                        Timber.e(
+                            e,
+                            "Falha ao sincronizar chamado (tentativa: $runAttemptCount)"
+                        )
+
+                        val errorMessage = e.message ?: ""
+                        if (errorMessage.contains("401") || errorMessage.contains(
+                                "unauthorized",
+                                ignoreCase = true
+                            )
+                        ) {
+                            return@fold Result.failure()
+                        }
+
                         if (runAttemptCount < 3) Result.retry() else Result.failure()
                     }
                 )
         } catch (e: Exception) {
-            Timber.e(e, "Erro crítico no ChamadoSyncWorker")
+            Timber.e(e, "Erro crítico no ChamadoSyncWorker para chamado ID $chamadoId")
             if (runAttemptCount < 3) Result.retry() else Result.failure()
         }
     }

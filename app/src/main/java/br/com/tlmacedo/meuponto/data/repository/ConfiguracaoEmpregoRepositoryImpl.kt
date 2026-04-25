@@ -1,4 +1,4 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/repository/ConfiguracaoEmpregoRepositoryImpl.kt
+// path: app/src/main/java/br/com/tlmacedo/meuponto/data/repository/ConfiguracaoEmpregoRepositoryImpl.kt
 package br.com.tlmacedo.meuponto.data.repository
 
 import br.com.tlmacedo.meuponto.data.local.database.dao.ConfiguracaoEmpregoDao
@@ -107,7 +107,6 @@ class ConfiguracaoEmpregoRepositoryImpl @Inject constructor(
         "exibirDuracaoTurno" to exibirDuracaoTurno,
         "exibirDuracaoIntervalo" to exibirDuracaoIntervalo
     )
-
 
     companion object {
         private const val ENTIDADE = "ConfiguracaoEmprego"

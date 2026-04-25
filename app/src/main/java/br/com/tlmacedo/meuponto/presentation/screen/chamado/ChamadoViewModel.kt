@@ -1,5 +1,5 @@
 // app/src/main/java/br/com/tlmacedo/meuponto/presentation/chamado/ChamadoViewModel.kt
-package br.com.tlmacedo.meuponto.presentation.chamado
+package br.com.tlmacedo.meuponto.presentation.screen.chamado
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel

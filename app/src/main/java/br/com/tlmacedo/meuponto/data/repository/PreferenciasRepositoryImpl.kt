@@ -1,4 +1,4 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/repository/PreferenciasRepositoryImpl.kt
+// path: app/src/main/java/br/com/tlmacedo/meuponto/data/repository/PreferenciasRepositoryImpl.kt
 package br.com.tlmacedo.meuponto.data.repository
 
 import android.content.Context
@@ -41,7 +41,7 @@ class PreferenciasRepositoryImpl @Inject constructor(
         val ONBOARDING_CONCLUIDO = booleanPreferencesKey("onboarding_concluido")
         val TEMA = stringPreferencesKey("tema")
         val NOTIFICACOES_HABILITADAS = booleanPreferencesKey("notificacoes_habilitadas")
-        
+
         // Fase 1
         val LEMBRAR_ME = booleanPreferencesKey("lembrar_me")
         val ULTIMO_EMAIL_LOGADO = stringPreferencesKey("ultimo_email_logado")
@@ -63,7 +63,7 @@ class PreferenciasRepositoryImpl @Inject constructor(
         const val BIOMETRIA_HABILITADA = false
         const val BLOQUEIO_AUTOMATICO_HABILITADA = false
         const val OCULTAR_PREVIEW_HABILITADA = false
-        
+
         const val CARGA_HORARIA_PADRAO = 480 // 8 horas
         const val INTERVALO_MINIMO_PADRAO = 60 // 1 hora
         const val TOLERANCIA_GERAL_PADRAO = 10 // 10 minutos

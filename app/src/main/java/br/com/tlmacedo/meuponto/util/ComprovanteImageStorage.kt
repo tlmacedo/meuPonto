@@ -1,3 +1,4 @@
+// path: app/src/main/java/br/com/tlmacedo/meuponto/util/ComprovanteImageStorage.kt
 package br.com.tlmacedo.meuponto.util
 
 import android.content.Context
@@ -63,7 +64,8 @@ class ComprovanteImageStorage @Inject constructor(
         dataHora: LocalDateTime
     ): String? = withContext(Dispatchers.IO) {
         try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return@withContext null
+            val inputStream =
+                context.contentResolver.openInputStream(uri) ?: return@withContext null
             val originalBitmap = BitmapFactory.decodeStream(inputStream)
             inputStream.close()
 
@@ -80,7 +82,10 @@ class ComprovanteImageStorage @Inject constructor(
 
             result
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao salvar imagem do URI: $uri, empregoId=$empregoId, pontoId=$pontoId")
+            Timber.e(
+                e,
+                "Falha ao salvar imagem do URI: $uri, empregoId=$empregoId, pontoId=$pontoId"
+            )
             null
         }
     }
@@ -121,7 +126,10 @@ class ComprovanteImageStorage @Inject constructor(
 
             getRelativePath(empregoId, data, fileName)
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao gravar arquivo de imagem no disco")
+            Timber.e(
+                e,
+                "Falha ao gravar arquivo de imagem no disco"
+            )
             null
         }
     }
@@ -308,6 +316,22 @@ class ComprovanteImageStorage @Inject constructor(
         val newWidth = (width * ratio).toInt()
         val newHeight = (height * ratio).toInt()
 
-        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+        return try {
+            Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+        } catch (e: OutOfMemoryError) {
+            Timber.e(
+                e,
+                "OutOfMemoryError ao redimensionar bitmap. Retornando original para evitar crash."
+            )
+            // Em caso de OOM, é melhor retornar o bitmap original e lidar com o tamanho maior,
+            // do que deixar o app crashar.
+            bitmap
+        } catch (e: Exception) {
+            Timber.e(
+                e,
+                "Erro inesperado ao redimensionar bitmap. Retornando original."
+            )
+            bitmap
+        }
     }
 }

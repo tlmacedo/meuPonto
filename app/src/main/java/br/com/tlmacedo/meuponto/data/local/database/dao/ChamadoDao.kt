@@ -24,6 +24,9 @@ interface ChamadoDao {
     @Query("SELECT * FROM chamados ORDER BY criadoEm DESC")
     fun observarTodos(): Flow<List<ChamadoEntity>>
 
+    @Query("SELECT * FROM chamados WHERE usuarioEmail = :usuarioEmail ORDER BY criadoEm DESC")
+    fun observarTodosPorUsuario(usuarioEmail: String): Flow<List<ChamadoEntity>>
+
     @Query("SELECT * FROM chamados WHERE status IN ('ABERTO', 'EM_ANDAMENTO') ORDER BY criadoEm DESC")
     fun observarAbertos(): Flow<List<ChamadoEntity>>
 

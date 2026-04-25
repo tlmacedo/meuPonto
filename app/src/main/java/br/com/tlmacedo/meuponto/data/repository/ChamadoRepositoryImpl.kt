@@ -31,6 +31,9 @@ class ChamadoRepositoryImpl @Inject constructor(
     override fun observarTodos(): Flow<List<Chamado>> =
         chamadoDao.observarTodos().map { list -> list.map { it.toDomain() } }
 
+    override fun observarTodosPorUsuario(usuarioEmail: String): Flow<List<Chamado>> =
+        chamadoDao.observarTodosPorUsuario(usuarioEmail).map { list -> list.map { it.toDomain() } }
+
     override fun observarPorId(id: Long): Flow<Chamado?> =
         chamadoDao.observarPorId(id).map { it?.toDomain() }
 

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface ChamadoRepository {
     fun observarTodos(): Flow<List<Chamado>>
+    fun observarTodosPorUsuario(usuarioEmail: String): Flow<List<Chamado>>
     fun observarPorId(id: Long): Flow<Chamado?>
     fun observarHistorico(chamadoId: Long): Flow<List<HistoricoChamado>>
     suspend fun criar(chamado: Chamado, anexos: List<Uri>): Result<Chamado>

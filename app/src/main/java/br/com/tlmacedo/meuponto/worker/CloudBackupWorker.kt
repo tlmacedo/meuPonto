@@ -1,3 +1,5 @@
+// path: app/src/main/java/br/com/tlmacedo/meuponto/worker/CloudBackupWorker.kt
+
 package br.com.tlmacedo.meuponto.worker
 
 import android.content.Context
@@ -26,10 +28,13 @@ class CloudBackupWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         Timber.d("Iniciando CloudBackupWorker")
-        
+
         return try {
             if (!cloudBackupRepository.isUsuarioAutenticado()) {
                 Timber.w("Backup cancelado: usuário não autenticado")
+                // Se o usuário não está autenticado, não faz sentido retentar.
+                // Pode ser útil notificar o usuário para que ele faça login.
+                sistemaNotificacaoService.notificarErroBackup("Backup cancelado: usuário não autenticado. Por favor, faça login novamente.")
                 return Result.failure()
             }
 
@@ -37,27 +42,44 @@ class CloudBackupWorker @AssistedInject constructor(
             cloudBackupRepository.sincronizarFotos()
 
             // Depois faz o backup do banco
-            cloudBackupRepository.uploadBackup()
+            return cloudBackupRepository.uploadBackup()
                 .fold(
                     onSuccess = {
                         Timber.d("Backup na nuvem concluído com sucesso")
                         Result.success()
                     },
                     onFailure = { e ->
-                        Timber.e(e, "Erro ao realizar backup na nuvem (tentativa: $runAttemptCount)")
-                        
-                        if (runAttemptCount >= 2) {
-                            sistemaNotificacaoService.notificarErroBackup(e.message ?: "Erro desconhecido")
+                        Timber.e(
+                            e,
+                            "Erro ao realizar backup na nuvem (tentativa: $runAttemptCount)"
+                        )
+
+                        val errorMessage = e.message ?: "Erro desconhecido"
+
+                        if (errorMessage.contains("401") || errorMessage.contains(
+                                "unauthorized",
+                                ignoreCase = true
+                            )
+                        ) {
+                            return@fold Result.failure()
                         }
+
+                        // Notifica o usuário após um certo número de tentativas falhas
+                        if (runAttemptCount >= 2) {
+                            sistemaNotificacaoService.notificarErroBackup("Falha no backup na nuvem: $errorMessage")
+                        }
+
 
                         if (runAttemptCount < 3) Result.retry() else Result.failure()
                     }
                 )
         } catch (e: Exception) {
             Timber.e(e, "Falha crítica no CloudBackupWorker")
-            
+
+            val errorMessage = e.message ?: "Falha crítica"
+
             if (runAttemptCount >= 2) {
-                sistemaNotificacaoService.notificarErroBackup(e.message ?: "Falha crítica")
+                sistemaNotificacaoService.notificarErroBackup("Falha crítica no backup na nuvem: $errorMessage")
             }
 
             if (runAttemptCount < 3) Result.retry() else Result.failure()

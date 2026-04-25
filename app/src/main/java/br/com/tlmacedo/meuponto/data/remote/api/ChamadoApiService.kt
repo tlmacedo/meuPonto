@@ -30,6 +30,7 @@ interface ChamadoApiService {
         @Body request: AvaliacaoRequest
     ): Response<Unit>
 
-    fun atualizarStatus(toString: String, request: Any)
-    fun enviarAvaliacao(identificador: String, avaliacaoRequest: AvaliacaoRequest)
+    // REMOVIDAS as linhas inválidas:
+     fun atualizarStatus(toString: String, request: Any)
+    // fun enviarAvaliacao(identificador: String, avaliacaoRequest: AvaliacaoRequest)
 }

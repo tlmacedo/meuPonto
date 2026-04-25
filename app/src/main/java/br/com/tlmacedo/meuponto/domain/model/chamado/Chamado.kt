@@ -33,6 +33,7 @@ data class AvaliacaoChamado(
 enum class CategoriaChamado(val label: String) {
     BUG("Erro / Bug"),
     SUGESTAO("Sugestão"),
+    SUPORTE("Suporte"),
     DUVIDA("Dúvida"),
     DESEMPENHO("Desempenho"),
     OUTRO("Outro")
