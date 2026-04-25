@@ -28,12 +28,13 @@ class ForgotPasswordViewModel @Inject constructor(
     fun onAction(action: ForgotPasswordAction) {
         when (action) {
             is ForgotPasswordAction.EmailAlterado -> {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(email = action.email, emailErro = null, erro = null).also { newState ->
                         validarFormulario(newState)
                     }
                 }
             }
+
             ForgotPasswordAction.ClicarEnviar -> enviarRecuperacao()
             ForgotPasswordAction.ClicarVoltar -> {
                 viewModelScope.launch { _eventos.emit(ForgotPasswordEvent.NavegarVoltar) }
@@ -42,7 +43,9 @@ class ForgotPasswordViewModel @Inject constructor(
     }
 
     private fun validarFormulario(state: ForgotPasswordUiState) {
-        val emailValido = state.email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(state.email).matches()
+        val emailValido =
+            state.email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(state.email)
+                .matches()
         _uiState.update { it.copy(isFormValido = emailValido) }
     }
 
@@ -55,15 +58,15 @@ class ForgotPasswordViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCarregando = true, erro = null, mensagemSucesso = null) }
-            
+
             val resultado = authRepository.recuperarSenha(email)
-            
+
             resultado.onSuccess {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
-                        isCarregando = false, 
+                        isCarregando = false,
                         mensagemSucesso = "As instruções de recuperação foram enviadas para o seu e-mail."
-                    ) 
+                    )
                 }
                 _eventos.emit(ForgotPasswordEvent.MostrarSucesso("Instruções enviadas!"))
             }.onFailure { excecao ->

@@ -247,6 +247,7 @@ class PhotoCaptureManager @Inject constructor(
                         )
                     } ?: SavePhotoResult.Error("Arquivo temporário da câmera não disponível")
                 }
+
                 FotoOrigem.GALERIA -> {
                     storageManager.savePhoto(
                         sourceUri = currentState.uri,
@@ -257,6 +258,7 @@ class PhotoCaptureManager @Inject constructor(
                         gpsData = gpsData
                     )
                 }
+
                 else -> SavePhotoResult.Error("Origem da foto inválida: ${currentState.source}")
             }
 
@@ -266,6 +268,7 @@ class PhotoCaptureManager @Inject constructor(
                     _captureState.value = CaptureState.Completed(result)
                     cleanupTempFile()
                 }
+
                 is SavePhotoResult.Error -> {
                     Timber.e("Falha ao salvar foto: ${result.message}") // Correção aqui
                     _captureState.value = CaptureState.Error(result.message)

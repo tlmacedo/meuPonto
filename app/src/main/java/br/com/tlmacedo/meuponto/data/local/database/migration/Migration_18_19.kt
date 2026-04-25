@@ -21,7 +21,8 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
         // ====================================================================
 
         // 1.1 Criar tabela temporária sem as colunas removidas
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE IF NOT EXISTS horarios_dia_semana_new (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 empregoId INTEGER NOT NULL,
@@ -40,10 +41,12 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
                 FOREIGN KEY (empregoId) REFERENCES empregos(id) ON DELETE CASCADE,
                 FOREIGN KEY (versaoJornadaId) REFERENCES versoes_jornada(id) ON DELETE CASCADE
             )
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // 1.2 Copiar dados (exceto as colunas removidas)
-        db.execSQL("""
+        db.execSQL(
+            """
             INSERT INTO horarios_dia_semana_new (
                 id, empregoId, versaoJornadaId, diaSemana, ativo, cargaHorariaMinutos,
                 entradaIdeal, saidaIntervaloIdeal, voltaIntervaloIdeal, saidaIdeal,
@@ -56,7 +59,8 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
                 intervaloMinimoMinutos, toleranciaIntervaloMaisMinutos,
                 criadoEm, atualizadoEm
             FROM horarios_dia_semana
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // 1.3 Remover tabela antiga
         db.execSQL("DROP TABLE horarios_dia_semana")

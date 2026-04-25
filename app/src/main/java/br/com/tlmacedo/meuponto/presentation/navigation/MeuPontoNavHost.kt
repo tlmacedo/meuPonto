@@ -27,31 +27,31 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.auditoria.AuditoriaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciaFormScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciasScreen
+import br.com.tlmacedo.meuponto.presentation.screen.chamado.create.ChamadoCreateScreen
+import br.com.tlmacedo.meuponto.presentation.screen.chamado.detail.ChamadoDetailScreen
+import br.com.tlmacedo.meuponto.presentation.screen.chamado.list.ChamadoListScreen
 import br.com.tlmacedo.meuponto.presentation.screen.editponto.EditPontoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.historicociclos.HistoricoCiclosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.history.HistoryScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.HomeScreen
 import br.com.tlmacedo.meuponto.presentation.screen.lixeira.LixeiraScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.comprovantes.ComprovantesScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.EmpregoSettingsDetailScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.GerenciarEmpregosScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracoes.LocalizacaoTrabalhoScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracoes.OpcoesRegistroScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.CargosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.cargos.EditarCargoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracoes.LocalizacaoTrabalhoScreen
+import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configuracoes.OpcoesRegistroScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.editar.EditarEmpregoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.editar.EditarFeriadoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista.FeriadosListScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.global.GlobalSettingsScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.horarios.HorariosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.jornada.JornadaScreen
-import br.com.tlmacedo.meuponto.presentation.screen.settings.comprovantes.ComprovantesScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.SettingsMainScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.AjudaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.ReportarProblemaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
-import br.com.tlmacedo.meuponto.presentation.screen.chamado.list.ChamadoListScreen
-import br.com.tlmacedo.meuponto.presentation.screen.chamado.detail.ChamadoDetailScreen
-import br.com.tlmacedo.meuponto.presentation.screen.chamado.create.ChamadoCreateScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.comparar.CompararVersoesScreen
@@ -485,7 +485,12 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
         VersoesJornadaScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToEditar = { empregoId, versaoId ->
-                navController.navigate(MeuPontoDestinations.editarVersaoEmprego(empregoId, versaoId))
+                navController.navigate(
+                    MeuPontoDestinations.editarVersaoEmprego(
+                        empregoId,
+                        versaoId
+                    )
+                )
             },
             onNavigateToComparar = { empId, v1, v2 ->
                 navController.navigate(MeuPontoDestinations.compararVersoes(empId, v1, v2))
@@ -567,8 +572,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             }
         )
     ) { backStackEntry ->
-        val empregoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
-        
+        val empregoId =
+            backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
+
         EditarEmpregoScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToVersoes = {

@@ -48,17 +48,26 @@ class ReverterFechamentoIncorretoUseCase @Inject constructor(
                 it.justificativa.contains("Zeramento de ciclo", ignoreCase = true) ||
                         it.justificativa.contains("Saldo transferido", ignoreCase = true)
             }
-            android.util.Log.d("REVERTER_DEBUG", "Ajustes de zeramento encontrados: ${ajustesZeramento.size}")
+            android.util.Log.d(
+                "REVERTER_DEBUG",
+                "Ajustes de zeramento encontrados: ${ajustesZeramento.size}"
+            )
 
             // 3. Excluir ajustes de zeramento
             ajustesZeramento.forEach { ajuste ->
-                android.util.Log.d("REVERTER_DEBUG", "Excluindo ajuste: ${ajuste.id} - ${ajuste.justificativa}")
+                android.util.Log.d(
+                    "REVERTER_DEBUG",
+                    "Excluindo ajuste: ${ajuste.id} - ${ajuste.justificativa}"
+                )
                 ajusteSaldoRepository.excluir(ajuste)
             }
 
             // 4. Excluir fechamentos de banco de horas
             fechamentos.forEach { fechamento ->
-                android.util.Log.d("REVERTER_DEBUG", "Excluindo fechamento: ${fechamento.id} - ${fechamento.dataInicioPeriodo} ~ ${fechamento.dataFimPeriodo}")
+                android.util.Log.d(
+                    "REVERTER_DEBUG",
+                    "Excluindo fechamento: ${fechamento.id} - ${fechamento.dataInicioPeriodo} ~ ${fechamento.dataFimPeriodo}"
+                )
                 fechamentoRepository.excluir(fechamento)
             }
 
@@ -70,7 +79,10 @@ class ReverterFechamentoIncorretoUseCase @Inject constructor(
                     atualizadoEm = LocalDateTime.now()
                 )
                 versaoJornadaRepository.atualizar(novaVersaoJornada)
-                android.util.Log.d("REVERTER_DEBUG", "VersaoJornada atualizada: dataInicioCiclo = $dataInicioCicloCorreta")
+                android.util.Log.d(
+                    "REVERTER_DEBUG",
+                    "VersaoJornada atualizada: dataInicioCiclo = $dataInicioCicloCorreta"
+                )
             }
 
             Resultado.Sucesso(

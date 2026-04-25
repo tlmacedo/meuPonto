@@ -36,7 +36,8 @@ class LogoImageStorage @Inject constructor(
         empregoId: Long
     ): String? = withContext(Dispatchers.IO) {
         try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return@withContext null
+            val inputStream =
+                context.contentResolver.openInputStream(uri) ?: return@withContext null
             val originalBitmap = BitmapFactory.decodeStream(inputStream)
             inputStream.close()
 

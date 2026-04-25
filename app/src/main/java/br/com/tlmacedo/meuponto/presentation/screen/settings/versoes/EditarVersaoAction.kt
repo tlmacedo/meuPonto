@@ -23,7 +23,9 @@ sealed interface EditarVersaoAction {
     data class AlterarCargaHorariaSemanal(val minutos: Int) : EditarVersaoAction
 
     // Período/Saldo
-    data class AlterarPrimeiroDiaSemana(val dia: br.com.tlmacedo.meuponto.domain.model.DiaSemana) : EditarVersaoAction
+    data class AlterarPrimeiroDiaSemana(val dia: br.com.tlmacedo.meuponto.domain.model.DiaSemana) :
+        EditarVersaoAction
+
     data class AlterarDiaInicioFechamentoRH(val dia: Int) : EditarVersaoAction
     data class AlterarZerarSaldoSemanal(val zerar: Boolean) : EditarVersaoAction
     data class AlterarZerarSaldoPeriodoRH(val zerar: Boolean) : EditarVersaoAction

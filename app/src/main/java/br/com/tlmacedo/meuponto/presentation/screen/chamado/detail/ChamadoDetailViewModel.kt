@@ -8,7 +8,11 @@ import br.com.tlmacedo.meuponto.domain.model.chamado.HistoricoChamado
 import br.com.tlmacedo.meuponto.domain.repository.ChamadoRepository
 import br.com.tlmacedo.meuponto.presentation.navigation.MeuPontoDestinations
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -46,7 +50,8 @@ class ChamadoDetailViewModel @Inject constructor(
                 }
             }.catch { e ->
                 Timber.e(e, "Erro ao carregar detalhes do chamado")
-                _uiState.value = ChamadoDetailUiState.Error("Erro ao carregar detalhes: ${e.localizedMessage}")
+                _uiState.value =
+                    ChamadoDetailUiState.Error("Erro ao carregar detalhes: ${e.localizedMessage}")
             }.collect { state ->
                 _uiState.value = state
             }
@@ -56,6 +61,8 @@ class ChamadoDetailViewModel @Inject constructor(
 
 sealed class ChamadoDetailUiState {
     object Loading : ChamadoDetailUiState()
-    data class Success(val chamado: Chamado, val historico: List<HistoricoChamado>) : ChamadoDetailUiState()
+    data class Success(val chamado: Chamado, val historico: List<HistoricoChamado>) :
+        ChamadoDetailUiState()
+
     data class Error(val message: String) : ChamadoDetailUiState()
 }

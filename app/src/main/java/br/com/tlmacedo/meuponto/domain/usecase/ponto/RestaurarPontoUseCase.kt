@@ -53,14 +53,17 @@ class RestaurarPontoUseCase @Inject constructor(
                         Timber.d("Foto restaurada da lixeira: ${resultado.originalPath}")
                         fotoRestauradaPath = resultado.originalPath
                     }
+
                     is RestoreResult.FileNotFound -> {
                         Timber.w("Foto não encontrada na lixeira: $fotoPath")
                         fotoRestauradaPath = null // Foto perdida
                     }
+
                     is RestoreResult.InvalidMetadata -> {
                         Timber.w("Metadados inválidos para foto: $fotoPath")
                         fotoRestauradaPath = null
                     }
+
                     is RestoreResult.Error -> {
                         Timber.w("Erro ao restaurar foto: ${resultado.message}")
                         // Mantém o path original, pode ser que a foto ainda exista

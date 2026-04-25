@@ -10,7 +10,10 @@ import br.com.tlmacedo.meuponto.data.local.database.entity.GeocodificacaoCacheEn
 interface GeocodificacaoCacheDao {
 
     @Query("SELECT * FROM geocodificacao_cache WHERE latitude = :latitude AND longitude = :longitude LIMIT 1")
-    suspend fun buscarPorCoordenadas(latitude: Double, longitude: Double): GeocodificacaoCacheEntity?
+    suspend fun buscarPorCoordenadas(
+        latitude: Double,
+        longitude: Double
+    ): GeocodificacaoCacheEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inserir(cache: GeocodificacaoCacheEntity)

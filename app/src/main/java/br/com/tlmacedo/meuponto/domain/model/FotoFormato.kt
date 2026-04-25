@@ -58,7 +58,7 @@ enum class FotoFormato(
         fun fromExtensao(extensao: String): FotoFormato? {
             return entries.find {
                 it.extensao.equals(extensao, ignoreCase = true) ||
-                it.extensao.equals(extensao.removePrefix("."), ignoreCase = true)
+                        it.extensao.equals(extensao.removePrefix("."), ignoreCase = true)
             }
         }
 

@@ -9,7 +9,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 val MIGRATION_38_39 = object : Migration(38, 39) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE IF NOT EXISTS `geocodificacao_cache` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
                 `latitude` REAL NOT NULL, 
@@ -17,11 +18,14 @@ val MIGRATION_38_39 = object : Migration(38, 39) {
                 `endereco` TEXT NOT NULL, 
                 `dataCriacao` TEXT NOT NULL
             )
-        """.trimIndent())
-        
-        db.execSQL("""
+        """.trimIndent()
+        )
+
+        db.execSQL(
+            """
             CREATE UNIQUE INDEX IF NOT EXISTS `index_geocodificacao_cache_latitude_longitude` 
             ON `geocodificacao_cache` (`latitude`, `longitude`)
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 }

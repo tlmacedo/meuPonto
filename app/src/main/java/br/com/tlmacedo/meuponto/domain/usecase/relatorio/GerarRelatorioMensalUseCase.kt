@@ -35,13 +35,13 @@ class GerarRelatorioMensalUseCase @Inject constructor(
     ) {
         val saldoFormatado: String
             get() = saldoMinutos.minutosParaSaldoFormatado()
-            
+
         val totalTrabalhadoFormatado: String
             get() = totalTrabalhadoMinutos.minutosParaHoraMinuto()
 
         val totalEsperadoFormatado: String
             get() = totalEsperadoMinutos.minutosParaHoraMinuto()
-            
+
         val totalAbonadoFormatado: String
             get() = totalAbonadoMinutos.minutosParaHoraMinuto()
     }

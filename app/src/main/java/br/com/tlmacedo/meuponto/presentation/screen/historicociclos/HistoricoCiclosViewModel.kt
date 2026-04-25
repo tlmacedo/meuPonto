@@ -180,9 +180,11 @@ class HistoricoCiclosViewModel @Inject constructor(
             versaoVigente?.periodoBancoSemanas != null && versaoVigente.periodoBancoSemanas > 0 -> {
                 dataInicioCiclo.plusWeeks(versaoVigente.periodoBancoSemanas.toLong()).minusDays(1)
             }
+
             versaoVigente?.periodoBancoMeses != null && versaoVigente.periodoBancoMeses > 0 -> {
                 dataInicioCiclo.plusMonths(versaoVigente.periodoBancoMeses.toLong()).minusDays(1)
             }
+
             else -> {
                 dataInicioCiclo.plusDays((duracaoCicloDias - 1).toLong())
             }

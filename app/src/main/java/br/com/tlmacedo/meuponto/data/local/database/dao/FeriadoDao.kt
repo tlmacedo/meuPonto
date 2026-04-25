@@ -58,42 +58,50 @@ interface FeriadoDao {
      * Busca todos os feriados (ativos e inativos).
      * Usado na tela de gerenciamento de feriados.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     suspend fun buscarTodos(): List<FeriadoEntity>
 
     /**
      * Observa todos os feriados (ativos e inativos).
      * Usado na tela de gerenciamento de feriados.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     fun observarTodos(): Flow<List<FeriadoEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     suspend fun buscarTodosAtivos(): List<FeriadoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     fun observarTodosAtivos(): Flow<List<FeriadoEntity>>
 
     // ========================================================================
@@ -104,7 +112,8 @@ interface FeriadoDao {
      * Busca feriados que ocorrem em um ano específico.
      * Inclui feriados anuais (recorrentes) e únicos do ano.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND (
@@ -114,10 +123,12 @@ interface FeriadoDao {
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     suspend fun buscarPorAno(ano: Int): List<FeriadoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND (
@@ -127,7 +138,8 @@ interface FeriadoDao {
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     fun observarPorAno(ano: Int): Flow<List<FeriadoEntity>>
 
     // ========================================================================
@@ -137,14 +149,16 @@ interface FeriadoDao {
     /**
      * Busca feriados que ocorrem em uma data específica.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND (
             (diaMes = :diaMes AND recorrencia = 'ANUAL')
             OR (dataEspecifica = :data AND recorrencia = 'UNICO')
         )
-    """)
+    """
+    )
     suspend fun buscarPorData(data: LocalDate, diaMes: String): List<FeriadoEntity>
 
     // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/dao/FeriadoDao.kt
@@ -158,7 +172,8 @@ interface FeriadoDao {
      * @param diaMes Formato "MM-dd" para feriados anuais
      * @param empregoId ID do emprego para filtrar feriados específicos
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND (
@@ -170,7 +185,8 @@ interface FeriadoDao {
             OR (abrangencia = 'EMPREGO_ESPECIFICO' AND empregoId = :empregoId)
         )
         ORDER BY tipo
-    """)
+    """
+    )
     suspend fun buscarPorDataEEmprego(
         data: LocalDate,
         diaMes: String,
@@ -180,7 +196,8 @@ interface FeriadoDao {
     /**
      * Observa feriados que ocorrem em uma data específica para um emprego.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND (
@@ -192,7 +209,8 @@ interface FeriadoDao {
             OR (abrangencia = 'EMPREGO_ESPECIFICO' AND empregoId = :empregoId)
         )
         ORDER BY tipo
-    """)
+    """
+    )
     fun observarPorDataEEmprego(
         data: LocalDate,
         diaMes: String,
@@ -202,7 +220,8 @@ interface FeriadoDao {
     /**
      * Busca feriados em um período.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND (
@@ -212,29 +231,34 @@ interface FeriadoDao {
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     suspend fun buscarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): List<FeriadoEntity>
 
     // ========================================================================
     // Consultas por Tipo
     // ========================================================================
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 AND tipo = :tipo
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     suspend fun buscarPorTipo(tipo: TipoFeriado): List<FeriadoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 AND tipo = :tipo
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     fun observarPorTipo(tipo: TipoFeriado): Flow<List<FeriadoEntity>>
 
     // ========================================================================
@@ -244,7 +268,8 @@ interface FeriadoDao {
     /**
      * Busca feriados aplicáveis a um emprego (globais + específicos do emprego).
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND (
@@ -254,10 +279,12 @@ interface FeriadoDao {
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     suspend fun buscarPorEmprego(empregoId: Long): List<FeriadoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND (
@@ -267,7 +294,8 @@ interface FeriadoDao {
         ORDER BY 
             CASE WHEN diaMes IS NOT NULL THEN diaMes ELSE '' END,
             CASE WHEN dataEspecifica IS NOT NULL THEN dataEspecifica ELSE '' END
-    """)
+    """
+    )
     fun observarPorEmprego(empregoId: Long): Flow<List<FeriadoEntity>>
 
     // ========================================================================
@@ -277,7 +305,8 @@ interface FeriadoDao {
     /**
      * Busca feriados ponte de um ano para um emprego.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM feriados 
         WHERE ativo = 1 
         AND tipo = 'PONTE'
@@ -287,13 +316,15 @@ interface FeriadoDao {
             OR (abrangencia = 'EMPREGO_ESPECIFICO' AND empregoId = :empregoId)
         )
         ORDER BY dataEspecifica
-    """)
+    """
+    )
     suspend fun buscarPontesPorAnoEEmprego(ano: Int, empregoId: Long): List<FeriadoEntity>
 
     /**
      * Conta quantidade de dias de ponte em um ano para um emprego.
      */
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(*) FROM feriados 
         WHERE ativo = 1 
         AND tipo = 'PONTE'
@@ -302,7 +333,8 @@ interface FeriadoDao {
             abrangencia = 'GLOBAL' 
             OR (abrangencia = 'EMPREGO_ESPECIFICO' AND empregoId = :empregoId)
         )
-    """)
+    """
+    )
     suspend fun contarPontesPorAnoEEmprego(ano: Int, empregoId: Long): Int
 
     // ========================================================================
@@ -312,7 +344,8 @@ interface FeriadoDao {
     /**
      * Verifica se existe feriado com o mesmo nome e data.
      */
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(*) FROM feriados 
         WHERE nome = :nome 
         AND (
@@ -320,7 +353,8 @@ interface FeriadoDao {
             OR (dataEspecifica = :dataEspecifica AND recorrencia = 'UNICO')
         )
         AND id != :excluirId
-    """)
+    """
+    )
     suspend fun contarDuplicados(
         nome: String,
         diaMes: String?,
@@ -331,11 +365,13 @@ interface FeriadoDao {
     /**
      * Verifica se existe feriado nacional importado.
      */
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(*) FROM feriados 
         WHERE tipo = 'NACIONAL' 
         AND abrangencia = 'GLOBAL'
-    """)
+    """
+    )
     suspend fun contarFeriadosNacionais(): Int
 
     // ========================================================================
@@ -345,16 +381,21 @@ interface FeriadoDao {
     /**
      * Remove feriados únicos de anos anteriores.
      */
-    @Query("""
+    @Query(
+        """
         DELETE FROM feriados 
         WHERE recorrencia = 'UNICO' 
         AND anoReferencia < :anoAtual
-    """)
+    """
+    )
     suspend fun limparFeriadosAntigos(anoAtual: Int)
 
     /**
      * Desativa feriados de um emprego específico.
      */
     @Query("UPDATE feriados SET ativo = 0, atualizadoEm = :agora WHERE empregoId = :empregoId")
-    suspend fun desativarPorEmprego(empregoId: Long, agora: java.time.LocalDateTime = java.time.LocalDateTime.now())
+    suspend fun desativarPorEmprego(
+        empregoId: Long,
+        agora: java.time.LocalDateTime = java.time.LocalDateTime.now()
+    )
 }

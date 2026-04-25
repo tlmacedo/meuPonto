@@ -38,7 +38,7 @@ fun DeleteConfirmationDialog(
         text = {
             Text(
                 "Esta ação não pode ser desfeita. " +
-                "A foto do comprovante será permanentemente excluída."
+                        "A foto do comprovante será permanentemente excluída."
             )
         },
         confirmButton = {

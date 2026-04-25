@@ -303,7 +303,10 @@ private fun CicloCard(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = Color(0xFF2196F3),
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        modifier = Modifier.padding(
+                                            horizontal = 6.dp,
+                                            vertical = 2.dp
+                                        )
                                     )
                                 }
                             }
@@ -492,7 +495,9 @@ private fun DetalhesCiclo(
                     text = ciclo.saldoAtualFormatado,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (ciclo.saldoAtualMinutos >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                    color = if (ciclo.saldoAtualMinutos >= 0) Color(0xFF4CAF50) else Color(
+                        0xFFF44336
+                    )
                 )
             }
         }

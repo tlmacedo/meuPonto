@@ -78,7 +78,13 @@ class NotificarTransicaoCicloUseCase @Inject constructor(
         val mensagem = buildString {
             if (ciclosFechados.size == 1) {
                 val ciclo = ciclosFechados.first()
-                append("Período: ${ciclo.dataInicioPeriodo.format(dateFormatter)} ~ ${ciclo.dataFimPeriodo.format(dateFormatter)}")
+                append(
+                    "Período: ${ciclo.dataInicioPeriodo.format(dateFormatter)} ~ ${
+                        ciclo.dataFimPeriodo.format(
+                            dateFormatter
+                        )
+                    }"
+                )
                 append("\nSaldo final: ${ciclo.saldoAnteriorFormatado}")
             } else {
                 append("Foram realizados ${ciclosFechados.size} fechamentos automáticos.")

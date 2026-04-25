@@ -31,14 +31,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.tlmacedo.meuponto.R
+import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
+import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.ErrorLight
 import br.com.tlmacedo.meuponto.presentation.theme.Info
@@ -46,29 +54,18 @@ import br.com.tlmacedo.meuponto.presentation.theme.InfoLight
 import br.com.tlmacedo.meuponto.presentation.theme.OnWarning
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaBlue
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaDarkGreen
-import br.com.tlmacedo.meuponto.presentation.theme.SidiaGreen
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaSoftGreen
 import br.com.tlmacedo.meuponto.presentation.theme.SurfaceVariant
 import br.com.tlmacedo.meuponto.presentation.theme.WarningLight
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import br.com.tlmacedo.meuponto.R
-import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
-import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.produceState
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
-import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
-
 private val horaFormatter = DateTimeFormatter.ofPattern("HH:mm")
-private val dateFormatterCompleto = DateTimeFormatter.ofPattern("dd/MM/yyyy (EEE)", Locale.forLanguageTag("pt-BR"))
+private val dateFormatterCompleto =
+    DateTimeFormatter.ofPattern("dd/MM/yyyy (EEE)", Locale.forLanguageTag("pt-BR"))
 private val dateFormatterSimples = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
 @Composable
@@ -94,7 +91,7 @@ fun AusenciaBanner(
                         data = dataCandidata,
                         empregoId = ausencia.empregoId
                     )
-                    
+
                     val temAusencia = ausenciaRepository.existeAusenciaEmData(
                         empregoId = ausencia.empregoId,
                         data = dataCandidata
@@ -191,10 +188,12 @@ fun AusenciaBanner(
                     metadata = metadataFerias,
                     contentColor = contentColor
                 )
+
                 TipoAusencia.DECLARACAO -> DeclaracaoContent(
                     ausencia = ausencia,
                     contentColor = contentColor
                 )
+
                 else -> DefaultAusenciaContent(
                     ausencia = ausencia,
                     contentColor = contentColor
@@ -261,7 +260,10 @@ private fun FeriasContent(
                     color = contentColor.copy(alpha = 0.2f)
                 ) {
                     Text(
-                        text = stringResource(R.string.ausencia_sequencia_ferias, it.sequenciaPeriodo),
+                        text = stringResource(
+                            R.string.ausencia_sequencia_ferias,
+                            it.sequenciaPeriodo
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = contentColor,
@@ -297,7 +299,7 @@ private fun FeriasContent(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                
+
                 // Segunda linha: Restantes para Marcar e Aproveitar
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -61,6 +61,7 @@ fun VersoesJornadaScreen(
                 is VersoesJornadaEvent.NavegarParaNovaVersao -> {
                     onNavigateToNovaVersao(evento.empregoId)
                 }
+
                 is VersoesJornadaEvent.MostrarErro -> {
                     // Tratar erro (ex: snackbar)
                 }
@@ -184,7 +185,7 @@ private fun VersaoJornadaCard(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
+
                 if (versao.dataFim == null) {
                     Card(
                         colors = CardDefaults.cardColors(

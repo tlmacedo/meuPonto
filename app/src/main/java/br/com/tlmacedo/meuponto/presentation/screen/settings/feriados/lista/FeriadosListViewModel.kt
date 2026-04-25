@@ -47,6 +47,7 @@ class FeriadosListViewModel @Inject constructor(
                 _uiState.update { it.copy(searchQuery = event.query) }
                 aplicarFiltros()
             }
+
             is FeriadosListEvent.OnToggleTipo -> {
                 _uiState.update { state ->
                     val novoSet = state.filtroTipos.toMutableSet()
@@ -59,10 +60,12 @@ class FeriadosListViewModel @Inject constructor(
                 }
                 aplicarFiltros()
             }
+
             is FeriadosListEvent.OnFiltroAnoChange -> {
                 _uiState.update { it.copy(filtroAno = event.ano) }
                 aplicarFiltros()
             }
+
             FeriadosListEvent.OnToggleOrdem -> {
                 _uiState.update { state ->
                     val novaOrdem = when (state.ordemData) {
@@ -73,6 +76,7 @@ class FeriadosListViewModel @Inject constructor(
                 }
                 aplicarFiltros()
             }
+
             FeriadosListEvent.OnLimparFiltros -> {
                 _uiState.update {
                     it.copy(
@@ -83,12 +87,15 @@ class FeriadosListViewModel @Inject constructor(
                 }
                 aplicarFiltros()
             }
+
             FeriadosListEvent.OnShowImportDialog -> {
                 _uiState.update { it.copy(showImportDialog = true) }
             }
+
             FeriadosListEvent.OnDismissImportDialog -> {
                 _uiState.update { it.copy(showImportDialog = false) }
             }
+
             FeriadosListEvent.OnImportarFeriados -> importarFeriados()
             is FeriadosListEvent.OnShowDeleteDialog -> {
                 _uiState.update {
@@ -98,6 +105,7 @@ class FeriadosListViewModel @Inject constructor(
                     )
                 }
             }
+
             FeriadosListEvent.OnDismissDeleteDialog -> {
                 _uiState.update {
                     it.copy(
@@ -106,6 +114,7 @@ class FeriadosListViewModel @Inject constructor(
                     )
                 }
             }
+
             FeriadosListEvent.OnConfirmarExclusao -> confirmarExclusao()
             is FeriadosListEvent.OnToggleAtivo -> toggleAtivo(event.feriado)
             FeriadosListEvent.OnDismissMessage -> {
@@ -199,6 +208,7 @@ class FeriadosListViewModel @Inject constructor(
                 compareBy<Feriado> { it.calcularProximaOcorrencia() ?: LocalDate.MAX }
                     .thenBy { it.nome }
             )
+
             OrdemData.DECRESCENTE -> filtrados.sortedWith(
                 compareByDescending<Feriado> { it.calcularProximaOcorrencia() ?: LocalDate.MIN }
                     .thenBy { it.nome }
@@ -220,6 +230,7 @@ class FeriadosListViewModel @Inject constructor(
                     if (esteAno.isBefore(hoje)) dm.atYear(hoje.year + 1) else esteAno
                 }
             }
+
             RecorrenciaFeriado.UNICO -> dataEspecifica
         }
     }
@@ -247,6 +258,7 @@ class FeriadosListViewModel @Inject constructor(
                         )
                     }
                 }
+
                 is ImportarFeriadosNacionaisUseCase.Resultado.Erro -> {
                     _uiState.update {
                         it.copy(
@@ -255,6 +267,7 @@ class FeriadosListViewModel @Inject constructor(
                         )
                     }
                 }
+
                 ImportarFeriadosNacionaisUseCase.Resultado.SemConexao -> {
                     _uiState.update {
                         it.copy(

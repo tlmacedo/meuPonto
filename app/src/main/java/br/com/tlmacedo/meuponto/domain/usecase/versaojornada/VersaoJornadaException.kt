@@ -12,15 +12,15 @@ import java.time.LocalDate
  */
 sealed class VersaoJornadaException(override val message: String) : Exception(message) {
 
-    data object EmpregoNaoEncontrado : VersaoJornadaException(
+    class EmpregoNaoEncontrado : VersaoJornadaException(
         "Nenhum emprego ativo encontrado. Configure um emprego antes de criar versões de jornada."
     )
 
-    data object VersaoNaoEncontrada : VersaoJornadaException(
+    class VersaoNaoEncontrada : VersaoJornadaException(
         "Versão de jornada não encontrada."
     )
 
-    data object UnicaVersao : VersaoJornadaException(
+    class UnicaVersao : VersaoJornadaException(
         "Não é possível excluir a única versão de jornada. Crie outra versão antes de excluir esta."
     )
 

@@ -37,12 +37,14 @@ class CalcularSaldoMensalUseCase @Inject constructor(
 
         val hoje = LocalDate.now()
         val dataReferencia = if (mes == YearMonth.now()) hoje else mes.atDay(1)
-        val periodo = br.com.tlmacedo.meuponto.domain.model.PeriodoRH.criarPara(dataReferencia, diaInicio)
-        
+        val periodo =
+            br.com.tlmacedo.meuponto.domain.model.PeriodoRH.criarPara(dataReferencia, diaInicio)
+
         val dataInicio = periodo.dataInicio
         val dataFim = periodo.dataFim
 
-        val resultado = calcularBancoHorasUseCase.calcularParaPeriodo(empregoId, dataInicio, dataFim)
+        val resultado =
+            calcularBancoHorasUseCase.calcularParaPeriodo(empregoId, dataInicio, dataFim)
 
         return SaldoMensal(
             mes = mes,

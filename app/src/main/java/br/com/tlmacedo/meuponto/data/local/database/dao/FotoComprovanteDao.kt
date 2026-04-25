@@ -65,24 +65,28 @@ interface FotoComprovanteDao {
     @Query("SELECT * FROM fotos_comprovante WHERE empregoId = :empregoId AND data = :data ORDER BY hora ASC")
     fun listarPorEmpregoEData(empregoId: Long, data: LocalDate): Flow<List<FotoComprovanteEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fotos_comprovante
         WHERE empregoId = :empregoId
         AND data BETWEEN :dataInicio AND :dataFim
         ORDER BY data ASC, hora ASC
-    """)
+    """
+    )
     fun listarPorEmpregoEPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
     ): Flow<List<FotoComprovanteEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fotos_comprovante
         WHERE empregoId = :empregoId
         AND data BETWEEN :dataInicio AND :dataFim
         ORDER BY data ASC, hora ASC
-    """)
+    """
+    )
     suspend fun buscarPorEmpregoEPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
@@ -102,14 +106,16 @@ interface FotoComprovanteDao {
     @Query("SELECT COUNT(*) FROM fotos_comprovante WHERE sincronizadoNuvem = 0")
     suspend fun contarNaoSincronizadas(): Int
 
-    @Query("""
+    @Query(
+        """
         UPDATE fotos_comprovante
         SET sincronizadoNuvem = 1,
             sincronizadoEm = :sincronizadoEm,
             cloudFileId = :cloudFileId,
             atualizadoEm = :atualizadoEm
         WHERE id = :id
-    """)
+    """
+    )
     suspend fun marcarComoSincronizado(
         id: Long,
         sincronizadoEm: java.time.Instant,

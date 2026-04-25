@@ -71,9 +71,10 @@ fun OutlinedDatePicker(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
-                            onValueChange(date)
-                        }
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()
+                            ?.let { date ->
+                                onValueChange(date)
+                            }
                         showPicker = false
                     }
                 ) { Text("Confirmar") }

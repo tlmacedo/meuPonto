@@ -175,7 +175,8 @@ class VerificarDiaEspecialUseCase @Inject constructor(
         if (feriados.size == 1) return feriados.first()
 
         // Ordenar por prioridade
-        return feriados.sortedWith(compareBy(
+        return feriados.sortedWith(
+            compareBy(
             { if (it.empregoId == empregoId) 0 else 1 },
             {
                 when (it.tipo) {

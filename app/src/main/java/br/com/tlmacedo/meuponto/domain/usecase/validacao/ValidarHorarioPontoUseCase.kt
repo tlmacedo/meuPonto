@@ -46,7 +46,10 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
         return criarResultado(ponto, inconsistencias)
     }
 
-    private fun validarRegistroFuturo(ponto: Ponto, dataHoraAtual: LocalDateTime): InconsistenciaDetectada? {
+    private fun validarRegistroFuturo(
+        ponto: Ponto,
+        dataHoraAtual: LocalDateTime
+    ): InconsistenciaDetectada? {
         val diferencaMinutos = Duration.between(dataHoraAtual, ponto.dataHora).toMinutes()
         return if (diferencaMinutos > TOLERANCIA_FUTURO_MINUTOS) {
             InconsistenciaDetectada(
@@ -56,7 +59,10 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
         } else null
     }
 
-    private fun validarRegistroAntigo(ponto: Ponto, dataHoraAtual: LocalDateTime): InconsistenciaDetectada? {
+    private fun validarRegistroAntigo(
+        ponto: Ponto,
+        dataHoraAtual: LocalDateTime
+    ): InconsistenciaDetectada? {
         val diasAtras = Duration.between(ponto.dataHora, dataHoraAtual).toDays()
         return if (diasAtras > DIAS_RETROATIVO_ALERTA) {
             InconsistenciaDetectada(
@@ -66,7 +72,10 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
         } else null
     }
 
-    private fun validarHorarioEsperado(ponto: Ponto, horario: HorarioDiaSemana): InconsistenciaDetectada? {
+    private fun validarHorarioEsperado(
+        ponto: Ponto,
+        horario: HorarioDiaSemana
+    ): InconsistenciaDetectada? {
         val horaPonto = ponto.dataHora.toLocalTime()
 
         val horariosIdeais = listOfNotNull(
@@ -100,7 +109,8 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
     ): List<InconsistenciaDetectada> {
         val inconsistencias = mutableListOf<InconsistenciaDetectada>()
 
-        val duracaoIntervalo = Duration.between(saidaIntervalo.dataHora, voltaIntervalo.dataHora).toMinutes()
+        val duracaoIntervalo =
+            Duration.between(saidaIntervalo.dataHora, voltaIntervalo.dataHora).toMinutes()
 
         if (duracaoIntervalo < horario.intervaloMinimoMinutos) {
             inconsistencias.add(
@@ -150,7 +160,10 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
         } else null
     }
 
-    private fun criarResultado(ponto: Ponto, inconsistencias: List<InconsistenciaDetectada>): ResultadoValidacao {
+    private fun criarResultado(
+        ponto: Ponto,
+        inconsistencias: List<InconsistenciaDetectada>
+    ): ResultadoValidacao {
         val temBloqueantes = inconsistencias.any { it.isBloqueante }
         return if (temBloqueantes) {
             ResultadoValidacao.falha(inconsistencias)
@@ -159,5 +172,6 @@ class ValidarHorarioPontoUseCase @Inject constructor() {
         }
     }
 
-    private fun formatarHora(hora: LocalTime): String = String.format("%02d:%02d", hora.hour, hora.minute)
+    private fun formatarHora(hora: LocalTime): String =
+        String.format("%02d:%02d", hora.hour, hora.minute)
 }

@@ -41,7 +41,9 @@ class RegistrarPontoUseCase @Inject constructor(
         data class HorarioInvalido(val motivo: String) : Resultado()
         data class LimiteAtingido(val limite: Int) : Resultado()
         data class Validacao(val erros: List<String>) : Resultado()
-        data class NsrObrigatorio(val tipoNsr: br.com.tlmacedo.meuponto.domain.model.TipoNsr) : Resultado()
+        data class NsrObrigatorio(val tipoNsr: br.com.tlmacedo.meuponto.domain.model.TipoNsr) :
+            Resultado()
+
         data object LocalizacaoObrigatoria : Resultado()
         data object VersaoNaoEncontrada : Resultado()
         data class Erro(val mensagem: String) : Resultado()
@@ -71,7 +73,7 @@ class RegistrarPontoUseCase @Inject constructor(
             val data = dataHora.toLocalDate()
 
             // 1. Buscar Versão da Jornada para a data do ponto
-            val versao = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+            versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
                 ?: return Resultado.VersaoNaoEncontrada
 
             // 2. Buscar configurações fixas do emprego

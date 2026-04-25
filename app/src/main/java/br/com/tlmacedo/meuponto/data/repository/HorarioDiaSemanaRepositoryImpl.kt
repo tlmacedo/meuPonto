@@ -122,7 +122,10 @@ class HorarioDiaSemanaRepositoryImpl @Inject constructor(
         return horarioDiaSemanaDao.buscarPorEmprego(empregoId).map { it.toDomain() }
     }
 
-    override suspend fun buscarPorEmpregoEDia(empregoId: Long, diaSemana: DiaSemana): HorarioDiaSemana? {
+    override suspend fun buscarPorEmpregoEDia(
+        empregoId: Long,
+        diaSemana: DiaSemana
+    ): HorarioDiaSemana? {
         return horarioDiaSemanaDao.buscarPorEmpregoEDia(empregoId, diaSemana)?.toDomain()
     }
 
@@ -170,7 +173,10 @@ class HorarioDiaSemanaRepositoryImpl @Inject constructor(
         return horarioDiaSemanaDao.buscarPorVersaoJornada(versaoJornadaId).map { it.toDomain() }
     }
 
-    override suspend fun buscarPorVersaoEDia(versaoJornadaId: Long, diaSemana: DiaSemana): HorarioDiaSemana? {
+    override suspend fun buscarPorVersaoEDia(
+        versaoJornadaId: Long,
+        diaSemana: DiaSemana
+    ): HorarioDiaSemana? {
         return horarioDiaSemanaDao.buscarPorVersaoEDia(versaoJornadaId, diaSemana)?.toDomain()
     }
 

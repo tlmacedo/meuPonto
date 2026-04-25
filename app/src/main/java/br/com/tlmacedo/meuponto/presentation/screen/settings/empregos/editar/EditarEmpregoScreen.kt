@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandLess
@@ -112,9 +111,11 @@ fun EditarEmpregoScreen(
                     snackbarHostState.showSnackbar(evento.mensagem)
                     onNavigateBack()
                 }
+
                 is EditarEmpregoEvent.MostrarErro -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 is EditarEmpregoEvent.Voltar -> {
                     onNavigateBack()
                 }
@@ -197,9 +198,10 @@ internal fun EditarEmpregoContent(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
-                            onAction(EditarEmpregoAction.AlterarDataInicioTrabalho(date))
-                        }
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()
+                            ?.let { date ->
+                                onAction(EditarEmpregoAction.AlterarDataInicioTrabalho(date))
+                            }
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
                 ) { Text("Confirmar") }
@@ -222,9 +224,10 @@ internal fun EditarEmpregoContent(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
-                            onAction(EditarEmpregoAction.AlterarDataTerminoTrabalho(date))
-                        }
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()
+                            ?.let { date ->
+                                onAction(EditarEmpregoAction.AlterarDataTerminoTrabalho(date))
+                            }
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
                 ) { Text("Confirmar") }
@@ -247,9 +250,10 @@ internal fun EditarEmpregoContent(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()?.let { date ->
-                            onAction(EditarEmpregoAction.AlterarBancoHorasDataInicioCiclo(date))
-                        }
+                        datePickerState.selectedDateMillis?.toLocalDateFromDatePicker()
+                            ?.let { date ->
+                                onAction(EditarEmpregoAction.AlterarBancoHorasDataInicioCiclo(date))
+                            }
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
                 ) { Text("Confirmar") }
@@ -464,7 +468,11 @@ internal fun EditarEmpregoContent(
                             value = uiState.diaInicioFechamentoRH.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { dia ->
-                                    if (dia in 1..31) onAction(EditarEmpregoAction.AlterarDiaInicioFechamentoRH(dia))
+                                    if (dia in 1..31) onAction(
+                                        EditarEmpregoAction.AlterarDiaInicioFechamentoRH(
+                                            dia
+                                        )
+                                    )
                                 }
                             },
                             label = "Dia de Início do Fechamento RH",
@@ -475,7 +483,13 @@ internal fun EditarEmpregoContent(
                             title = "Habilitar Banco de Horas",
                             description = "Controlar saldo de horas extras e atrasos",
                             checked = uiState.bancoHorasHabilitado,
-                            onCheckedChange = { onAction(EditarEmpregoAction.AlterarBancoHorasHabilitado(it)) }
+                            onCheckedChange = {
+                                onAction(
+                                    EditarEmpregoAction.AlterarBancoHorasHabilitado(
+                                        it
+                                    )
+                                )
+                            }
                         )
 
                         AnimatedVisibility(visible = uiState.bancoHorasHabilitado) {
@@ -487,7 +501,11 @@ internal fun EditarEmpregoContent(
                                     value = uiState.bancoHorasCicloMeses.toString(),
                                     onValueChange = {
                                         it.toIntOrNull()?.let { meses ->
-                                            if (meses > 0) onAction(EditarEmpregoAction.AlterarBancoHorasCicloMeses(meses))
+                                            if (meses > 0) onAction(
+                                                EditarEmpregoAction.AlterarBancoHorasCicloMeses(
+                                                    meses
+                                                )
+                                            )
                                         }
                                     },
                                     label = "Ciclo do Banco (Meses)",
@@ -501,24 +519,41 @@ internal fun EditarEmpregoContent(
                                     label = { Text("Data de Início do Ciclo") },
                                     trailingIcon = {
                                         IconButton(onClick = { onSetShowInicioCicloBHPicker(true) }) {
-                                            Icon(Icons.Default.CalendarMonth, contentDescription = null)
+                                            Icon(
+                                                Icons.Default.CalendarMonth,
+                                                contentDescription = null
+                                            )
                                         }
                                     },
-                                    modifier = Modifier.fillMaxWidth().clickable { onSetShowInicioCicloBHPicker(true) }
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onSetShowInicioCicloBHPicker(true) }
                                 )
 
                                 SwitchOption(
                                     title = "Zerar ao Final do Ciclo",
                                     description = "Limpar saldo automaticamente após o período",
                                     checked = uiState.bancoHorasZerarAoFinalCiclo,
-                                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarBancoHorasZerarAoFinalCiclo(it)) }
+                                    onCheckedChange = {
+                                        onAction(
+                                            EditarEmpregoAction.AlterarBancoHorasZerarAoFinalCiclo(
+                                                it
+                                            )
+                                        )
+                                    }
                                 )
 
                                 SwitchOption(
                                     title = "Exigir Justificativa",
                                     description = "Obrigar comentário em inconsistências",
                                     checked = uiState.exigeJustificativaInconsistencia,
-                                    onCheckedChange = { onAction(EditarEmpregoAction.AlterarExigeJustificativaInconsistencia(it)) }
+                                    onCheckedChange = {
+                                        onAction(
+                                            EditarEmpregoAction.AlterarExigeJustificativaInconsistencia(
+                                                it
+                                            )
+                                        )
+                                    }
                                 )
                             }
                         }
@@ -572,7 +607,13 @@ internal fun EditarEmpregoContent(
                         title = "Habilitar Localização",
                         description = "Capturar GPS no momento do registro",
                         checked = uiState.habilitarLocalizacao,
-                        onCheckedChange = { onAction(EditarEmpregoAction.AlterarHabilitarLocalizacao(it)) }
+                        onCheckedChange = {
+                            onAction(
+                                EditarEmpregoAction.AlterarHabilitarLocalizacao(
+                                    it
+                                )
+                            )
+                        }
                     )
 
                     AnimatedVisibility(visible = uiState.habilitarLocalizacao) {
@@ -581,7 +622,13 @@ internal fun EditarEmpregoContent(
                                 title = "Localização Automática",
                                 description = "Registrar sem intervenção manual quando estiver no local",
                                 checked = uiState.localizacaoAutomatica,
-                                onCheckedChange = { onAction(EditarEmpregoAction.AlterarLocalizacaoAutomatica(it)) }
+                                onCheckedChange = {
+                                    onAction(
+                                        EditarEmpregoAction.AlterarLocalizacaoAutomatica(
+                                            it
+                                        )
+                                    )
+                                }
                             )
 
                             // Configuração de Geofencing
@@ -606,7 +653,10 @@ internal fun EditarEmpregoContent(
                                         )
                                         Text(
                                             text = if (uiState.latitude != null && uiState.longitude != null)
-                                                "Coordenadas: %.6f, %.6f".format(uiState.latitude, uiState.longitude)
+                                                "Coordenadas: %.6f, %.6f".format(
+                                                    uiState.latitude,
+                                                    uiState.longitude
+                                                )
                                             else "Nenhum local definido",
                                             style = MaterialTheme.typography.bodySmall
                                         )
@@ -622,7 +672,13 @@ internal fun EditarEmpregoContent(
                                 )
                                 Slider(
                                     value = uiState.raioGeofencing.toFloat(),
-                                    onValueChange = { onAction(EditarEmpregoAction.AlterarRaioGeofencing(it.toInt())) },
+                                    onValueChange = {
+                                        onAction(
+                                            EditarEmpregoAction.AlterarRaioGeofencing(
+                                                it.toInt()
+                                            )
+                                        )
+                                    },
                                     valueRange = 50f..1000f,
                                     steps = 19
                                 )
@@ -650,7 +706,13 @@ internal fun EditarEmpregoContent(
                                 title = "Foto Obrigatória",
                                 description = "Impedir registro sem foto",
                                 checked = uiState.fotoObrigatoria,
-                                onCheckedChange = { onAction(EditarEmpregoAction.AlterarFotoObrigatoria(it)) }
+                                onCheckedChange = {
+                                    onAction(
+                                        EditarEmpregoAction.AlterarFotoObrigatoria(
+                                            it
+                                        )
+                                    )
+                                }
                             )
                         }
                     }
@@ -661,7 +723,13 @@ internal fun EditarEmpregoContent(
                         title = "Habilitar Comentários",
                         description = "Permitir observações no registro",
                         checked = uiState.comentarioHabilitado,
-                        onCheckedChange = { onAction(EditarEmpregoAction.AlterarComentarioHabilitado(it)) }
+                        onCheckedChange = {
+                            onAction(
+                                EditarEmpregoAction.AlterarComentarioHabilitado(
+                                    it
+                                )
+                            )
+                        }
                     )
                 }
             }
@@ -874,7 +942,10 @@ private fun FormSection(
                         modifier = Modifier.size(32.dp)
                     ) {
                         if (isSaving) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Check,
@@ -921,7 +992,9 @@ private fun SwitchOption(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge)

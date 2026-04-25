@@ -27,7 +27,10 @@ interface FechamentoPeriodoRepository {
 
     suspend fun buscarPorEmpregoId(empregoId: Long): List<FechamentoPeriodo>
 
-    suspend fun buscarPorEmpregoIdETipo(empregoId: Long, tipo: TipoFechamento): List<FechamentoPeriodo>
+    suspend fun buscarPorEmpregoIdETipo(
+        empregoId: Long,
+        tipo: TipoFechamento
+    ): List<FechamentoPeriodo>
 
     suspend fun buscarFechamentosBancoHoras(empregoId: Long): List<FechamentoPeriodo>
 

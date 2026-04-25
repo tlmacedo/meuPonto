@@ -40,7 +40,10 @@ sealed interface HomeAction {
     data class AtualizarNsrRegistroModal(val nsr: String) : HomeAction
 
     /** Atualiza a foto no modal de registro */
-    data class AtualizarFotoRegistroModal(val uri: Uri?, val origem: FotoOrigem = FotoOrigem.NENHUMA) : HomeAction
+    data class AtualizarFotoRegistroModal(
+        val uri: Uri?,
+        val origem: FotoOrigem = FotoOrigem.NENHUMA
+    ) : HomeAction
 
     /** Atualiza a hora no modal de registro */
     data class AtualizarHoraRegistroModal(val hora: LocalTime) : HomeAction
@@ -94,7 +97,10 @@ sealed interface HomeAction {
     data object FecharEdicaoModal : HomeAction
 
     /** Atualiza a foto no modal de edição */
-    data class AtualizarFotoEdicaoModal(val uri: Uri?, val origem: FotoOrigem = FotoOrigem.NENHUMA) : HomeAction
+    data class AtualizarFotoEdicaoModal(
+        val uri: Uri?,
+        val origem: FotoOrigem = FotoOrigem.NENHUMA
+    ) : HomeAction
 
     /** Remove a foto no modal de edição */
     data object RemoverFotoEdicaoModal : HomeAction

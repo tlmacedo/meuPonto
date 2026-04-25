@@ -32,7 +32,7 @@ class AtualizarVersaoJornadaUseCase @Inject constructor(
         return try {
             // 1. Buscar versão existente
             val versaoExistente = versaoJornadaRepository.buscarPorId(params.versaoId)
-                ?: return Result.failure(VersaoJornadaException.VersaoNaoEncontrada)
+                ?: return Result.failure(VersaoJornadaException.VersaoNaoEncontrada())
 
             // 2. Buscar outras versões do mesmo emprego
             val outrasVersoes = versaoJornadaRepository

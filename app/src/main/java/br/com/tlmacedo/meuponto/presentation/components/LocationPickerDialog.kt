@@ -418,7 +418,9 @@ fun LocationPickerDialog(
                         if (localizacaoSelecionada == null) {
                             Card(
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
+                                        alpha = 0.5f
+                                    )
                                 )
                             ) {
                                 Row(

@@ -16,11 +16,11 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         if (!columnExists(db, "configuracoes_emprego", "intervaloMinimoMinutos")) {
             db.execSQL("ALTER TABLE configuracoes_emprego ADD COLUMN intervaloMinimoMinutos INTEGER NOT NULL DEFAULT 60")
         }
-        
+
         // As colunas de tolerância de entrada/saída não devem ser adicionadas aqui 
         // se não estiverem no schema da versão 3. Se estiverem, devem ter o check.
         // Dado o histórico, seremos defensivos em tudo.
-        
+
         if (!columnExists(db, "configuracoes_emprego", "toleranciaIntervaloMaisMinutos")) {
             db.execSQL("ALTER TABLE configuracoes_emprego ADD COLUMN toleranciaIntervaloMaisMinutos INTEGER NOT NULL DEFAULT 0")
         }

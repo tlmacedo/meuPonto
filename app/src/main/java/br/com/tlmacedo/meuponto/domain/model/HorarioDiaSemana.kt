@@ -36,7 +36,11 @@ data class HorarioDiaSemana(
         /** Tolerância padrão de entrada em minutos */
         const val TOLERANCIA_ENTRADA_PADRAO = 10
 
-        fun criarPadrao(empregoId: Long, diaSemana: DiaSemana, versaoJornadaId: Long? = null): HorarioDiaSemana {
+        fun criarPadrao(
+            empregoId: Long,
+            diaSemana: DiaSemana,
+            versaoJornadaId: Long? = null
+        ): HorarioDiaSemana {
             val ehDiaUtil = diaSemana.isDiaUtil
             return HorarioDiaSemana(
                 empregoId = empregoId,
@@ -47,7 +51,10 @@ data class HorarioDiaSemana(
             )
         }
 
-        fun criarTodosPadrao(empregoId: Long, versaoJornadaId: Long? = null): List<HorarioDiaSemana> {
+        fun criarTodosPadrao(
+            empregoId: Long,
+            versaoJornadaId: Long? = null
+        ): List<HorarioDiaSemana> {
             return DiaSemana.entries.map { dia -> criarPadrao(empregoId, dia, versaoJornadaId) }
         }
     }
@@ -74,7 +81,8 @@ data class HorarioDiaSemana(
     val duracaoIntervaloIdealMinutos: Int?
         get() {
             if (saidaIntervaloIdeal != null && voltaIntervaloIdeal != null) {
-                return Duration.between(saidaIntervaloIdeal, voltaIntervaloIdeal).toMinutes().toInt()
+                return Duration.between(saidaIntervaloIdeal, voltaIntervaloIdeal).toMinutes()
+                    .toInt()
             }
             return null
         }

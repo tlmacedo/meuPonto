@@ -38,7 +38,11 @@ class PontoRepositoryImpl @Inject constructor(
         auditService.logCreate(
             entidade = ENTIDADE,
             entidadeId = id,
-            motivo = "Ponto registrado em ${ponto.data.format(dateFormatter)} às ${ponto.hora.format(timeFormatter)}",
+            motivo = "Ponto registrado em ${ponto.data.format(dateFormatter)} às ${
+                ponto.hora.format(
+                    timeFormatter
+                )
+            }",
             novoValor = ponto,
             serializer = { auditService.toJson(it.toAuditMap()) }
         )
@@ -64,7 +68,11 @@ class PontoRepositoryImpl @Inject constructor(
         auditService.logPermanentDelete(
             entidade = ENTIDADE,
             entidadeId = ponto.id,
-            motivo = "Ponto excluído permanentemente: ${ponto.data.format(dateFormatter)} às ${ponto.hora.format(timeFormatter)}"
+            motivo = "Ponto excluído permanentemente: ${ponto.data.format(dateFormatter)} às ${
+                ponto.hora.format(
+                    timeFormatter
+                )
+            }"
         )
 
         pontoDao.excluir(ponto.toEntity())
@@ -157,7 +165,8 @@ class PontoRepositoryImpl @Inject constructor(
         dataInicio: LocalDate,
         dataFim: LocalDate
     ): List<Ponto> {
-        return pontoDao.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim).map { it.toDomain() }
+        return pontoDao.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
+            .map { it.toDomain() }
     }
 
     override fun observarPorEmpregoEPeriodo(
@@ -172,7 +181,11 @@ class PontoRepositoryImpl @Inject constructor(
 
     // === Atualização de foto ===
 
-    override suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?, fotoOrigem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem) {
+    override suspend fun atualizarFotoComprovante(
+        pontoId: Long,
+        fotoPath: String?,
+        fotoOrigem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem
+    ) {
         val anterior = pontoDao.buscarPorId(pontoId)?.toDomain()
         pontoDao.atualizarFotoComprovante(pontoId, fotoPath, fotoOrigem.id)
 
@@ -210,7 +223,11 @@ class PontoRepositoryImpl @Inject constructor(
             entidade = ENTIDADE,
             entidadeId = pontoId,
             motivo = ponto?.let {
-                "Ponto movido para lixeira: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                "Ponto movido para lixeira: ${it.data.format(dateFormatter)} às ${
+                    it.hora.format(
+                        timeFormatter
+                    )
+                }"
             } ?: "Ponto movido para lixeira",
             dadosAnteriores = ponto?.let { auditService.toJson(it.toAuditMap()) }
         )
@@ -223,7 +240,11 @@ class PontoRepositoryImpl @Inject constructor(
             entidade = ENTIDADE,
             entidadeId = pontoId,
             motivo = ponto?.let {
-                "Ponto excluído permanentemente: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                "Ponto excluído permanentemente: ${it.data.format(dateFormatter)} às ${
+                    it.hora.format(
+                        timeFormatter
+                    )
+                }"
             } ?: "Ponto excluído permanentemente"
         )
 
@@ -242,7 +263,11 @@ class PontoRepositoryImpl @Inject constructor(
             entidade = ENTIDADE,
             entidadeId = pontoId,
             motivo = ponto?.let {
-                "Ponto restaurado: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                "Ponto restaurado: ${it.data.format(dateFormatter)} às ${
+                    it.hora.format(
+                        timeFormatter
+                    )
+                }"
             } ?: "Ponto restaurado da lixeira"
         )
     }
@@ -255,7 +280,11 @@ class PontoRepositoryImpl @Inject constructor(
             auditService.logPermanentDelete(
                 entidade = ENTIDADE,
                 entidadeId = 0L,
-                motivo = "Exclusão em massa de $count pontos anteriores a ${data.format(dateFormatter)}"
+                motivo = "Exclusão em massa de $count pontos anteriores a ${
+                    data.format(
+                        dateFormatter
+                    )
+                }"
             )
         }
         return count

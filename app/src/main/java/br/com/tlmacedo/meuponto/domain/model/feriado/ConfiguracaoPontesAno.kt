@@ -102,7 +102,7 @@ data class ConfiguracaoPontesAno(
                 cargaHorariaPonteMinutos = totalMinutosPonte,
                 diasUteisAno = diasUteisAno,
                 adicionalDiarioMinutos = adicionalDiario,
-                observacao = "Calculado automaticamente: $diasPonte dias × ${cargaHorariaDiariaMinutos/60}h = ${totalMinutosPonte/60}h / $diasUteisAno dias = ${adicionalDiario}min/dia"
+                observacao = "Calculado automaticamente: $diasPonte dias × ${cargaHorariaDiariaMinutos / 60}h = ${totalMinutosPonte / 60}h / $diasUteisAno dias = ${adicionalDiario}min/dia"
             )
         }
     }

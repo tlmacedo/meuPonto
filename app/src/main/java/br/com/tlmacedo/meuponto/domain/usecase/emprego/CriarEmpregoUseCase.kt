@@ -50,7 +50,7 @@ class CriarEmpregoUseCase @Inject constructor(
         // Cargo Inicial
         val funcao: String,
         val salarioInicial: Double,
-        
+
         // Jornada
         val cargaHorariaDiariaMinutos: Int = 480, // 8h
         val acrescimoMinutosDiasPontes: Int = 0,
@@ -59,7 +59,7 @@ class CriarEmpregoUseCase @Inject constructor(
         val intervaloMinimoInterjornadaMinutos: Int = 660, // 11h
         val turnoMaximoMinutos: Int = 360, // 6h
         val toleranciaIntervaloMaisMinutos: Int = 0,
-        
+
         // RH e Banco
         val diaInicioFechamentoRH: Int = 1,
         val zerarSaldoPeriodoRH: Boolean = false,
@@ -71,7 +71,7 @@ class CriarEmpregoUseCase @Inject constructor(
         val periodoBancoAnos: Int = 0,
         val dataInicioCicloBanco: LocalDate? = null,
         val zerarBancoAoFecharCiclo: Boolean = false,
-        
+
         // Extras
         val habilitarNsr: Boolean = false,
         val tipoNsr: TipoNsr = TipoNsr.NUMERICO,
@@ -200,17 +200,20 @@ class CriarEmpregoUseCase @Inject constructor(
         versaoJornadaId: Long,
         parametros: Parametros
     ) {
-        val cargaTotalMinutos = parametros.cargaHorariaDiariaMinutos + parametros.acrescimoMinutosDiasPontes
-        
+        val cargaTotalMinutos =
+            parametros.cargaHorariaDiariaMinutos + parametros.acrescimoMinutosDiasPontes
+
         DiaSemana.entries.forEach { dia ->
-            val ehDiaUtil = dia.isDiaUtil && dia != DiaSemana.SABADO // Por padrão, Sab e Dom são folga no seu exemplo
-            
+            val ehDiaUtil =
+                dia.isDiaUtil && dia != DiaSemana.SABADO // Por padrão, Sab e Dom são folga no seu exemplo
+
             val horario = if (ehDiaUtil) {
                 // Exemplo Sugerido: 08:00 - 12:30 (4h30) e 13:30 - (fim conforme carga)
                 val entrada = LocalTime.of(8, 0)
                 val saidaIntervalo = LocalTime.of(12, 30)
-                val voltaIntervalo = saidaIntervalo.plusMinutes(parametros.intervaloMinimoAlmocoMinutos.toLong())
-                
+                val voltaIntervalo =
+                    saidaIntervalo.plusMinutes(parametros.intervaloMinimoAlmocoMinutos.toLong())
+
                 val minutosManha = java.time.Duration.between(entrada, saidaIntervalo).toMinutes()
                 val minutosRestantes = cargaTotalMinutos - minutosManha
                 val saidaFinal = voltaIntervalo.plusMinutes(minutosRestantes)
@@ -229,7 +232,8 @@ class CriarEmpregoUseCase @Inject constructor(
                     toleranciaIntervaloMaisMinutos = parametros.toleranciaIntervaloMaisMinutos
                 )
             } else {
-                HorarioDiaSemana.criarPadrao(empregoId, dia, versaoJornadaId).copy(ativo = false, cargaHorariaMinutos = 0)
+                HorarioDiaSemana.criarPadrao(empregoId, dia, versaoJornadaId)
+                    .copy(ativo = false, cargaHorariaMinutos = 0)
             }
             horarioDiaSemanaRepository.inserir(horario)
         }

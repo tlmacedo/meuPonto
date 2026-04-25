@@ -47,7 +47,8 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
         // ETAPA 2: Copiar dados de configuracoes_emprego para versoes_jornada
         // ════════════════════════════════════════════════════════════════════
 
-        db.execSQL("""
+        db.execSQL(
+            """
             UPDATE versoes_jornada 
             SET 
                 cargaHorariaDiariaMinutos = COALESCE(
@@ -119,20 +120,24 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
                      WHERE configuracoes_emprego.empregoId = versoes_jornada.empregoId),
                     0
                 )
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Calcular cargaHorariaSemanalMinutos baseado na cargaHorariaDiariaMinutos * 5
-        db.execSQL("""
+        db.execSQL(
+            """
             UPDATE versoes_jornada 
             SET cargaHorariaSemanalMinutos = cargaHorariaDiariaMinutos * 5
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // ════════════════════════════════════════════════════════════════════
         // ETAPA 3: Recriar configuracoes_emprego SEM as colunas migradas
         // ════════════════════════════════════════════════════════════════════
 
         // Criar tabela temporária com nova estrutura
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE configuracoes_emprego_new (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 empregoId INTEGER NOT NULL,
@@ -147,10 +152,12 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
                 atualizadoEm TEXT NOT NULL,
                 FOREIGN KEY (empregoId) REFERENCES empregos(id) ON DELETE CASCADE
             )
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Copiar dados mantendo apenas colunas relevantes
-        db.execSQL("""
+        db.execSQL(
+            """
             INSERT INTO configuracoes_emprego_new (
                 id, empregoId, habilitarNsr, tipoNsr, 
                 habilitarLocalizacao, localizacaoAutomatica, exibirLocalizacaoDetalhes,
@@ -161,7 +168,8 @@ val MIGRATION_19_20 = object : Migration(19, 20) {
                 habilitarLocalizacao, localizacaoAutomatica, exibirLocalizacaoDetalhes,
                 exibirDuracaoTurno, exibirDuracaoIntervalo, criadoEm, atualizadoEm
             FROM configuracoes_emprego
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Dropar tabela antiga e renomear
         db.execSQL("DROP TABLE configuracoes_emprego")

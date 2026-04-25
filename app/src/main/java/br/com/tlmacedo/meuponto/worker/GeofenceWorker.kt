@@ -50,7 +50,7 @@ class GeofenceWorker @AssistedInject constructor(
 
             // 3. Salva no banco de dados
             pontoRepository.inserir(ponto)
-            
+
             Timber.i("Ponto registrado automaticamente via Geofencing: ${agora}")
             Result.success()
         } catch (e: Exception) {

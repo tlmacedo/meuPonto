@@ -79,6 +79,7 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
                 TipoFeriado.NACIONAL,
                 TipoFeriado.ESTADUAL,
                 TipoFeriado.MUNICIPAL -> TipoDiaEspecial.FERIADO
+
                 TipoFeriado.PONTE -> TipoDiaEspecial.PONTE
                 TipoFeriado.FACULTATIVO -> TipoDiaEspecial.FACULTATIVO
             }
@@ -124,6 +125,7 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
                     TipoFeriado.NACIONAL,
                     TipoFeriado.ESTADUAL,
                     TipoFeriado.MUNICIPAL -> TipoDiaEspecial.FERIADO
+
                     TipoFeriado.PONTE -> TipoDiaEspecial.PONTE
                     TipoFeriado.FACULTATIVO -> TipoDiaEspecial.FACULTATIVO
                 }

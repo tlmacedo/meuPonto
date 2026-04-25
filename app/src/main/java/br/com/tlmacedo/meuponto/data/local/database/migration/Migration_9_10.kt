@@ -26,7 +26,8 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
         // ====================================================================
         // PASSO 1: Criar tabela versoes_jornada
         // ====================================================================
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE IF NOT EXISTS versoes_jornada (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 empregoId INTEGER NOT NULL,
@@ -42,7 +43,8 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
                 atualizadoEm TEXT NOT NULL,
                 FOREIGN KEY (empregoId) REFERENCES empregos(id) ON DELETE CASCADE
             )
-        """)
+        """
+        )
 
         // Criar índices para versoes_jornada
         db.execSQL("CREATE INDEX IF NOT EXISTS index_versoes_jornada_empregoId ON versoes_jornada(empregoId)")
@@ -52,7 +54,8 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
         // ====================================================================
         // PASSO 2: Criar versão inicial para cada emprego existente
         // ====================================================================
-        db.execSQL("""
+        db.execSQL(
+            """
             INSERT INTO versoes_jornada (
                 empregoId, 
                 dataInicio, 
@@ -80,7 +83,8 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
                 '$agora'
             FROM empregos e
             LEFT JOIN configuracoes_emprego c ON c.empregoId = e.id
-        """)
+        """
+        )
 
         // ====================================================================
         // PASSO 3: Recriar horarios_dia_semana com a nova estrutura
@@ -91,7 +95,8 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
         db.execSQL("ALTER TABLE horarios_dia_semana RENAME TO horarios_dia_semana_old")
 
         // 3.2 Criar nova tabela com foreign keys corretas
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE horarios_dia_semana (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 empregoId INTEGER NOT NULL,
@@ -112,10 +117,12 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
                 FOREIGN KEY (empregoId) REFERENCES empregos(id) ON DELETE CASCADE,
                 FOREIGN KEY (versaoJornadaId) REFERENCES versoes_jornada(id) ON DELETE CASCADE
             )
-        """)
+        """
+        )
 
         // 3.3 Copiar dados da tabela antiga para a nova, vinculando com a versão criada
-        db.execSQL("""
+        db.execSQL(
+            """
             INSERT INTO horarios_dia_semana (
                 id, empregoId, versaoJornadaId, diaSemana, ativo, 
                 cargaHorariaMinutos, entradaIdeal, saidaIntervaloIdeal, 
@@ -132,7 +139,8 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
                 h.toleranciaEntradaMinutos, h.toleranciaSaidaMinutos,
                 h.criadoEm, h.atualizadoEm
             FROM horarios_dia_semana_old h
-        """)
+        """
+        )
 
         // 3.4 Remover tabela antiga
         db.execSQL("DROP TABLE horarios_dia_semana_old")

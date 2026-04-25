@@ -77,21 +77,23 @@ class EditPontoViewModel @Inject constructor(
      */
     fun onAction(action: EditPontoAction) {
         when (action) {
-            is EditPontoAction.AlterarData       -> alterarData(action.data)
-            is EditPontoAction.AlterarHora       -> alterarHora(action.hora)
-            is EditPontoAction.AlterarEmprego    -> alterarEmprego(action.emprego)
+            is EditPontoAction.AlterarData -> alterarData(action.data)
+            is EditPontoAction.AlterarHora -> alterarHora(action.hora)
+            is EditPontoAction.AlterarEmprego -> alterarEmprego(action.emprego)
             is EditPontoAction.AlterarObservacao -> alterarObservacao(action.observacao)
-            is EditPontoAction.AlterarNsr        -> alterarNsr(action.nsr)
-            is EditPontoAction.AlterarFoto       -> alterarFoto(action.relativePath)
-            EditPontoAction.AbrirDatePicker      -> _uiState.update { it.copy(mostrarDatePicker = true) }
-            EditPontoAction.FecharDatePicker     -> _uiState.update { it.copy(mostrarDatePicker = false) }
-            EditPontoAction.AbrirTimePicker      -> _uiState.update { it.copy(mostrarTimePicker = true) }
-            EditPontoAction.FecharTimePicker     -> _uiState.update { it.copy(mostrarTimePicker = false) }
-            EditPontoAction.AbrirVisualizadorFoto -> { /* implementar na Fase 3 */ }
-            EditPontoAction.RemoverFoto          -> removerFoto()
-            EditPontoAction.Salvar               -> salvar()
-            EditPontoAction.Excluir              -> excluir()
-            EditPontoAction.LimparErro           -> limparErro()
+            is EditPontoAction.AlterarNsr -> alterarNsr(action.nsr)
+            is EditPontoAction.AlterarFoto -> alterarFoto(action.relativePath)
+            EditPontoAction.AbrirDatePicker -> _uiState.update { it.copy(mostrarDatePicker = true) }
+            EditPontoAction.FecharDatePicker -> _uiState.update { it.copy(mostrarDatePicker = false) }
+            EditPontoAction.AbrirTimePicker -> _uiState.update { it.copy(mostrarTimePicker = true) }
+            EditPontoAction.FecharTimePicker -> _uiState.update { it.copy(mostrarTimePicker = false) }
+            EditPontoAction.AbrirVisualizadorFoto -> { /* implementar na Fase 3 */
+            }
+
+            EditPontoAction.RemoverFoto -> removerFoto()
+            EditPontoAction.Salvar -> salvar()
+            EditPontoAction.Excluir -> excluir()
+            EditPontoAction.LimparErro -> limparErro()
         }
     }
 
@@ -111,10 +113,12 @@ class EditPontoViewModel @Inject constructor(
             try {
                 val ponto = pontoRepository.buscarPorId(pontoId)
                 if (ponto == null) {
-                    _uiState.update { it.copy(
-                        isLoading = false,
-                        erro = "Ponto não encontrado"
-                    )}
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            erro = "Ponto não encontrado"
+                        )
+                    }
                     return@launch
                 }
 
@@ -124,28 +128,32 @@ class EditPontoViewModel @Inject constructor(
                     marcadorRepository.buscarAtivosPorEmprego(it.id)
                 } ?: emptyList()
 
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    ponto = ponto,
-                    empregos = empregos,
-                    marcadores = marcadores,
-                    empregoSelecionado = empregoAtual,
-                    empregoApelido = empregoAtual?.apelido,
-                    empregoLogo = empregoAtual?.logo,
-                    // ✅ Decompõe dataHora em data e hora para edição separada
-                    data = ponto.dataHora.toLocalDate(),
-                    hora = ponto.dataHora.toLocalTime().withSecond(0).withNano(0),
-                    observacao = ponto.observacao ?: "",
-                    nsr = ponto.nsr ?: "",
-                    fotoRelativePath = ponto.fotoComprovantePath,
-                    fotoRemovida = false
-                )}
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        ponto = ponto,
+                        empregos = empregos,
+                        marcadores = marcadores,
+                        empregoSelecionado = empregoAtual,
+                        empregoApelido = empregoAtual?.apelido,
+                        empregoLogo = empregoAtual?.logo,
+                        // ✅ Decompõe dataHora em data e hora para edição separada
+                        data = ponto.dataHora.toLocalDate(),
+                        hora = ponto.dataHora.toLocalTime().withSecond(0).withNano(0),
+                        observacao = ponto.observacao ?: "",
+                        nsr = ponto.nsr ?: "",
+                        fotoRelativePath = ponto.fotoComprovantePath,
+                        fotoRemovida = false
+                    )
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao carregar ponto: $pontoId")
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    erro = "Erro ao carregar: ${e.message}"
-                )}
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        erro = "Erro ao carregar: ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -155,29 +163,35 @@ class EditPontoViewModel @Inject constructor(
     // ========================================================================
 
     private fun alterarData(data: LocalDate) {
-        _uiState.update { it.copy(
-            data = data,
-            mostrarDatePicker = false
-        )}
+        _uiState.update {
+            it.copy(
+                data = data,
+                mostrarDatePicker = false
+            )
+        }
     }
 
     private fun alterarHora(hora: LocalTime) {
-        _uiState.update { it.copy(
-            hora = hora,
-            mostrarTimePicker = false
-        )}
+        _uiState.update {
+            it.copy(
+                hora = hora,
+                mostrarTimePicker = false
+            )
+        }
     }
 
     private fun alterarEmprego(emprego: Emprego) {
         viewModelScope.launch {
             try {
                 val marcadores = marcadorRepository.buscarAtivosPorEmprego(emprego.id)
-                _uiState.update { it.copy(
-                    empregoSelecionado = emprego,
-                    empregoApelido = emprego.apelido,
-                    empregoLogo = emprego.logo,
-                    marcadores = marcadores
-                )}
+                _uiState.update {
+                    it.copy(
+                        empregoSelecionado = emprego,
+                        empregoApelido = emprego.apelido,
+                        empregoLogo = emprego.logo,
+                        marcadores = marcadores
+                    )
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao carregar marcadores do emprego: ${emprego.id}")
             }
@@ -193,10 +207,12 @@ class EditPontoViewModel @Inject constructor(
     }
 
     private fun alterarFoto(relativePath: String?) {
-        _uiState.update { it.copy(
-            fotoRelativePath = relativePath,
-            fotoRemovida = false
-        )}
+        _uiState.update {
+            it.copy(
+                fotoRelativePath = relativePath,
+                fotoRemovida = false
+            )
+        }
     }
 
     // ========================================================================
@@ -215,10 +231,12 @@ class EditPontoViewModel @Inject constructor(
         val relativePath = _uiState.value.fotoRelativePath ?: return
 
         // Feedback imediato na UI
-        _uiState.update { it.copy(
-            fotoRelativePath = null,
-            fotoRemovida = true
-        )}
+        _uiState.update {
+            it.copy(
+                fotoRelativePath = null,
+                fotoRemovida = true
+            )
+        }
 
         // Deleção física em background
         viewModelScope.launch {
@@ -277,16 +295,20 @@ class EditPontoViewModel @Inject constructor(
                 pontoRepository.atualizar(pontoAtualizado)
 
                 Timber.i("Ponto $pontoId atualizado com sucesso")
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    isSalvo = true
-                )}
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isSalvo = true
+                    )
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao salvar ponto: $pontoId")
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    erro = "Erro ao salvar: ${e.message}"
-                )}
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        erro = "Erro ao salvar: ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -315,16 +337,20 @@ class EditPontoViewModel @Inject constructor(
                 pontoRepository.excluir(pontoOriginal)
 
                 Timber.i("Ponto $pontoId excluído com sucesso")
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    isSalvo = true
-                )}
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isSalvo = true
+                    )
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao excluir ponto: $pontoId")
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    erro = "Erro ao excluir: ${e.message}"
-                )}
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        erro = "Erro ao excluir: ${e.message}"
+                    )
+                }
             }
         }
     }

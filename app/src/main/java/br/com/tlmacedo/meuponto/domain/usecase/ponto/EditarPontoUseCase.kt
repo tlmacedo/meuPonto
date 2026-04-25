@@ -60,6 +60,7 @@ class EditarPontoUseCase @Inject constructor(
             val imagemAntigaMovidaParaLixeira: Boolean = false,
             val trashPath: String? = null
         ) : Resultado()
+
         data class Erro(val mensagem: String) : Resultado()
         data class NaoEncontrado(val pontoId: Long) : Resultado()
         data class Validacao(val erros: List<String>) : Resultado()
@@ -86,7 +87,8 @@ class EditarPontoUseCase @Inject constructor(
 
         // Validar horário se foi alterado
         val novaDataHora = parametros.dataHora ?: pontoExistente.dataHora
-        val horarioFoiAlterado = parametros.dataHora != null && parametros.dataHora != pontoExistente.dataHora
+        val horarioFoiAlterado =
+            parametros.dataHora != null && parametros.dataHora != pontoExistente.dataHora
 
         if (horarioFoiAlterado) {
             val pontosDoDia = pontoRepository.buscarPorEmpregoEData(

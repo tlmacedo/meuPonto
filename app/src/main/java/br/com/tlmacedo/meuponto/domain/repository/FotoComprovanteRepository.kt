@@ -12,7 +12,12 @@ import java.time.LocalDate
  */
 interface FotoComprovanteRepository {
     fun listarPorEmprego(empregoId: Long): Flow<List<FotoComprovante>>
-    fun listarPorEmpregoEPeriodo(empregoId: Long, dataInicio: LocalDate, dataFim: LocalDate): Flow<List<FotoComprovante>>
+    fun listarPorEmpregoEPeriodo(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): Flow<List<FotoComprovante>>
+
     suspend fun buscarPorId(id: Long): FotoComprovante?
     fun observarPorId(id: Long): Flow<FotoComprovante?>
     suspend fun buscarPorPontoId(pontoId: Long): FotoComprovante?

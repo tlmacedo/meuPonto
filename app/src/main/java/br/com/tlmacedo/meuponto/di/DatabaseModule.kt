@@ -47,24 +47,58 @@ object DatabaseModule {
             .build()
     }
 
-    @Provides fun provideEmpregoDao(db: MeuPontoDatabase): EmpregoDao = db.empregoDao()
-    @Provides fun providePontoDao(db: MeuPontoDatabase): PontoDao = db.pontoDao()
-    @Provides fun provideMarcadorDao(db: MeuPontoDatabase): MarcadorDao = db.marcadorDao()
-    @Provides fun provideAusenciaDao(db: MeuPontoDatabase): AusenciaDao = db.ausenciaDao()
-    @Provides fun provideAjusteSaldoDao(db: MeuPontoDatabase): AjusteSaldoDao = db.ajusteSaldoDao()
-    @Provides fun provideVersaoJornadaDao(db: MeuPontoDatabase): VersaoJornadaDao = db.versaoJornadaDao()
-    @Provides fun provideFotoComprovanteDao(db: MeuPontoDatabase): FotoComprovanteDao = db.fotoComprovanteDao()
-    @Provides fun provideHistoricoCargoDao(db: MeuPontoDatabase): HistoricoCargoDao = db.historicoCargoDao()
-    @Provides fun provideCloudSyncQueueDao(db: MeuPontoDatabase): CloudSyncQueueDao = db.cloudSyncQueueDao()
-    @Provides fun provideChamadoDao(db: MeuPontoDatabase): ChamadoDao = db.chamadoDao()
-    @Provides fun provideHistoricoChamadoDao(db: MeuPontoDatabase): HistoricoChamadoDao = db.historicoChamadoDao()
-    @Provides fun provideAuditLogDao(db: MeuPontoDatabase): AuditLogDao = db.auditLogDao()
-    @Provides fun provideAjusteSalarialDao(db: MeuPontoDatabase): AjusteSalarialDao = db.ajusteSalarialDao()
-    @Provides fun provideConfiguracaoEmpregoDao(db: MeuPontoDatabase): ConfiguracaoEmpregoDao = db.configuracaoEmpregoDao()
-    @Provides fun provideConfiguracaoPontesAnoDao(db: MeuPontoDatabase): ConfiguracaoPontesAnoDao = db.configuracaoPontesAnoDao()
-    @Provides fun provideFechamentoPeriodoDao(db: MeuPontoDatabase): FechamentoPeriodoDao = db.fechamentoPeriodoDao()
-    @Provides fun provideFeriadoDao(db: MeuPontoDatabase): FeriadoDao = db.feriadoDao()
-    @Provides fun provideGeocodificacaoCacheDao(db: MeuPontoDatabase): GeocodificacaoCacheDao = db.geocodificacaoCacheDao()
-    @Provides fun provideHorarioDiaSemanaDao(db: MeuPontoDatabase): HorarioDiaSemanaDao = db.horarioDiaSemanaDao()
-    @Provides fun provideUsuarioDao(db: MeuPontoDatabase): UsuarioDao = db.usuarioDao()
+    @Provides
+    fun provideEmpregoDao(db: MeuPontoDatabase): EmpregoDao = db.empregoDao()
+    @Provides
+    fun providePontoDao(db: MeuPontoDatabase): PontoDao = db.pontoDao()
+    @Provides
+    fun provideMarcadorDao(db: MeuPontoDatabase): MarcadorDao = db.marcadorDao()
+    @Provides
+    fun provideAusenciaDao(db: MeuPontoDatabase): AusenciaDao = db.ausenciaDao()
+    @Provides
+    fun provideAjusteSaldoDao(db: MeuPontoDatabase): AjusteSaldoDao = db.ajusteSaldoDao()
+    @Provides
+    fun provideVersaoJornadaDao(db: MeuPontoDatabase): VersaoJornadaDao = db.versaoJornadaDao()
+    @Provides
+    fun provideFotoComprovanteDao(db: MeuPontoDatabase): FotoComprovanteDao =
+        db.fotoComprovanteDao()
+
+    @Provides
+    fun provideHistoricoCargoDao(db: MeuPontoDatabase): HistoricoCargoDao = db.historicoCargoDao()
+    @Provides
+    fun provideCloudSyncQueueDao(db: MeuPontoDatabase): CloudSyncQueueDao = db.cloudSyncQueueDao()
+    @Provides
+    fun provideChamadoDao(db: MeuPontoDatabase): ChamadoDao = db.chamadoDao()
+    @Provides
+    fun provideHistoricoChamadoDao(db: MeuPontoDatabase): HistoricoChamadoDao =
+        db.historicoChamadoDao()
+
+    @Provides
+    fun provideAuditLogDao(db: MeuPontoDatabase): AuditLogDao = db.auditLogDao()
+    @Provides
+    fun provideAjusteSalarialDao(db: MeuPontoDatabase): AjusteSalarialDao = db.ajusteSalarialDao()
+    @Provides
+    fun provideConfiguracaoEmpregoDao(db: MeuPontoDatabase): ConfiguracaoEmpregoDao =
+        db.configuracaoEmpregoDao()
+
+    @Provides
+    fun provideConfiguracaoPontesAnoDao(db: MeuPontoDatabase): ConfiguracaoPontesAnoDao =
+        db.configuracaoPontesAnoDao()
+
+    @Provides
+    fun provideFechamentoPeriodoDao(db: MeuPontoDatabase): FechamentoPeriodoDao =
+        db.fechamentoPeriodoDao()
+
+    @Provides
+    fun provideFeriadoDao(db: MeuPontoDatabase): FeriadoDao = db.feriadoDao()
+    @Provides
+    fun provideGeocodificacaoCacheDao(db: MeuPontoDatabase): GeocodificacaoCacheDao =
+        db.geocodificacaoCacheDao()
+
+    @Provides
+    fun provideHorarioDiaSemanaDao(db: MeuPontoDatabase): HorarioDiaSemanaDao =
+        db.horarioDiaSemanaDao()
+
+    @Provides
+    fun provideUsuarioDao(db: MeuPontoDatabase): UsuarioDao = db.usuarioDao()
 }

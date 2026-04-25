@@ -40,67 +40,84 @@ interface FechamentoPeriodoDao {
     @Query("SELECT * FROM fechamentos_periodo WHERE emprego_id = :empregoId ORDER BY data_fechamento DESC")
     suspend fun getByEmpregoId(empregoId: Long): List<FechamentoPeriodoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fechamentos_periodo 
         WHERE emprego_id = :empregoId 
         AND tipo = :tipo
         ORDER BY data_fechamento DESC
-    """)
-    suspend fun getByEmpregoIdAndTipo(empregoId: Long, tipo: TipoFechamento): List<FechamentoPeriodoEntity>
+    """
+    )
+    suspend fun getByEmpregoIdAndTipo(
+        empregoId: Long,
+        tipo: TipoFechamento
+    ): List<FechamentoPeriodoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fechamentos_periodo 
         WHERE emprego_id = :empregoId 
         AND tipo IN ('BANCO_HORAS', 'CICLO_BANCO_AUTOMATICO')
         ORDER BY data_fechamento DESC
-    """)
+    """
+    )
     suspend fun getFechamentosBancoHoras(empregoId: Long): List<FechamentoPeriodoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fechamentos_periodo 
         WHERE emprego_id = :empregoId 
         AND tipo IN ('BANCO_HORAS', 'CICLO_BANCO_AUTOMATICO')
         ORDER BY data_fechamento DESC
-    """)
+    """
+    )
     fun observeFechamentosBancoHoras(empregoId: Long): Flow<List<FechamentoPeriodoEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fechamentos_periodo 
         WHERE emprego_id = :empregoId 
         AND :data >= data_inicio_periodo 
         AND :data <= data_fim_periodo
         LIMIT 1
-    """)
+    """
+    )
     suspend fun buscarPorData(empregoId: Long, data: LocalDate): FechamentoPeriodoEntity?
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fechamentos_periodo 
         WHERE emprego_id = :empregoId 
         AND data_fechamento >= :dataInicio 
         AND data_fechamento <= :dataFim
         ORDER BY data_fechamento DESC
-    """)
+    """
+    )
     suspend fun getByPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
     ): List<FechamentoPeriodoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fechamentos_periodo 
         WHERE emprego_id = :empregoId 
         ORDER BY data_fechamento DESC
         LIMIT 1
-    """)
+    """
+    )
     suspend fun getUltimoFechamento(empregoId: Long): FechamentoPeriodoEntity?
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fechamentos_periodo 
         WHERE emprego_id = :empregoId 
         AND tipo IN ('BANCO_HORAS', 'CICLO_BANCO_AUTOMATICO')
         ORDER BY data_fechamento DESC
         LIMIT 1
-    """)
+    """
+    )
     suspend fun getUltimoFechamentoBanco(empregoId: Long): FechamentoPeriodoEntity?
 
     /**
@@ -111,14 +128,16 @@ interface FechamentoPeriodoDao {
      * - Esse fechamento NÃO será retornado (porque 10/02 >= 05/02)
      * - Apenas fechamentos cujo ciclo terminou ANTES da data consultada são considerados
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM fechamentos_periodo 
         WHERE emprego_id = :empregoId 
         AND tipo IN ('BANCO_HORAS', 'CICLO_BANCO_AUTOMATICO')
         AND data_fim_periodo < :ateData
         ORDER BY data_fim_periodo DESC
         LIMIT 1
-    """)
+    """
+    )
     suspend fun getUltimoFechamentoBancoAteData(
         empregoId: Long,
         ateData: LocalDate

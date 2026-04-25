@@ -70,24 +70,28 @@ interface VersaoJornadaDao {
      * Busca a versão de jornada vigente para uma data específica.
      * A data deve estar entre dataInicio e dataFim (ou dataFim nulo).
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM versoes_jornada 
         WHERE empregoId = :empregoId 
         AND dataInicio <= :data 
         AND (dataFim IS NULL OR dataFim >= :data)
         ORDER BY dataInicio DESC
         LIMIT 1
-    """)
+    """
+    )
     suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): VersaoJornadaEntity?
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM versoes_jornada 
         WHERE empregoId = :empregoId 
         AND dataInicio <= :data 
         AND (dataFim IS NULL OR dataFim >= :data)
         ORDER BY dataInicio DESC
         LIMIT 1
-    """)
+    """
+    )
     fun observarPorEmpregoEData(empregoId: Long, data: LocalDate): Flow<VersaoJornadaEntity?>
 
     // ========================================================================
@@ -97,7 +101,8 @@ interface VersaoJornadaDao {
     /**
      * Verifica se existe sobreposição de períodos para uma nova versão.
      */
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(*) FROM versoes_jornada 
         WHERE empregoId = :empregoId 
         AND id != :excluirId
@@ -105,7 +110,8 @@ interface VersaoJornadaDao {
             (dataInicio <= :dataFim OR :dataFim IS NULL)
             AND (dataFim >= :dataInicio OR dataFim IS NULL)
         )
-    """)
+    """
+    )
     suspend fun contarSobreposicoes(
         empregoId: Long,
         dataInicio: LocalDate,
@@ -116,25 +122,29 @@ interface VersaoJornadaDao {
     /**
      * Busca a versão anterior a uma data específica.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM versoes_jornada 
         WHERE empregoId = :empregoId 
         AND dataInicio < :data
         ORDER BY dataInicio DESC
         LIMIT 1
-    """)
+    """
+    )
     suspend fun buscarVersaoAnterior(empregoId: Long, data: LocalDate): VersaoJornadaEntity?
 
     /**
      * Busca a próxima versão após uma data específica.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM versoes_jornada 
         WHERE empregoId = :empregoId 
         AND dataInicio > :data
         ORDER BY dataInicio ASC
         LIMIT 1
-    """)
+    """
+    )
     suspend fun buscarProximaVersao(empregoId: Long, data: LocalDate): VersaoJornadaEntity?
 
     // ========================================================================
@@ -145,7 +155,11 @@ interface VersaoJornadaDao {
      * Define dataFim em uma versão específica.
      */
     @Query("UPDATE versoes_jornada SET dataFim = :dataFim, vigente = 0, atualizadoEm = :agora WHERE id = :id")
-    suspend fun definirDataFim(id: Long, dataFim: LocalDate, agora: java.time.LocalDateTime = java.time.LocalDateTime.now())
+    suspend fun definirDataFim(
+        id: Long,
+        dataFim: LocalDate,
+        agora: java.time.LocalDateTime = java.time.LocalDateTime.now()
+    )
 
     /**
      * Remove flag vigente de todas as versões de um emprego.

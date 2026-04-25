@@ -45,7 +45,11 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
         auditService.logCreate(
             entidade = ENTIDADE,
             entidadeId = id,
-            motivo = "Versão de jornada v${versao.numeroVersao} criada (início: ${versao.dataInicio.format(dateFormatter)})",
+            motivo = "Versão de jornada v${versao.numeroVersao} criada (início: ${
+                versao.dataInicio.format(
+                    dateFormatter
+                )
+            })",
             novoValor = versao,
             serializer = { auditService.toJson(it.toAuditMap()) }
         )
@@ -173,7 +177,11 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
                 auditService.logUpdate(
                     entidade = ENTIDADE,
                     entidadeId = it.id,
-                    motivo = "Versão v${it.numeroVersao} ajustada para encerrar em ${dataFimAnterior.format(dateFormatter)}",
+                    motivo = "Versão v${it.numeroVersao} ajustada para encerrar em ${
+                        dataFimAnterior.format(
+                            dateFormatter
+                        )
+                    }",
                     valorAntigo = "dataFim=${it.dataFim?.format(dateFormatter) ?: "null"}",
                     valorNovo = "dataFim=${dataFimAnterior.format(dateFormatter)}",
                     serializer = { s -> s }
@@ -204,7 +212,8 @@ class VersaoJornadaRepositoryImpl @Inject constructor(
 
             // Cópia ou Padrão de Jornada
             jornadaMaximaDiariaMinutos = anterior?.jornadaMaximaDiariaMinutos ?: 600,
-            intervaloMinimoInterjornadaMinutos = anterior?.intervaloMinimoInterjornadaMinutos ?: 660,
+            intervaloMinimoInterjornadaMinutos = anterior?.intervaloMinimoInterjornadaMinutos
+                ?: 660,
             toleranciaIntervaloMaisMinutos = anterior?.toleranciaIntervaloMaisMinutos ?: 0,
             turnoMaximoMinutos = anterior?.turnoMaximoMinutos ?: 360,
 

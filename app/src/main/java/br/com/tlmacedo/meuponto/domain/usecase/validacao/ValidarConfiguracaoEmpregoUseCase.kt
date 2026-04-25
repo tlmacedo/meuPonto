@@ -21,6 +21,7 @@ class ValidarConfiguracaoEmpregoUseCase @Inject constructor() {
         data class Invalido(val erros: List<ErroValidacao>) : ResultadoValidacao() {
             val mensagem: String get() = erros.joinToString("\n") { it.mensagem }
         }
+
         val isValido: Boolean get() = this is Valido
     }
 

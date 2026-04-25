@@ -20,6 +20,7 @@ class ValidarVersaoJornadaUseCase @Inject constructor() {
         data class Invalido(val erros: List<ErroValidacao>) : ResultadoValidacao() {
             val mensagem: String get() = erros.joinToString("\n") { it.mensagem }
         }
+
         val isValido: Boolean get() = this is Valido
     }
 
@@ -28,30 +29,37 @@ class ValidarVersaoJornadaUseCase @Inject constructor() {
             "Jornada máxima deve estar entre 1 e 24 horas",
             "JORNADA_INVALIDA"
         )
+
         data object IntervaloInvalido : ErroValidacao(
             "Intervalo interjornada deve estar entre 0 e 24 horas",
             "INTERVALO_INVALIDO"
         )
+
         data object DiaInicioFechamentoInvalido : ErroValidacao(
             "Dia de início do fechamento deve estar entre 1 e 28",
             "DIA_INICIO_INVALIDO"
         )
+
         data object PeriodoBancoInvalido : ErroValidacao(
             "Período do banco de horas inválido",
             "PERIODO_BANCO_INVALIDO"
         )
+
         data object CargaHorariaInvalida : ErroValidacao(
             "Carga horária diária deve estar entre 1 e 24 horas",
             "CARGA_HORARIA_INVALIDA"
         )
+
         data object TurnoMaximoInvalido : ErroValidacao(
             "Turno máximo deve estar entre 1 e 12 horas",
             "TURNO_MAXIMO_INVALIDO"
         )
+
         data object DataInicioObrigatoria : ErroValidacao(
             "Data de início é obrigatória",
             "DATA_INICIO_OBRIGATORIA"
         )
+
         data object DataFimAnteriorInicio : ErroValidacao(
             "Data de fim deve ser posterior à data de início",
             "DATA_FIM_ANTERIOR_INICIO"

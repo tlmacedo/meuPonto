@@ -69,22 +69,22 @@ class MeuPontoWidget : GlanceAppWidget() {
 
     object Keys {
         // identificação
-        val KEY_APELIDO        = stringPreferencesKey("apelido_emprego")
+        val KEY_APELIDO = stringPreferencesKey("apelido_emprego")
 
         // horas trabalhadas e saldo do dia
-        val KEY_HORAS_HOJE     = stringPreferencesKey("horas_hoje")
-        val KEY_SALDO_DIA      = stringPreferencesKey("saldo_dia")
-        val KEY_SALDO_DIA_NEG  = stringPreferencesKey("saldo_dia_negativo")
+        val KEY_HORAS_HOJE = stringPreferencesKey("horas_hoje")
+        val KEY_SALDO_DIA = stringPreferencesKey("saldo_dia")
+        val KEY_SALDO_DIA_NEG = stringPreferencesKey("saldo_dia_negativo")
 
         // saldo total (banco de horas)
-        val KEY_SALDO_TOTAL    = stringPreferencesKey("saldo_total")
+        val KEY_SALDO_TOTAL = stringPreferencesKey("saldo_total")
         val KEY_SALDO_TOTAL_NEG = stringPreferencesKey("saldo_total_negativo")
 
         // saldo semanal e mensal (widget 4x2)
-        val KEY_SALDO_SEMANA     = stringPreferencesKey("saldo_semana")
+        val KEY_SALDO_SEMANA = stringPreferencesKey("saldo_semana")
         val KEY_SALDO_SEMANA_NEG = stringPreferencesKey("saldo_semana_negativo")
-        val KEY_SALDO_MES        = stringPreferencesKey("saldo_mes")
-        val KEY_SALDO_MES_NEG    = stringPreferencesKey("saldo_mes_negativo")
+        val KEY_SALDO_MES = stringPreferencesKey("saldo_mes")
+        val KEY_SALDO_MES_NEG = stringPreferencesKey("saldo_mes_negativo")
 
         // registros do dia
         val KEY_REG1 = stringPreferencesKey("registro_1")
@@ -93,8 +93,8 @@ class MeuPontoWidget : GlanceAppWidget() {
         val KEY_REG4 = stringPreferencesKey("registro_4")
 
         // previsão de saída e atualização
-        val KEY_PREVISAO     = stringPreferencesKey("previsao_saida")
-        val KEY_ATUALIZACAO  = stringPreferencesKey("ultima_atualizacao")
+        val KEY_PREVISAO = stringPreferencesKey("previsao_saida")
+        val KEY_ATUALIZACAO = stringPreferencesKey("ultima_atualizacao")
     }
 }
 
@@ -107,22 +107,22 @@ private fun WidgetContent(prefs: Preferences, context: Context) {
     val keys = MeuPontoWidget.Keys
 
     // Leitura correta: prefs[Key] → String?
-    val apelido      = prefs[keys.KEY_APELIDO]       ?: "Meu emprego"
-    val horasHoje    = prefs[keys.KEY_HORAS_HOJE]    ?: "--h --min"
-    val saldoDia     = prefs[keys.KEY_SALDO_DIA]     ?: "+00h 00min"
-    val saldoDiaNeg  = prefs[keys.KEY_SALDO_DIA_NEG] == "true"
-    val saldoTotal   = prefs[keys.KEY_SALDO_TOTAL]   ?: "+00h 00min"
+    val apelido = prefs[keys.KEY_APELIDO] ?: "Meu emprego"
+    val horasHoje = prefs[keys.KEY_HORAS_HOJE] ?: "--h --min"
+    val saldoDia = prefs[keys.KEY_SALDO_DIA] ?: "+00h 00min"
+    val saldoDiaNeg = prefs[keys.KEY_SALDO_DIA_NEG] == "true"
+    val saldoTotal = prefs[keys.KEY_SALDO_TOTAL] ?: "+00h 00min"
     val saldoTotalNeg = prefs[keys.KEY_SALDO_TOTAL_NEG] == "true"
-    val saldoSemana  = prefs[keys.KEY_SALDO_SEMANA]  ?: "+00h 00min"
-    val saldoSemanaNeg = prefs[keys.KEY_SALDO_SEMANA_NEG] == "true"
-    val saldoMes     = prefs[keys.KEY_SALDO_MES]     ?: "+00h 00min"
-    val saldoMesNeg  = prefs[keys.KEY_SALDO_MES_NEG] == "true"
-    val reg1         = prefs[keys.KEY_REG1]          ?: "--:--"
-    val reg2         = prefs[keys.KEY_REG2]          ?: "--:--"
-    val reg3         = prefs[keys.KEY_REG3]          ?: "--:--"
-    val reg4         = prefs[keys.KEY_REG4]          ?: "--:--"
-    val previsao     = prefs[keys.KEY_PREVISAO]      ?: "--:--"
-    val atualizacao  = prefs[keys.KEY_ATUALIZACAO]   ?: "--/--/---- --:--"
+    prefs[keys.KEY_SALDO_SEMANA] ?: "+00h 00min"
+    prefs[keys.KEY_SALDO_SEMANA_NEG] == "true"
+    prefs[keys.KEY_SALDO_MES] ?: "+00h 00min"
+    prefs[keys.KEY_SALDO_MES_NEG] == "true"
+    prefs[keys.KEY_REG1] ?: "--:--"
+    prefs[keys.KEY_REG2] ?: "--:--"
+    prefs[keys.KEY_REG3] ?: "--:--"
+    prefs[keys.KEY_REG4] ?: "--:--"
+    val previsao = prefs[keys.KEY_PREVISAO] ?: "--:--"
+    val atualizacao = prefs[keys.KEY_ATUALIZACAO] ?: "--/--/---- --:--"
 
     Box(
         modifier = GlanceModifier
@@ -241,7 +241,7 @@ class MeuPontoWidgetSaldoTotal : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
             val prefs = currentState<Preferences>()
-            val keys  = MeuPontoWidget.Keys
+            val keys = MeuPontoWidget.Keys
             GlanceTheme {
                 Box(
                     modifier = GlanceModifier
@@ -253,7 +253,7 @@ class MeuPontoWidgetSaldoTotal : GlanceAppWidget() {
                 ) {
                     InfoColuna(
                         titulo = "Saldo total",
-                        valor   = prefs[keys.KEY_SALDO_TOTAL]    ?: "+00h 00min",
+                        valor = prefs[keys.KEY_SALDO_TOTAL] ?: "+00h 00min",
                         isNegativo = prefs[keys.KEY_SALDO_TOTAL_NEG] == "true"
                     )
                 }
@@ -270,7 +270,7 @@ class MeuPontoWidgetTrabDia : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
             val prefs = currentState<Preferences>()
-            val keys  = MeuPontoWidget.Keys
+            val keys = MeuPontoWidget.Keys
             GlanceTheme {
                 Box(
                     modifier = GlanceModifier
@@ -282,7 +282,7 @@ class MeuPontoWidgetTrabDia : GlanceAppWidget() {
                 ) {
                     InfoColuna(
                         titulo = "Trab. no dia",
-                        valor  = prefs[keys.KEY_HORAS_HOJE] ?: "--h --min",
+                        valor = prefs[keys.KEY_HORAS_HOJE] ?: "--h --min",
                         isNegativo = false
                     )
                 }
@@ -299,7 +299,7 @@ class MeuPontoWidgetRegistros : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
             val prefs = currentState<Preferences>()
-            val keys  = MeuPontoWidget.Keys
+            val keys = MeuPontoWidget.Keys
             GlanceTheme {
                 Column(
                     modifier = GlanceModifier
@@ -362,7 +362,7 @@ class MeuPontoWidgetDetalhado : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
             val prefs = currentState<Preferences>()
-            val keys  = MeuPontoWidget.Keys
+            val keys = MeuPontoWidget.Keys
             GlanceTheme {
                 Column(
                     modifier = GlanceModifier
@@ -388,21 +388,21 @@ class MeuPontoWidgetDetalhado : GlanceAppWidget() {
                     Row(modifier = GlanceModifier.fillMaxWidth()) {
                         InfoColuna(
                             titulo = "Trab. no dia",
-                            valor  = prefs[keys.KEY_HORAS_HOJE] ?: "--h --min",
+                            valor = prefs[keys.KEY_HORAS_HOJE] ?: "--h --min",
                             isNegativo = false,
                             modifier = GlanceModifier.defaultWeight()
                         )
                         Spacer(modifier = GlanceModifier.width(4.dp))
                         InfoColuna(
                             titulo = "Saldo dia",
-                            valor  = prefs[keys.KEY_SALDO_DIA] ?: "+00h 00min",
+                            valor = prefs[keys.KEY_SALDO_DIA] ?: "+00h 00min",
                             isNegativo = prefs[keys.KEY_SALDO_DIA_NEG] == "true",
                             modifier = GlanceModifier.defaultWeight()
                         )
                         Spacer(modifier = GlanceModifier.width(4.dp))
                         InfoColuna(
                             titulo = "Saldo total",
-                            valor  = prefs[keys.KEY_SALDO_TOTAL] ?: "+00h 00min",
+                            valor = prefs[keys.KEY_SALDO_TOTAL] ?: "+00h 00min",
                             isNegativo = prefs[keys.KEY_SALDO_TOTAL_NEG] == "true",
                             modifier = GlanceModifier.defaultWeight()
                         )
@@ -414,14 +414,14 @@ class MeuPontoWidgetDetalhado : GlanceAppWidget() {
                     Row(modifier = GlanceModifier.fillMaxWidth()) {
                         InfoColuna(
                             titulo = "Saldo semana",
-                            valor  = prefs[keys.KEY_SALDO_SEMANA] ?: "+00h 00min",
+                            valor = prefs[keys.KEY_SALDO_SEMANA] ?: "+00h 00min",
                             isNegativo = prefs[keys.KEY_SALDO_SEMANA_NEG] == "true",
                             modifier = GlanceModifier.defaultWeight()
                         )
                         Spacer(modifier = GlanceModifier.width(4.dp))
                         InfoColuna(
                             titulo = "Saldo mês",
-                            valor  = prefs[keys.KEY_SALDO_MES] ?: "+00h 00min",
+                            valor = prefs[keys.KEY_SALDO_MES] ?: "+00h 00min",
                             isNegativo = prefs[keys.KEY_SALDO_MES_NEG] == "true",
                             modifier = GlanceModifier.defaultWeight()
                         )

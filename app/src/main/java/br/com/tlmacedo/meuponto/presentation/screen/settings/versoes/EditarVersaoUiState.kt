@@ -122,7 +122,10 @@ data class EditarVersaoUiState(
         get() = formatarMinutosEmHoras(intervaloMinimoDescansoMinutos, usarFormatoReduzido = true)
 
     val toleranciaRetornoIntervaloFormatada: String
-        get() = formatarMinutosEmHoras(toleranciaRetornoIntervaloMinutos, usarFormatoReduzido = true)
+        get() = formatarMinutosEmHoras(
+            toleranciaRetornoIntervaloMinutos,
+            usarFormatoReduzido = true
+        )
 
     val toleranciaIntervaloFormatada: String
         get() = formatarMinutosEmHoras(toleranciaIntervaloMaisMinutos, usarFormatoReduzido = true)
@@ -135,43 +138,43 @@ data class EditarVersaoUiState(
 
     // MUDANCAS GRANULARES
     val temMudancasVigencia: Boolean = !isNovaVersao && (
-        descricao != originalDescricao ||
-            dataInicio != originalDataInicio ||
-            dataFim != originalDataFim
-    )
+            descricao != originalDescricao ||
+                    dataInicio != originalDataInicio ||
+                    dataFim != originalDataFim
+            )
 
     val temMudancasJornada: Boolean = !isNovaVersao && (
-        cargaHorariaDiariaMinutos != originalCargaHorariaDiariaMinutos ||
-            acrescimoMinutosDiasPontes != originalAcrescimoMinutosDiasPontes ||
-            jornadaMaximaDiariaMinutos != originalJornadaMaximaDiariaMinutos ||
-            intervaloMinimoAlmocoMinutos != originalIntervaloMinimoAlmocoMinutos ||
-            intervaloMinimoDescansoMinutos != originalIntervaloMinimoDescansoMinutos ||
-            toleranciaRetornoIntervaloMinutos != originalToleranciaRetornoIntervaloMinutos ||
-            intervaloMinimoInterjornadaMinutos != originalIntervaloMinimoInterjornadaMinutos ||
-            turnoMaximoMinutos != originalTurnoMaximoMinutos
-    )
+            cargaHorariaDiariaMinutos != originalCargaHorariaDiariaMinutos ||
+                    acrescimoMinutosDiasPontes != originalAcrescimoMinutosDiasPontes ||
+                    jornadaMaximaDiariaMinutos != originalJornadaMaximaDiariaMinutos ||
+                    intervaloMinimoAlmocoMinutos != originalIntervaloMinimoAlmocoMinutos ||
+                    intervaloMinimoDescansoMinutos != originalIntervaloMinimoDescansoMinutos ||
+                    toleranciaRetornoIntervaloMinutos != originalToleranciaRetornoIntervaloMinutos ||
+                    intervaloMinimoInterjornadaMinutos != originalIntervaloMinimoInterjornadaMinutos ||
+                    turnoMaximoMinutos != originalTurnoMaximoMinutos
+            )
 
     val temMudancasFechamento: Boolean = !isNovaVersao && (
-        diaInicioFechamentoRH != originalDiaInicioFechamentoRH ||
-            primeiroDiaSemana != originalPrimeiroDiaSemana ||
-            zerarSaldoPeriodoRH != originalZerarSaldoPeriodoRH ||
-            ocultarSaldoTotal != originalOcultarSaldoTotal
-    )
+            diaInicioFechamentoRH != originalDiaInicioFechamentoRH ||
+                    primeiroDiaSemana != originalPrimeiroDiaSemana ||
+                    zerarSaldoPeriodoRH != originalZerarSaldoPeriodoRH ||
+                    ocultarSaldoTotal != originalOcultarSaldoTotal
+            )
 
     val temMudancasBancoHoras: Boolean = !isNovaVersao && (
-        bancoHorasHabilitado != originalBancoHorasHabilitado ||
-            periodoBancoDias != originalPeriodoBancoDias ||
-            periodoBancoSemanas != originalPeriodoBancoSemanas ||
-            periodoBancoMeses != originalPeriodoBancoMeses ||
-            periodoBancoAnos != originalPeriodoBancoAnos ||
-            dataInicioCicloBancoAtual != originalDataInicioCicloBancoAtual ||
-            habilitarSugestaoAjuste != originalHabilitarSugestaoAjuste
-    )
+            bancoHorasHabilitado != originalBancoHorasHabilitado ||
+                    periodoBancoDias != originalPeriodoBancoDias ||
+                    periodoBancoSemanas != originalPeriodoBancoSemanas ||
+                    periodoBancoMeses != originalPeriodoBancoMeses ||
+                    periodoBancoAnos != originalPeriodoBancoAnos ||
+                    dataInicioCicloBancoAtual != originalDataInicioCicloBancoAtual ||
+                    habilitarSugestaoAjuste != originalHabilitarSugestaoAjuste
+            )
 
     val temMudancasValidacao: Boolean = !isNovaVersao && (
-        exigeJustificativaInconsistencia != originalExigeJustificativaInconsistencia ||
-            toleranciaIntervaloMaisMinutos != originalToleranciaIntervaloMaisMinutos
-    )
+            exigeJustificativaInconsistencia != originalExigeJustificativaInconsistencia ||
+                    toleranciaIntervaloMaisMinutos != originalToleranciaIntervaloMaisMinutos
+            )
 
     // BANCO DE HORAS - COMPUTADOS
     val temBancoHoras: Boolean
@@ -203,10 +206,18 @@ data class EditarVersaoUiState(
         get() {
             if (!temBancoHoras || dataInicioCicloBancoAtual == null) return "—"
             val dataFim = when {
-                periodoBancoDias > 0 -> dataInicioCicloBancoAtual.plusDays(periodoBancoDias.toLong()).minusDays(1)
-                periodoBancoSemanas > 0 -> dataInicioCicloBancoAtual.plusWeeks(periodoBancoSemanas.toLong()).minusDays(1)
-                periodoBancoMeses > 0 -> dataInicioCicloBancoAtual.plusMonths(periodoBancoMeses.toLong()).minusDays(1)
-                periodoBancoAnos > 0 -> dataInicioCicloBancoAtual.plusYears(periodoBancoAnos.toLong()).minusDays(1)
+                periodoBancoDias > 0 -> dataInicioCicloBancoAtual.plusDays(periodoBancoDias.toLong())
+                    .minusDays(1)
+
+                periodoBancoSemanas > 0 -> dataInicioCicloBancoAtual.plusWeeks(periodoBancoSemanas.toLong())
+                    .minusDays(1)
+
+                periodoBancoMeses > 0 -> dataInicioCicloBancoAtual.plusMonths(periodoBancoMeses.toLong())
+                    .minusDays(1)
+
+                periodoBancoAnos > 0 -> dataInicioCicloBancoAtual.plusYears(periodoBancoAnos.toLong())
+                    .minusDays(1)
+
                 else -> return "—"
             }
             return dataFim.format(dateFormatter)

@@ -56,7 +56,10 @@ class VersoesJornadaViewModel @Inject constructor(
             is VersoesJornadaAction.CriarNovaVersao -> criarNovaVersao()
             is VersoesJornadaAction.AbrirDialogNovaVersao -> abrirDialogNovaVersao()
             is VersoesJornadaAction.FecharDialogNovaVersao -> fecharDialogNovaVersao()
-            is VersoesJornadaAction.AlterarDataInicioNovaVersao -> alterarDataInicioNovaVersao(action.data)
+            is VersoesJornadaAction.AlterarDataInicioNovaVersao -> alterarDataInicioNovaVersao(
+                action.data
+            )
+
             is VersoesJornadaAction.AlterarDescricaoNovaVersao -> alterarDescricaoNovaVersao(action.descricao)
             is VersoesJornadaAction.ToggleCopiarHorariosNovaVersao -> toggleCopiarHorarios(action.copiar)
             is VersoesJornadaAction.ConfirmarNovaVersao -> confirmarNovaVersao()
@@ -171,12 +174,12 @@ class VersoesJornadaViewModel @Inject constructor(
                     descricao = state.descricaoNovaVersao.ifBlank { null },
                     copiarDaVersaoAnterior = state.copiarHorariosNovaVersao
                 )
-                
-                _uiState.update { 
+
+                _uiState.update {
                     it.copy(
-                        isCriando = false, 
+                        isCriando = false,
                         mostrarDialogNovaVersao = false
-                    ) 
+                    )
                 }
                 _eventos.emit(VersoesJornadaEvent.MostrarMensagem("Nova versão criada"))
                 _eventos.emit(VersoesJornadaEvent.NavegarParaEditar(novaVersaoId))

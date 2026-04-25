@@ -2,12 +2,12 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.comprovantes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import br.com.tlmacedo.meuponto.domain.repository.FotoComprovanteRepository
+import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.foto.DeleteComprovanteImageUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.foto.ReconciliarFotosUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.presentation.screen.history.PeriodoHistorico
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -48,16 +47,25 @@ class ComprovantesViewModel @Inject constructor(
     fun onAction(action: ComprovantesAction) {
         when (action) {
             is ComprovantesAction.AlterarPeriodo -> {
-                _uiState.update { it.copy(dataInicio = action.inicio, dataFim = action.fim, isFiltroPersonalizado = true) }
+                _uiState.update {
+                    it.copy(
+                        dataInicio = action.inicio,
+                        dataFim = action.fim,
+                        isFiltroPersonalizado = true
+                    )
+                }
                 carregarComprovantes()
             }
+
             is ComprovantesAction.AlterarFiltroAssociacao -> {
                 _uiState.update { it.copy(filtroAssociacao = action.filtro) }
                 carregarComprovantes()
             }
+
             is ComprovantesAction.SelecionarComprovante -> {
                 _uiState.update { it.copy(selectedItem = action.comprovante) }
             }
+
             is ComprovantesAction.AlternarSelecao -> {
                 _uiState.update { state ->
                     val newSelection = state.selectedIds.toMutableSet()
@@ -69,9 +77,11 @@ class ComprovantesViewModel @Inject constructor(
                     state.copy(selectedIds = newSelection)
                 }
             }
+
             ComprovantesAction.LimparSelecao -> {
                 _uiState.update { it.copy(selectedIds = emptySet()) }
             }
+
             ComprovantesAction.ExcluirSelecionados -> excluirSelecionados()
             is ComprovantesAction.ExcluirComprovante -> excluirComprovante(action.id)
             ComprovantesAction.LimparCache -> limparArquivosOrfaos()
@@ -85,10 +95,10 @@ class ComprovantesViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val resultado = reconciliarFotosUseCase.invoke()
-                
+
                 carregarComprovantes()
                 atualizarEstatisticas()
-                
+
                 val msg = buildString {
                     append("Reconciliação concluída. ")
                     if (resultado.importados > 0) append("${resultado.importados} fotos importadas. ")
@@ -110,7 +120,7 @@ class ComprovantesViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 // Implementação simplificada de limpeza de órfãos
-                val todosPathsNoBanco = repository.calcularTamanhoTotal() // Apenas para trigger
+                repository.calcularTamanhoTotal() // Apenas para trigger
                 // O deleteUseCase.cleanupOrphans precisaria de uma lista de todos os paths
                 // Vamos implementar isso no repositório se necessário
                 _eventos.emit(ComprovantesEvent.ShowError("Limpeza de arquivos órfãos não implementada totalmente"))
@@ -132,7 +142,8 @@ class ComprovantesViewModel @Inject constructor(
                 var empregoId = emprego?.id
 
                 if (empregoId == null) {
-                    val fallbackId = repository.listarPorEmprego(0L).firstOrNull()?.firstOrNull()?.empregoId
+                    val fallbackId =
+                        repository.listarPorEmprego(0L).firstOrNull()?.firstOrNull()?.empregoId
                     Timber.d("Tentando fallback para empregoId: $fallbackId")
                     empregoId = fallbackId
                 }
@@ -146,7 +157,7 @@ class ComprovantesViewModel @Inject constructor(
                 // Ajusta o período inicial baseado no dia de fechamento do RH
                 val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
                 val diaInicioRH = versaoVigente?.diaInicioFechamentoRH ?: 1
-                
+
                 _uiState.update { state ->
                     if (state.isFiltroPersonalizado) {
                         state
@@ -167,13 +178,13 @@ class ComprovantesViewModel @Inject constructor(
                     state.dataFim
                 ).collectLatest { lista ->
                     Timber.d("Fotos retornadas do banco para emprego $empregoId: ${lista.size}")
-                    
+
                     val listaFiltrada = when (_uiState.value.filtroAssociacao) {
                         FiltroAssociacao.TODOS -> lista
                         FiltroAssociacao.COM_PONTO -> lista.filter { it.pontoId != 0L }
                         FiltroAssociacao.SEM_PONTO -> lista.filter { it.pontoId == 0L }
                     }
-                    
+
                     _uiState.update { it.copy(items = listaFiltrada, isLoading = false) }
                 }
             }
@@ -184,7 +195,7 @@ class ComprovantesViewModel @Inject constructor(
         viewModelScope.launch {
             val idsParaExcluir = _uiState.value.selectedIds
             if (idsParaExcluir.isEmpty()) return@launch
-            
+
             _uiState.update { it.copy(isLoading = true) }
             try {
                 idsParaExcluir.forEach { id ->

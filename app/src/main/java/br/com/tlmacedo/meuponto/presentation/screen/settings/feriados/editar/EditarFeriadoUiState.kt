@@ -45,13 +45,14 @@ data class EditarFeriadoUiState(
 
     val screenTitle: String get() = if (isEditing) "Editar Feriado" else "Novo Feriado"
 
-    val tipoDescricao: String get() = when (tipo.name) {
-        "NACIONAL" -> "Válido em todo o território nacional"
-        "ESTADUAL" -> "Válido apenas no estado selecionado"
-        "MUNICIPAL" -> "Válido apenas no município selecionado"
-        "PONTO_FACULTATIVO" -> "Ponto facultativo (opcional)"
-        else -> "Feriado"
-    }
+    val tipoDescricao: String
+        get() = when (tipo.name) {
+            "NACIONAL" -> "Válido em todo o território nacional"
+            "ESTADUAL" -> "Válido apenas no estado selecionado"
+            "MUNICIPAL" -> "Válido apenas no município selecionado"
+            "PONTO_FACULTATIVO" -> "Ponto facultativo (opcional)"
+            else -> "Feriado"
+        }
 
     val showUfField: Boolean get() = tipo.name == "ESTADUAL" || tipo.name == "MUNICIPAL"
 
@@ -59,15 +60,16 @@ data class EditarFeriadoUiState(
 
     val showEmpregoField: Boolean get() = abrangencia.name == "EMPREGO_ESPECIFICO"
 
-    val isFormValid: Boolean get() {
-        if (nome.isBlank()) return false
-        if (recorrencia.name == "ANUAL" && diaMes == null) return false
-        if (recorrencia.name == "UNICO" && dataEspecifica == null) return false
-        if ((tipo.name == "ESTADUAL" || tipo.name == "MUNICIPAL") && uf.isNullOrBlank()) return false
-        if (tipo.name == "MUNICIPAL" && municipio.isNullOrBlank()) return false
-        if (abrangencia.name == "EMPREGO_ESPECIFICO" && empregoSelecionado == null) return false
-        return true
-    }
+    val isFormValid: Boolean
+        get() {
+            if (nome.isBlank()) return false
+            if (recorrencia.name == "ANUAL" && diaMes == null) return false
+            if (recorrencia.name == "UNICO" && dataEspecifica == null) return false
+            if ((tipo.name == "ESTADUAL" || tipo.name == "MUNICIPAL") && uf.isNullOrBlank()) return false
+            if (tipo.name == "MUNICIPAL" && municipio.isNullOrBlank()) return false
+            if (abrangencia.name == "EMPREGO_ESPECIFICO" && empregoSelecionado == null) return false
+            return true
+        }
 
     val ufList: List<String> = listOf(
         "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",

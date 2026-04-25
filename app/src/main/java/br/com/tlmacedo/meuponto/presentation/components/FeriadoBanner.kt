@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
+import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.presentation.theme.Info
 import br.com.tlmacedo.meuponto.presentation.theme.InfoLight
 import br.com.tlmacedo.meuponto.presentation.theme.OnWarning
@@ -50,8 +52,6 @@ import br.com.tlmacedo.meuponto.presentation.theme.SidiaNavy
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaSoftGreen
 import br.com.tlmacedo.meuponto.presentation.theme.SurfaceVariant
 import br.com.tlmacedo.meuponto.presentation.theme.WarningLight
-import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
-import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 
 /**
  * Banner que exibe informações sobre feriados do dia.

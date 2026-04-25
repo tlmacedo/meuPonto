@@ -342,7 +342,10 @@ private fun EditarCargoForm(
                             IconButton(onClick = {
                                 onAction(EditarCargoAction.AbrirDataInicioPicker)
                             }) {
-                                Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
+                                Icon(
+                                    Icons.Default.CalendarMonth,
+                                    contentDescription = "Selecionar data"
+                                )
                             }
                         },
                         modifier = Modifier
@@ -391,7 +394,10 @@ private fun EditarCargoForm(
                                     IconButton(onClick = {
                                         onAction(EditarCargoAction.AbrirDataFimPicker)
                                     }) {
-                                        Icon(Icons.Default.CalendarMonth, contentDescription = "Selecionar data")
+                                        Icon(
+                                            Icons.Default.CalendarMonth,
+                                            contentDescription = "Selecionar data"
+                                        )
                                     }
                                 },
                                 modifier = Modifier

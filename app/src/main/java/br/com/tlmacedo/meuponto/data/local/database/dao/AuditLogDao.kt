@@ -49,7 +49,11 @@ interface AuditLogDao {
     fun listarPorPeriodo(dataInicio: String, dataFim: String): Flow<List<AuditLogEntity>>
 
     @Query("SELECT * FROM audit_logs WHERE entidade = :entidade AND criado_em BETWEEN :dataInicio AND :dataFim ORDER BY criado_em DESC")
-    fun listarPorEntidadeEPeriodo(entidade: String, dataInicio: String, dataFim: String): Flow<List<AuditLogEntity>>
+    fun listarPorEntidadeEPeriodo(
+        entidade: String,
+        dataInicio: String,
+        dataFim: String
+    ): Flow<List<AuditLogEntity>>
 
     @Query("SELECT * FROM audit_logs WHERE acao = :acao ORDER BY criado_em DESC")
     fun listarPorAcao(acao: AcaoAuditoria): Flow<List<AuditLogEntity>>

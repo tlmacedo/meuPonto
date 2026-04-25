@@ -50,10 +50,10 @@ fun NumberPicker(
         initialFirstVisibleItemIndex = (value - range.first)
     )
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
-    
+
     val itemHeight = 40.dp
     val height = itemHeight * visibleItems
-    
+
     val items = remember(range) { range.toList() }
 
     LaunchedEffect(listState.isScrollInProgress) {
@@ -115,15 +115,15 @@ fun NumberPicker(
                             fontWeight = if (itemValue == value) FontWeight.Bold else FontWeight.Normal,
                             fontSize = if (itemValue == value) 20.sp else 16.sp
                         ),
-                        color = if (itemValue == value) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
+                        color = if (itemValue == value)
+                            MaterialTheme.colorScheme.primary
+                        else
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }
             }
         }
-        
+
         // Efeito de fade nas bordas
         Box(
             modifier = Modifier

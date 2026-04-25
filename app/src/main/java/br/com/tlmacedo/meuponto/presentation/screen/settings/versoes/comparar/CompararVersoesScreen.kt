@@ -262,7 +262,9 @@ private fun ComparacaoLinha(item: ComparacaoLinhaData) {
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                modifier = Modifier.padding(horizontal = 8.dp).size(16.dp),
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .size(16.dp),
                 tint = MaterialTheme.colorScheme.outline
             )
             Text(

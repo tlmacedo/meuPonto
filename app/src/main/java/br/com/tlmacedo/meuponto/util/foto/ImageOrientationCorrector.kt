@@ -99,10 +99,12 @@ class ImageOrientationCorrector @Inject constructor(
                 matrix.setRotate(90f)
                 matrix.postScale(-1f, 1f)
             }
+
             ExifInterface.ORIENTATION_TRANSVERSE -> {
                 matrix.setRotate(-90f)
                 matrix.postScale(-1f, 1f)
             }
+
             else -> return bitmap // Nenhuma correção necessária
         }
 
@@ -136,7 +138,10 @@ class ImageOrientationCorrector @Inject constructor(
                 corrected
             }
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao carregar bitmap com orientação corrigida: ${file.name}") // Correção aqui
+            Timber.e(
+                e,
+                "Falha ao carregar bitmap com orientação corrigida: ${file.name}"
+            ) // Correção aqui
             null
         }
     }
@@ -165,7 +170,10 @@ class ImageOrientationCorrector @Inject constructor(
                 corrected
             }
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao carregar bitmap com orientação corrigida do URI: $uri") // Correção aqui
+            Timber.e(
+                e,
+                "Falha ao carregar bitmap com orientação corrigida do URI: $uri"
+            ) // Correção aqui
             null
         }
     }

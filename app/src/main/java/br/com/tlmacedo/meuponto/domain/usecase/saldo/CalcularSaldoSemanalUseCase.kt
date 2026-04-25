@@ -55,7 +55,15 @@ class CalcularSaldoSemanalUseCase @Inject constructor(
         val esperadoMinutos = saldosDiarios.sumOf { it.esperadoMinutos }
         val diasTrabalhados = saldosDiarios.count { it.trabalhadoMinutos > 0 }
 
-        return SaldoSemanal(dataInicio, dataFim, trabalhadoMinutos, esperadoMinutos, trabalhadoMinutos - esperadoMinutos, diasTrabalhados, saldosDiarios)
+        return SaldoSemanal(
+            dataInicio,
+            dataFim,
+            trabalhadoMinutos,
+            esperadoMinutos,
+            trabalhadoMinutos - esperadoMinutos,
+            diasTrabalhados,
+            saldosDiarios
+        )
     }
 
     private fun DiaSemana.toDayOfWeek(): DayOfWeek = when (this) {

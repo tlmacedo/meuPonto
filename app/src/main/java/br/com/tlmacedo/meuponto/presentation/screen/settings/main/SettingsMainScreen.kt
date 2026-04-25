@@ -11,8 +11,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -43,7 +43,6 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.QuestionMark
 import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Work
@@ -515,7 +514,10 @@ private fun SystemStatusCard(
                     contentDescription = null,
                     tint = when {
                         saldoMensal.startsWith("-") -> MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
-                        saldoMensal.contains("00:00") -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        saldoMensal.contains("00:00") -> MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            alpha = 0.6f
+                        )
+
                         else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
                     },
                     modifier = Modifier.size(20.dp)
@@ -713,7 +715,7 @@ private fun CollapsibleSettingsSection(
                     content()
                 }
             }
-            
+
             HorizontalDivider(
                 modifier = Modifier.padding(top = 8.dp),
                 thickness = 0.5.dp,

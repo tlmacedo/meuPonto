@@ -45,7 +45,7 @@ val MIGRATION_28_29 = Migration(28, 29) { database ->
 
     // 2. Recriação "self-healing" da tabela 'versoes_jornada'
     // Isso garante que todos os DefaultValues e colunas estejam presentes conforme o esquema v28/v29.
-    
+
     database.execSQL(
         """
         CREATE TABLE IF NOT EXISTS `versoes_jornada_new` (
@@ -96,15 +96,38 @@ val MIGRATION_28_29 = Migration(28, 29) { database ->
 
     // Lista de todas as colunas esperadas na v29 (seguindo a ordem do 29.json)
     val expectedColumns = listOf(
-        "id", "empregoId", "dataInicio", "dataFim", "descricao", "numeroVersao", "vigente",
-        "jornadaMaximaDiariaMinutos", "intervaloMinimoInterjornadaMinutos", "turnoMaximoMinutos",
-        "intervaloMinimoAlmocoMinutos", "toleranciaIntervaloMaisMinutos", "cargaHorariaDiariaMinutos",
-        "acrescimoMinutosDiasPontes", "cargaHorariaSemanalMinutos", "primeiroDiaSemana",
-        "diaInicioFechamentoRH", "zerarSaldoSemanal", "zerarSaldoPeriodoRH", "ocultarSaldoTotal",
-        "bancoHorasHabilitado", "periodoBancoDias", "periodoBancoSemanas", "periodoBancoMeses",
-        "periodoBancoAnos", "dataInicioCicloBancoAtual", "diasUteisLembreteFechamento",
-        "habilitarSugestaoAjuste", "zerarBancoAntesPeriodo", "exigeJustificativaInconsistencia",
-        "criadoEm", "atualizadoEm"
+        "id",
+        "empregoId",
+        "dataInicio",
+        "dataFim",
+        "descricao",
+        "numeroVersao",
+        "vigente",
+        "jornadaMaximaDiariaMinutos",
+        "intervaloMinimoInterjornadaMinutos",
+        "turnoMaximoMinutos",
+        "intervaloMinimoAlmocoMinutos",
+        "toleranciaIntervaloMaisMinutos",
+        "cargaHorariaDiariaMinutos",
+        "acrescimoMinutosDiasPontes",
+        "cargaHorariaSemanalMinutos",
+        "primeiroDiaSemana",
+        "diaInicioFechamentoRH",
+        "zerarSaldoSemanal",
+        "zerarSaldoPeriodoRH",
+        "ocultarSaldoTotal",
+        "bancoHorasHabilitado",
+        "periodoBancoDias",
+        "periodoBancoSemanas",
+        "periodoBancoMeses",
+        "periodoBancoAnos",
+        "dataInicioCicloBancoAtual",
+        "diasUteisLembreteFechamento",
+        "habilitarSugestaoAjuste",
+        "zerarBancoAntesPeriodo",
+        "exigeJustificativaInconsistencia",
+        "criadoEm",
+        "atualizadoEm"
     )
 
     // Filtrar apenas as colunas que realmente existem na tabela física

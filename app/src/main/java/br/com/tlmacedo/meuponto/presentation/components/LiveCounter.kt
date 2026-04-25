@@ -74,8 +74,8 @@ fun LiveCounter(
     showBackground: Boolean = false
 ) {
     // Estado para armazenar os segundos decorridos
-    var elapsedSeconds by remember(dataHoraInicio) { 
-        mutableLongStateOf(calcularSegundosDecorridos(dataHoraInicio)) 
+    var elapsedSeconds by remember(dataHoraInicio) {
+        mutableLongStateOf(calcularSegundosDecorridos(dataHoraInicio))
     }
 
     // Atualiza o contador a cada segundo
@@ -100,7 +100,7 @@ fun LiveCounter(
 
     // Formata o tempo
     val (horas, minutos, segundos) = formatarTempoDecorrido(elapsedSeconds)
-    
+
     // Determina a cor baseada no tempo (se não foi especificada)
     val corTexto = color ?: determinarCorPorTempo(elapsedSeconds)
     val corFundo = determinarCorFundoPorTempo(elapsedSeconds)
@@ -109,7 +109,10 @@ fun LiveCounter(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = if (showBackground) 12.dp else 0.dp, vertical = if (showBackground) 6.dp else 0.dp)
+            modifier = Modifier.padding(
+                horizontal = if (showBackground) 12.dp else 0.dp,
+                vertical = if (showBackground) 6.dp else 0.dp
+            )
         ) {
             if (showIcon) {
                 Icon(
@@ -198,8 +201,8 @@ fun LiveCounterCompact(
     dataHoraInicio: LocalDateTime,
     modifier: Modifier = Modifier
 ) {
-    var elapsedSeconds by remember(dataHoraInicio) { 
-        mutableLongStateOf(calcularSegundosDecorridos(dataHoraInicio)) 
+    var elapsedSeconds by remember(dataHoraInicio) {
+        mutableLongStateOf(calcularSegundosDecorridos(dataHoraInicio))
     }
 
     LaunchedEffect(dataHoraInicio) {
@@ -261,8 +264,8 @@ private fun AnimatedDigit(
     AnimatedContent(
         targetState = value,
         transitionSpec = {
-            (fadeIn() + slideInVertically { -it / 2 }) togetherWith 
-            (fadeOut() + slideOutVertically { it / 2 })
+            (fadeIn() + slideInVertically { -it / 2 }) togetherWith
+                    (fadeOut() + slideOutVertically { it / 2 })
         },
         label = "digitAnimation"
     ) { targetValue ->

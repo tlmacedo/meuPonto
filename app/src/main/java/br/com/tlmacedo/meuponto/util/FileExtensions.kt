@@ -38,10 +38,10 @@ package br.com.tlmacedo.meuponto.util
  * @return String formatada com unidade de medida (B, KB, MB ou GB)
  */
 fun Long.formatarTamanho(): String = when {
-    this < 1_024L              -> "$this B"
-    this < 1_048_576L          -> String.format("%.1f KB", this / 1_024.0)
-    this < 1_073_741_824L      -> String.format("%.1f MB", this / 1_048_576.0)
-    else                       -> String.format("%.2f GB", this / 1_073_741_824.0)
+    this < 1_024L -> "$this B"
+    this < 1_048_576L -> String.format("%.1f KB", this / 1_024.0)
+    this < 1_073_741_824L -> String.format("%.1f MB", this / 1_048_576.0)
+    else -> String.format("%.2f GB", this / 1_073_741_824.0)
 }
 
 /**

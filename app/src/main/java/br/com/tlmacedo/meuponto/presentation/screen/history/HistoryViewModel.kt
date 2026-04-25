@@ -132,6 +132,7 @@ class HistoryViewModel @Inject constructor(
                             empregoIdAtual = resultado.emprego.id
                             resultado.emprego.id
                         }
+
                         else -> {
                             _uiState.update { it.copy(isLoading = false) }
                             return@launch
@@ -278,7 +279,8 @@ class HistoryViewModel @Inject constructor(
         var dataAtual = dataInicio
         while (dataAtual <= dataFim) {
             val isFuturo = dataAtual.isAfter(hoje)
-            val pontosNoDia = if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
+            val pontosNoDia =
+                if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
             val ausenciasDoDia = ausenciasPorData[dataAtual] ?: emptyList()
             val feriadoDoDia = feriadosPorData[dataAtual]
 
@@ -291,8 +293,9 @@ class HistoryViewModel @Inject constructor(
 
             val horarioDia = if (versaoJornada != null) {
                 val cached = versaoCache[versaoJornada.id] ?: run {
-                    val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
-                        .associateBy { it.diaSemana }
+                    val horarios =
+                        horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
+                            .associateBy { it.diaSemana }
                     VersaoCache(versaoJornada, horarios).also { versaoCache[versaoJornada.id] = it }
                 }
                 cached.horariosPorDia[diaSemana]
@@ -327,6 +330,7 @@ class HistoryViewModel @Inject constructor(
                         ausencia.observacao?.let { append(" - $it") }
                     }
                 }
+
                 else -> null
             }
 
@@ -366,18 +370,26 @@ class HistoryViewModel @Inject constructor(
                                 }
                             }
                         }
-                        TipoAusencia.ATESTADO -> { diasAtestado++; quantidadeAtestados++ }
+
+                        TipoAusencia.ATESTADO -> {
+                            diasAtestado++; quantidadeAtestados++
+                        }
+
                         TipoAusencia.DECLARACAO -> {
                             quantidadeDeclaracoes++
                             totalMinutosDeclaracoes += ausencia.duracaoAbonoMinutos ?: 0
                         }
+
                         TipoAusencia.FALTA_JUSTIFICADA -> diasFaltaJustificada++
-                        TipoAusencia.FALTA_INJUSTIFICADA -> { diasFaltaInjustificada++ }
+                        TipoAusencia.FALTA_INJUSTIFICADA -> {
+                            diasFaltaInjustificada++
+                        }
                     }
                 }
 
                 if (jornadaEsperada > 0 && pontosNoDia.isEmpty() && !isFimDeSemana &&
-                    resumoDia.tipoDiaEspecial == TipoDiaEspecial.NORMAL && feriadoDoDia == null) {
+                    resumoDia.tipoDiaEspecial == TipoDiaEspecial.NORMAL && feriadoDoDia == null
+                ) {
                     diasUteisSemRegistro++
                 }
 
@@ -444,9 +456,13 @@ class HistoryViewModel @Inject constructor(
         )
     }
 
-    private suspend fun calcularSaldoInicialDoPeriodo(empregoId: Long, dataInicioPeriodo: LocalDate): Int {
+    private suspend fun calcularSaldoInicialDoPeriodo(
+        empregoId: Long,
+        dataInicioPeriodo: LocalDate
+    ): Int {
         val hoje = LocalDate.now()
-        val dataReferencia = if (dataInicioPeriodo.isAfter(hoje)) hoje else dataInicioPeriodo.minusDays(1)
+        val dataReferencia =
+            if (dataInicioPeriodo.isAfter(hoje)) hoje else dataInicioPeriodo.minusDays(1)
 
         if (dataReferencia.isBefore(LocalDate.of(2020, 1, 1))) return 0
 
@@ -466,9 +482,15 @@ class HistoryViewModel @Inject constructor(
 
     fun periodoAnterior() = selecionarPeriodo(_uiState.value.periodoSelecionado.periodoAnterior())
     fun proximoPeriodo() = selecionarPeriodo(_uiState.value.periodoSelecionado.proximoPeriodo())
-    fun irParaPeriodoAtual() = selecionarPeriodo(PeriodoHistorico.periodoAtual(_uiState.value.diaInicioFechamento))
-    fun alterarFiltro(filtro: FiltroHistorico) = _uiState.update { it.copy(filtroAtivo = filtro, diaExpandido = null) }
-    fun toggleDiaExpandido(data: LocalDate) = _uiState.update { it.copy(diaExpandido = if (it.diaExpandido == data) null else data) }
+    fun irParaPeriodoAtual() =
+        selecionarPeriodo(PeriodoHistorico.periodoAtual(_uiState.value.diaInicioFechamento))
+
+    fun alterarFiltro(filtro: FiltroHistorico) =
+        _uiState.update { it.copy(filtroAtivo = filtro, diaExpandido = null) }
+
+    fun toggleDiaExpandido(data: LocalDate) =
+        _uiState.update { it.copy(diaExpandido = if (it.diaExpandido == data) null else data) }
+
     fun limparErro() = _uiState.update { it.copy(errorMessage = null) }
 
     fun exportarParaCsv() {
@@ -477,18 +499,23 @@ class HistoryViewModel @Inject constructor(
             try {
                 val empregoId = empregoIdAtual ?: return@launch
                 val periodo = _uiState.value.periodoSelecionado
-                
+
                 val resumoPeriodo = gerarResumoPeriodoUseCase(
-                    empregoId, 
-                    periodo.dataInicio, 
+                    empregoId,
+                    periodo.dataInicio,
                     periodo.dataFim
                 )
-                
+
                 val csv = exportarRelatorioCsvUseCase(resumoPeriodo)
                 _uiState.update { it.copy(csvParaExportar = csv, isExporting = false) }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao exportar CSV")
-                _uiState.update { it.copy(errorMessage = "Erro ao gerar CSV: ${e.message}", isExporting = false) }
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Erro ao gerar CSV: ${e.message}",
+                        isExporting = false
+                    )
+                }
             }
         }
     }

@@ -43,6 +43,7 @@ class ExcluirPontoUseCase @Inject constructor(
             val imagemMovidaParaLixeira: Boolean = false,
             val trashPath: String? = null
         ) : Resultado()
+
         data class Erro(val mensagem: String) : Resultado()
         data class NaoEncontrado(val pontoId: Long) : Resultado()
         data class Validacao(val erros: List<String>) : Resultado()
@@ -85,9 +86,11 @@ class ExcluirPontoUseCase @Inject constructor(
                         trashPath = trashResult.trashPath
                         Timber.d("Imagem do ponto ${ponto.id} movida para lixeira: ${trashResult.trashPath}")
                     }
+
                     is TrashResult.FileNotFound -> {
                         Timber.w("Imagem não encontrada para ponto ${ponto.id}: ${ponto.fotoComprovantePath}")
                     }
+
                     is TrashResult.Error -> {
                         Timber.e("Erro ao mover imagem para lixeira: ${trashResult.message}")
                         // Não falha a operação, apenas loga
@@ -132,7 +135,10 @@ class ExcluirPontoUseCase @Inject constructor(
      * Sobrecarga para manter compatibilidade com código existente.
      * @deprecated Use invoke(Parametros) com motivo obrigatório
      */
-    @Deprecated("Use invoke(Parametros) com motivo obrigatório", ReplaceWith("invoke(Parametros(pontoId, motivo))"))
+    @Deprecated(
+        "Use invoke(Parametros) com motivo obrigatório",
+        ReplaceWith("invoke(Parametros(pontoId, motivo))")
+    )
     suspend operator fun invoke(pontoId: Long): Resultado {
         return Resultado.Validacao(listOf("O motivo da exclusão é obrigatório"))
     }

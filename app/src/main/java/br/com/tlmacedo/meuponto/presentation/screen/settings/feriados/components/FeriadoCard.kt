@@ -246,6 +246,7 @@ private fun formatarData(feriado: Feriado): String {
                 "$dia/$mes ($diaSemana) • anual"
             } ?: "Data não definida"
         }
+
         RecorrenciaFeriado.UNICO -> {
             feriado.dataEspecifica?.let { data ->
                 val diaSemana = data.dayOfWeek

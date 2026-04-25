@@ -62,6 +62,7 @@ fun RegisterScreen(
                 is RegisterEvent.MostrarErro -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 RegisterEvent.NavegacaoParaLogin -> onNavigateBack()
             }
         }
@@ -129,7 +130,8 @@ fun RegisterScreen(
                 label = { Text("Senha") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    val image = if (uiState.isSenhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    val image =
+                        if (uiState.isSenhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     IconButton(onClick = { viewModel.onAction(RegisterAction.AlternarSenhaVisibilidade) }) {
                         Icon(imageVector = image, contentDescription = null)
                     }
@@ -153,7 +155,8 @@ fun RegisterScreen(
                 label = { Text("Confirmar Senha") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    val image = if (uiState.isSenhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    val image =
+                        if (uiState.isSenhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     IconButton(onClick = { viewModel.onAction(RegisterAction.AlternarSenhaVisibilidade) }) {
                         Icon(imageVector = image, contentDescription = null)
                     }
@@ -171,7 +174,11 @@ fun RegisterScreen(
 
             if (uiState.erro != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = uiState.erro!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = uiState.erro!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

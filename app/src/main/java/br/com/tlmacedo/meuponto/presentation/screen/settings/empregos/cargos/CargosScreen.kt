@@ -97,7 +97,11 @@ fun CargosScreen(
         viewModel.eventos.collectLatest { evento ->
             when (evento) {
                 is CargosEvent.MostrarMensagem -> snackbarHostState.showSnackbar(evento.mensagem)
-                is CargosEvent.NavegarParaEditar -> onNavigateToEditarCargo(evento.empregoId, evento.cargoId)
+                is CargosEvent.NavegarParaEditar -> onNavigateToEditarCargo(
+                    evento.empregoId,
+                    evento.cargoId
+                )
+
                 is CargosEvent.NavegarParaNovo -> onNavigateToNovoCargo(evento.empregoId)
             }
         }

@@ -31,6 +31,6 @@ interface ChamadoApiService {
     ): Response<Unit>
 
     // REMOVIDAS as linhas inválidas:
-     fun atualizarStatus(toString: String, request: Any)
+    fun atualizarStatus(toString: String, request: Any)
     // fun enviarAvaliacao(identificador: String, avaliacaoRequest: AvaliacaoRequest)
 }

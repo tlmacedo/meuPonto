@@ -15,9 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Save
@@ -69,6 +68,7 @@ fun OpcoesRegistroScreen(
                     snackbarHostState.showSnackbar(evento.mensagem)
                     onNavigateBack()
                 }
+
                 OpcoesRegistroEvent.Voltar -> onNavigateBack()
                 is OpcoesRegistroEvent.NavegarParaLocalizacao -> onNavigateToLocalizacao(evento.empregoId)
             }
@@ -177,18 +177,33 @@ private fun OpcoesRegistroContent(
                 )
 
                 AnimatedVisibility(visible = uiState.habilitarLocalizacao) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
                         SwitchOption(
                             title = "Captura Automática",
                             description = "Obter localização sem intervenção do usuário",
                             checked = uiState.localizacaoAutomatica,
-                            onCheckedChange = { onAction(OpcoesRegistroAction.AlterarLocalizacaoAutomatica(it)) }
+                            onCheckedChange = {
+                                onAction(
+                                    OpcoesRegistroAction.AlterarLocalizacaoAutomatica(
+                                        it
+                                    )
+                                )
+                            }
                         )
                         SwitchOption(
                             title = "Exibir Detalhes",
                             description = "Mostrar endereço aproximado no registro",
                             checked = uiState.exibirLocalizacaoDetalhes,
-                            onCheckedChange = { onAction(OpcoesRegistroAction.AlterarExibirLocalizacaoDetalhes(it)) }
+                            onCheckedChange = {
+                                onAction(
+                                    OpcoesRegistroAction.AlterarExibirLocalizacaoDetalhes(
+                                        it
+                                    )
+                                )
+                            }
                         )
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -201,7 +216,11 @@ private fun OpcoesRegistroContent(
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         ) {
-                            Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Configurar Local de Trabalho")
                         }
@@ -224,18 +243,33 @@ private fun OpcoesRegistroContent(
                 )
 
                 AnimatedVisibility(visible = uiState.fotoHabilitada) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
                         SwitchOption(
                             title = "Foto Obrigatória",
                             description = "Impedir registro sem foto",
                             checked = uiState.fotoObrigatoria,
-                            onCheckedChange = { onAction(OpcoesRegistroAction.AlterarFotoObrigatoria(it)) }
+                            onCheckedChange = {
+                                onAction(
+                                    OpcoesRegistroAction.AlterarFotoObrigatoria(
+                                        it
+                                    )
+                                )
+                            }
                         )
                         SwitchOption(
                             title = "Validar Comprovante",
                             description = "Usar OCR para validar dados do comprovante",
                             checked = uiState.fotoValidarComprovante,
-                            onCheckedChange = { onAction(OpcoesRegistroAction.AlterarFotoValidarComprovante(it)) }
+                            onCheckedChange = {
+                                onAction(
+                                    OpcoesRegistroAction.AlterarFotoValidarComprovante(
+                                        it
+                                    )
+                                )
+                            }
                         )
                     }
                 }
@@ -261,7 +295,13 @@ private fun OpcoesRegistroContent(
                             title = "Obrigatório em Hora Extra",
                             description = "Exigir justificativa para registros fora do horário",
                             checked = uiState.comentarioObrigatorioHoraExtra,
-                            onCheckedChange = { onAction(OpcoesRegistroAction.AlterarComentarioObrigatorioHoraExtra(it)) }
+                            onCheckedChange = {
+                                onAction(
+                                    OpcoesRegistroAction.AlterarComentarioObrigatorioHoraExtra(
+                                        it
+                                    )
+                                )
+                            }
                         )
 
                         AnimatedVisibility(visible = uiState.comentarioObrigatorioHoraExtra) {
@@ -288,7 +328,13 @@ private fun OpcoesRegistroContent(
                                 ) {
                                     Slider(
                                         value = uiState.limiteHoraExtraSemComentario.toFloat(),
-                                        onValueChange = { onAction(OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario(it.toInt())) },
+                                        onValueChange = {
+                                            onAction(
+                                                OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario(
+                                                    it.toInt()
+                                                )
+                                            )
+                                        },
                                         valueRange = 0f..120f,
                                         steps = 23 // (120 / 5) - 1 if we want steps of 5, or just omit for continuous
                                     )
@@ -322,7 +368,13 @@ private fun OpcoesRegistroContent(
                     title = "Duração do Intervalo",
                     description = "Exibir tempo decorrido no intervalo atual",
                     checked = uiState.exibirDuracaoIntervalo,
-                    onCheckedChange = { onAction(OpcoesRegistroAction.AlterarExibirDuracaoIntervalo(it)) }
+                    onCheckedChange = {
+                        onAction(
+                            OpcoesRegistroAction.AlterarExibirDuracaoIntervalo(
+                                it
+                            )
+                        )
+                    }
                 )
             }
         }
@@ -396,7 +448,9 @@ private fun SwitchOption(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge)

@@ -32,12 +32,12 @@ class ExcluirVersaoJornadaUseCase @Inject constructor(
         return try {
             // 1. Buscar versão
             val versao = versaoJornadaRepository.buscarPorId(versaoId)
-                ?: return Result.failure(VersaoJornadaException.VersaoNaoEncontrada)
+                ?: return Result.failure(VersaoJornadaException.VersaoNaoEncontrada())
 
             // 2. Verificar se é a única versão do emprego
             val versoesEmprego = versaoJornadaRepository.buscarPorEmprego(versao.empregoId)
             if (versoesEmprego.size == 1) {
-                return Result.failure(VersaoJornadaException.UnicaVersao)
+                return Result.failure(VersaoJornadaException.UnicaVersao())
             }
 
             // 3. Se é vigente, definir outra como vigente

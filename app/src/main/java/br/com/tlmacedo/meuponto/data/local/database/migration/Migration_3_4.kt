@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // Verifica se as colunas já existem para evitar erro de duplicidade
-        
+
         // Configuracoes_emprego
         if (!columnExists(db, "configuracoes_emprego", "toleranciaEntradaMinutos")) {
             db.execSQL("ALTER TABLE configuracoes_emprego ADD COLUMN toleranciaEntradaMinutos INTEGER NOT NULL DEFAULT 10")
@@ -22,7 +22,7 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         if (!columnExists(db, "configuracoes_emprego", "toleranciaSaidaMinutos")) {
             db.execSQL("ALTER TABLE configuracoes_emprego ADD COLUMN toleranciaSaidaMinutos INTEGER NOT NULL DEFAULT 10")
         }
-        
+
         // Horarios_dia_semana
         if (!columnExists(db, "horarios_dia_semana", "toleranciaEntradaMinutos")) {
             db.execSQL("ALTER TABLE horarios_dia_semana ADD COLUMN toleranciaEntradaMinutos INTEGER DEFAULT NULL")

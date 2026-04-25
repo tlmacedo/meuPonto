@@ -84,11 +84,26 @@ class FecharCicloUseCase @Inject constructor(
         val saldoMinutos = resultadoBanco.bancoHoras.saldoTotalMinutos
         val agora = LocalDateTime.now()
 
-        android.util.Log.d("FECHAR_CICLO", "Saldo do ciclo: $saldoMinutos min (${formatarMinutos(saldoMinutos)})")
-        android.util.Log.d("FECHAR_CICLO", "  - Dias trabalhados: ${resultadoBanco.diasTrabalhados}")
-        android.util.Log.d("FECHAR_CICLO", "  - Dias com ausência: ${resultadoBanco.diasComAusencia}")
-        android.util.Log.d("FECHAR_CICLO", "  - Dias úteis sem registro: ${resultadoBanco.diasUteisSemRegistro}")
-        android.util.Log.d("FECHAR_CICLO", "  - Ajustes no período: ${resultadoBanco.totalAjustesMinutos}")
+        android.util.Log.d(
+            "FECHAR_CICLO",
+            "Saldo do ciclo: $saldoMinutos min (${formatarMinutos(saldoMinutos)})"
+        )
+        android.util.Log.d(
+            "FECHAR_CICLO",
+            "  - Dias trabalhados: ${resultadoBanco.diasTrabalhados}"
+        )
+        android.util.Log.d(
+            "FECHAR_CICLO",
+            "  - Dias com ausência: ${resultadoBanco.diasComAusencia}"
+        )
+        android.util.Log.d(
+            "FECHAR_CICLO",
+            "  - Dias úteis sem registro: ${resultadoBanco.diasUteisSemRegistro}"
+        )
+        android.util.Log.d(
+            "FECHAR_CICLO",
+            "  - Ajustes no período: ${resultadoBanco.totalAjustesMinutos}"
+        )
 
         // 1. Criar registro de fechamento (histórico)
         val fechamento = FechamentoPeriodo(
@@ -111,7 +126,13 @@ class FecharCicloUseCase @Inject constructor(
             minutos = -saldoMinutos,
             justificativa = buildString {
                 append("Zeramento de ciclo anterior")
-                append(" (${dataInicioCiclo.format(formatadorData)} ~ ${dataFimCiclo.format(formatadorData)})")
+                append(
+                    " (${dataInicioCiclo.format(formatadorData)} ~ ${
+                        dataFimCiclo.format(
+                            formatadorData
+                        )
+                    })"
+                )
                 if (saldoMinutos != 0) {
                     append(" - Saldo zerado: ${formatarMinutos(saldoMinutos)}")
                 } else {
@@ -121,7 +142,10 @@ class FecharCicloUseCase @Inject constructor(
             criadoEm = agora
         )
         val ajusteId = ajusteSaldoRepository.inserir(ajusteZeramento)
-        android.util.Log.d("FECHAR_CICLO", "Ajuste criado com ID: $ajusteId, valor: ${-saldoMinutos} min")
+        android.util.Log.d(
+            "FECHAR_CICLO",
+            "Ajuste criado com ID: $ajusteId, valor: ${-saldoMinutos} min"
+        )
 
         // 3. Atualizar VersaoJornada para próximo ciclo
         val novaVersaoJornada = versaoJornada.copy(
@@ -129,7 +153,10 @@ class FecharCicloUseCase @Inject constructor(
             atualizadoEm = agora
         )
         versaoJornadaRepository.atualizar(novaVersaoJornada)
-        android.util.Log.d("FECHAR_CICLO", "VersaoJornada atualizada: novo ciclo inicia em $dataInicioProximoCiclo")
+        android.util.Log.d(
+            "FECHAR_CICLO",
+            "VersaoJornada atualizada: novo ciclo inicia em $dataInicioProximoCiclo"
+        )
 
         // Montar ciclo para retorno
         val cicloFechado = CicloBancoHoras(
@@ -175,7 +202,10 @@ class FecharCicloUseCase @Inject constructor(
                 ?: return ResultadoMultiplo.Erro("Ciclo não configurado")
 
             if (!dataAtual.isAfter(dataFimCiclo)) {
-                android.util.Log.d("CICLO_DEBUG", "Ciclo atual ($dataFimCiclo) ainda não terminou. Parando.")
+                android.util.Log.d(
+                    "CICLO_DEBUG",
+                    "Ciclo atual ($dataFimCiclo) ainda não terminou. Parando."
+                )
                 return@repeat
             }
 
@@ -186,10 +216,17 @@ class FecharCicloUseCase @Inject constructor(
                 is Resultado.Sucesso -> {
                     ciclosFechados.add(resultado.cicloFechado)
                     ultimoResultado = resultado
-                    android.util.Log.d("CICLO_DEBUG", "✅ Ciclo fechado com saldo: ${resultado.saldoZerado} min")
+                    android.util.Log.d(
+                        "CICLO_DEBUG",
+                        "✅ Ciclo fechado com saldo: ${resultado.saldoZerado} min"
+                    )
                 }
+
                 is Resultado.Erro -> {
-                    android.util.Log.e("CICLO_DEBUG", "❌ Erro ao fechar ciclo: ${resultado.mensagem}")
+                    android.util.Log.e(
+                        "CICLO_DEBUG",
+                        "❌ Erro ao fechar ciclo: ${resultado.mensagem}"
+                    )
                     return ResultadoMultiplo.Erro(resultado.mensagem)
                 }
             }
@@ -211,8 +248,10 @@ class FecharCicloUseCase @Inject constructor(
     ): LocalDate = when {
         versaoJornada.periodoBancoSemanas > 0 ->
             dataInicio.plusWeeks(versaoJornada.periodoBancoSemanas.toLong()).minusDays(1)
+
         versaoJornada.periodoBancoMeses > 0 ->
             dataInicio.plusMonths(versaoJornada.periodoBancoMeses.toLong()).minusDays(1)
+
         else -> dataInicio
     }
 

@@ -50,7 +50,11 @@ class LixeiraRepositoryImpl @Inject constructor(
                 entidade = ENTIDADE,
                 entidadeId = pontoId,
                 motivo = ponto?.let {
-                    "Ponto movido para lixeira: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                    "Ponto movido para lixeira: ${it.data.format(dateFormatter)} às ${
+                        it.hora.format(
+                            timeFormatter
+                        )
+                    }"
                 } ?: "Ponto movido para lixeira",
                 dadosAnteriores = ponto?.let { auditService.toJson(it.toAuditMap()) }
             )
@@ -90,7 +94,11 @@ class LixeiraRepositoryImpl @Inject constructor(
                 entidade = ENTIDADE,
                 entidadeId = pontoId,
                 motivo = ponto?.let {
-                    "Ponto restaurado: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                    "Ponto restaurado: ${it.data.format(dateFormatter)} às ${
+                        it.hora.format(
+                            timeFormatter
+                        )
+                    }"
                 } ?: "Ponto restaurado da lixeira"
             )
         }
@@ -127,7 +135,11 @@ class LixeiraRepositoryImpl @Inject constructor(
                 entidade = ENTIDADE,
                 entidadeId = pontoId,
                 motivo = ponto?.let {
-                    "Ponto excluído permanentemente: ${it.data.format(dateFormatter)} às ${it.hora.format(timeFormatter)}"
+                    "Ponto excluído permanentemente: ${it.data.format(dateFormatter)} às ${
+                        it.hora.format(
+                            timeFormatter
+                        )
+                    }"
                 } ?: "Ponto excluído permanentemente"
             )
 

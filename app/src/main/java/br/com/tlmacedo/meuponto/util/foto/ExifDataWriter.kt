@@ -107,7 +107,7 @@ class ExifDataWriter @Inject constructor() {
             }
 
             val latLong = exif.latLong
-            val hasGps = latLong != null
+            latLong != null
 
             FotoExifMetadata(
                 dateTime = dateTime,

@@ -51,9 +51,11 @@ fun ForgotPasswordScreen(
                 is ForgotPasswordEvent.MostrarErro -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 is ForgotPasswordEvent.MostrarSucesso -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 ForgotPasswordEvent.NavegarVoltar -> onNavigateBack()
             }
         }
@@ -134,7 +136,7 @@ fun ForgotPasswordScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            
+
             uiState.erro?.let { erro ->
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(

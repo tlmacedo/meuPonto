@@ -155,7 +155,10 @@ class FeriadoRepositoryImpl @Inject constructor(
             .map { list -> list.map { it.toDomain() } }
     }
 
-    override suspend fun buscarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): List<Feriado> {
+    override suspend fun buscarPorPeriodo(
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): List<Feriado> {
         return feriadoDao.buscarPorPeriodo(dataInicio, dataFim).map { it.toDomain() }
     }
 
@@ -253,7 +256,8 @@ class FeriadoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun atualizarConfiguracaoPontes(config: ConfiguracaoPontesAno) {
-        val anterior = configuracaoPontesAnoDao.buscarPorEmpregoEAno(config.empregoId, config.ano)?.toDomain()
+        val anterior =
+            configuracaoPontesAnoDao.buscarPorEmpregoEAno(config.empregoId, config.ano)?.toDomain()
         configuracaoPontesAnoDao.atualizar(config.toEntity())
 
         auditService.logUpdate(
@@ -280,11 +284,17 @@ class FeriadoRepositoryImpl @Inject constructor(
     // Consultas de Configuração de Pontes
     // ========================================================================
 
-    override suspend fun buscarConfiguracaoPontes(empregoId: Long, ano: Int): ConfiguracaoPontesAno? {
+    override suspend fun buscarConfiguracaoPontes(
+        empregoId: Long,
+        ano: Int
+    ): ConfiguracaoPontesAno? {
         return configuracaoPontesAnoDao.buscarPorEmpregoEAno(empregoId, ano)?.toDomain()
     }
 
-    override fun observarConfiguracaoPontes(empregoId: Long, ano: Int): Flow<ConfiguracaoPontesAno?> {
+    override fun observarConfiguracaoPontes(
+        empregoId: Long,
+        ano: Int
+    ): Flow<ConfiguracaoPontesAno?> {
         return configuracaoPontesAnoDao.observarPorEmpregoEAno(empregoId, ano)
             .map { it?.toDomain() }
     }

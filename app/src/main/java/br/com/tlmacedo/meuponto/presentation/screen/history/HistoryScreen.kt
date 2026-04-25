@@ -1,6 +1,8 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/history/HistoryScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.history
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -92,8 +94,6 @@ import br.com.tlmacedo.meuponto.presentation.theme.Success
 import br.com.tlmacedo.meuponto.presentation.theme.Warning
 import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
 import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
-import android.content.Intent
-import android.net.Uri
 import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
@@ -127,7 +127,12 @@ fun HistoryScreen(
 
     LaunchedEffect(uiState.csvParaExportar) {
         uiState.csvParaExportar?.let { csv ->
-            val fileName = "meuponto_relatorio_${uiState.periodoSelecionado.descricaoCurta.replace("/", "_")}.csv"
+            val fileName = "meuponto_relatorio_${
+                uiState.periodoSelecionado.descricaoCurta.replace(
+                    "/",
+                    "_"
+                )
+            }.csv"
             val file = File(context.cacheDir, fileName)
             file.writeText(csv)
 
@@ -140,7 +145,10 @@ fun HistoryScreen(
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/csv"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "Relatório de Ponto - ${uiState.periodoSelecionado.descricaoFormatada}")
+                putExtra(
+                    Intent.EXTRA_SUBJECT,
+                    "Relatório de Ponto - ${uiState.periodoSelecionado.descricaoFormatada}"
+                )
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
@@ -194,7 +202,10 @@ fun HistoryContent(
                     if (uiState.hasRegistros) {
                         IconButton(onClick = onExportar, enabled = !uiState.isExporting) {
                             if (uiState.isExporting) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.Share,
@@ -261,6 +272,7 @@ fun HistoryContent(
                         }
                     }
                 }
+
                 uiState.filtroAtivo == FiltroHistorico.CALENDARIO -> {
                     CalendarView(
                         yearMonth = YearMonth.from(uiState.periodoSelecionado.dataInicio),
@@ -773,8 +785,9 @@ private fun ResumoMes(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    val anteriorColor = if (saldoInicialPeriodo == 0) MaterialTheme.colorScheme.outline
-                    else if (saldoInicialPeriodo >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+                    val anteriorColor =
+                        if (saldoInicialPeriodo == 0) MaterialTheme.colorScheme.outline
+                        else if (saldoInicialPeriodo >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                     Text(
                         saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
                         style = MaterialTheme.typography.bodySmall,

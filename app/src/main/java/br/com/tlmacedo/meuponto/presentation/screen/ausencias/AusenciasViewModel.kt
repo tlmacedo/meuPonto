@@ -63,11 +63,13 @@ class AusenciasViewModel @Inject constructor(
                     _uiEvent.emit(AusenciasUiEvent.NavegarParaNovaAusencia)
                 }
             }
+
             is AusenciasAction.EditarAusencia -> {
                 viewModelScope.launch {
                     _uiEvent.emit(AusenciasUiEvent.NavegarParaEditarAusencia(action.ausencia.id))
                 }
             }
+
             is AusenciasAction.SolicitarExclusao -> solicitarExclusao(action.ausencia)
             is AusenciasAction.ConfirmarExclusao -> confirmarExclusao()
             is AusenciasAction.CancelarExclusao -> cancelarExclusao()
@@ -199,6 +201,7 @@ class AusenciasViewModel @Inject constructor(
                 is ResultadoExcluirAusencia.Sucesso -> {
                     _uiEvent.emit(AusenciasUiEvent.MostrarMensagem("Ausência excluída"))
                 }
+
                 is ResultadoExcluirAusencia.Erro -> {
                     _uiEvent.emit(AusenciasUiEvent.MostrarErro(resultado.mensagem))
                 }

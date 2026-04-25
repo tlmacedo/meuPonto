@@ -66,7 +66,10 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val horariosPorDia: Map<DiaSemana, HorarioDiaSemana>
     )
 
-    operator fun invoke(empregoId: Long, ateData: LocalDate = LocalDate.now()): Flow<ResultadoBancoHoras> {
+    operator fun invoke(
+        empregoId: Long,
+        ateData: LocalDate = LocalDate.now()
+    ): Flow<ResultadoBancoHoras> {
         return combine(
             pontoRepository.observarPorEmprego(empregoId),
             fechamentoPeriodoRepository.observarPorEmpregoId(empregoId),
@@ -75,16 +78,33 @@ class CalcularBancoHorasUseCase @Inject constructor(
             feriadoRepository.observarTodosAtivos()
         ) { pontos, fechamentos, ajustes, ausencias, feriados ->
             val fechamentoRelevante = fechamentos
-                .filter { it.tipo in listOf(TipoFechamento.BANCO_HORAS, TipoFechamento.CICLO_BANCO_AUTOMATICO) }
+                .filter {
+                    it.tipo in listOf(
+                        TipoFechamento.BANCO_HORAS,
+                        TipoFechamento.CICLO_BANCO_AUTOMATICO
+                    )
+                }
                 .filter { it.dataFimPeriodo < ateData }
                 .maxByOrNull { it.dataFimPeriodo }
 
-            calcularBancoHoras(empregoId, pontos, fechamentoRelevante, ajustes, ausencias, feriados, ateData)
+            calcularBancoHoras(
+                empregoId,
+                pontos,
+                fechamentoRelevante,
+                ajustes,
+                ausencias,
+                feriados,
+                ateData
+            )
         }
     }
 
-    suspend fun calcular(empregoId: Long, ateData: LocalDate = LocalDate.now()): ResultadoBancoHoras {
-        val ultimoFechamento = fechamentoPeriodoRepository.buscarUltimoFechamentoBancoAteData(empregoId, ateData)
+    suspend fun calcular(
+        empregoId: Long,
+        ateData: LocalDate = LocalDate.now()
+    ): ResultadoBancoHoras {
+        val ultimoFechamento =
+            fechamentoPeriodoRepository.buscarUltimoFechamentoBancoAteData(empregoId, ateData)
         val dataInicio = ultimoFechamento?.dataFimPeriodo?.plusDays(1)
             ?: pontoRepository.buscarPrimeiraData(empregoId) ?: ateData
 
@@ -93,18 +113,39 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val ausencias = ausenciaRepository.buscarPorPeriodo(empregoId, dataInicio, ateData)
         val feriados = feriadoRepository.buscarPorPeriodo(dataInicio, ateData)
 
-        return calcularBancoHoras(empregoId, pontos, ultimoFechamento, ajustes, ausencias, feriados, ateData)
+        return calcularBancoHoras(
+            empregoId,
+            pontos,
+            ultimoFechamento,
+            ajustes,
+            ausencias,
+            feriados,
+            ateData
+        )
     }
 
-    suspend fun calcularAteData(empregoId: Long, ateData: LocalDate): ResultadoBancoHoras = calcular(empregoId, ateData)
+    suspend fun calcularAteData(empregoId: Long, ateData: LocalDate): ResultadoBancoHoras =
+        calcular(empregoId, ateData)
 
-    suspend fun calcularParaPeriodo(empregoId: Long, dataInicio: LocalDate, dataFim: LocalDate): ResultadoBancoHoras {
+    suspend fun calcularParaPeriodo(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): ResultadoBancoHoras {
         val pontos = pontoRepository.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
         val ajustes = ajusteSaldoRepository.buscarPorPeriodo(empregoId, dataInicio, dataFim)
         val ausencias = ausenciaRepository.buscarPorPeriodo(empregoId, dataInicio, dataFim)
         val feriados = feriadoRepository.buscarPorPeriodo(dataInicio, dataFim)
 
-        return calcularBancoHorasParaPeriodo(empregoId, pontos, ajustes, ausencias, feriados, dataInicio, dataFim)
+        return calcularBancoHorasParaPeriodo(
+            empregoId,
+            pontos,
+            ajustes,
+            ausencias,
+            feriados,
+            dataInicio,
+            dataFim
+        )
     }
 
     private suspend fun calcularBancoHoras(
@@ -116,7 +157,9 @@ class CalcularBancoHorasUseCase @Inject constructor(
         feriados: List<Feriado>,
         ateData: LocalDate
     ): ResultadoBancoHoras {
-        val dataInicio = ultimoFechamento?.dataFimPeriodo?.plusDays(1) ?: pontos.minOfOrNull { it.data } ?: ateData
+        val dataInicio =
+            ultimoFechamento?.dataFimPeriodo?.plusDays(1) ?: pontos.minOfOrNull { it.data }
+            ?: ateData
 
         if (dataInicio > ateData) {
             val saldoBase = if (ultimoFechamento?.tipo?.automatico == true)
@@ -137,7 +180,15 @@ class CalcularBancoHorasUseCase @Inject constructor(
             )
         }
 
-        val resultadoInterno = calcularBancoHorasInterno(empregoId, pontos, ajustes, ausencias, feriados, dataInicio, ateData)
+        val resultadoInterno = calcularBancoHorasInterno(
+            empregoId,
+            pontos,
+            ajustes,
+            ausencias,
+            feriados,
+            dataInicio,
+            ateData
+        )
 
         val saldoFinal = if (ultimoFechamento?.tipo?.automatico == true) {
             resultadoInterno.saldoTotal.plusMinutes(ultimoFechamento.saldoAnteriorMinutos.toLong())
@@ -160,7 +211,15 @@ class CalcularBancoHorasUseCase @Inject constructor(
         dataInicio: LocalDate,
         dataFim: LocalDate
     ): ResultadoBancoHoras {
-        return calcularBancoHorasInterno(empregoId, pontos, ajustes, ausencias, feriados, dataInicio, dataFim)
+        return calcularBancoHorasInterno(
+            empregoId,
+            pontos,
+            ajustes,
+            ausencias,
+            feriados,
+            dataInicio,
+            dataFim
+        )
             .copy(ultimoFechamento = null)
     }
 
@@ -175,7 +234,8 @@ class CalcularBancoHorasUseCase @Inject constructor(
     ): ResultadoBancoHoras {
         val pontosNoPeriodo = pontos.filter { it.data in dataInicio..dataFim }
         val ajustesNoPeriodo = ajustes.filter { it.data in dataInicio..dataFim }
-        val ausenciasNoPeriodo = ausencias.filter { it.ativo && it.dataInicio <= dataFim && it.dataFim >= dataInicio }
+        val ausenciasNoPeriodo =
+            ausencias.filter { it.ativo && it.dataInicio <= dataFim && it.dataFim >= dataInicio }
 
         val pontosPorDia = pontosNoPeriodo.groupBy { it.data }
 
@@ -202,7 +262,7 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val horarioSemVersaoCache = mutableMapOf<DiaSemana, HorarioDiaSemana?>()
 
         // Buscar versão vigente para dados genéricos se necessário
-        val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
+        versaoJornadaRepository.buscarVigente(empregoId)
 
         var saldoTotal = Duration.ZERO
         var trabalhadoTotal = Duration.ZERO
@@ -223,8 +283,9 @@ class CalcularBancoHorasUseCase @Inject constructor(
 
             val horarioDia = if (versaoJornada != null) {
                 val cached = versaoCache[versaoJornada.id] ?: run {
-                    val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
-                        .associateBy { it.diaSemana }
+                    val horarios =
+                        horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
+                            .associateBy { it.diaSemana }
                     VersaoCache(versaoJornada, horarios).also { versaoCache[versaoJornada.id] = it }
                 }
                 cached.horariosPorDia[diaSemana]

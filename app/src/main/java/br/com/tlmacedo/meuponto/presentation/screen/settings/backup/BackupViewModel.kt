@@ -1,27 +1,28 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.backup
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.domain.model.PreferenciasGlobais
-import br.com.tlmacedo.meuponto.domain.repository.BackupRepository
-import br.com.tlmacedo.meuponto.domain.repository.CloudBackupRepository
-import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
-import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
-import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
-import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.preferencias.SalvarPreferenciasGlobaisUseCase
-import br.com.tlmacedo.meuponto.data.local.datastore.PreferenciasGlobaisDataStore
-import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
-import br.com.tlmacedo.meuponto.worker.CloudBackupWorker
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkRequest
 import androidx.work.WorkManager
-import android.content.Context
+import androidx.work.WorkRequest
+import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
+import br.com.tlmacedo.meuponto.data.local.datastore.PreferenciasGlobaisDataStore
+import br.com.tlmacedo.meuponto.domain.repository.BackupRepository
+import br.com.tlmacedo.meuponto.domain.repository.CloudBackupRepository
+import br.com.tlmacedo.meuponto.domain.repository.CloudFile
+import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
+import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
+import br.com.tlmacedo.meuponto.domain.repository.LocalBackupFile
+import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.preferencias.SalvarPreferenciasGlobaisUseCase
+import br.com.tlmacedo.meuponto.util.FileUtils
+import br.com.tlmacedo.meuponto.worker.CloudBackupWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,17 +36,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import br.com.tlmacedo.meuponto.util.FileUtils
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-
-import br.com.tlmacedo.meuponto.domain.repository.CloudFile
-import br.com.tlmacedo.meuponto.domain.repository.LocalBackupFile
-import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 
 /**
  * Estado da tela de backup.
@@ -218,8 +214,9 @@ class BackupViewModel @Inject constructor(
                 // 7. Carregar lista da nuvem e validar data do último backup na nuvem
                 if (isAutenticadoReal) {
                     cloudBackupRepository.listarBackupsNuvem().onSuccess { backups ->
-                        val ultimoNuvemReal = backups.maxByOrNull { it.modifiedTime }?.modifiedTime ?: 0L
-                        
+                        val ultimoNuvemReal =
+                            backups.maxByOrNull { it.modifiedTime }?.modifiedTime ?: 0L
+
                         _uiState.update {
                             it.copy(
                                 backupsNuvem = backups,
@@ -262,8 +259,13 @@ class BackupViewModel @Inject constructor(
             BackupAction.BackupNuvemAgora -> backupNuvemAgora()
             is BackupAction.ToggleBackupNuvem -> toggleBackupNuvem(action.ativo)
             BackupAction.AutenticarGoogle -> {
-                _uiState.update { it.copy(isProcessando = true, operacaoAtual = "autenticar_google") }
-                viewModelScope.launch { 
+                _uiState.update {
+                    it.copy(
+                        isProcessando = true,
+                        operacaoAtual = "autenticar_google"
+                    )
+                }
+                viewModelScope.launch {
                     try {
                         _eventos.emit(BackupEvent.SolicitarAutenticacaoGoogle)
                     } catch (e: Exception) {
@@ -272,6 +274,7 @@ class BackupViewModel @Inject constructor(
                     }
                 }
             }
+
             BackupAction.DeslogarGoogle -> deslogarGoogle()
             is BackupAction.RestaurarBackupNuvem -> restaurarBackupNuvem(action.fileId)
             is BackupAction.RestaurarBackupLocal -> restaurarBackupLocal(action.nomeArquivo)
@@ -291,10 +294,10 @@ class BackupViewModel @Inject constructor(
     fun onGoogleAuthResult() {
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessando = true, operacaoAtual = "validando_conexao") }
-            
+
             // Aguarda um pouco para o Google Play Services atualizar o estado da conta
             kotlinx.coroutines.delay(1000)
-            
+
             val contaLogada = cloudBackupRepository.getContaConectada()
             val sucesso = if (contaLogada != null) {
                 cloudBackupRepository.testarConexao().isSuccess
@@ -303,7 +306,7 @@ class BackupViewModel @Inject constructor(
             }
 
             if (sucesso) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isGoogleAutenticado = true,
                         contaGoogle = contaLogada,
@@ -352,13 +355,13 @@ class BackupViewModel @Inject constructor(
                 // Cálculo real do tamanho dos arquivos (Banco + Fotos)
                 val dbFile = context.getDatabasePath(MeuPontoDatabase.DATABASE_NAME)
                 var tamanhoBancoBytes = if (dbFile.exists()) dbFile.length() else 0L
-                
+
                 // Incluir arquivos auxiliares do SQLite (WAL e SHM) no tamanho do banco
                 val walFile = java.io.File(dbFile.path + "-wal")
                 val shmFile = java.io.File(dbFile.path + "-shm")
                 if (walFile.exists()) tamanhoBancoBytes += walFile.length()
                 if (shmFile.exists()) tamanhoBancoBytes += shmFile.length()
-                
+
                 // Medir tamanho real da pasta de comprovantes
                 val baseDirImagens = java.io.File(context.filesDir, "comprovantes")
                 var totalImagens = 0
@@ -369,7 +372,7 @@ class BackupViewModel @Inject constructor(
                 } else 0L
 
                 val tamanhoTotalBytes = tamanhoBancoBytes + tamanhoFotosBytes
-                
+
                 val tamanhoBanco = formatarTamanho(tamanhoBancoBytes)
                 val tamanhoImagens = formatarTamanho(tamanhoFotosBytes)
                 val tamanhoEstimado = formatarTamanho(tamanhoTotalBytes)
@@ -564,13 +567,13 @@ class BackupViewModel @Inject constructor(
                         contaGoogle = ""
                     )
                     cancelarBackupNuvem()
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
-                            isGoogleAutenticado = false, 
+                            isGoogleAutenticado = false,
                             contaGoogle = null,
                             backupNuvemAtivo = false,
                             backupsNuvem = emptyList()
-                        ) 
+                        )
                     }
                     _eventos.emit(BackupEvent.MostrarMensagem("Conta Google desconectada"))
                 }
@@ -596,7 +599,12 @@ class BackupViewModel @Inject constructor(
 
     private fun excluirTodosBackupsLocais() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isProcessando = true, operacaoAtual = "excluir_todos_locais") }
+            _uiState.update {
+                it.copy(
+                    isProcessando = true,
+                    operacaoAtual = "excluir_todos_locais"
+                )
+            }
             backupRepository.excluirTodosBackupsLocais()
                 .onSuccess {
                     _eventos.emit(BackupEvent.MostrarMensagem("Todos os backups locais foram excluídos"))

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
@@ -71,15 +72,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.content.ContextCompat
-import android.graphics.Matrix
 import androidx.exifinterface.media.ExifInterface
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import br.com.tlmacedo.meuponto.util.ImageProcessor
 import br.com.tlmacedo.meuponto.util.findActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -89,7 +90,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Composable
 fun CameraCaptureScreen(
@@ -99,12 +99,12 @@ fun CameraCaptureScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
-    
+
     var imageCaptureUseCase by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraSelector by remember { mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA) }
     var flashMode by remember { mutableIntStateOf(ImageCapture.FLASH_MODE_OFF) }
     var isCapturing by remember { mutableStateOf(false) }
-    
+
     // Estados para o Auto-Capture
     var isDetected by remember { mutableStateOf(false) }
     var consecutiveDetections by remember { mutableIntStateOf(0) }
@@ -115,7 +115,8 @@ fun CameraCaptureScreen(
     // Forçar orientação Retrato ao entrar nesta tela
     DisposableEffect(Unit) {
         val activity = context.findActivity()
-        val originalOrientation = activity?.requestedOrientation ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        val originalOrientation =
+            activity?.requestedOrientation ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         onDispose {
             activity?.requestedOrientation = originalOrientation
@@ -126,7 +127,7 @@ fun CameraCaptureScreen(
     LaunchedEffect(cameraSelector) {
         try {
             val cameraProvider = context.getCameraProvider()
-            
+
             val preview = Preview.Builder().build().also {
                 it.surfaceProvider = previewView.surfaceProvider
             }
@@ -151,7 +152,7 @@ fun CameraCaptureScreen(
 
             // Unbind all before binding new use cases
             cameraProvider.unbindAll()
-            
+
             // Pequeno delay para permitir que o sistema processe o unbind (evita TimeoutException em alguns dispositivos)
             kotlinx.coroutines.delay(100)
 
@@ -197,7 +198,9 @@ fun CameraCaptureScreen(
         imageCaptureUseCase?.flashMode = flashMode
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.Black)) {
         AndroidView(
             factory = { previewView },
             modifier = Modifier.fillMaxSize()
@@ -216,12 +219,16 @@ fun CameraCaptureScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Voltar",
+                    tint = Color.White
+                )
             }
 
             IconButton(onClick = {
-                flashMode = if (flashMode == ImageCapture.FLASH_MODE_ON) ImageCapture.FLASH_MODE_OFF 
-                           else ImageCapture.FLASH_MODE_ON
+                flashMode = if (flashMode == ImageCapture.FLASH_MODE_ON) ImageCapture.FLASH_MODE_OFF
+                else ImageCapture.FLASH_MODE_ON
             }) {
                 Icon(
                     if (flashMode == ImageCapture.FLASH_MODE_ON) Icons.Default.FlashOn else Icons.Default.FlashOff,
@@ -243,16 +250,16 @@ fun CameraCaptureScreen(
             Box(
                 modifier = Modifier
                     .background(
-                        if (isDetected) Color(0xFF4CAF50).copy(alpha = 0.8f) 
+                        if (isDetected) Color(0xFF4CAF50).copy(alpha = 0.8f)
                         else Color.Black.copy(alpha = 0.5f),
                         MaterialTheme.shapes.medium
                     )
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = if (autoCaptureTriggered) "Capturando..." 
-                           else if (isDetected) "Comprovante detectado! Mantenha firme..."
-                           else "Alinhe o comprovante no quadro",
+                    text = if (autoCaptureTriggered) "Capturando..."
+                    else if (isDetected) "Comprovante detectado! Mantenha firme..."
+                    else "Alinhe o comprovante no quadro",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
@@ -263,7 +270,9 @@ fun CameraCaptureScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -293,11 +302,18 @@ fun CameraCaptureScreen(
                     modifier = Modifier
                         .size(80.dp)
                         .background(Color.White.copy(alpha = 0.2f), CircleShape)
-                        .border(4.dp, if (isDetected) Color(0xFF4CAF50) else Color.White, CircleShape)
+                        .border(
+                            4.dp,
+                            if (isDetected) Color(0xFF4CAF50) else Color.White,
+                            CircleShape
+                        )
                         .padding(4.dp)
                 ) {
                     if (isCapturing) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(40.dp))
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(40.dp)
+                        )
                     } else {
                         Box(
                             modifier = Modifier
@@ -315,9 +331,15 @@ fun CameraCaptureScreen(
                         else
                             CameraSelector.DEFAULT_BACK_CAMERA
                     },
-                    modifier = Modifier.size(48.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color.White.copy(alpha = 0.2f), CircleShape)
                 ) {
-                    Icon(Icons.Default.FlipCameraAndroid, contentDescription = "Alternar Câmera", tint = Color.White)
+                    Icon(
+                        Icons.Default.FlipCameraAndroid,
+                        contentDescription = "Alternar Câmera",
+                        tint = Color.White
+                    )
                 }
             }
         }
@@ -351,24 +373,24 @@ fun ReceiptOverlay(isDetected: Boolean) {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
-        
+
         // Retângulo central (Proporção de Cartão de Crédito)
         val rectWidth = width * 0.85f
-        val rectHeight = rectWidth * 0.63f 
+        val rectHeight = rectWidth * 0.63f
         val left = (width - rectWidth) / 2
         val top = (height - rectHeight) * 0.35f // Levemente acima do centro
-        
+
         val rect = Rect(left, top, left + rectWidth, top + rectHeight)
-        
+
         val holePath = Path().apply {
             addRoundRect(RoundRect(rect, CornerRadius(24.dp.toPx(), 24.dp.toPx())))
         }
-        
+
         // Fundo escurecido
         clipPath(holePath, clipOp = ClipOp.Difference) {
             drawRect(Color.Black.copy(alpha = 0.7f))
         }
-        
+
         // Borda do quadro
         drawRoundRect(
             color = borderColor,
@@ -427,21 +449,21 @@ private class ReceiptAnalyzer(
     private fun checkReceiptPatterns(text: String): Boolean {
         if (text.isBlank()) return false
         val upperText = text.uppercase()
-        
+
         // Palavras-chave típicas de comprovantes de ponto brasileiros (REP)
         val keywords = listOf(
-            "COMPROVANTE", "PONTO", "NSR", "DATA", "HORA", 
+            "COMPROVANTE", "PONTO", "NSR", "DATA", "HORA",
             "TRABALHADOR", "PIS", "EMPREGADOR", "CNPJ", "SEQ"
         )
-        
+
         // Se encontrar "COMPROVANTE" ou "NSR", já é um forte indício
         if (upperText.contains("COMPROVANTE") || upperText.contains("NSR")) return true
-        
+
         var matches = 0
         for (key in keywords) {
             if (upperText.contains(key)) matches++
         }
-        
+
         // Se encontrar 2 ou mais termos, consideramos um comprovante detectado
         return matches >= 2
     }
@@ -457,7 +479,10 @@ private fun takePhoto(
     val outputDirectory = File(context.cacheDir, "temp_camera").apply { if (!exists()) mkdirs() }
     val photoFile = File(
         outputDirectory,
-        SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(System.currentTimeMillis()) + ".jpg"
+        SimpleDateFormat(
+            "yyyy-MM-dd-HH-mm-ss-SSS",
+            Locale.US
+        ).format(System.currentTimeMillis()) + ".jpg"
     )
 
     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
@@ -498,10 +523,10 @@ private fun takePhoto(
                         val relWidth = 0.85f
                         val bitmapRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
                         val relHeight = 0.63f * relWidth * bitmapRatio
-                        
+
                         val relLeft = (1f - relWidth) / 2f
                         val relTop = (1f - relHeight) * 0.35f
-                        
+
                         // Margem de segurança de 15% sobre as dimensões da máscara
                         val marginFactor = 0.15f
                         val marginW = relWidth * marginFactor
@@ -513,16 +538,17 @@ private fun takePhoto(
                         val cropHeight = (relHeight + 2 * marginH).coerceAtMost(1f - cropTop)
 
                         // 3. Cortar o bitmap original (mais eficiente antes do processamento)
-                        val cropped = ImageProcessor.crop(bitmap, cropLeft, cropTop, cropWidth, cropHeight)
-                        
+                        val cropped =
+                            ImageProcessor.crop(bitmap, cropLeft, cropTop, cropWidth, cropHeight)
+
                         // 4. Melhorar imagem (Cinza + Contraste 1.6x) para facilitar o OCR
                         val grayscale = ImageProcessor.toGrayscale(cropped)
                         val finalBitmap = ImageProcessor.adjustContrast(grayscale, 1.6f)
-                        
+
                         FileOutputStream(photoFile).use { out ->
                             finalBitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
                         }
-                        
+
                         bitmap.recycle()
                         cropped.recycle()
                         grayscale.recycle()
@@ -542,17 +568,18 @@ private fun takePhoto(
     )
 }
 
-private suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspendCancellableCoroutine { continuation ->
-    val providerFuture = ProcessCameraProvider.getInstance(this)
-    providerFuture.addListener({
-        try {
-            continuation.resume(providerFuture.get())
-        } catch (e: Exception) {
-            continuation.resumeWithException(e)
+private suspend fun Context.getCameraProvider(): ProcessCameraProvider =
+    suspendCancellableCoroutine { continuation ->
+        val providerFuture = ProcessCameraProvider.getInstance(this)
+        providerFuture.addListener({
+            try {
+                continuation.resume(providerFuture.get())
+            } catch (e: Exception) {
+                continuation.resumeWithException(e)
+            }
+        }, ContextCompat.getMainExecutor(this))
+
+        continuation.invokeOnCancellation {
+            providerFuture.cancel(true)
         }
-    }, ContextCompat.getMainExecutor(this))
-    
-    continuation.invokeOnCancellation {
-        providerFuture.cancel(true)
     }
-}

@@ -234,6 +234,7 @@ data class Ausencia(
         get() = when {
             tipo == TipoAusencia.FOLGA && tipoFolga != null ->
                 "Folga (${tipoFolga.descricaoCurta})"
+
             else -> tipo.descricao
         }
 

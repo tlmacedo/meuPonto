@@ -137,42 +137,43 @@ class ImageTrashManager @Inject constructor(
      * @param trashFileName Nome do arquivo na lixeira (conforme retornado por [moveToTrash])
      * @return [RestoreResult.Success] com caminho restaurado ou erro descritivo
      */
-    suspend fun restoreFromTrash(trashFileName: String): RestoreResult = withContext(Dispatchers.IO) {
-        try {
-            val trashFile = File(getOrCreateTrashDirectory(), trashFileName)
+    suspend fun restoreFromTrash(trashFileName: String): RestoreResult =
+        withContext(Dispatchers.IO) {
+            try {
+                val trashFile = File(getOrCreateTrashDirectory(), trashFileName)
 
-            if (!trashFile.exists()) {
-                Timber.w("Arquivo não encontrado na lixeira: $trashFileName")
-                return@withContext RestoreResult.FileNotFound(trashFileName)
+                if (!trashFile.exists()) {
+                    Timber.w("Arquivo não encontrado na lixeira: $trashFileName")
+                    return@withContext RestoreResult.FileNotFound(trashFileName)
+                }
+
+                val metadata = parseTrashFileName(trashFileName)
+                    ?: return@withContext RestoreResult.InvalidMetadata(trashFileName)
+
+                val destinationFile = File(getComprovantesRootDir(), metadata.originalPath)
+
+                // Garante que o diretório de destino existe antes de restaurar
+                destinationFile.parentFile?.mkdirs()
+
+                val restored = trashFile.renameTo(destinationFile)
+
+                if (!restored) {
+                    Timber.w("renameTo falhou na restauração, usando fallback para: $trashFileName")
+                    trashFile.copyTo(destinationFile, overwrite = true)
+                    trashFile.delete()
+                }
+
+                Timber.d("Imagem restaurada: $trashFileName → ${metadata.originalPath}")
+
+                RestoreResult.Success(
+                    originalPath = metadata.originalPath,
+                    pontoId = metadata.pontoId
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao restaurar imagem da lixeira: $trashFileName")
+                RestoreResult.Error("Erro ao restaurar: ${e.message}")
             }
-
-            val metadata = parseTrashFileName(trashFileName)
-                ?: return@withContext RestoreResult.InvalidMetadata(trashFileName)
-
-            val destinationFile = File(getComprovantesRootDir(), metadata.originalPath)
-
-            // Garante que o diretório de destino existe antes de restaurar
-            destinationFile.parentFile?.mkdirs()
-
-            val restored = trashFile.renameTo(destinationFile)
-
-            if (!restored) {
-                Timber.w("renameTo falhou na restauração, usando fallback para: $trashFileName")
-                trashFile.copyTo(destinationFile, overwrite = true)
-                trashFile.delete()
-            }
-
-            Timber.d("Imagem restaurada: $trashFileName → ${metadata.originalPath}")
-
-            RestoreResult.Success(
-                originalPath = metadata.originalPath,
-                pontoId = metadata.pontoId
-            )
-        } catch (e: Exception) {
-            Timber.e(e, "Erro ao restaurar imagem da lixeira: $trashFileName")
-            RestoreResult.Error("Erro ao restaurar: ${e.message}")
         }
-    }
 
     /**
      * Restaura a imagem mais recente da lixeira pelo ID do ponto.

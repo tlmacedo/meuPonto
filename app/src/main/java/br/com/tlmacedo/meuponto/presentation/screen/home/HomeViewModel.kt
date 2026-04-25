@@ -5,16 +5,12 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.data.service.LocationService
-import br.com.tlmacedo.meuponto.data.local.database.entity.FotoComprovanteEntity
-import java.time.Instant
-import br.com.tlmacedo.meuponto.data.service.OcrService
-import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.data.local.database.dao.FotoComprovanteDao
-import br.com.tlmacedo.meuponto.domain.model.toTipoJornadaDia
-import br.com.tlmacedo.meuponto.util.foto.ImageHashCalculator
-import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
+import br.com.tlmacedo.meuponto.data.local.database.entity.FotoComprovanteEntity
+import br.com.tlmacedo.meuponto.data.service.LocationService
+import br.com.tlmacedo.meuponto.data.service.OcrService
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
+import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
@@ -23,15 +19,15 @@ import br.com.tlmacedo.meuponto.domain.model.Usuario
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
+import br.com.tlmacedo.meuponto.domain.model.toTipoJornadaDia
+import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
-import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.FecharCicloUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.InicializarCiclosRetroativosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.ReverterFechamentoIncorretoUseCase
@@ -39,6 +35,7 @@ import br.com.tlmacedo.meuponto.domain.usecase.banco.VerificarCicloPendenteUseCa
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularResumoDiaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.DeterminarProximoTipoPontoUseCase
@@ -47,6 +44,7 @@ import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterPontosDoDiaUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterResumoDiaCompletoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.RegistrarPontoUseCase
 import br.com.tlmacedo.meuponto.util.ComprovanteImageStorage
+import br.com.tlmacedo.meuponto.util.foto.ImageHashCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -59,6 +57,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -134,25 +133,50 @@ class HomeViewModel @Inject constructor(
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.RecarregarConfiguracaoEmprego -> recarregarConfiguracaoEmprego()
-            is HomeAction.RegistrarPontoAgora -> abrirRegistrarPontoModal(LocalDateTime.of(_uiState.value.dataSelecionada, LocalTime.now()))
+            is HomeAction.RegistrarPontoAgora -> abrirRegistrarPontoModal(
+                LocalDateTime.of(
+                    _uiState.value.dataSelecionada,
+                    LocalTime.now()
+                )
+            )
+
             is HomeAction.AbrirTimePickerDialog -> abrirTimePicker()
             is HomeAction.FecharTimePickerDialog -> fecharTimePicker()
-            is HomeAction.RegistrarPontoManual -> abrirRegistrarPontoModal(LocalDateTime.of(_uiState.value.dataSelecionada, action.hora))
+            is HomeAction.RegistrarPontoManual -> abrirRegistrarPontoModal(
+                LocalDateTime.of(
+                    _uiState.value.dataSelecionada,
+                    action.hora
+                )
+            )
 
             // ══════════════════════════════════════════════════════════════════════
             // MODAIS DE PONTO
             // ══════════════════════════════════════════════════════════════════════
             is HomeAction.AbrirEdicaoModal -> abrirEdicaoModal(action.ponto)
             is HomeAction.FecharEdicaoModal -> fecharEdicaoModal()
-            is HomeAction.AtualizarFotoEdicaoModal -> atualizarFotoEdicaoModal(action.uri, action.origem)
+            is HomeAction.AtualizarFotoEdicaoModal -> atualizarFotoEdicaoModal(
+                action.uri,
+                action.origem
+            )
+
             is HomeAction.RemoverFotoEdicaoModal -> removerFotoEdicaoModal()
             is HomeAction.ReprocessarOcrEdicaoModal -> reprocessarOcrEdicaoModal()
             is HomeAction.SalvarEdicaoModal -> salvarEdicaoModal(
-                action.pontoId, action.hora, action.nsr, action.motivo, action.detalhes, action.observacao
+                action.pontoId,
+                action.hora,
+                action.nsr,
+                action.motivo,
+                action.detalhes,
+                action.observacao
             )
+
             is HomeAction.AbrirExclusaoModal -> abrirExclusaoModal(action.ponto)
             is HomeAction.FecharExclusaoModal -> fecharExclusaoModal()
-            is HomeAction.ConfirmarExclusaoModal -> confirmarExclusaoModal(action.pontoId, action.motivo)
+            is HomeAction.ConfirmarExclusaoModal -> confirmarExclusaoModal(
+                action.pontoId,
+                action.motivo
+            )
+
             is HomeAction.AbrirLocalizacaoModal -> abrirLocalizacaoModal(action.ponto)
             is HomeAction.FecharLocalizacaoModal -> fecharLocalizacaoModal()
             is HomeAction.AbrirFotoModal -> abrirFotoModal(action.ponto)
@@ -184,6 +208,7 @@ class HomeViewModel @Inject constructor(
                     _uiEvent.emit(HomeUiEvent.MostrarMensagem(action.mensagem))
                 }
             }
+
             is HomeAction.AbrirDatePicker -> abrirDatePicker()
             is HomeAction.FecharDatePicker -> fecharDatePicker()
             is HomeAction.NavegarParaNovoEmprego -> navegarParaNovoEmprego()
@@ -200,16 +225,24 @@ class HomeViewModel @Inject constructor(
             is HomeAction.AbrirRegistrarPontoModal -> abrirRegistrarPontoModal(action.dataHora)
             is HomeAction.FecharRegistrarPontoModal -> fecharRegistrarPontoModal()
             is HomeAction.AtualizarNsrRegistroModal -> atualizarNsrRegistroModal(action.nsr)
-            is HomeAction.AtualizarFotoRegistroModal -> atualizarFotoRegistroModal(action.uri, action.origem)
+            is HomeAction.AtualizarFotoRegistroModal -> atualizarFotoRegistroModal(
+                action.uri,
+                action.origem
+            )
+
             is HomeAction.AtualizarHoraRegistroModal -> atualizarHoraRegistroModal(action.hora)
             is HomeAction.AbrirTimePickerRegistroModal -> abrirTimePickerRegistroModal()
             is HomeAction.FecharTimePickerRegistroModal -> fecharTimePickerRegistroModal()
             is HomeAction.CapturarLocalizacaoRegistroModal -> capturarLocalizacaoRegistroModal()
             is HomeAction.ConfirmarRegistroPontoModal -> confirmarRegistroPontoModal()
-            is HomeAction.AtualizarObservacaoRegistroModal -> atualizarObservacaoRegistroModal(action.observacao)
+            is HomeAction.AtualizarObservacaoRegistroModal -> atualizarObservacaoRegistroModal(
+                action.observacao
+            )
+
             is HomeAction.ReprocessarOcrRegistroModal -> {
                 val uri = _uiState.value.registrarPontoModal?.fotoUri
-                val origem = _uiState.value.registrarPontoModal?.fotoOrigem ?: br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA
+                val origem = _uiState.value.registrarPontoModal?.fotoOrigem
+                    ?: br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA
                 if (uri != null) {
                     atualizarFotoRegistroModal(uri, origem)
                 }
@@ -222,13 +255,20 @@ class HomeViewModel @Inject constructor(
             is HomeAction.FecharCameraCapture -> fecharCameraCapture()
             is HomeAction.ConfirmarFotoCamera -> {
                 if (_uiState.value.registrarPontoModal != null) {
-                    atualizarFotoRegistroModal(_uiState.value.cameraUri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
+                    atualizarFotoRegistroModal(
+                        _uiState.value.cameraUri,
+                        br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA
+                    )
                 } else if (_uiState.value.edicaoModal != null) {
-                    atualizarFotoEdicaoModal(_uiState.value.cameraUri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
+                    atualizarFotoEdicaoModal(
+                        _uiState.value.cameraUri,
+                        br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA
+                    )
                 } else {
                     confirmarFotoCamera()
                 }
             }
+
             is HomeAction.SelecionarFotoComprovante -> {
                 if (_uiState.value.registrarPontoModal != null) {
                     atualizarFotoRegistroModal(action.uri, action.origem)
@@ -253,7 +293,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val configuracao = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
             _uiState.update { it.copy(configuracaoEmprego = configuracao) }
-            android.util.Log.d("HomeViewModel", "Configuração recarregada: fotoObrigatoria=${configuracao?.fotoObrigatoria}")
+            android.util.Log.d(
+                "HomeViewModel",
+                "Configuração recarregada: fotoObrigatoria=${configuracao?.fotoObrigatoria}"
+            )
         }
     }
 
@@ -261,10 +304,11 @@ class HomeViewModel @Inject constructor(
 
     private fun abrirEdicaoModal(ponto: Ponto) {
         val indice = _uiState.value.getIndicePonto(ponto.id)
-        
+
         val fotoPathAbsoluto = ponto.fotoComprovantePath?.let { relativePath ->
             if (relativePath.startsWith("/")) relativePath
-            else comprovanteImageStorage.getComprovantesDirectory()?.resolve(relativePath)?.absolutePath
+            else comprovanteImageStorage.getComprovantesDirectory()
+                ?.resolve(relativePath)?.absolutePath
         }
 
         _uiState.update {
@@ -282,7 +326,10 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(edicaoModal = null) }
     }
 
-    private fun atualizarFotoEdicaoModal(uri: Uri?, origem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA) {
+    private fun atualizarFotoEdicaoModal(
+        uri: Uri?,
+        origem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA
+    ) {
         _uiState.update { state ->
             state.copy(
                 edicaoModal = state.edicaoModal?.copy(
@@ -301,10 +348,11 @@ class HomeViewModel @Inject constructor(
                 val dataSelecionada = _uiState.value.dataSelecionada
                 val empregoAtivo = _uiState.value.empregoAtivo ?: return@launch
                 val empregoId = empregoAtivo.id
-                
+
                 // Busca horários habituais
                 val diaSemana = DiaSemana.fromJavaDayOfWeek(dataSelecionada.dayOfWeek)
-                val horarioDia = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+                val horarioDia =
+                    horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
                 val habituais = listOfNotNull(
                     horarioDia?.entradaIdeal,
                     horarioDia?.saidaIntervaloIdeal,
@@ -317,11 +365,13 @@ class HomeViewModel @Inject constructor(
                     horariosHabituais = habituais,
                     empregoId = empregoId
                 )
-                
+
                 if (resultadosOcr.isNotEmpty()) {
                     val resultado = resultadosOcr.first()
-                    val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
-                    val finalUri = resultado.imagemRecortadaPath?.let { Uri.fromFile(java.io.File(it)) } ?: uri
+                    val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")
+                        ?.replaceFirst("^0+".toRegex(), "")
+                    val finalUri =
+                        resultado.imagemRecortadaPath?.let { Uri.fromFile(File(it)) } ?: uri
 
                     _uiState.update { state ->
                         state.copy(
@@ -330,9 +380,10 @@ class HomeViewModel @Inject constructor(
                                 isProcessingOcr = false,
                                 fotoUri = finalUri,
                                 ponto = state.edicaoModal.ponto.copy(
-                                    nsr = if (configuracao.habilitarNsr) (nsrLimpissimo ?: state.edicaoModal.ponto.nsr) else state.edicaoModal.ponto.nsr,
+                                    nsr = if (configuracao.habilitarNsr) (nsrLimpissimo
+                                        ?: state.edicaoModal.ponto.nsr) else state.edicaoModal.ponto.nsr,
                                     nsrAutoFilled = configuracao.habilitarNsr && nsrLimpissimo != null,
-                                    dataHora = resultado.hora?.let { 
+                                    dataHora = resultado.hora?.let {
                                         LocalDateTime.of(state.edicaoModal.ponto.data, it)
                                     } ?: state.edicaoModal.ponto.dataHora,
                                     horaAutoFilled = resultado.hora != null,
@@ -366,8 +417,9 @@ class HomeViewModel @Inject constructor(
 
     private fun reprocessarOcrEdicaoModal() {
         val modal = _uiState.value.edicaoModal ?: return
-        val uri = modal.fotoUri ?: modal.fotoPathAbsoluto?.let { Uri.fromFile(java.io.File(it)) } ?: return
-        
+        val uri = modal.fotoUri ?: modal.fotoPathAbsoluto?.let { Uri.fromFile(File(it)) }
+        ?: return
+
         atualizarFotoEdicaoModal(uri, modal.fotoOrigem)
     }
 
@@ -393,6 +445,7 @@ class HomeViewModel @Inject constructor(
                     motivo == MotivoEdicao.OUTRO -> detalhes ?: ""
                     motivo.requerDetalhes && !detalhes.isNullOrBlank() ->
                         "${motivo.descricao}: $detalhes"
+
                     else -> motivo.descricao
                 }
 
@@ -504,6 +557,7 @@ class HomeViewModel @Inject constructor(
                         carregarBancoHoras()
                         atualizarWidget()
                     }
+
                     is ExcluirPontoUseCase.Resultado.Erro -> {
                         _uiState.update { state ->
                             state.copy(
@@ -512,10 +566,12 @@ class HomeViewModel @Inject constructor(
                         }
                         _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.mensagem))
                     }
+
                     is ExcluirPontoUseCase.Resultado.NaoEncontrado -> {
                         _uiState.update { it.copy(exclusaoModal = null) }
                         _uiEvent.emit(HomeUiEvent.MostrarErro("Ponto não encontrado"))
                     }
+
                     is ExcluirPontoUseCase.Resultado.Validacao -> {
                         _uiState.update { state ->
                             state.copy(
@@ -611,7 +667,11 @@ class HomeViewModel @Inject constructor(
                 )
 
                 // Registrar Snapshot atualizado
-                registrarSnapshotFotoComprovante(pontoId, relativePath, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.EDITADA)
+                registrarSnapshotFotoComprovante(
+                    pontoId,
+                    relativePath,
+                    br.com.tlmacedo.meuponto.domain.model.FotoOrigem.EDITADA
+                )
 
                 _uiEvent.emit(HomeUiEvent.MostrarMensagem("Foto editada e salva com sucesso"))
                 carregarPontosDoDia()
@@ -628,7 +688,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val empregoId = _uiState.value.empregoAtivo?.id ?: 0L
             val diaSemana = DiaSemana.fromJavaDayOfWeek(dataHora.dayOfWeek)
-            val horarioDiaSemana = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+            val horarioDiaSemana =
+                horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
 
             val resumoComNovoPonto = calcularResumoDiaUseCase(
                 pontos = _uiState.value.pontosHoje + Ponto(
@@ -685,7 +746,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun atualizarFotoRegistroModal(uri: Uri?, origem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA) {
+    private fun atualizarFotoRegistroModal(
+        uri: Uri?,
+        origem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem = br.com.tlmacedo.meuponto.domain.model.FotoOrigem.NENHUMA
+    ) {
         _uiState.update { state ->
             state.copy(
                 registrarPontoModal = state.registrarPontoModal?.copy(
@@ -704,14 +768,15 @@ class HomeViewModel @Inject constructor(
                 val dataSelecionada = _uiState.value.dataSelecionada
                 val empregoAtivo = _uiState.value.empregoAtivo ?: return@launch
                 val empregoId = empregoAtivo.id
-                
+
                 // 1. SEMPRE verificar duplicidade pelo Hash MD5 (Independente da flag de validação)
                 val hash = imageHashCalculator.calculateMd5(uri)
                 if (hash != null) {
                     val fotoExistente = fotoComprovanteDao.buscarPorHash(hash)
                     if (fotoExistente != null) {
                         limparFotoOcrInvalida()
-                        val dataFormatada = fotoExistente.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        val dataFormatada =
+                            fotoExistente.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                         _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE DUPLICADO\n\nEste comprovante já foi registrado no dia $dataFormatada e não pode ser reutilizado."))
                         return@launch
                     }
@@ -722,7 +787,8 @@ class HomeViewModel @Inject constructor(
 
                 // Busca horários habituais para o triplo-check de hora
                 val diaSemana = DiaSemana.fromJavaDayOfWeek(dataSelecionada.dayOfWeek)
-                val horarioDia = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+                val horarioDia =
+                    horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
                 val habituais = listOfNotNull(
                     horarioDia?.entradaIdeal,
                     horarioDia?.saidaIntervaloIdeal,
@@ -736,29 +802,30 @@ class HomeViewModel @Inject constructor(
                     horariosHabituais = habituais,
                     empregoId = empregoId
                 )
-                
+
                 if (resultadosOcr.isNotEmpty()) {
                     val nomeUsuario = usuarioLogado?.nome ?: ""
                     val validarComprovante = configuracao.fotoValidarComprovante
-                    
+
                     // Se houver apenas um comprovante
                     if (resultadosOcr.size == 1) {
                         val resultado = resultadosOcr.first()
-                        
+
                         // Validações Condicionais (Somente se fotoValidarComprovante estiver ativa)
                         if (validarComprovante) {
                             // 1. Validação de Data
                             if (resultado.data != null && resultado.data != dataSelecionada) {
                                 limparFotoOcrInvalida()
-                                val dataFormatada = resultado.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                val dataFormatada =
+                                    resultado.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                                 _uiEvent.emit(HomeUiEvent.MostrarErro("COMPROVANTE INVÁLIDO\n\nA data extraída ($dataFormatada) não corresponde ao dia selecionado."))
                                 return@launch
                             }
 
                             // 2. Validação de Usuário
                             val nomeValido = resultado.nomeTrabalhador?.let { nomeExtraido ->
-                                nomeExtraido.contains(nomeUsuario, ignoreCase = true) || 
-                                nomeUsuario.contains(nomeExtraido, ignoreCase = true)
+                                nomeExtraido.contains(nomeUsuario, ignoreCase = true) ||
+                                        nomeUsuario.contains(nomeExtraido, ignoreCase = true)
                             } ?: true
 
                             if (!nomeValido) {
@@ -771,7 +838,7 @@ class HomeViewModel @Inject constructor(
                             if (resultado.cnpj != null && !empregoAtivo.cnpj.isNullOrBlank()) {
                                 val cnpjComprovante = resultado.cnpj.replace(Regex("[^0-9]"), "")
                                 val cnpjEmprego = empregoAtivo.cnpj.replace(Regex("[^0-9]"), "")
-                                
+
                                 if (cnpjComprovante != cnpjEmprego) {
                                     limparFotoOcrInvalida()
                                     val empresaNome = resultado.razaoSocial ?: "outra empresa"
@@ -782,18 +849,25 @@ class HomeViewModel @Inject constructor(
                         }
 
                         // Sucesso (ou validações ignoradas) -> Preencher campos
-                        val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
+                        val nsrLimpissimo = resultado.nsr?.replace(Regex("[^0-9]"), "")
+                            ?.replaceFirst("^0+".toRegex(), "")
 
                         // Substituir imagem pela imagem recortada se disponível
-                        val finalUri = resultado.imagemRecortadaPath?.let { Uri.fromFile(java.io.File(it)) } ?: uri
+                        val finalUri =
+                            resultado.imagemRecortadaPath?.let { Uri.fromFile(File(it)) }
+                                ?: uri
 
                         _uiState.update { state ->
                             state.copy(
                                 registrarPontoModal = state.registrarPontoModal?.copy(
-                                    nsr = if (configuracao.habilitarNsr) (nsrLimpissimo ?: state.registrarPontoModal.nsr) else state.registrarPontoModal.nsr,
+                                    nsr = if (configuracao.habilitarNsr) (nsrLimpissimo
+                                        ?: state.registrarPontoModal.nsr) else state.registrarPontoModal.nsr,
                                     nsrAutoFilled = configuracao.habilitarNsr && nsrLimpissimo != null,
-                                    dataHora = resultado.hora?.let { 
-                                        LocalDateTime.of(state.registrarPontoModal.dataHora.toLocalDate(), it)
+                                    dataHora = resultado.hora?.let {
+                                        LocalDateTime.of(
+                                            state.registrarPontoModal.dataHora.toLocalDate(),
+                                            it
+                                        )
                                     } ?: state.registrarPontoModal.dataHora,
                                     horaAutoFilled = resultado.hora != null,
                                     dataAutoFilled = resultado.data != null,
@@ -807,7 +881,13 @@ class HomeViewModel @Inject constructor(
                     } else {
                         // Múltiplos comprovantes (o processarMultiplosComprovantes também deve respeitar a flag)
                         _uiState.update { it.copy(registrarPontoModal = null) }
-                        processarMultiplosComprovantes(resultadosOcr, dataSelecionada, nomeUsuario, empregoAtivo, configuracao)
+                        processarMultiplosComprovantes(
+                            resultadosOcr,
+                            dataSelecionada,
+                            nomeUsuario,
+                            empregoAtivo,
+                            configuracao
+                        )
                     }
                 } else {
                     _uiState.update { state ->
@@ -839,7 +919,7 @@ class HomeViewModel @Inject constructor(
             // 1. Verificação de Duplicidade por Hash (Sempre obrigatória)
             var isDuplicado = false
             resultado.imagemRecortadaPath?.let { path ->
-                val hash = imageHashCalculator.calculateMd5(java.io.File(path))
+                val hash = imageHashCalculator.calculateMd5(File(path))
                 if (hash != null && fotoComprovanteDao.buscarPorHash(hash) != null) {
                     isDuplicado = true
                 }
@@ -850,24 +930,43 @@ class HomeViewModel @Inject constructor(
             }
 
             // 2. Validações Condicionais
-            val dataValida = !validarComprovante || resultado.data == null || resultado.data == dataSelecionada
-            val nomeValido = !validarComprovante || resultado.nomeTrabalhador?.let { it.contains(nomeUsuario, ignoreCase = true) || nomeUsuario.contains(it, ignoreCase = true) } ?: true
-            val cnpjValido = if (validarComprovante && resultado.cnpj != null && !empregoAtivo?.cnpj.isNullOrBlank()) {
-                resultado.cnpj.replace(Regex("[^0-9]"), "") == empregoAtivo?.cnpj?.replace(Regex("[^0-9]"), "")
-            } else true
+            val dataValida =
+                !validarComprovante || resultado.data == null || resultado.data == dataSelecionada
+            val nomeValido = !validarComprovante || resultado.nomeTrabalhador?.let {
+                it.contains(
+                    nomeUsuario,
+                    ignoreCase = true
+                ) || nomeUsuario.contains(it, ignoreCase = true)
+            } ?: true
+            val cnpjValido =
+                if (validarComprovante && resultado.cnpj != null && !empregoAtivo?.cnpj.isNullOrBlank()) {
+                    resultado.cnpj.replace(
+                        Regex("[^0-9]"),
+                        ""
+                    ) == empregoAtivo?.cnpj?.replace(Regex("[^0-9]"), "")
+                } else true
 
             if (dataValida && nomeValido && cnpjValido) {
                 val dataHora = LocalDateTime.of(dataSelecionada, resultado.hora ?: LocalTime.now())
-                val nsr = resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
-                
-                pontosParaRegistrar.add(RegistrarPontoUseCase.Parametros(
-                    empregoId = empregoAtivo?.id ?: 0L,
-                    dataHora = dataHora,
-                    nsr = if (configuracao.habilitarNsr) nsr else null
-                ))
-                
+                val nsr =
+                    resultado.nsr?.replace(Regex("[^0-9]"), "")?.replaceFirst("^0+".toRegex(), "")
+
+                pontosParaRegistrar.add(
+                    RegistrarPontoUseCase.Parametros(
+                        empregoId = empregoAtivo?.id ?: 0L,
+                        dataHora = dataHora,
+                        nsr = if (configuracao.habilitarNsr) nsr else null
+                    )
+                )
+
                 resultado.imagemRecortadaPath?.let {
-                    imagensParaSalvar.add(pontosParaRegistrar.size - 1 to Uri.fromFile(java.io.File(it)))
+                    imagensParaSalvar.add(
+                        pontosParaRegistrar.size - 1 to Uri.fromFile(
+                            File(
+                                it
+                            )
+                        )
+                    )
                 }
             } else {
                 erros++
@@ -884,7 +983,13 @@ class HomeViewModel @Inject constructor(
                     val imgUri = imagensParaSalvar.find { it.first == i }?.second
                     val dataHora = pontosParaRegistrar[i].dataHora ?: LocalDateTime.now()
                     if (imgUri != null) {
-                        salvarFotoComprovante(imgUri, result.pontoId, empregoAtivo?.id ?: 0L, dataHora, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA)
+                        salvarFotoComprovante(
+                            imgUri,
+                            result.pontoId,
+                            empregoAtivo?.id ?: 0L,
+                            dataHora,
+                            br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA
+                        )
                     }
                 }
             }
@@ -914,7 +1019,8 @@ class HomeViewModel @Inject constructor(
             val novaDataHora = LocalDateTime.of(modal.dataHora.toLocalDate(), hora)
 
             val diaSemana = DiaSemana.fromJavaDayOfWeek(novaDataHora.dayOfWeek)
-            val horarioDiaSemana = horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
+            val horarioDiaSemana =
+                horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
 
             val resumoComNovoPonto = calcularResumoDiaUseCase(
                 pontos = _uiState.value.pontosHoje + Ponto(
@@ -1073,7 +1179,8 @@ class HomeViewModel @Inject constructor(
                 resumoComNovoPonto.temProblemas &&
                 modalState.observacao.isBlank()
             ) {
-                val problemas = resumoComNovoPonto.listaInconsistencias.joinToString("\n• ", prefix = "• ")
+                val problemas =
+                    resumoComNovoPonto.listaInconsistencias.joinToString("\n• ", prefix = "• ")
                 _uiEvent.emit(HomeUiEvent.MostrarErro("JUSTIFICATIVA OBRIGATÓRIA\n\nEste dia apresenta as seguintes inconsistências:\n\n$problemas\n\nPor favor, preencha a observação com o motivo."))
                 return@launch
             }
@@ -1104,7 +1211,11 @@ class HomeViewModel @Inject constructor(
                     val fotoExistente = fotoComprovanteDao.buscarPorHash(hash)
                     if (fotoExistente != null) {
                         _uiState.update { state ->
-                            state.copy(registrarPontoModal = state.registrarPontoModal?.copy(isSaving = false))
+                            state.copy(
+                                registrarPontoModal = state.registrarPontoModal?.copy(
+                                    isSaving = false
+                                )
+                            )
                         }
                         val dataFormatada =
                             fotoExistente.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
@@ -1290,7 +1401,11 @@ class HomeViewModel @Inject constructor(
                             if (qtd == 1) {
                                 "Ciclo fechado. Saldo zerado: ${formatarMinutos(saldoTotal)}"
                             } else {
-                                "$qtd ciclos fechados. Saldo total zerado: ${formatarMinutos(saldoTotal)}"
+                                "$qtd ciclos fechados. Saldo total zerado: ${
+                                    formatarMinutos(
+                                        saldoTotal
+                                    )
+                                }"
                             }
                         )
                     )
@@ -1593,12 +1708,15 @@ class HomeViewModel @Inject constructor(
                     carregarConfiguracaoEmprego(emprego.id)
                     recarregarDados()
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.NaoEncontrado -> {
                     _uiEvent.emit(HomeUiEvent.MostrarErro("Emprego não encontrado"))
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.EmpregoIndisponivel -> {
                     _uiEvent.emit(HomeUiEvent.MostrarErro("Emprego indisponível"))
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.Erro -> {
                     _uiEvent.emit(HomeUiEvent.MostrarErro(resultado.mensagem))
                 }
@@ -1671,11 +1789,14 @@ class HomeViewModel @Inject constructor(
     ) {
         try {
             val baseDir = comprovanteImageStorage.getComprovantesDirectory()
-            val file = if (relativePath.startsWith("/")) java.io.File(relativePath)
-            else java.io.File(baseDir, relativePath)
+            val file = if (relativePath.startsWith("/")) File(relativePath)
+            else File(baseDir, relativePath)
 
             if (!file.exists()) {
-                android.util.Log.e("HomeViewModel", "Arquivo não encontrado para snapshot: ${file.absolutePath}")
+                android.util.Log.e(
+                    "HomeViewModel",
+                    "Arquivo não encontrado para snapshot: ${file.absolutePath}"
+                )
                 return
             }
 
@@ -1774,7 +1895,7 @@ class HomeViewModel @Inject constructor(
     private fun confirmarFotoCamera() {
         val uri = _uiState.value.cameraUri ?: return
         fecharFotoSourceDialog()
-        
+
         if (_uiState.value.registrarPontoModal != null) {
             atualizarFotoRegistroModal(uri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.CAMERA)
         } else if (_uiState.value.edicaoModal != null) {
@@ -1782,11 +1903,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun selecionarFotoComprovante(uri: android.net.Uri) {
+    private fun selecionarFotoComprovante(uri: Uri) {
         fecharFotoSourceDialog()
-        
+
         if (_uiState.value.registrarPontoModal != null) {
-            atualizarFotoRegistroModal(uri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA)
+            atualizarFotoRegistroModal(
+                uri,
+                br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA
+            )
         } else if (_uiState.value.edicaoModal != null) {
             atualizarFotoEdicaoModal(uri, br.com.tlmacedo.meuponto.domain.model.FotoOrigem.GALERIA)
         }
@@ -1842,8 +1966,9 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun atualizarWidget() {
-        val request = androidx.work.OneTimeWorkRequestBuilder<br.com.tlmacedo.meuponto.presentation.widget.WidgetUpdateWorker>()
-            .build()
+        val request =
+            androidx.work.OneTimeWorkRequestBuilder<br.com.tlmacedo.meuponto.presentation.widget.WidgetUpdateWorker>()
+                .build()
         // O WorkManager usa o contexto da aplicação para agendar a tarefa de atualização do widget
         androidx.work.WorkManager.getInstance(comprovanteImageStorage.appContext).enqueue(request)
     }

@@ -82,13 +82,16 @@ fun CalendarView(
                 for (j in 0 until 7) {
                     val dayIndex = i + j
                     val dayOfMonth = dayIndex - firstDayOfWeek + 1
-                    
-                    Box(modifier = Modifier.weight(1f).aspectRatio(1f)) {
+
+                    Box(modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)) {
                         if (dayOfMonth in 1..daysInMonth) {
                             val date = yearMonth.atDay(dayOfMonth)
-                            val holiday = holidays.firstOrNull { it.getDataParaAno(date.year) == date }
+                            val holiday =
+                                holidays.firstOrNull { it.getDataParaAno(date.year) == date }
                             val dayAbsences = absences.filter { date in it.dataInicio..it.dataFim }
-                            
+
                             CalendarDay(
                                 date = date,
                                 holiday = holiday,
@@ -149,16 +152,22 @@ private fun CalendarDay(
                 else -> MaterialTheme.colorScheme.onSurface
             }
         )
-        
+
         Row(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (hasHoliday) {
-                Box(modifier = Modifier.size(4.dp).background(Color(0xFF9C27B0), CircleShape))
+                Box(modifier = Modifier
+                    .size(4.dp)
+                    .background(Color(0xFF9C27B0), CircleShape))
             }
             if (hasAbsence) {
-                Box(modifier = Modifier.size(4.dp).background(getAbsenceColor(absences.first()), CircleShape))
+                Box(
+                    modifier = Modifier
+                        .size(4.dp)
+                        .background(getAbsenceColor(absences.first()), CircleShape)
+                )
             }
         }
     }

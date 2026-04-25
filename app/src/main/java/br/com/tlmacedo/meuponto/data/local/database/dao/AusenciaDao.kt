@@ -55,62 +55,78 @@ interface AusenciaDao {
     // Consultas Globais
     // ========================================================================
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     suspend fun buscarTodas(): List<AusenciaEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     fun observarTodas(): Flow<List<AusenciaEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE ativo = 1 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     suspend fun buscarTodasAtivas(): List<AusenciaEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE ativo = 1 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     fun observarTodasAtivas(): Flow<List<AusenciaEntity>>
 
     // ========================================================================
     // Consultas por Emprego
     // ========================================================================
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     suspend fun buscarPorEmprego(empregoId: Long): List<AusenciaEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     fun observarPorEmprego(empregoId: Long): Flow<List<AusenciaEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId AND ativo = 1 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     suspend fun buscarAtivasPorEmprego(empregoId: Long): List<AusenciaEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId AND ativo = 1 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     fun observarAtivasPorEmprego(empregoId: Long): Flow<List<AusenciaEntity>>
 
     // ========================================================================
@@ -121,49 +137,57 @@ interface AusenciaDao {
      * Busca ausências que ocorrem em uma data específica.
      * Uma ausência ocorre em uma data se: dataInicio <= data <= dataFim
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND ativo = 1 
         AND dataInicio <= :data 
         AND dataFim >= :data
-    """)
+    """
+    )
     suspend fun buscarPorData(empregoId: Long, data: LocalDate): List<AusenciaEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND ativo = 1 
         AND dataInicio <= :data 
         AND dataFim >= :data
-    """)
+    """
+    )
     fun observarPorData(empregoId: Long, data: LocalDate): Flow<List<AusenciaEntity>>
 
     /**
      * Busca ausências que se sobrepõem com um período.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND ativo = 1 
         AND dataInicio <= :dataFim 
         AND dataFim >= :dataInicio
         ORDER BY dataInicio
-    """)
+    """
+    )
     suspend fun buscarPorPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
     ): List<AusenciaEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND ativo = 1 
         AND dataInicio <= :dataFim 
         AND dataFim >= :dataInicio
         ORDER BY dataInicio
-    """)
+    """
+    )
     fun observarPorPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
@@ -174,39 +198,45 @@ interface AusenciaDao {
     // Consultas por Tipo
     // ========================================================================
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND tipo = :tipo 
         AND ativo = 1 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     suspend fun buscarPorTipo(empregoId: Long, tipo: TipoAusencia): List<AusenciaEntity>
 
     /**
      * Busca férias por período aquisitivo.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias
         WHERE empregoId = :empregoId
         AND tipo = 'FERIAS'
         AND ativo = 1
         AND dataInicioPeriodoAquisitivo = :inicio
         AND dataFimPeriodoAquisitivo = :fim
-    """)
+    """
+    )
     suspend fun buscarFeriasPorPeriodoAquisitivo(
         empregoId: Long,
         inicio: LocalDate,
         fim: LocalDate
     ): List<AusenciaEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND tipo = :tipo 
         AND ativo = 1 
         ORDER BY dataInicio DESC
-    """)
+    """
+    )
     fun observarPorTipo(empregoId: Long, tipo: TipoAusencia): Flow<List<AusenciaEntity>>
 
     // ========================================================================
@@ -216,7 +246,8 @@ interface AusenciaDao {
     /**
      * Busca ausências que ocorrem em um ano específico.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND ativo = 1 
@@ -226,7 +257,8 @@ interface AusenciaDao {
             OR (dataInicio < :anoInicio AND dataFim > :anoFim)
         )
         ORDER BY dataInicio
-    """)
+    """
+    )
     suspend fun buscarPorAno(
         empregoId: Long,
         ano: String,
@@ -237,28 +269,32 @@ interface AusenciaDao {
     /**
      * Busca ausências que ocorrem em um mês específico.
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND ativo = 1 
         AND dataInicio <= :mesUltimoDia 
         AND dataFim >= :mesPrimeiroDia
         ORDER BY dataInicio
-    """)
+    """
+    )
     suspend fun buscarPorMes(
         empregoId: Long,
         mesPrimeiroDia: LocalDate,
         mesUltimoDia: LocalDate
     ): List<AusenciaEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ausencias 
         WHERE empregoId = :empregoId 
         AND ativo = 1 
         AND dataInicio <= :mesUltimoDia 
         AND dataFim >= :mesPrimeiroDia
         ORDER BY dataInicio
-    """)
+    """
+    )
     fun observarPorMes(
         empregoId: Long,
         mesPrimeiroDia: LocalDate,
@@ -273,14 +309,16 @@ interface AusenciaDao {
      * Verifica se existe ausência que se sobrepõe ao período informado.
      * Usado para validar antes de criar/editar uma ausência.
      */
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(*) FROM ausencias 
         WHERE empregoId = :empregoId 
         AND ativo = 1 
         AND dataInicio <= :dataFim 
         AND dataFim >= :dataInicio
         AND id != :excluirId
-    """)
+    """
+    )
     suspend fun contarSobreposicoes(
         empregoId: Long,
         dataInicio: LocalDate,
@@ -291,7 +329,8 @@ interface AusenciaDao {
     /**
      * Verifica se existe ausência em uma data específica.
      */
-    @Query("""
+    @Query(
+        """
         SELECT EXISTS(
             SELECT 1 FROM ausencias 
             WHERE empregoId = :empregoId 
@@ -299,7 +338,8 @@ interface AusenciaDao {
             AND dataInicio <= :data 
             AND dataFim >= :data
         )
-    """)
+    """
+    )
     suspend fun existeAusenciaEmData(empregoId: Long, data: LocalDate): Boolean
 
     // ========================================================================
@@ -309,7 +349,8 @@ interface AusenciaDao {
     /**
      * Conta total de dias de ausência por tipo em um período.
      */
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(DISTINCT date(d.date)) as dias
         FROM ausencias a
         JOIN (
@@ -331,7 +372,8 @@ interface AusenciaDao {
         AND d.date <= a.dataFim
         AND d.date >= :dataInicio
         AND d.date <= :dataFim
-    """)
+    """
+    )
     suspend fun contarDiasPorTipo(
         empregoId: Long,
         tipo: TipoAusencia,

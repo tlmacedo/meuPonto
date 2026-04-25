@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -45,7 +44,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.feriado.AbrangenciaFeriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components.EmpregoSelectorDialog
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
@@ -361,6 +360,7 @@ fun EditarFeriadoForm(
                     error = uiState.dataError
                 )
             }
+
             RecorrenciaFeriado.UNICO -> {
                 DataEspecificaSelector(
                     data = uiState.dataEspecifica,
@@ -600,7 +600,10 @@ private fun DiaMesSelector(
                 modifier = Modifier.weight(1f)
             ) {
                 OutlinedTextField(
-                    value = mesSelecionado?.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR"))
+                    value = mesSelecionado?.getDisplayName(
+                        TextStyle.FULL,
+                        Locale.forLanguageTag("pt-BR")
+                    )
                         ?.replaceFirstChar { it.uppercase() } ?: "",
                     onValueChange = {},
                     label = { Text("Mês") },
@@ -619,7 +622,10 @@ private fun DiaMesSelector(
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    mes.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR"))
+                                    mes.getDisplayName(
+                                        TextStyle.FULL,
+                                        Locale.forLanguageTag("pt-BR")
+                                    )
                                         .replaceFirstChar { it.uppercase() }
                                 )
                             },

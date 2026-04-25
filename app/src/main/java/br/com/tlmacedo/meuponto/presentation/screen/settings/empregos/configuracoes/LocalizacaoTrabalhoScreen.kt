@@ -2,10 +2,8 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.empregos.configura
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -48,13 +46,14 @@ fun LocalizacaoTrabalhoScreen(
     viewModel: LocalizacaoTrabalhoViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
     LaunchedEffect(Unit) {
         viewModel.eventos.collectLatest { evento ->
             when (evento) {
                 is LocalizacaoTrabalhoEvent.Confirmado -> {
                     onConfirmSelection(evento.latitude, evento.longitude, evento.raio)
                 }
+
                 LocalizacaoTrabalhoEvent.Voltar -> onNavigateBack()
             }
         }
@@ -169,7 +168,7 @@ private fun LocalizacaoTrabalhoContent(
                 )
             }
         }
-        
+
         if (uiState.localizacaoSelecionada == null) {
             Card(
                 modifier = Modifier

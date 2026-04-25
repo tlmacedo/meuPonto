@@ -158,10 +158,11 @@ fun DurationInputField(
                         textValue = when {
                             filtered.length <= 2 -> filtered
                             filtered.length <= 4 -> {
-                                val hours = filtered.take(2)
-                                val mins = filtered.drop(2)
+                                filtered.take(2)
+                                filtered.drop(2)
                                 "\$hours:\$mins"
                             }
+
                             else -> textValue // Não permite mais de 4 dígitos
                         }
 
@@ -211,7 +212,9 @@ fun DurationInputField(
                                     text = "00:00",
                                     style = LocalTextStyle.current.copy(
                                         textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.5f
+                                        ),
                                         fontSize = MaterialTheme.typography.headlineSmall.fontSize
                                     )
                                 )
@@ -313,11 +316,13 @@ private fun parseHHMMToMinutes(text: String): Int? {
                     hours * 60 + minutes
                 } else null
             }
+
             text.length <= 2 -> {
                 // Apenas horas ou minutos
                 val value = text.toIntOrNull() ?: 0
                 if (value <= 23) value * 60 else null
             }
+
             else -> null
         }
     } catch (e: Exception) {

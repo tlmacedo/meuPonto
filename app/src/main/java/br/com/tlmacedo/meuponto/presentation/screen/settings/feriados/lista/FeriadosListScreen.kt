@@ -263,6 +263,7 @@ fun FeriadosListContent(
                         CircularProgressIndicator()
                     }
                 }
+
                 uiState.feriadosFiltrados.isEmpty() -> {
                     EmptyState(
                         temFiltros = uiState.temFiltrosAtivos,
@@ -274,6 +275,7 @@ fun FeriadosListContent(
                         }
                     )
                 }
+
                 else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(

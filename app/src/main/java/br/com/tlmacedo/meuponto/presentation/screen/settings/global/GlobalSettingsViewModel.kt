@@ -51,7 +51,12 @@ class GlobalSettingsViewModel @Inject constructor(
             obterPreferencias()
                 .catch { e ->
                     Timber.e(e, "Erro ao carregar preferências")
-                    _uiState.update { it.copy(isLoading = false, mensagemErro = "Erro ao carregar configurações") }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            mensagemErro = "Erro ao carregar configurações"
+                        )
+                    }
                 }
                 .collect { prefs ->
                     _uiState.update { it.copy(isLoading = false, preferencias = prefs) }
@@ -73,7 +78,12 @@ class GlobalSettingsViewModel @Inject constructor(
             is GlobalSettingsAction.AlterarAlertaFeriado -> alterarAlertaFeriado(action.ativo)
             is GlobalSettingsAction.AlterarAlertaBancoHoras -> alterarAlertaBancoHoras(action.ativo)
             is GlobalSettingsAction.AlterarAntecedenciaFeriado -> alterarAntecedencia(action.dias)
-            is GlobalSettingsAction.AlterarLocalizacaoPadrao -> alterarLocalizacao(action.nome, action.latitude, action.longitude)
+            is GlobalSettingsAction.AlterarLocalizacaoPadrao -> alterarLocalizacao(
+                action.nome,
+                action.latitude,
+                action.longitude
+            )
+
             is GlobalSettingsAction.AlterarRaioGeofencing -> alterarRaioGeofencing(action.metros)
             is GlobalSettingsAction.AlterarRegistroAutomatico -> alterarRegistroAutomatico(action.ativo)
             is GlobalSettingsAction.AlterarBackupAutomatico -> alterarBackupAutomatico(action.ativo)
@@ -239,7 +249,12 @@ class GlobalSettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(isSaving = false, mensagemSucesso = mensagemSucesso) }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao salvar preferência")
-                _uiState.update { it.copy(isSaving = false, mensagemErro = "Erro ao salvar: ${e.message}") }
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        mensagemErro = "Erro ao salvar: ${e.message}"
+                    )
+                }
             }
         }
     }

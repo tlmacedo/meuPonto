@@ -16,7 +16,6 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import java.time.Instant
-import java.time.ZoneId
 import javax.inject.Inject
 
 /**
@@ -56,7 +55,7 @@ class ReconciliarFotosUseCase @Inject constructor(
                 .filter { it.isFile && it.extension.lowercase() == "jpg" }
                 .forEach { file ->
                     val relativePath = file.relativeTo(rootDir).path
-                    
+
                     // Verifica se já existe no banco pelo path
                     // Nota: O repositório não tem busca por path direto, mas podemos verificar o hash
                     val hash = hashCalculator.calculateMd5(file) ?: ""
@@ -67,10 +66,12 @@ class ReconciliarFotosUseCase @Inject constructor(
 
                     // Extrair IDs do caminho
                     val matchArquivo = regexArquivo.find(file.name)
-                    val pontoId = matchArquivo?.groupValues?.get(1)?.toLongOrNull() ?: return@forEach
-                    
+                    val pontoId =
+                        matchArquivo?.groupValues?.get(1)?.toLongOrNull() ?: return@forEach
+
                     val matchEmprego = regexEmprego.find(file.absolutePath)
-                    val empregoId = matchEmprego?.groupValues?.get(1)?.toLongOrNull() ?: return@forEach
+                    val empregoId =
+                        matchEmprego?.groupValues?.get(1)?.toLongOrNull() ?: return@forEach
 
                     val ponto = pontoRepository.buscarPorId(pontoId)
                     if (ponto != null) {
@@ -139,7 +140,7 @@ class ReconciliarFotosUseCase @Inject constructor(
         )
 
         val id = fotoRepository.salvar(fotoComprovante)
-        
+
         // Atualiza o ponto se ele não tiver o path
         if (ponto.fotoComprovantePath == null) {
             pontoRepository.atualizar(ponto.copy(fotoComprovantePath = relativePath))

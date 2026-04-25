@@ -92,9 +92,9 @@ fun HistoryShimmerItem(
                         .shimmerEffect()
                         .background(Color.Gray.copy(alpha = 0.1f), CircleShape)
                 )
-                
+
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 Column {
                     // Data placeholder
                     Box(
@@ -103,9 +103,9 @@ fun HistoryShimmerItem(
                             .height(20.dp)
                             .shimmerEffect()
                     )
-                    
+
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     // Dia da semana placeholder
                     Box(
                         modifier = Modifier
@@ -124,9 +124,9 @@ fun HistoryShimmerItem(
                         .height(20.dp)
                         .shimmerEffect()
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 // Pontos count placeholder
                 Box(
                     modifier = Modifier

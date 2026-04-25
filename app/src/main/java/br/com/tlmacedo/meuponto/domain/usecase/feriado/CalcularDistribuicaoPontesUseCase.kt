@@ -107,7 +107,11 @@ class CalcularDistribuicaoPontesUseCase @Inject constructor(
         var data = dataInicio
 
         while (!data.isAfter(dataFim)) {
-            if (data.dayOfWeek !in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) && data !in feriados) {
+            if (data.dayOfWeek !in listOf(
+                    DayOfWeek.SATURDAY,
+                    DayOfWeek.SUNDAY
+                ) && data !in feriados
+            ) {
                 diasUteis++
             }
             data = data.plusDays(1)

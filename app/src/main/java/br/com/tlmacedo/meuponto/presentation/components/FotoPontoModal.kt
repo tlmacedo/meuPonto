@@ -142,7 +142,7 @@ fun FotoPontoModal(
             }
         }
     }
-    
+
     // Lista de caminhos desenhados
     val drawPaths = remember { mutableStateListOf<PathInfo>() }
     var currentPath by remember { mutableStateOf<Path?>(null) }
@@ -219,7 +219,11 @@ fun FotoPontoModal(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "${ponto.hora.format(timeFormatter)} • ${ponto.dataHora.format(dateFormatter)}",
+                                text = "${ponto.hora.format(timeFormatter)} • ${
+                                    ponto.dataHora.format(
+                                        dateFormatter
+                                    )
+                                }",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -281,43 +285,52 @@ fun FotoPontoModal(
 
                             // Edição
                             IconButton(
-                                onClick = { 
-                                    isCropMode = !isCropMode 
+                                onClick = {
+                                    isCropMode = !isCropMode
                                     isDrawMode = false
-                                    if (isCropMode) { scale = 1f; offset = Offset.Zero }
+                                    if (isCropMode) {
+                                        scale = 1f; offset = Offset.Zero
+                                    }
                                 },
                                 enabled = !isSaving
                             ) {
                                 Icon(
-                                    Icons.Default.Crop, 
+                                    Icons.Default.Crop,
                                     "Recortar",
                                     tint = if (isCropMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                 )
                             }
 
                             IconButton(
-                                onClick = { 
-                                    isDrawMode = !isDrawMode 
+                                onClick = {
+                                    isDrawMode = !isDrawMode
                                     isCropMode = false
                                 },
                                 enabled = !isSaving
                             ) {
                                 Icon(
-                                    Icons.Default.Brush, 
+                                    Icons.Default.Brush,
                                     "Desenhar",
                                     tint = if (isDrawMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                 )
                             }
 
                             IconButton(
-                                onClick = { 
+                                onClick = {
                                     scope.launch {
                                         val bmp = bitmapEditado ?: return@launch
                                         isSaving = true
                                         val bounds = withContext(Dispatchers.Default) {
-                                            br.com.tlmacedo.meuponto.util.ImageProcessor.detectDocumentBounds(bmp)
+                                            br.com.tlmacedo.meuponto.util.ImageProcessor.detectDocumentBounds(
+                                                bmp
+                                            )
                                         }
-                                        cropRect = Rect(bounds.left, bounds.top, bounds.right, bounds.bottom)
+                                        cropRect = Rect(
+                                            bounds.left,
+                                            bounds.top,
+                                            bounds.right,
+                                            bounds.bottom
+                                        )
                                         isCropMode = true
                                         isImproved = true
                                         isSaving = false
@@ -326,7 +339,7 @@ fun FotoPontoModal(
                                 enabled = !isSaving
                             ) {
                                 Icon(
-                                    Icons.Default.AutoAwesome, 
+                                    Icons.Default.AutoAwesome,
                                     "IA - Detectar Bordas",
                                     tint = if (isImproved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                 )
@@ -336,9 +349,9 @@ fun FotoPontoModal(
 
                             // Rotação
                             IconButton(
-                                onClick = { 
+                                onClick = {
                                     bitmapEditado?.let { addToHistory(it) }
-                                    rotationVisual = (rotationVisual - 90f) % 360f 
+                                    rotationVisual = (rotationVisual - 90f) % 360f
                                 },
                                 enabled = !isSaving
                             ) {
@@ -348,7 +361,8 @@ fun FotoPontoModal(
                             IconButton(
                                 onClick = {
                                     if (bitmapHistory.isNotEmpty()) {
-                                        bitmapEditado = bitmapHistory.removeAt(bitmapHistory.size - 1)
+                                        bitmapEditado =
+                                            bitmapHistory.removeAt(bitmapHistory.size - 1)
                                         // Se desfizer a rotação que estava apenas visual, precisamos resetar
                                         // Mas se a rotação for aplicada apenas no salvamento, ok.
                                         // Atualmente a rotação é visual (rotationVisual), então desfazer o bitmap
@@ -402,14 +416,29 @@ fun FotoPontoModal(
                                     if (isDrawMode) {
                                         detectDragGestures(
                                             onDragStart = { startOffset ->
-                                                currentPath = Path().apply { moveTo(startOffset.x, startOffset.y) }
+                                                currentPath = Path().apply {
+                                                    moveTo(
+                                                        startOffset.x,
+                                                        startOffset.y
+                                                    )
+                                                }
                                             },
                                             onDrag = { change, _ ->
-                                                currentPath?.lineTo(change.position.x, change.position.y)
+                                                currentPath?.lineTo(
+                                                    change.position.x,
+                                                    change.position.y
+                                                )
                                                 change.consume()
                                             },
                                             onDragEnd = {
-                                                currentPath?.let { drawPaths.add(PathInfo(it, Color.Red)) }
+                                                currentPath?.let {
+                                                    drawPaths.add(
+                                                        PathInfo(
+                                                            it,
+                                                            Color.Red
+                                                        )
+                                                    )
+                                                }
                                                 currentPath = null
                                             }
                                         )
@@ -417,7 +446,10 @@ fun FotoPontoModal(
                                         detectTransformGestures { _, pan, zoom, _ ->
                                             if (!isSaving) {
                                                 scale = (scale * zoom).coerceIn(0.5f, 5f)
-                                                offset = Offset(x = offset.x + pan.x, y = offset.y + pan.y)
+                                                offset = Offset(
+                                                    x = offset.x + pan.x,
+                                                    y = offset.y + pan.y
+                                                )
                                             }
                                         }
                                     }
@@ -450,7 +482,8 @@ fun FotoPontoModal(
                                         val off = 128f * (1f - v)
                                         val m = this.values
                                         for (i in 0..2) {
-                                            m[i * 5 + 0] *= v; m[i * 5 + 1] *= v; m[i * 5 + 2] *= v; m[i * 5 + 4] = off
+                                            m[i * 5 + 0] *= v; m[i * 5 + 1] *= v; m[i * 5 + 2] *= v; m[i * 5 + 4] =
+                                                off
                                         }
                                     }
                                     ColorFilter.colorMatrix(matrix)
@@ -469,10 +502,26 @@ fun FotoPontoModal(
                             // Camada de Desenho
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 drawPaths.forEach { pathInfo ->
-                                    drawPath(pathInfo.path, pathInfo.color, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                    drawPath(
+                                        pathInfo.path,
+                                        pathInfo.color,
+                                        style = Stroke(
+                                            width = 4.dp.toPx(),
+                                            cap = StrokeCap.Round,
+                                            join = StrokeJoin.Round
+                                        )
+                                    )
                                 }
                                 currentPath?.let {
-                                    drawPath(it, Color.Red, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+                                    drawPath(
+                                        it,
+                                        Color.Red,
+                                        style = Stroke(
+                                            width = 4.dp.toPx(),
+                                            cap = StrokeCap.Round,
+                                            join = StrokeJoin.Round
+                                        )
+                                    )
                                 }
                             }
 
@@ -488,11 +537,12 @@ fun FotoPontoModal(
                                     onClick = {
                                         val currentBmp = bitmapEditado ?: return@IconButton
                                         addToHistory(currentBmp)
-                                        val cropped = br.com.tlmacedo.meuponto.util.ImageProcessor.crop(
-                                            currentBmp,
-                                            cropRect.left, cropRect.top,
-                                            cropRect.width, cropRect.height
-                                        )
+                                        val cropped =
+                                            br.com.tlmacedo.meuponto.util.ImageProcessor.crop(
+                                                currentBmp,
+                                                cropRect.left, cropRect.top,
+                                                cropRect.width, cropRect.height
+                                            )
                                         bitmapEditado = cropped
                                         isCropMode = false
                                         cropRect = Rect(0.1f, 0.1f, 0.9f, 0.9f)
@@ -509,7 +559,9 @@ fun FotoPontoModal(
 
                         if (isSaving) {
                             Box(
-                                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.5f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(color = Color.White)
@@ -574,11 +626,14 @@ fun FotoPontoModal(
                                 scope.launch {
                                     try {
                                         val resultPath = withContext(Dispatchers.IO) {
-                                            var workingBitmap = currentBmp.copy(currentBmp.config ?: Bitmap.Config.ARGB_8888, true)
+                                            var workingBitmap = currentBmp.copy(
+                                                currentBmp.config ?: Bitmap.Config.ARGB_8888, true
+                                            )
 
                                             // 1. Aplicar Rotação se houver (fazemos primeiro para facilitar coordenadas de desenho se fosse o caso)
                                             if (rotationVisual != 0f) {
-                                                val matrix = Matrix().apply { postRotate(rotationVisual) }
+                                                val matrix =
+                                                    Matrix().apply { postRotate(rotationVisual) }
                                                 val rotated = Bitmap.createBitmap(
                                                     workingBitmap, 0, 0,
                                                     workingBitmap.width, workingBitmap.height,
@@ -590,8 +645,15 @@ fun FotoPontoModal(
 
                                             // 2. Melhoria
                                             if (isImproved) {
-                                                val grayscale = br.com.tlmacedo.meuponto.util.ImageProcessor.toGrayscale(workingBitmap)
-                                                val improved = br.com.tlmacedo.meuponto.util.ImageProcessor.adjustContrast(grayscale, 1.5f)
+                                                val grayscale =
+                                                    br.com.tlmacedo.meuponto.util.ImageProcessor.toGrayscale(
+                                                        workingBitmap
+                                                    )
+                                                val improved =
+                                                    br.com.tlmacedo.meuponto.util.ImageProcessor.adjustContrast(
+                                                        grayscale,
+                                                        1.5f
+                                                    )
                                                 grayscale.recycle()
                                                 workingBitmap.recycle()
                                                 workingBitmap = improved
@@ -604,10 +666,17 @@ fun FotoPontoModal(
                                             // Salvar
                                             val originalFile = File(fotoPath!!)
                                             val timestamp = System.currentTimeMillis()
-                                            val newFile = File(originalFile.parentFile, "IMG_EDIT_$timestamp.jpg")
+                                            val newFile = File(
+                                                originalFile.parentFile,
+                                                "IMG_EDIT_$timestamp.jpg"
+                                            )
 
                                             FileOutputStream(newFile).use { out ->
-                                                workingBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                                                workingBitmap.compress(
+                                                    Bitmap.CompressFormat.JPEG,
+                                                    90,
+                                                    out
+                                                )
                                             }
 
                                             workingBitmap.recycle()
@@ -657,13 +726,33 @@ private fun CropOverlay(
                             val width = size.width.toFloat()
                             val height = size.height.toFloat()
                             val handleSizePx = with(density) { 32.dp.toPx() }
-                            val r = Rect(rect.left * width, rect.top * height, rect.right * width, rect.bottom * height)
+                            val r = Rect(
+                                rect.left * width,
+                                rect.top * height,
+                                rect.right * width,
+                                rect.bottom * height
+                            )
                             dragType = when {
                                 // Cantos
-                                Offset(r.left, r.top).distanceTo(offset) < handleSizePx -> DragType.TopLeft
-                                Offset(r.right, r.top).distanceTo(offset) < handleSizePx -> DragType.TopRight
-                                Offset(r.left, r.bottom).distanceTo(offset) < handleSizePx -> DragType.BottomLeft
-                                Offset(r.right, r.bottom).distanceTo(offset) < handleSizePx -> DragType.BottomRight
+                                Offset(
+                                    r.left,
+                                    r.top
+                                ).distanceTo(offset) < handleSizePx -> DragType.TopLeft
+
+                                Offset(
+                                    r.right,
+                                    r.top
+                                ).distanceTo(offset) < handleSizePx -> DragType.TopRight
+
+                                Offset(
+                                    r.left,
+                                    r.bottom
+                                ).distanceTo(offset) < handleSizePx -> DragType.BottomLeft
+
+                                Offset(
+                                    r.right,
+                                    r.bottom
+                                ).distanceTo(offset) < handleSizePx -> DragType.BottomRight
                                 // Centro
                                 r.contains(offset) -> DragType.Move
                                 else -> DragType.None
@@ -672,34 +761,44 @@ private fun CropOverlay(
                         onDrag = { change, dragAmount ->
                             if (dragType == DragType.None) return@detectDragGestures
                             change.consume()
-                            
+
                             val width = size.width.toFloat()
                             val height = size.height.toFloat()
                             val dx = dragAmount.x / width
                             val dy = dragAmount.y / height
-                            
+
                             val newRect = when (dragType) {
                                 DragType.TopLeft -> rect.copy(
                                     left = (rect.left + dx).coerceIn(0f, rect.right - 0.05f),
                                     top = (rect.top + dy).coerceIn(0f, rect.bottom - 0.05f)
                                 )
+
                                 DragType.TopRight -> rect.copy(
                                     right = (rect.right + dx).coerceIn(rect.left + 0.05f, 1f),
                                     top = (rect.top + dy).coerceIn(0f, rect.bottom - 0.05f)
                                 )
+
                                 DragType.BottomLeft -> rect.copy(
                                     left = (rect.left + dx).coerceIn(0f, rect.right - 0.05f),
                                     bottom = (rect.bottom + dy).coerceIn(rect.top + 0.05f, 1f)
                                 )
+
                                 DragType.BottomRight -> rect.copy(
                                     right = (rect.right + dx).coerceIn(rect.left + 0.05f, 1f),
                                     bottom = (rect.bottom + dy).coerceIn(rect.top + 0.05f, 1f)
                                 )
+
                                 DragType.Move -> {
                                     val newLeft = (rect.left + dx).coerceIn(0f, 1f - rect.width)
                                     val newTop = (rect.top + dy).coerceIn(0f, 1f - rect.height)
-                                    Rect(newLeft, newTop, newLeft + rect.width, newTop + rect.height)
+                                    Rect(
+                                        newLeft,
+                                        newTop,
+                                        newLeft + rect.width,
+                                        newTop + rect.height
+                                    )
                                 }
+
                                 else -> rect
                             }
                             onRectChange(newRect)

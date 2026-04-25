@@ -38,7 +38,8 @@ class EditarEmpregoViewModel @Inject constructor(
     val locationService: LocationService
 ) : ViewModel() {
 
-    private val empregoId: Long = savedStateHandle.get<Long>(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
+    private val empregoId: Long =
+        savedStateHandle.get<Long>(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
 
     private val _uiState = MutableStateFlow(EditarEmpregoUiState())
     val uiState: StateFlow<EditarEmpregoUiState> = _uiState.asStateFlow()
@@ -62,33 +63,125 @@ class EditarEmpregoViewModel @Inject constructor(
             is EditarEmpregoAction.AlterarEndereco -> _uiState.update { it.copy(endereco = action.endereco) }
             is EditarEmpregoAction.AlterarDescricao -> _uiState.update { it.copy(descricao = action.descricao) }
             is EditarEmpregoAction.AlterarDataInicioTrabalho -> alterarDataInicioTrabalho(action.data)
-            is EditarEmpregoAction.AlterarDataTerminoTrabalho -> _uiState.update { it.copy(dataTerminoTrabalho = action.data, showTerminoTrabalhoPicker = false) }
+            is EditarEmpregoAction.AlterarDataTerminoTrabalho -> _uiState.update {
+                it.copy(
+                    dataTerminoTrabalho = action.data,
+                    showTerminoTrabalhoPicker = false
+                )
+            }
+
             is EditarEmpregoAction.AlterarLogo -> _uiState.update { it.copy(logo = action.uri) }
 
             // RH e Banco de Horas
-            is EditarEmpregoAction.AlterarDiaInicioFechamentoRH -> _uiState.update { it.copy(diaInicioFechamentoRH = action.dia) }
-            is EditarEmpregoAction.AlterarBancoHorasHabilitado -> _uiState.update { it.copy(bancoHorasHabilitado = action.habilitado) }
-            is EditarEmpregoAction.AlterarBancoHorasCicloMeses -> _uiState.update { it.copy(bancoHorasCicloMeses = action.meses) }
-            is EditarEmpregoAction.AlterarBancoHorasDataInicioCiclo -> _uiState.update { it.copy(bancoHorasDataInicioCiclo = action.data, showInicioCicloBHPicker = false) }
-            is EditarEmpregoAction.AlterarBancoHorasZerarAoFinalCiclo -> _uiState.update { it.copy(bancoHorasZerarAoFinalCiclo = action.zerar) }
-            is EditarEmpregoAction.AlterarExigeJustificativaInconsistencia -> _uiState.update { it.copy(exigeJustificativaInconsistencia = action.exige) }
+            is EditarEmpregoAction.AlterarDiaInicioFechamentoRH -> _uiState.update {
+                it.copy(
+                    diaInicioFechamentoRH = action.dia
+                )
+            }
+
+            is EditarEmpregoAction.AlterarBancoHorasHabilitado -> _uiState.update {
+                it.copy(
+                    bancoHorasHabilitado = action.habilitado
+                )
+            }
+
+            is EditarEmpregoAction.AlterarBancoHorasCicloMeses -> _uiState.update {
+                it.copy(
+                    bancoHorasCicloMeses = action.meses
+                )
+            }
+
+            is EditarEmpregoAction.AlterarBancoHorasDataInicioCiclo -> _uiState.update {
+                it.copy(
+                    bancoHorasDataInicioCiclo = action.data,
+                    showInicioCicloBHPicker = false
+                )
+            }
+
+            is EditarEmpregoAction.AlterarBancoHorasZerarAoFinalCiclo -> _uiState.update {
+                it.copy(
+                    bancoHorasZerarAoFinalCiclo = action.zerar
+                )
+            }
+
+            is EditarEmpregoAction.AlterarExigeJustificativaInconsistencia -> _uiState.update {
+                it.copy(
+                    exigeJustificativaInconsistencia = action.exige
+                )
+            }
 
             // Opções de Registro
             is EditarEmpregoAction.AlterarHabilitarNsr -> _uiState.update { it.copy(habilitarNsr = action.habilitar) }
             is EditarEmpregoAction.AlterarTipoNsr -> _uiState.update { it.copy(tipoNsr = action.tipo) }
-            is EditarEmpregoAction.AlterarHabilitarLocalizacao -> _uiState.update { it.copy(habilitarLocalizacao = action.habilitar) }
-            is EditarEmpregoAction.AlterarLocalizacaoAutomatica -> _uiState.update { it.copy(localizacaoAutomatica = action.habilitar) }
-            is EditarEmpregoAction.AlterarExibirLocalizacaoDetalhes -> _uiState.update { it.copy(exibirLocalizacaoDetalhes = action.exibir) }
-            is EditarEmpregoAction.AlterarCoordenadas -> _uiState.update { it.copy(latitude = action.lat, longitude = action.lon, showLocationPicker = false) }
+            is EditarEmpregoAction.AlterarHabilitarLocalizacao -> _uiState.update {
+                it.copy(
+                    habilitarLocalizacao = action.habilitar
+                )
+            }
+
+            is EditarEmpregoAction.AlterarLocalizacaoAutomatica -> _uiState.update {
+                it.copy(
+                    localizacaoAutomatica = action.habilitar
+                )
+            }
+
+            is EditarEmpregoAction.AlterarExibirLocalizacaoDetalhes -> _uiState.update {
+                it.copy(
+                    exibirLocalizacaoDetalhes = action.exibir
+                )
+            }
+
+            is EditarEmpregoAction.AlterarCoordenadas -> _uiState.update {
+                it.copy(
+                    latitude = action.lat,
+                    longitude = action.lon,
+                    showLocationPicker = false
+                )
+            }
+
             is EditarEmpregoAction.AlterarRaioGeofencing -> _uiState.update { it.copy(raioGeofencing = action.raio) }
-            is EditarEmpregoAction.SetShowLocationPicker -> _uiState.update { it.copy(showLocationPicker = action.show) }
+            is EditarEmpregoAction.SetShowLocationPicker -> _uiState.update {
+                it.copy(
+                    showLocationPicker = action.show
+                )
+            }
+
             is EditarEmpregoAction.AlterarFotoHabilitada -> _uiState.update { it.copy(fotoHabilitada = action.habilitar) }
-            is EditarEmpregoAction.AlterarFotoObrigatoria -> _uiState.update { it.copy(fotoObrigatoria = action.obrigatoria) }
-            is EditarEmpregoAction.AlterarFotoValidarComprovante -> _uiState.update { it.copy(fotoValidarComprovante = action.validar) }
-            is EditarEmpregoAction.AlterarComentarioHabilitado -> _uiState.update { it.copy(comentarioHabilitado = action.habilitar) }
-            is EditarEmpregoAction.AlterarComentarioObrigatorioHoraExtra -> _uiState.update { it.copy(comentarioObrigatorioHoraExtra = action.obrigatorio) }
-            is EditarEmpregoAction.AlterarExibirDuracaoTurno -> _uiState.update { it.copy(exibirDuracaoTurno = action.exibir) }
-            is EditarEmpregoAction.AlterarExibirDuracaoIntervalo -> _uiState.update { it.copy(exibirDuracaoIntervalo = action.exibir) }
+            is EditarEmpregoAction.AlterarFotoObrigatoria -> _uiState.update {
+                it.copy(
+                    fotoObrigatoria = action.obrigatoria
+                )
+            }
+
+            is EditarEmpregoAction.AlterarFotoValidarComprovante -> _uiState.update {
+                it.copy(
+                    fotoValidarComprovante = action.validar
+                )
+            }
+
+            is EditarEmpregoAction.AlterarComentarioHabilitado -> _uiState.update {
+                it.copy(
+                    comentarioHabilitado = action.habilitar
+                )
+            }
+
+            is EditarEmpregoAction.AlterarComentarioObrigatorioHoraExtra -> _uiState.update {
+                it.copy(
+                    comentarioObrigatorioHoraExtra = action.obrigatorio
+                )
+            }
+
+            is EditarEmpregoAction.AlterarExibirDuracaoTurno -> _uiState.update {
+                it.copy(
+                    exibirDuracaoTurno = action.exibir
+                )
+            }
+
+            is EditarEmpregoAction.AlterarExibirDuracaoIntervalo -> _uiState.update {
+                it.copy(
+                    exibirDuracaoIntervalo = action.exibir
+                )
+            }
 
             // Cargo Inicial
             is EditarEmpregoAction.AlterarFuncaoInicial -> _uiState.update { it.copy(funcaoInicial = action.funcao) }
@@ -105,9 +198,14 @@ class EditarEmpregoViewModel @Inject constructor(
         }
     }
 
-    fun setShowInicioTrabalhoPicker(show: Boolean) = _uiState.update { it.copy(showInicioTrabalhoPicker = show) }
-    fun setShowTerminoTrabalhoPicker(show: Boolean) = _uiState.update { it.copy(showTerminoTrabalhoPicker = show) }
-    fun setShowInicioCicloBHPicker(show: Boolean) = _uiState.update { it.copy(showInicioCicloBHPicker = show) }
+    fun setShowInicioTrabalhoPicker(show: Boolean) =
+        _uiState.update { it.copy(showInicioTrabalhoPicker = show) }
+
+    fun setShowTerminoTrabalhoPicker(show: Boolean) =
+        _uiState.update { it.copy(showTerminoTrabalhoPicker = show) }
+
+    fun setShowInicioCicloBHPicker(show: Boolean) =
+        _uiState.update { it.copy(showInicioCicloBHPicker = show) }
 
     private fun carregarEmprego(id: Long) {
         viewModelScope.launch {
@@ -188,11 +286,13 @@ class EditarEmpregoViewModel @Inject constructor(
                         )
                     }
                 }
+
                 is ObterEmpregoComConfiguracaoUseCase.Resultado.NaoEncontrado -> {
                     _uiState.update { it.copy(isLoading = false) }
                     _eventos.emit(EditarEmpregoEvent.MostrarErro("Emprego não encontrado"))
                     _eventos.emit(EditarEmpregoEvent.Voltar)
                 }
+
                 is ObterEmpregoComConfiguracaoUseCase.Resultado.Erro -> {
                     _uiState.update { it.copy(isLoading = false) }
                     _eventos.emit(EditarEmpregoEvent.MostrarErro(resultado.mensagem))
@@ -210,8 +310,11 @@ class EditarEmpregoViewModel @Inject constructor(
         _uiState.update { it.copy(nome = nome, nomeErro = erro) }
     }
 
-    private fun alterarDataInicioTrabalho(data: LocalDate?) = _uiState.update { it.copy(dataInicioTrabalho = data, showInicioTrabalhoPicker = false) }
-    private fun toggleSecao(secao: SecaoFormulario) = _uiState.update { state -> state.copy(secaoExpandida = if (state.secaoExpandida == secao) null else secao) }
+    private fun alterarDataInicioTrabalho(data: LocalDate?) =
+        _uiState.update { it.copy(dataInicioTrabalho = data, showInicioTrabalhoPicker = false) }
+
+    private fun toggleSecao(secao: SecaoFormulario) =
+        _uiState.update { state -> state.copy(secaoExpandida = if (state.secaoExpandida == secao) null else secao) }
 
     private fun salvarDadosBasicos() {
         val state = _uiState.value
@@ -358,8 +461,16 @@ class EditarEmpregoViewModel @Inject constructor(
                         _eventos.emit(EditarEmpregoEvent.MostrarErro(sucessoMsg))
                         carregarEmprego(params.empregoId)
                     }
-                    is AtualizarEmpregoUseCase.Resultado.NaoEncontrado -> _eventos.emit(EditarEmpregoEvent.MostrarErro("Emprego não encontrado"))
-                    is AtualizarEmpregoUseCase.Resultado.Erro -> _eventos.emit(EditarEmpregoEvent.MostrarErro(resultado.mensagem))
+
+                    is AtualizarEmpregoUseCase.Resultado.NaoEncontrado -> _eventos.emit(
+                        EditarEmpregoEvent.MostrarErro("Emprego não encontrado")
+                    )
+
+                    is AtualizarEmpregoUseCase.Resultado.Erro -> _eventos.emit(
+                        EditarEmpregoEvent.MostrarErro(
+                            resultado.mensagem
+                        )
+                    )
                 }
             } catch (e: Exception) {
                 _eventos.emit(EditarEmpregoEvent.MostrarErro("Erro ao salvar: ${e.message}"))
@@ -413,9 +524,11 @@ class EditarEmpregoViewModel @Inject constructor(
                             }
                             _eventos.emit(EditarEmpregoEvent.SalvoComSucesso("Emprego criado com sucesso"))
                         }
+
                         is CriarEmpregoUseCase.Resultado.Validacao -> {
                             _eventos.emit(EditarEmpregoEvent.MostrarErro(resultado.erros.first()))
                         }
+
                         is CriarEmpregoUseCase.Resultado.Erro -> {
                             _eventos.emit(EditarEmpregoEvent.MostrarErro(resultado.mensagem))
                         }
@@ -469,9 +582,11 @@ class EditarEmpregoViewModel @Inject constructor(
                             }
                             _eventos.emit(EditarEmpregoEvent.SalvoComSucesso("Alterações salvas com sucesso"))
                         }
+
                         is AtualizarEmpregoUseCase.Resultado.NaoEncontrado -> {
                             _eventos.emit(EditarEmpregoEvent.MostrarErro("Emprego não encontrado"))
                         }
+
                         is AtualizarEmpregoUseCase.Resultado.Erro -> {
                             _eventos.emit(EditarEmpregoEvent.MostrarErro(resultado.mensagem))
                         }

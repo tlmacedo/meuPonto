@@ -6,11 +6,9 @@ import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -45,9 +43,10 @@ class PrivacidadeViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            preferenciasRepository.observarBloqueioAutomaticoHabilitado().collectLatest { habilitada ->
-                _uiState.update { it.copy(bloqueioAutomatico = habilitada) }
-            }
+            preferenciasRepository.observarBloqueioAutomaticoHabilitado()
+                .collectLatest { habilitada ->
+                    _uiState.update { it.copy(bloqueioAutomatico = habilitada) }
+                }
         }
         viewModelScope.launch {
             preferenciasRepository.observarOcultarPreviewHabilitado().collectLatest { habilitada ->

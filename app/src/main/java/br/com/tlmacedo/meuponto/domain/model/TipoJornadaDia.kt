@@ -53,12 +53,15 @@ enum class TipoJornadaDia {
 fun TipoDiaEspecial.toTipoJornadaDia(): TipoJornadaDia = when (this) {
     TipoDiaEspecial.NORMAL,
     TipoDiaEspecial.FALTA_INJUSTIFICADA -> TipoJornadaDia.NORMAL
+
     TipoDiaEspecial.FERIADO,
     TipoDiaEspecial.PONTE -> TipoJornadaDia.FERIADO
+
     TipoDiaEspecial.FACULTATIVO -> TipoJornadaDia.PONTO_FACULTATIVO
     TipoDiaEspecial.FERIAS -> TipoJornadaDia.FERIAS
     TipoDiaEspecial.ATESTADO,
     TipoDiaEspecial.FALTA_JUSTIFICADA -> TipoJornadaDia.LICENCA
+
     TipoDiaEspecial.DESCANSO,
     TipoDiaEspecial.FOLGA -> TipoJornadaDia.FOLGA
 }

@@ -62,11 +62,11 @@ data class HorariosUiState(
         get() {
             val h = horarioEmEdicao ?: return null
             val max = versaoJornada?.turnoMaximoMinutos ?: 360
-            
+
             val turno1 = if (h.entradaIdeal != null && h.saidaIntervaloIdeal != null)
                 Duration.between(h.entradaIdeal, h.saidaIntervaloIdeal).toMinutes().toInt()
             else 0
-            
+
             val turno2 = if (h.voltaIntervaloIdeal != null && h.saidaIdeal != null)
                 Duration.between(h.voltaIntervaloIdeal, h.saidaIdeal).toMinutes().toInt()
             else 0
@@ -80,7 +80,7 @@ data class HorariosUiState(
         get() {
             val h = horarioEmEdicao ?: return null
             val min = h.intervaloMinimoMinutos
-            
+
             val intervaloReal = if (h.saidaIntervaloIdeal != null && h.voltaIntervaloIdeal != null)
                 Duration.between(h.saidaIntervaloIdeal, h.voltaIntervaloIdeal).toMinutes().toInt()
             else null

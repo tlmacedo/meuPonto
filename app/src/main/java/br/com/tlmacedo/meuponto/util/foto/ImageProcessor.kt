@@ -175,19 +175,20 @@ class ImageProcessor @Inject constructor(
             // Etapa 0: Crop da imagem conforme o overlay (Centralizado, proporcional ao overlay)
             // Alinhado com ReceiptOverlay em CameraCaptureScreen.kt
             // O overlay é: width=85% da tela, height=0.6*rectWidth, centralizado horizontalmente, 40% verticalmente
-            
+
             val cropW = (bitmap.width * 0.85f).toInt()
             val cropH = (cropW * 0.6f).toInt()
             val cropX = (bitmap.width - cropW) / 2
             val cropY = ((bitmap.height - cropH) * 0.4f).toInt()
-            
+
             // Garantir que não ultrapasse limites
             val safeCropX = cropX.coerceIn(0, bitmap.width - 1)
             val safeCropY = cropY.coerceIn(0, bitmap.height - 1)
             val safeCropW = cropW.coerceAtMost(bitmap.width - safeCropX)
             val safeCropH = cropH.coerceAtMost(bitmap.height - safeCropY)
-            
-            val croppedBitmap = Bitmap.createBitmap(bitmap, safeCropX, safeCropY, safeCropW, safeCropH)
+
+            val croppedBitmap =
+                Bitmap.createBitmap(bitmap, safeCropX, safeCropY, safeCropW, safeCropH)
             if (croppedBitmap !== bitmap) {
                 // Se o bitmap atual é diferente do original e já foi processado (ex: redimensionado antes, embora aqui o crop venha primeiro)
                 // como bitmap = originalBitmap inicialmente, não reciclamos originalBitmap.
@@ -196,7 +197,12 @@ class ImageProcessor @Inject constructor(
 
             // Etapa 1: Redimensionar se exceder a resolução máxima configurada
             val maxDimension = config.fotoResolucaoMaxima
-            if (maxDimension > 0 && resizer.needsResize(bitmap.width, bitmap.height, maxDimension)) {
+            if (maxDimension > 0 && resizer.needsResize(
+                    bitmap.width,
+                    bitmap.height,
+                    maxDimension
+                )
+            ) {
                 val resizedBitmap = resizer.resizeToFit(bitmap, maxDimension)
                 if (resizedBitmap !== bitmap) {
                     // Não recicla originalBitmap — apenas substitui a referência local
@@ -229,9 +235,11 @@ class ImageProcessor @Inject constructor(
                         initialQuality = config.fotoQualidade
                     )
                 }
+
                 else -> {
                     // Compressão fixa para PNG ou JPEG sem limite de tamanho
-                    val success = compressor.saveToFile(bitmap, outputFile, format, config.fotoQualidade)
+                    val success =
+                        compressor.saveToFile(bitmap, outputFile, format, config.fotoQualidade)
                     if (success) {
                         AdaptiveCompressionResult(
                             data = ByteArray(0), // Dados já gravados no arquivo

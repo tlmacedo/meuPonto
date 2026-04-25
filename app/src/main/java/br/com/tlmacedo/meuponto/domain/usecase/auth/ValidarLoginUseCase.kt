@@ -10,7 +10,7 @@ class ValidarLoginUseCase @Inject constructor() {
             val emailErro: String? = null,
             val senhaErro: String? = null
         ) : ResultadoValidacao()
-        
+
         val isValido: Boolean get() = this is Valido
     }
 

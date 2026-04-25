@@ -57,12 +57,14 @@ interface ConfiguracaoPontesAnoDao {
     /**
      * Busca o adicional de pontes para uma data específica.
      */
-    @Query("""
+    @Query(
+        """
         SELECT adicionalDiarioMinutos 
         FROM configuracao_pontes_ano 
         WHERE empregoId = :empregoId 
         AND ano = :ano
-    """)
+    """
+    )
     suspend fun buscarAdicionalDiario(empregoId: Long, ano: Int): Int?
 
     // ========================================================================

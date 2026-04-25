@@ -49,7 +49,8 @@ class Converters {
     fun fromLocalDateTime(dateTime: LocalDateTime?): String? = dateTime?.format(dateTimeFormatter)
 
     @TypeConverter
-    fun toLocalDateTime(value: String?): LocalDateTime? = value?.let { LocalDateTime.parse(it, dateTimeFormatter) }
+    fun toLocalDateTime(value: String?): LocalDateTime? =
+        value?.let { LocalDateTime.parse(it, dateTimeFormatter) }
 
     // LocalDate Converters
     @TypeConverter
@@ -95,7 +96,8 @@ class Converters {
     fun fromTipoFechamento(tipo: TipoFechamento?): String? = tipo?.name
 
     @TypeConverter
-    fun toTipoFechamento(value: String?): TipoFechamento? = value?.let { TipoFechamento.valueOf(it) }
+    fun toTipoFechamento(value: String?): TipoFechamento? =
+        value?.let { TipoFechamento.valueOf(it) }
 
     // DiaSemana Enum Converters
     @TypeConverter
@@ -123,7 +125,11 @@ class Converters {
 
     @TypeConverter
     fun toTipoFolga(value: String?): TipoFolga? = value?.let {
-        try { TipoFolga.valueOf(it) } catch (e: Exception) { null }
+        try {
+            TipoFolga.valueOf(it)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -136,7 +142,11 @@ class Converters {
 
     @TypeConverter
     fun toFotoOrigem(value: String?): FotoOrigem? = value?.let {
-        try { FotoOrigem.valueOf(it) } catch (e: Exception) { FotoOrigem.CAMERA }
+        try {
+            FotoOrigem.valueOf(it)
+        } catch (e: Exception) {
+            FotoOrigem.CAMERA
+        }
     }
 
     // FotoFormato Enum Converters
@@ -145,7 +155,11 @@ class Converters {
 
     @TypeConverter
     fun toFotoFormato(value: String?): FotoFormato? = value?.let {
-        try { FotoFormato.valueOf(it) } catch (e: Exception) { FotoFormato.JPEG }
+        try {
+            FotoFormato.valueOf(it)
+        } catch (e: Exception) {
+            FotoFormato.JPEG
+        }
     }
 
     // TipoJornadaDia Enum Converters
@@ -154,7 +168,11 @@ class Converters {
 
     @TypeConverter
     fun toTipoJornadaDia(value: String?): TipoJornadaDia? = value?.let {
-        try { TipoJornadaDia.valueOf(it) } catch (e: Exception) { TipoJornadaDia.NORMAL }
+        try {
+            TipoJornadaDia.valueOf(it)
+        } catch (e: Exception) {
+            TipoJornadaDia.NORMAL
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -166,7 +184,11 @@ class Converters {
 
     @TypeConverter
     fun toTipoFeriado(value: String?): TipoFeriado? = value?.let {
-        try { TipoFeriado.valueOf(it) } catch (e: Exception) { TipoFeriado.NACIONAL }
+        try {
+            TipoFeriado.valueOf(it)
+        } catch (e: Exception) {
+            TipoFeriado.NACIONAL
+        }
     }
 
     @TypeConverter
@@ -174,7 +196,11 @@ class Converters {
 
     @TypeConverter
     fun toRecorrenciaFeriado(value: String?): RecorrenciaFeriado? = value?.let {
-        try { RecorrenciaFeriado.valueOf(it) } catch (e: Exception) { RecorrenciaFeriado.ANUAL }
+        try {
+            RecorrenciaFeriado.valueOf(it)
+        } catch (e: Exception) {
+            RecorrenciaFeriado.ANUAL
+        }
     }
 
     @TypeConverter
@@ -182,7 +208,11 @@ class Converters {
 
     @TypeConverter
     fun toAbrangenciaFeriado(value: String?): AbrangenciaFeriado? = value?.let {
-        try { AbrangenciaFeriado.valueOf(it) } catch (e: Exception) { AbrangenciaFeriado.GLOBAL }
+        try {
+            AbrangenciaFeriado.valueOf(it)
+        } catch (e: Exception) {
+            AbrangenciaFeriado.GLOBAL
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -194,7 +224,11 @@ class Converters {
 
     @TypeConverter
     fun toCategoriaChamado(value: String?): CategoriaChamado? = value?.let {
-        try { CategoriaChamado.valueOf(it) } catch (e: Exception) { null }
+        try {
+            CategoriaChamado.valueOf(it)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     @TypeConverter
@@ -202,7 +236,11 @@ class Converters {
 
     @TypeConverter
     fun toPrioridadeChamado(value: String?): PrioridadeChamado? = value?.let {
-        try { PrioridadeChamado.valueOf(it) } catch (e: Exception) { null }
+        try {
+            PrioridadeChamado.valueOf(it)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     @TypeConverter
@@ -210,7 +248,11 @@ class Converters {
 
     @TypeConverter
     fun toStatusChamado(value: String?): StatusChamado? = value?.let {
-        try { StatusChamado.valueOf(it) } catch (e: Exception) { null }
+        try {
+            StatusChamado.valueOf(it)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     @TypeConverter

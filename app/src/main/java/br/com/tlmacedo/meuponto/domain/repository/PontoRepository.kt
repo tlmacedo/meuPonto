@@ -76,7 +76,11 @@ interface PontoRepository {
 
     // === Atualização de foto ===
 
-    suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?, fotoOrigem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem)
+    suspend fun atualizarFotoComprovante(
+        pontoId: Long,
+        fotoPath: String?,
+        fotoOrigem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem
+    )
 
     // === Soft Delete e Lixeira ===
 

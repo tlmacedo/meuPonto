@@ -19,6 +19,8 @@ sealed interface LocalizacaoTrabalhoAction {
 }
 
 sealed interface LocalizacaoTrabalhoEvent {
-    data class Confirmado(val latitude: Double, val longitude: Double, val raio: Int) : LocalizacaoTrabalhoEvent
+    data class Confirmado(val latitude: Double, val longitude: Double, val raio: Int) :
+        LocalizacaoTrabalhoEvent
+
     data object Voltar : LocalizacaoTrabalhoEvent
 }

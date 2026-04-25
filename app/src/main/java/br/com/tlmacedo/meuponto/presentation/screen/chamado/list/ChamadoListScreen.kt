@@ -1,12 +1,21 @@
 // path: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/chamado/list/ChamadoListScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.chamado.list
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,9 +84,13 @@ fun ChamadoListContent(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         CircularProgressIndicator()
-                        Text(text = "Carregando chamados...", modifier = Modifier.padding(top = 8.dp))
+                        Text(
+                            text = "Carregando chamados...",
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
+
                 ChamadoListUiState.Empty -> {
                     Text(
                         text = "Nenhum chamado encontrado.",
@@ -88,6 +101,7 @@ fun ChamadoListContent(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
+
                 is ChamadoListUiState.Success -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -98,6 +112,7 @@ fun ChamadoListContent(
                         }
                     }
                 }
+
                 is ChamadoListUiState.Error -> {
                     Text(
                         text = uiState.message,

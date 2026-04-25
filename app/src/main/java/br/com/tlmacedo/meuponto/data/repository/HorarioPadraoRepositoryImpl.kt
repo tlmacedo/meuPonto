@@ -61,7 +61,10 @@ class HorarioPadraoRepositoryImpl @Inject constructor(
             .map { it.toHorarioPadrao() }
     }
 
-    override suspend fun buscarPorEmpregoEDiaSemana(empregoId: Long, diaSemana: Int): HorarioPadrao? {
+    override suspend fun buscarPorEmpregoEDiaSemana(
+        empregoId: Long,
+        diaSemana: Int
+    ): HorarioPadrao? {
         val dia = intToDiaSemana(diaSemana) ?: return null
         return horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, dia)?.toHorarioPadrao()
     }

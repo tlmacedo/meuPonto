@@ -85,15 +85,19 @@ fun VersoesJornadaScreen(
                 is VersoesJornadaEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 is VersoesJornadaEvent.NavegarParaEditar -> {
                     onNavigateToEditar(uiState.empregoId, evento.versaoId)
                 }
+
                 is VersoesJornadaEvent.NavegarParaComparar -> {
                     onNavigateToComparar(evento.empregoId, evento.v1, evento.v2)
                 }
+
                 is VersoesJornadaEvent.Voltar -> {
                     onNavigateBack()
                 }
+
                 else -> Unit
             }
         }
@@ -291,7 +295,13 @@ fun VersoesJornadaContent(
                 isSaving = uiState.isCriando,
                 onDataInicioChange = { onAction(VersoesJornadaAction.AlterarDataInicioNovaVersao(it)) },
                 onDescricaoChange = { onAction(VersoesJornadaAction.AlterarDescricaoNovaVersao(it)) },
-                onCopiarHorariosToggle = { onAction(VersoesJornadaAction.ToggleCopiarHorariosNovaVersao(it)) },
+                onCopiarHorariosToggle = {
+                    onAction(
+                        VersoesJornadaAction.ToggleCopiarHorariosNovaVersao(
+                            it
+                        )
+                    )
+                },
                 onConfirmar = { onAction(VersoesJornadaAction.ConfirmarNovaVersao) },
                 onDismiss = { onAction(VersoesJornadaAction.FecharDialogNovaVersao) }
             )

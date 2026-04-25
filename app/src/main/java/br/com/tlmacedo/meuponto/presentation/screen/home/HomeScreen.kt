@@ -2,13 +2,10 @@
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
 import android.Manifest
-import android.content.Context
-import android.content.ContextWrapper
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import br.com.tlmacedo.meuponto.util.foto.DocumentScannerWrapper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,13 +47,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
@@ -79,10 +76,10 @@ import br.com.tlmacedo.meuponto.presentation.components.foto.ComprovanteImagePic
 import br.com.tlmacedo.meuponto.presentation.screen.camera.CameraCaptureScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.components.FechamentoCicloDialog
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
+import br.com.tlmacedo.meuponto.util.findActivity
+import br.com.tlmacedo.meuponto.util.foto.DocumentScannerWrapper
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
-import br.com.tlmacedo.meuponto.util.findActivity
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 
 /**
@@ -113,7 +110,10 @@ fun HomeScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            val scanResult = com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+            val scanResult =
+                com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult.fromActivityResultIntent(
+                    result.data
+                )
             scanResult?.pages?.firstOrNull()?.imageUri?.let { uri ->
                 viewModel.onAction(HomeAction.SelecionarFotoComprovante(uri, FotoOrigem.CAMERA))
             }
@@ -137,9 +137,11 @@ fun HomeScreen(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is HomeUiEvent.MostrarMensagem, is HomeUiEvent.MostrarErro -> {
-                    val mensagem = if (event is HomeUiEvent.MostrarMensagem) event.mensagem else (event as HomeUiEvent.MostrarErro).mensagem
+                    val mensagem =
+                        if (event is HomeUiEvent.MostrarMensagem) event.mensagem else (event as HomeUiEvent.MostrarErro).mensagem
                     snackbarHostState.showSnackbar(mensagem)
                 }
+
                 is HomeUiEvent.NavegarParaHistorico -> onNavigateToHistorico()
                 is HomeUiEvent.NavegarParaConfiguracoes -> onNavigateToConfiguracoes()
                 is HomeUiEvent.NavegarParaEditarPonto -> onNavigateToEditarPonto(event.pontoId)
@@ -152,7 +154,10 @@ fun HomeScreen(
                     context.findActivity()?.let { activity ->
                         ActivityCompat.requestPermissions(
                             activity,
-                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            ),
                             1001
                         )
                     }
@@ -206,7 +211,9 @@ fun HomeScreen(
             if (uiState.isLoading && uiState.pontosHoje.isEmpty()) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize().padding(paddingValues)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
                 ) {
                     CircularProgressIndicator()
                 }
@@ -234,7 +241,7 @@ private fun HomeDialogs(
     scannerLauncher: ActivityResultLauncher<IntentSenderRequest>,
     docScanner: DocumentScannerWrapper
 ) {
-    val context = LocalContext.current
+    LocalContext.current
     // 1. Date Picker
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -259,7 +266,14 @@ private fun HomeDialogs(
         (uiState.estadoCiclo as? EstadoCiclo.Pendente)?.let { estadoPendente ->
             FechamentoCicloDialog(
                 estadoCiclo = estadoPendente,
-                onConfirmar = { onAction(HomeAction.ConfirmarFechamentoCiclo(estadoPendente.ciclo.saldoAtualMinutos.toLong(), "Fechamento de ciclo")) },
+                onConfirmar = {
+                    onAction(
+                        HomeAction.ConfirmarFechamentoCiclo(
+                            estadoPendente.ciclo.saldoAtualMinutos.toLong(),
+                            "Fechamento de ciclo"
+                        )
+                    )
+                },
                 onCancelar = { onAction(HomeAction.FecharDialogFechamentoCiclo) }
             )
         }
@@ -271,7 +285,16 @@ private fun HomeDialogs(
         onDismissSourceDialog = { onAction(HomeAction.FecharFotoSourceDialog) },
         cameraUri = uiState.cameraUri,
         onCameraResult = { success, origem -> if (success) onAction(HomeAction.ConfirmarFotoCamera) },
-        onGalleryResult = { uri, origem -> uri?.let { onAction(HomeAction.SelecionarFotoComprovante(it, origem)) } },
+        onGalleryResult = { uri, origem ->
+            uri?.let {
+                onAction(
+                    HomeAction.SelecionarFotoComprovante(
+                        it,
+                        origem
+                    )
+                )
+            }
+        },
         onPermissionDenied = { onAction(HomeAction.MostrarMensagem(it)) },
         onLaunchCustomCamera = { onAction(HomeAction.AbrirCameraCapture) },
         docScanner = docScanner,
@@ -281,8 +304,12 @@ private fun HomeDialogs(
     // 4. Modais de Ponto
     uiState.edicaoModal?.let { modal ->
         EdicaoModal(
-            ponto = modal.ponto, tipoDescricao = modal.tipoDescricao, isSaving = modal.isSaving,
-            nsrHabilitado = uiState.nsrHabilitado, tipoNsr = uiState.tipoNsr, fotoHabilitada = uiState.fotoHabilitada,
+            ponto = modal.ponto,
+            tipoDescricao = modal.tipoDescricao,
+            isSaving = modal.isSaving,
+            nsrHabilitado = uiState.nsrHabilitado,
+            tipoNsr = uiState.tipoNsr,
+            fotoHabilitada = uiState.fotoHabilitada,
             fotoUri = modal.fotoUri,
             fotoPathAbsoluto = modal.fotoPathAbsoluto,
             fotoRemovida = modal.fotoRemovida,
@@ -304,23 +331,42 @@ private fun HomeDialogs(
     uiState.exclusaoModal?.let { modal ->
         ExclusaoModal(
             ponto = modal.ponto, tipoDescricao = modal.tipoDescricao, isDeleting = modal.isDeleting,
-            onConfirmar = { onAction(HomeAction.ConfirmarExclusaoModal(modal.ponto.id, "Removido pelo usuário")) },
+            onConfirmar = {
+                onAction(
+                    HomeAction.ConfirmarExclusaoModal(
+                        modal.ponto.id,
+                        "Removido pelo usuário"
+                    )
+                )
+            },
             onDismiss = { onAction(HomeAction.FecharExclusaoModal) }
         )
     }
 
     uiState.localizacaoModal?.let { modal ->
-        LocalizacaoModal(ponto = modal.ponto, tipoDescricao = modal.tipoDescricao, onDismiss = { onAction(HomeAction.FecharLocalizacaoModal) })
+        LocalizacaoModal(
+            ponto = modal.ponto,
+            tipoDescricao = modal.tipoDescricao,
+            onDismiss = { onAction(HomeAction.FecharLocalizacaoModal) })
     }
 
     uiState.fotoModal?.let { modal ->
-        FotoPontoModal(ponto = modal.ponto, tipoDescricao = modal.tipoDescricao, fotoPath = modal.fotoPath, onDismiss = { onAction(HomeAction.FecharFotoModal) }, onSalvarFoto = { id, path -> onAction(HomeAction.SalvarFotoModal(id, path)) })
+        FotoPontoModal(
+            ponto = modal.ponto,
+            tipoDescricao = modal.tipoDescricao,
+            fotoPath = modal.fotoPath,
+            onDismiss = { onAction(HomeAction.FecharFotoModal) },
+            onSalvarFoto = { id, path -> onAction(HomeAction.SalvarFotoModal(id, path)) })
     }
 
     uiState.registrarPontoModal?.let { modal ->
         RegistrarPontoModal(
-            state = modal, proximoTipo = uiState.proximoTipo, nsrHabilitado = uiState.nsrHabilitado,
-            tipoNsr = uiState.tipoNsr, fotoHabilitada = uiState.fotoHabilitada, fotoObrigatoria = uiState.fotoObrigatoria,
+            state = modal,
+            proximoTipo = uiState.proximoTipo,
+            nsrHabilitado = uiState.nsrHabilitado,
+            tipoNsr = uiState.tipoNsr,
+            fotoHabilitada = uiState.fotoHabilitada,
+            fotoObrigatoria = uiState.fotoObrigatoria,
             configLocalizacaoHabilitada = uiState.localizacaoHabilitada,
             comentarioHabilitado = uiState.configuracaoEmprego?.comentarioHabilitado == true,
             comentarioObrigatorio = modal.isObservacaoObrigatoria,
@@ -349,20 +395,46 @@ internal fun HomeContent(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        CicloBanner(uiState.estadoCiclo, { onAction(HomeAction.AbrirDialogFechamentoCiclo) }, { onAction(HomeAction.NavegarParaHistoricoCiclos) })
+        CicloBanner(
+            uiState.estadoCiclo,
+            { onAction(HomeAction.AbrirDialogFechamentoCiclo) },
+            { onAction(HomeAction.NavegarParaHistoricoCiclos) })
 
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { onAction(HomeAction.DiaAnterior) }, enabled = uiState.podeNavegaAnterior) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBackIos, "Anterior", Modifier.size(20.dp), if (uiState.podeNavegaAnterior) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(0.3f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { onAction(HomeAction.DiaAnterior) },
+                    enabled = uiState.podeNavegaAnterior
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBackIos,
+                        "Anterior",
+                        Modifier.size(20.dp),
+                        if (uiState.podeNavegaAnterior) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(
+                            0.3f
+                        )
+                    )
                 }
-                TextButton(onClick = { onAction(HomeAction.AbrirDatePicker) }, modifier = Modifier.weight(1f)) {
+                TextButton(
+                    onClick = { onAction(HomeAction.AbrirDatePicker) },
+                    modifier = Modifier.weight(1f)
+                ) {
                     Icon(Icons.Default.CalendarToday, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(uiState.dataFormatada, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        uiState.dataFormatada,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                     if (uiState.pontosHoje.any { it.dataAutoFilled }) {
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
@@ -373,8 +445,18 @@ internal fun HomeContent(
                         )
                     }
                 }
-                IconButton(onClick = { onAction(HomeAction.ProximoDia) }, enabled = uiState.podeNavegarProximo) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, "Próximo", Modifier.size(20.dp), if (uiState.podeNavegarProximo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(0.3f))
+                IconButton(
+                    onClick = { onAction(HomeAction.ProximoDia) },
+                    enabled = uiState.podeNavegarProximo
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        "Próximo",
+                        Modifier.size(20.dp),
+                        if (uiState.podeNavegarProximo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(
+                            0.3f
+                        )
+                    )
                 }
             }
 
@@ -386,7 +468,13 @@ internal fun HomeContent(
                 onEditarJornada = { onAction(HomeAction.NavegarParaEditarJornada) },
                 modifier = Modifier.fillMaxWidth()
             )
-            ProximoPontoCard(uiState.proximoTipo, uiState.horaAtual, { if (!uiState.isFuturo) onAction(HomeAction.RegistrarPontoAgora) }, modifier = Modifier.fillMaxWidth(), habilitado = !uiState.isFuturo && uiState.empregoAtivo != null)
+            ProximoPontoCard(
+                uiState.proximoTipo,
+                uiState.horaAtual,
+                { if (!uiState.isFuturo) onAction(HomeAction.RegistrarPontoAgora) },
+                modifier = Modifier.fillMaxWidth(),
+                habilitado = !uiState.isFuturo && uiState.empregoAtivo != null
+            )
 
             FeriadoBanner(uiState.feriadosDoDia)
             uiState.ausenciaDoDia?.let {
@@ -399,18 +487,33 @@ internal fun HomeContent(
             }
         }
 
-        HorizontalDivider(Modifier.padding(vertical = 8.dp), 0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(
+            Modifier.padding(vertical = 8.dp),
+            0.5.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
 
         Box(modifier = Modifier.weight(1f)) {
             if (uiState.pontosHoje.isEmpty() && !uiState.isLoading) {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(Icons.Default.History, null, Modifier.size(64.dp), MaterialTheme.colorScheme.outline.copy(0.3f))
+                    Icon(
+                        Icons.Default.History,
+                        null,
+                        Modifier.size(64.dp),
+                        MaterialTheme.colorScheme.outline.copy(0.3f)
+                    )
                     Spacer(Modifier.height(16.dp))
-                    Text("Nenhum registro para esta data", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.outline)
+                    Text(
+                        "Nenhum registro para esta data",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.outline
+                    )
                 }
             } else {
                 LazyColumn(
@@ -419,7 +522,14 @@ internal fun HomeContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(uiState.resumoDia.intervalos, key = { it.entrada.id }) { intervalo ->
-                        IntervaloCard(intervalo, uiState.isHoje, uiState.nsrHabilitado, { onAction(HomeAction.AbrirEdicaoModal(it)) }, { onAction(HomeAction.AbrirExclusaoModal(it)) }, { onAction(HomeAction.AbrirFotoModal(it)) }, { onAction(HomeAction.AbrirLocalizacaoModal(it)) })
+                        IntervaloCard(
+                            intervalo,
+                            uiState.isHoje,
+                            uiState.nsrHabilitado,
+                            { onAction(HomeAction.AbrirEdicaoModal(it)) },
+                            { onAction(HomeAction.AbrirExclusaoModal(it)) },
+                            { onAction(HomeAction.AbrirFotoModal(it)) },
+                            { onAction(HomeAction.AbrirLocalizacaoModal(it)) })
                     }
                 }
             }
@@ -431,7 +541,8 @@ internal fun HomeContent(
 @Composable
 private fun HomeScreenPreview() {
     val hoje = LocalDate.now()
-    val uiState = HomeUiState(dataSelecionada = hoje, resumoDia = ResumoDia(data = hoje), isLoading = false)
+    val uiState =
+        HomeUiState(dataSelecionada = hoje, resumoDia = ResumoDia(data = hoje), isLoading = false)
     MeuPontoTheme {
         HomeContent(
             uiState = uiState,

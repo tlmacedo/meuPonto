@@ -39,7 +39,8 @@ val MIGRATION_22_23 = object : Migration(22, 23) {
         // 1. CRIAR TABELA fotos_comprovante
         // ════════════════════════════════════════════════════════════════════
 
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE IF NOT EXISTS fotos_comprovante (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 
@@ -87,99 +88,128 @@ val MIGRATION_22_23 = object : Migration(22, 23) {
                 -- Foreign Key
                 FOREIGN KEY (pontoId) REFERENCES pontos(id) ON DELETE CASCADE ON UPDATE NO ACTION
             )
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // ════════════════════════════════════════════════════════════════════
         // 2. CRIAR ÍNDICES
         // ════════════════════════════════════════════════════════════════════
 
         // Índice único para garantir 1:1 com pontos
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE UNIQUE INDEX IF NOT EXISTS index_fotos_comprovante_pontoId
             ON fotos_comprovante(pontoId)
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Índice para consultas por emprego
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE INDEX IF NOT EXISTS index_fotos_comprovante_empregoId
             ON fotos_comprovante(empregoId)
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Índice para consultas por data
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE INDEX IF NOT EXISTS index_fotos_comprovante_data
             ON fotos_comprovante(data)
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Índice para consultas de sincronização
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE INDEX IF NOT EXISTS index_fotos_comprovante_sincronizadoNuvem
             ON fotos_comprovante(sincronizadoNuvem)
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // ════════════════════════════════════════════════════════════════════
         // 3. ADICIONAR CAMPOS EM configuracoes_emprego
         // ════════════════════════════════════════════════════════════════════
 
         // Habilitar funcionalidade de foto
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoHabilitada INTEGER NOT NULL DEFAULT 0
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Formato da foto (JPEG ou PNG)
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoFormato TEXT NOT NULL DEFAULT 'JPEG'
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Qualidade de compressão (1-100)
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoQualidade INTEGER NOT NULL DEFAULT 85
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Resolução máxima em pixels (largura)
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoResolucaoMaxima INTEGER NOT NULL DEFAULT 1920
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Tamanho máximo em KB
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoTamanhoMaximoKb INTEGER NOT NULL DEFAULT 1024
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Corrigir orientação EXIF
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoCorrecaoOrientacao INTEGER NOT NULL DEFAULT 1
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Permitir apenas câmera
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoApenasCamera INTEGER NOT NULL DEFAULT 0
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Incluir localização no EXIF
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoIncluirLocalizacaoExif INTEGER NOT NULL DEFAULT 1
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Backup na nuvem habilitado
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoBackupNuvemHabilitado INTEGER NOT NULL DEFAULT 0
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Backup apenas em Wi-Fi
-        db.execSQL("""
+        db.execSQL(
+            """
             ALTER TABLE configuracoes_emprego
             ADD COLUMN fotoBackupApenasWifi INTEGER NOT NULL DEFAULT 1
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // ════════════════════════════════════════════════════════════════════
         // 4. SUPORTE A SOFT DELETE NA TABELA PONTOS (Adicionado retroativamente)

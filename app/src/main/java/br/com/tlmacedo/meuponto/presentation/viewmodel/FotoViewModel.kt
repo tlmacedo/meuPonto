@@ -4,14 +4,14 @@ package br.com.tlmacedo.meuponto.presentation.viewmodel
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
+import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.usecase.foto.CreateTempImageFileUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.foto.DeleteComprovanteImageUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.foto.ImageValidationResult
 import br.com.tlmacedo.meuponto.domain.usecase.foto.LoadComprovanteImageUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.foto.SaveComprovanteImageUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.foto.ValidateImageUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.foto.ImageValidationResult
 import br.com.tlmacedo.meuponto.util.foto.SavePhotoResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -105,9 +105,7 @@ class FotoViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
-            val validation = validateImageUseCase(uri)
-
-            when (validation) {
+            when (val validation = validateImageUseCase(uri)) {
                 is ImageValidationResult.Valid -> {
                     _uiState.update {
                         it.copy(
@@ -124,11 +122,14 @@ class FotoViewModel @Inject constructor(
                         )
                     }
                 }
+
                 else -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    emitEvent(FotoEvent.ValidationError(
-                        validation.getErrorMessage() ?: "Imagem inválida"
-                    ))
+                    emitEvent(
+                        FotoEvent.ValidationError(
+                            validation.getErrorMessage() ?: "Imagem inválida"
+                        )
+                    )
                     currentTempUri = null
                 }
             }
@@ -168,6 +169,7 @@ class FotoViewModel @Inject constructor(
                     }
                     emitEvent(FotoEvent.SaveSuccess(result.relativePath, result.hashMd5))
                 }
+
                 is SavePhotoResult.Error -> {
                     _uiState.update { it.copy(isLoading = false) }
                     emitEvent(FotoEvent.Error(result.message))

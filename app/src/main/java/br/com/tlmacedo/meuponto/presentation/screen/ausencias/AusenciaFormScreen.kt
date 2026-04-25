@@ -87,8 +87,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
-import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
-import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.DurationInputField
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
@@ -116,7 +114,7 @@ fun AusenciaFormScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
+    LocalContext.current
 
     // Launchers para câmera e galeria
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -144,6 +142,7 @@ fun AusenciaFormScreen(
                 is AusenciaFormUiEvent.AbrirCamera -> {
                     cameraLauncher.launch(event.uri)
                 }
+
                 is AusenciaFormUiEvent.AbrirGaleria -> {
                     galeriaLauncher.launch("image/*")
                 }
@@ -265,7 +264,11 @@ fun AusenciaFormScreen(
                                 FilterChip(
                                     selected = uiState.tipoFolga == tipoFolga,
                                     onClick = {
-                                        viewModel.onAction(AusenciaFormAction.SelecionarTipoFolga(tipoFolga))
+                                        viewModel.onAction(
+                                            AusenciaFormAction.SelecionarTipoFolga(
+                                                tipoFolga
+                                            )
+                                        )
                                     },
                                     label = { Text(tipoFolga.descricao) },
                                     modifier = Modifier.weight(1f)
@@ -276,7 +279,9 @@ fun AusenciaFormScreen(
                         // Card informativo sobre o tipo de folga
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
+                                    alpha = 0.5f
+                                )
                             )
                         ) {
                             Row(
@@ -318,7 +323,11 @@ fun AusenciaFormScreen(
                             FilterChip(
                                 selected = uiState.modoPeriodo == ModoPeriodo.DATA_FINAL,
                                 onClick = {
-                                    viewModel.onAction(AusenciaFormAction.SelecionarModoPeriodo(ModoPeriodo.DATA_FINAL))
+                                    viewModel.onAction(
+                                        AusenciaFormAction.SelecionarModoPeriodo(
+                                            ModoPeriodo.DATA_FINAL
+                                        )
+                                    )
                                 },
                                 label = { Text(stringResource(R.string.ausencia_data_fim_curto)) },
                                 modifier = Modifier.weight(1f)
@@ -326,7 +335,11 @@ fun AusenciaFormScreen(
                             FilterChip(
                                 selected = uiState.modoPeriodo == ModoPeriodo.QUANTIDADE_DIAS,
                                 onClick = {
-                                    viewModel.onAction(AusenciaFormAction.SelecionarModoPeriodo(ModoPeriodo.QUANTIDADE_DIAS))
+                                    viewModel.onAction(
+                                        AusenciaFormAction.SelecionarModoPeriodo(
+                                            ModoPeriodo.QUANTIDADE_DIAS
+                                        )
+                                    )
                                 },
                                 label = { Text(stringResource(R.string.ausencia_qtd_dias_curto)) },
                                 modifier = Modifier.weight(1f)
@@ -387,7 +400,11 @@ fun AusenciaFormScreen(
                                     QuantidadeDiasSelector(
                                         quantidade = uiState.quantidadeDias,
                                         onQuantidadeChange = {
-                                            viewModel.onAction(AusenciaFormAction.AtualizarQuantidadeDias(it))
+                                            viewModel.onAction(
+                                                AusenciaFormAction.AtualizarQuantidadeDias(
+                                                    it
+                                                )
+                                            )
                                         }
                                     )
                                 }
@@ -397,7 +414,9 @@ fun AusenciaFormScreen(
                         // Resumo do período
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
+                                    alpha = 0.3f
+                                )
                             )
                         ) {
                             Row(
@@ -416,7 +435,8 @@ fun AusenciaFormScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.semantics {
-                                        contentDescription = "Total de ${uiState.totalDias} ${if (uiState.totalDias == 1) "dia" else "dias"}"
+                                        contentDescription =
+                                            "Total de ${uiState.totalDias} ${if (uiState.totalDias == 1) "dia" else "dias"}"
                                     }
                                 )
                             }
@@ -481,7 +501,12 @@ fun AusenciaFormScreen(
                             onValueChange = { totalMinutos ->
                                 val horas = totalMinutos / 60
                                 val minutos = totalMinutos % 60
-                                viewModel.onAction(AusenciaFormAction.AtualizarDuracaoDeclaracao(horas, minutos))
+                                viewModel.onAction(
+                                    AusenciaFormAction.AtualizarDuracaoDeclaracao(
+                                        horas,
+                                        minutos
+                                    )
+                                )
                             },
                             label = stringResource(R.string.ausencia_tempo_declaracao),
                             minValue = 1, // Mínimo 1 minuto
@@ -490,13 +515,19 @@ fun AusenciaFormScreen(
                         )
 
                         // Duração do abono
-                        val maxAbono = uiState.duracaoDeclaracaoHoras * 60 + uiState.duracaoDeclaracaoMinutos
+                        val maxAbono =
+                            uiState.duracaoDeclaracaoHoras * 60 + uiState.duracaoDeclaracaoMinutos
                         DurationInputField(
                             totalMinutos = uiState.duracaoAbonoHoras * 60 + uiState.duracaoAbonoMinutos,
                             onValueChange = { totalMinutos ->
                                 val horas = totalMinutos / 60
                                 val minutos = totalMinutos % 60
-                                viewModel.onAction(AusenciaFormAction.AtualizarDuracaoAbono(horas, minutos))
+                                viewModel.onAction(
+                                    AusenciaFormAction.AtualizarDuracaoAbono(
+                                        horas,
+                                        minutos
+                                    )
+                                )
                             },
                             label = stringResource(R.string.ausencia_tempo_abonado),
                             minValue = 0,
@@ -526,7 +557,11 @@ fun AusenciaFormScreen(
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     Text(
-                                        text = "${stringResource(R.string.ausencia_duracao)}: ${uiState.duracaoDeclaracaoFormatada} | ${stringResource(R.string.ausencia_abono)}: ${uiState.duracaoAbonoFormatada}",
+                                        text = "${stringResource(R.string.ausencia_duracao)}: ${uiState.duracaoDeclaracaoFormatada} | ${
+                                            stringResource(
+                                                R.string.ausencia_abono
+                                            )
+                                        }: ${uiState.duracaoAbonoFormatada}",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -584,7 +619,10 @@ fun AusenciaFormScreen(
                                             alpha = 0.5f
                                         )
                                     ),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    )
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -792,7 +830,13 @@ fun AusenciaFormScreen(
     if (uiState.showDatePickerInicioPeriodoAquisitivo) {
         DatePickerDialogWrapper(
             initialDate = uiState.dataInicioPeriodoAquisitivo ?: LocalDate.now(),
-            onDateSelected = { viewModel.onAction(AusenciaFormAction.SelecionarDataInicioPeriodoAquisitivo(it)) },
+            onDateSelected = {
+                viewModel.onAction(
+                    AusenciaFormAction.SelecionarDataInicioPeriodoAquisitivo(
+                        it
+                    )
+                )
+            },
             onDismiss = { viewModel.onAction(AusenciaFormAction.FecharDatePickerInicioPeriodoAquisitivo) }
         )
     }
@@ -801,7 +845,13 @@ fun AusenciaFormScreen(
     if (uiState.showDatePickerFimPeriodoAquisitivo) {
         DatePickerDialogWrapper(
             initialDate = uiState.dataFimPeriodoAquisitivo ?: LocalDate.now(),
-            onDateSelected = { viewModel.onAction(AusenciaFormAction.SelecionarDataFimPeriodoAquisitivo(it)) },
+            onDateSelected = {
+                viewModel.onAction(
+                    AusenciaFormAction.SelecionarDataFimPeriodoAquisitivo(
+                        it
+                    )
+                )
+            },
             onDismiss = { viewModel.onAction(AusenciaFormAction.FecharDatePickerFimPeriodoAquisitivo) }
         )
     }

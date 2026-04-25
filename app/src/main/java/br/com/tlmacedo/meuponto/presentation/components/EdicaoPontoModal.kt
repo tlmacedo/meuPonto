@@ -125,7 +125,8 @@ fun EdicaoModal(
     var horaAutoFilled by remember { mutableStateOf(ponto.horaAutoFilled) }
     var dataAutoFilled by remember { mutableStateOf(ponto.dataAutoFilled) }
 
-    val corPrincipal = if (tipoDescricao.contains("Entrada", ignoreCase = true)) EntradaColor else SaidaColor
+    val corPrincipal =
+        if (tipoDescricao.contains("Entrada", ignoreCase = true)) EntradaColor else SaidaColor
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
 
@@ -272,7 +273,8 @@ fun EdicaoModal(
                     )
 
                     val temNovaFoto = fotoUri != null
-                    val temFotoExistente = !fotoRemovida && !fotoPathAbsoluto.isNullOrBlank() && File(fotoPathAbsoluto).exists()
+                    val temFotoExistente =
+                        !fotoRemovida && !fotoPathAbsoluto.isNullOrBlank() && File(fotoPathAbsoluto).exists()
 
                     if (temNovaFoto || temFotoExistente) {
                         Box(
@@ -400,7 +402,7 @@ fun EdicaoModal(
                 if (nsrHabilitado) {
                     OutlinedTextField(
                         value = nsr,
-                        onValueChange = { 
+                        onValueChange = {
                             nsr = it
                             nsrAutoFilled = false
                         },
@@ -436,7 +438,12 @@ fun EdicaoModal(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4,
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Campo Observação") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Comment,
+                                contentDescription = "Campo Observação"
+                            )
+                        },
                         enabled = !isSaving
                     )
                     Spacer(modifier = Modifier.height(20.dp))

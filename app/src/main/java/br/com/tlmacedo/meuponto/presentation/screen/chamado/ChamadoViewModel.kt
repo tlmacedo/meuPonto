@@ -12,7 +12,12 @@ import br.com.tlmacedo.meuponto.domain.model.chamado.StatusChamado
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ChamadoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -37,7 +42,7 @@ class ChamadoViewModel @Inject constructor(
         anexos: List<Uri>
     ) {
         val usuario = usuarioLogado.value ?: return
-        
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 

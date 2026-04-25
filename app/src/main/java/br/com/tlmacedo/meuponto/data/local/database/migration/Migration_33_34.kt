@@ -14,7 +14,7 @@ val MIGRATION_33_34 = object : Migration(33, 34) {
         val cursor = db.query("PRAGMA table_info(empregos)")
         var hasRazaoSocial = false
         var hasCnpj = false
-        
+
         val nameIndex = cursor.getColumnIndexOrThrow("name")
         while (cursor.moveToNext()) {
             val name = cursor.getString(nameIndex)

@@ -7,7 +7,14 @@ import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ChamadoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -42,7 +49,8 @@ class ChamadoListViewModel @Inject constructor(
                 }
                 .catch { e ->
                     Timber.e(e, "Erro ao carregar chamados")
-                    _uiState.value = ChamadoListUiState.Error("Erro ao carregar chamados: ${e.localizedMessage}")
+                    _uiState.value =
+                        ChamadoListUiState.Error("Erro ao carregar chamados: ${e.localizedMessage}")
                 }
                 .launchIn(viewModelScope)
         }

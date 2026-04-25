@@ -129,7 +129,8 @@ class InicializarCiclosRetroativosUseCase @Inject constructor(
 
         // Retroceder ciclo por ciclo até antes do primeiro ponto
         while (true) {
-            val dataInicioCicloAnterior = calcularInicioCicloAnterior(dataInicioCiclo, versaoJornada)
+            val dataInicioCicloAnterior =
+                calcularInicioCicloAnterior(dataInicioCiclo, versaoJornada)
             val dataFimCicloAnterior = dataInicioCiclo.minusDays(1)
 
             // Se o início do ciclo anterior é posterior ao primeiro ponto,
@@ -169,8 +170,10 @@ class InicializarCiclosRetroativosUseCase @Inject constructor(
     ): LocalDate = when {
         versaoJornada.periodoBancoSemanas > 0 ->
             dataInicioCicloAtual.minusWeeks(versaoJornada.periodoBancoSemanas.toLong())
+
         versaoJornada.periodoBancoMeses > 0 ->
             dataInicioCicloAtual.minusMonths(versaoJornada.periodoBancoMeses.toLong())
+
         else -> dataInicioCicloAtual
     }
 

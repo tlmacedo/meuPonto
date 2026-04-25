@@ -79,7 +79,10 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
                 dataFim = dataFimCiclo
             )
 
-            val ultimoFechamento = fechamentoRepository.buscarUltimoFechamentoBancoAteData(empregoId, cicloInicio.minusDays(1))
+            val ultimoFechamento = fechamentoRepository.buscarUltimoFechamentoBancoAteData(
+                empregoId,
+                cicloInicio.minusDays(1)
+            )
             val saldoAnterior = ultimoFechamento?.saldoAnteriorMinutos ?: 0
             val saldoAcumulado = saldoCiclo.saldoTotalMinutos + saldoAnterior
 
@@ -139,7 +142,10 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
             dataFim = minOf(dataAtual, dataFim)
         )
 
-        val ultimoFechamento = fechamentoRepository.buscarUltimoFechamentoBancoAteData(empregoId, dataInicio.minusDays(1))
+        val ultimoFechamento = fechamentoRepository.buscarUltimoFechamentoBancoAteData(
+            empregoId,
+            dataInicio.minusDays(1)
+        )
         val saldoInicial = ultimoFechamento?.saldoAnteriorMinutos ?: 0
 
         return CicloBancoHoras(
@@ -157,8 +163,10 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
     ): LocalDate = when {
         versaoJornada.periodoBancoSemanas > 0 ->
             dataInicio.plusWeeks(versaoJornada.periodoBancoSemanas.toLong())
+
         versaoJornada.periodoBancoMeses > 0 ->
             dataInicio.plusMonths(versaoJornada.periodoBancoMeses.toLong())
+
         else -> dataInicio
     }
 
@@ -197,6 +205,7 @@ class GerenciarCicloBancoHorasUseCase @Inject constructor(
             val cicloAtual: CicloBancoHoras,
             val ciclosFechados: List<FechamentoPeriodo>
         ) : Resultado()
+
         data object BancoNaoHabilitado : Resultado()
         data class Erro(val mensagem: String) : Resultado()
     }

@@ -132,7 +132,11 @@ fun LocalizacaoModal(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "${ponto.hora.format(timeFormatter)} • ${ponto.dataHora.format(dateFormatter)}",
+                                text = "${ponto.hora.format(timeFormatter)} • ${
+                                    ponto.dataHora.format(
+                                        dateFormatter
+                                    )
+                                }",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -210,7 +214,8 @@ fun LocalizacaoModal(
                     // Botão para abrir no Google Maps
                     Button(
                         onClick = {
-                            val gmmIntentUri = Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude(Ponto)")
+                            val gmmIntentUri =
+                                Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude(Ponto)")
                             val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                             mapIntent.setPackage("com.google.android.apps.maps")
 

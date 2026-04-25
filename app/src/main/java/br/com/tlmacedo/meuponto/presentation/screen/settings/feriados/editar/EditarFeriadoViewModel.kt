@@ -34,7 +34,8 @@ class EditarFeriadoViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(EditarFeriadoUiState())
     val uiState: StateFlow<EditarFeriadoUiState> = _uiState.asStateFlow()
 
-    private val feriadoId: Long? = savedStateHandle.get<Long>(MeuPontoDestinations.ARG_FERIADO_ID)?.takeIf { it > 0 }
+    private val feriadoId: Long? =
+        savedStateHandle.get<Long>(MeuPontoDestinations.ARG_FERIADO_ID)?.takeIf { it > 0 }
     private var feriadoOriginal: Feriado? = null
 
     init {
@@ -70,7 +71,9 @@ class EditarFeriadoViewModel @Inject constructor(
             try {
                 feriadoRepository.buscarPorId(id)?.let { feriado ->
                     feriadoOriginal = feriado
-                    val emprego = feriado.empregoId?.let { empregoId -> empregoRepository.buscarPorId(empregoId) }
+                    val emprego = feriado.empregoId?.let { empregoId ->
+                        empregoRepository.buscarPorId(empregoId)
+                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -89,15 +92,33 @@ class EditarFeriadoViewModel @Inject constructor(
                             hasChanges = false
                         )
                     }
-                } ?: run { _uiState.update { it.copy(isLoading = false, errorMessage = "Feriado não encontrado") } }
+                } ?: run {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Feriado não encontrado"
+                        )
+                    }
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Erro ao carregar feriado: ${e.message}") }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Erro ao carregar feriado: ${e.message}"
+                    )
+                }
             }
         }
     }
 
     fun onNomeChange(nome: String) {
-        _uiState.update { it.copy(nome = nome, nomeError = if (nome.isBlank()) "Nome é obrigatório" else null, hasChanges = true) }
+        _uiState.update {
+            it.copy(
+                nome = nome,
+                nomeError = if (nome.isBlank()) "Nome é obrigatório" else null,
+                hasChanges = true
+            )
+        }
     }
 
     fun onTipoChange(tipo: TipoFeriado) {
@@ -132,24 +153,93 @@ class EditarFeriadoViewModel @Inject constructor(
         }
     }
 
-    fun onDiaMesChange(diaMes: MonthDay) { _uiState.update { it.copy(diaMes = diaMes, dataError = null, hasChanges = true) } }
-    fun onDataEspecificaChange(data: LocalDate) { _uiState.update { it.copy(dataEspecifica = data, dataError = null, hasChanges = true) } }
-    fun onUfChange(uf: String) { _uiState.update { it.copy(uf = uf, ufError = null, municipio = if (uf != it.uf) null else it.municipio, hasChanges = true) } }
-    fun onMunicipioChange(municipio: String) { _uiState.update { it.copy(municipio = municipio, municipioError = if (municipio.isBlank()) "Município é obrigatório" else null, hasChanges = true) } }
-    fun onEmpregoSelecionado(emprego: Emprego) { _uiState.update { it.copy(empregoSelecionado = emprego, empregoError = null, showEmpregoSelector = false, hasChanges = true) } }
-    fun onObservacaoChange(observacao: String) { _uiState.update { it.copy(observacao = observacao, hasChanges = true) } }
-    fun onAtivoChange(ativo: Boolean) { _uiState.update { it.copy(ativo = ativo, hasChanges = true) } }
+    fun onDiaMesChange(diaMes: MonthDay) {
+        _uiState.update { it.copy(diaMes = diaMes, dataError = null, hasChanges = true) }
+    }
 
-    fun showDatePicker() { _uiState.update { it.copy(showDatePicker = true) } }
-    fun hideDatePicker() { _uiState.update { it.copy(showDatePicker = false) } }
-    fun showEmpregoSelector() { _uiState.update { it.copy(showEmpregoSelector = true) } }
-    fun hideEmpregoSelector() { _uiState.update { it.copy(showEmpregoSelector = false) } }
-    fun showUfSelector() { _uiState.update { it.copy(showUfSelector = true) } }
-    fun hideUfSelector() { _uiState.update { it.copy(showUfSelector = false) } }
-    fun showDeleteConfirmation() { _uiState.update { it.copy(showDeleteConfirmation = true) } }
-    fun hideDeleteConfirmation() { _uiState.update { it.copy(showDeleteConfirmation = false) } }
-    fun showDiscardConfirmation() { _uiState.update { it.copy(showDiscardConfirmation = true) } }
-    fun hideDiscardConfirmation() { _uiState.update { it.copy(showDiscardConfirmation = false) } }
+    fun onDataEspecificaChange(data: LocalDate) {
+        _uiState.update { it.copy(dataEspecifica = data, dataError = null, hasChanges = true) }
+    }
+
+    fun onUfChange(uf: String) {
+        _uiState.update {
+            it.copy(
+                uf = uf,
+                ufError = null,
+                municipio = if (uf != it.uf) null else it.municipio,
+                hasChanges = true
+            )
+        }
+    }
+
+    fun onMunicipioChange(municipio: String) {
+        _uiState.update {
+            it.copy(
+                municipio = municipio,
+                municipioError = if (municipio.isBlank()) "Município é obrigatório" else null,
+                hasChanges = true
+            )
+        }
+    }
+
+    fun onEmpregoSelecionado(emprego: Emprego) {
+        _uiState.update {
+            it.copy(
+                empregoSelecionado = emprego,
+                empregoError = null,
+                showEmpregoSelector = false,
+                hasChanges = true
+            )
+        }
+    }
+
+    fun onObservacaoChange(observacao: String) {
+        _uiState.update { it.copy(observacao = observacao, hasChanges = true) }
+    }
+
+    fun onAtivoChange(ativo: Boolean) {
+        _uiState.update { it.copy(ativo = ativo, hasChanges = true) }
+    }
+
+    fun showDatePicker() {
+        _uiState.update { it.copy(showDatePicker = true) }
+    }
+
+    fun hideDatePicker() {
+        _uiState.update { it.copy(showDatePicker = false) }
+    }
+
+    fun showEmpregoSelector() {
+        _uiState.update { it.copy(showEmpregoSelector = true) }
+    }
+
+    fun hideEmpregoSelector() {
+        _uiState.update { it.copy(showEmpregoSelector = false) }
+    }
+
+    fun showUfSelector() {
+        _uiState.update { it.copy(showUfSelector = true) }
+    }
+
+    fun hideUfSelector() {
+        _uiState.update { it.copy(showUfSelector = false) }
+    }
+
+    fun showDeleteConfirmation() {
+        _uiState.update { it.copy(showDeleteConfirmation = true) }
+    }
+
+    fun hideDeleteConfirmation() {
+        _uiState.update { it.copy(showDeleteConfirmation = false) }
+    }
+
+    fun showDiscardConfirmation() {
+        _uiState.update { it.copy(showDiscardConfirmation = true) }
+    }
+
+    fun hideDiscardConfirmation() {
+        _uiState.update { it.copy(showDiscardConfirmation = false) }
+    }
 
     fun salvar() {
         val state = _uiState.value
@@ -176,11 +266,24 @@ class EditarFeriadoViewModel @Inject constructor(
                     atualizadoEm = LocalDateTime.now()
                 )
 
-                if (state.isEditing) feriadoRepository.atualizar(feriado) else feriadoRepository.inserir(feriado)
+                if (state.isEditing) feriadoRepository.atualizar(feriado) else feriadoRepository.inserir(
+                    feriado
+                )
 
-                _uiState.update { it.copy(isSaving = false, successMessage = if (state.isEditing) "Feriado atualizado" else "Feriado criado", shouldNavigateBack = true) }
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        successMessage = if (state.isEditing) "Feriado atualizado" else "Feriado criado",
+                        shouldNavigateBack = true
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isSaving = false, errorMessage = "Erro ao salvar: ${e.message}") }
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        errorMessage = "Erro ao salvar: ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -191,14 +294,33 @@ class EditarFeriadoViewModel @Inject constructor(
             _uiState.update { it.copy(isDeleting = true, showDeleteConfirmation = false) }
             try {
                 feriadoRepository.excluirPorId(feriadoId)
-                _uiState.update { it.copy(isDeleting = false, successMessage = "Feriado excluído", shouldNavigateBack = true) }
+                _uiState.update {
+                    it.copy(
+                        isDeleting = false,
+                        successMessage = "Feriado excluído",
+                        shouldNavigateBack = true
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isDeleting = false, errorMessage = "Erro ao excluir: ${e.message}") }
+                _uiState.update {
+                    it.copy(
+                        isDeleting = false,
+                        errorMessage = "Erro ao excluir: ${e.message}"
+                    )
+                }
             }
         }
     }
 
-    fun clearError() { _uiState.update { it.copy(errorMessage = null) } }
-    fun clearSuccess() { _uiState.update { it.copy(successMessage = null) } }
-    fun onNavigateBackHandled() { _uiState.update { it.copy(shouldNavigateBack = false) } }
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun clearSuccess() {
+        _uiState.update { it.copy(successMessage = null) }
+    }
+
+    fun onNavigateBackHandled() {
+        _uiState.update { it.copy(shouldNavigateBack = false) }
+    }
 }

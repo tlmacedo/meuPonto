@@ -37,7 +37,11 @@ class FechamentoPeriodoRepositoryImpl @Inject constructor(
         auditService.logCreate(
             entidade = ENTIDADE,
             entidadeId = id,
-            motivo = "Fechamento ${fechamento.tipo.name} criado: ${fechamento.dataInicioPeriodo.format(dateFormatter)} a ${fechamento.dataFimPeriodo.format(dateFormatter)}",
+            motivo = "Fechamento ${fechamento.tipo.name} criado: ${
+                fechamento.dataInicioPeriodo.format(
+                    dateFormatter
+                )
+            } a ${fechamento.dataFimPeriodo.format(dateFormatter)}",
             novoValor = fechamento,
             serializer = { auditService.toJson(it.toAuditMap()) }
         )
@@ -63,7 +67,11 @@ class FechamentoPeriodoRepositoryImpl @Inject constructor(
         auditService.logPermanentDelete(
             entidade = ENTIDADE,
             entidadeId = fechamento.id,
-            motivo = "Fechamento ${fechamento.tipo.name} excluído: ${fechamento.dataInicioPeriodo.format(dateFormatter)} a ${fechamento.dataFimPeriodo.format(dateFormatter)}"
+            motivo = "Fechamento ${fechamento.tipo.name} excluído: ${
+                fechamento.dataInicioPeriodo.format(
+                    dateFormatter
+                )
+            } a ${fechamento.dataFimPeriodo.format(dateFormatter)}"
 
         )
 

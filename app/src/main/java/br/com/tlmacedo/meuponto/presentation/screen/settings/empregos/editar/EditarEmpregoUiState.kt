@@ -135,7 +135,8 @@ data class EditarEmpregoUiState(
                     exibirDuracaoIntervalo != originalExibirDuracaoIntervalo
             )
 
-    val temMudancas: Boolean = temMudancasDadosBasicos || temMudancasRHBank || temMudancasOpcoesRegistro
+    val temMudancas: Boolean =
+        temMudancasDadosBasicos || temMudancasRHBank || temMudancasOpcoesRegistro
 
     val formularioValido: Boolean = nome.isNotBlank() &&
             nomeErro == null &&

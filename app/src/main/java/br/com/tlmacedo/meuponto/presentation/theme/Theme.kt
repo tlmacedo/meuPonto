@@ -155,6 +155,7 @@ fun MeuPontoTheme(
                 if (darkTheme) SidiaDarkColorScheme else SidiaLightColorScheme
             }
         }
+
         else -> if (darkTheme) SidiaDarkColorScheme else SidiaLightColorScheme
     }
 

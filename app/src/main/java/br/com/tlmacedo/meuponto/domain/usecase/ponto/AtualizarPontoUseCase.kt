@@ -48,7 +48,7 @@ class AtualizarPontoUseCase @Inject constructor(
 
             // Persiste a atualização
             repository.atualizar(pontoAtualizado)
-            
+
             Timber.d("Ponto atualizado com sucesso: $pontoAtualizado")
             Result.success(pontoAtualizado)
 

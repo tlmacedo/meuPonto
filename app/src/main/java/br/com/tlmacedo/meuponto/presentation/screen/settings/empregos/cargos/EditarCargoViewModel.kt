@@ -58,8 +58,18 @@ class EditarCargoViewModel @Inject constructor(
         when (action) {
             is EditarCargoAction.AlterarFuncao -> alterarFuncao(action.valor)
             is EditarCargoAction.AlterarSalarioInicial -> alterarSalarioInicial(action.valor)
-            is EditarCargoAction.AbrirDataInicioPicker -> _uiState.update { it.copy(showDataInicioPicker = true) }
-            is EditarCargoAction.FecharDataInicioPicker -> _uiState.update { it.copy(showDataInicioPicker = false) }
+            is EditarCargoAction.AbrirDataInicioPicker -> _uiState.update {
+                it.copy(
+                    showDataInicioPicker = true
+                )
+            }
+
+            is EditarCargoAction.FecharDataInicioPicker -> _uiState.update {
+                it.copy(
+                    showDataInicioPicker = false
+                )
+            }
+
             is EditarCargoAction.AlterarDataInicio -> alterarDataInicio(action.data)
             is EditarCargoAction.AbrirDataFimPicker -> _uiState.update { it.copy(showDataFimPicker = true) }
             is EditarCargoAction.FecharDataFimPicker -> _uiState.update { it.copy(showDataFimPicker = false) }
@@ -67,10 +77,24 @@ class EditarCargoViewModel @Inject constructor(
             is EditarCargoAction.ToggleCargoAtual -> toggleCargoAtual(action.isAtual)
             is EditarCargoAction.AdicionarAjuste -> adicionarAjuste()
             is EditarCargoAction.RemoverAjuste -> removerAjuste(action.index)
-            is EditarCargoAction.AbrirAjusteDatePicker -> _uiState.update { it.copy(ajustePickerIndex = action.index) }
-            is EditarCargoAction.FecharAjusteDatePicker -> _uiState.update { it.copy(ajustePickerIndex = null) }
+            is EditarCargoAction.AbrirAjusteDatePicker -> _uiState.update {
+                it.copy(
+                    ajustePickerIndex = action.index
+                )
+            }
+
+            is EditarCargoAction.FecharAjusteDatePicker -> _uiState.update {
+                it.copy(
+                    ajustePickerIndex = null
+                )
+            }
+
             is EditarCargoAction.AlterarDataAjuste -> alterarDataAjuste(action.index, action.data)
-            is EditarCargoAction.AlterarSalarioAjuste -> alterarSalarioAjuste(action.index, action.valor)
+            is EditarCargoAction.AlterarSalarioAjuste -> alterarSalarioAjuste(
+                action.index,
+                action.valor
+            )
+
             is EditarCargoAction.Salvar -> salvar()
             is EditarCargoAction.Cancelar -> viewModelScope.launch { _eventos.emit(EditarCargoEvent.Voltar) }
         }
@@ -215,14 +239,15 @@ class EditarCargoViewModel @Inject constructor(
     private fun validarFormulario() {
         val state = _uiState.value
         val funcaoValida = state.funcao.isNotBlank()
-        val salarioValido = state.salarioInicialStr.replace(",", ".").toDoubleOrNull()?.let { it > 0 } == true
+        val salarioValido =
+            state.salarioInicialStr.replace(",", ".").toDoubleOrNull()?.let { it > 0 } == true
         val dataInicioValida = state.dataInicio != null
-        
+
         // Validar ajustes
         val ajustesValidos = state.ajustes.all { aj ->
             aj.novoSalarioStr.replace(",", ".").toDoubleOrNull()?.let { it > 0 } == true
         }
-        
+
         _uiState.update { it.copy(formularioValido = funcaoValida && salarioValido && dataInicioValida && ajustesValidos) }
     }
 
@@ -244,11 +269,11 @@ class EditarCargoViewModel @Inject constructor(
             _uiState.update { it.copy(dataInicioErro = "Informe a data de início") }
             hasError = true
         }
-        
+
         // Validar se as datas dos ajustes são posteriores à data de início do cargo
         state.ajustes.forEachIndexed { index, ajuste ->
             if (ajuste.dataAjuste.isBefore(state.dataInicio)) {
-                viewModelScope.launch { _eventos.emit(EditarCargoEvent.MostrarErro("O ajuste ${index+1} não pode ser anterior ao início do cargo")) }
+                viewModelScope.launch { _eventos.emit(EditarCargoEvent.MostrarErro("O ajuste ${index + 1} não pode ser anterior ao início do cargo")) }
                 hasError = true
             }
         }
@@ -291,7 +316,8 @@ class EditarCargoViewModel @Inject constructor(
 
                 // Salvar/Atualizar ajustes da UI
                 state.ajustes.forEach { ajusteForm ->
-                    val novoSalario = ajusteForm.novoSalarioStr.replace(",", ".").toDoubleOrNull() ?: return@forEach
+                    val novoSalario = ajusteForm.novoSalarioStr.replace(",", ".").toDoubleOrNull()
+                        ?: return@forEach
                     val ajuste = AjusteSalarial(
                         id = ajusteForm.id,
                         historicoCargoId = if (state.isNovoCargo) savedCargoId else state.cargoId,

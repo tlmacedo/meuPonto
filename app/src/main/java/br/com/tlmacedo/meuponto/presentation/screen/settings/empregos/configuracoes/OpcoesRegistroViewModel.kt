@@ -24,7 +24,8 @@ class OpcoesRegistroViewModel @Inject constructor(
     private val empregoRepository: EmpregoRepository
 ) : ViewModel() {
 
-    private val empregoId: Long = checkNotNull(savedStateHandle[MeuPontoDestinations.ARG_EMPREGO_ID])
+    private val empregoId: Long =
+        checkNotNull(savedStateHandle[MeuPontoDestinations.ARG_EMPREGO_ID])
 
     private val _uiState = MutableStateFlow(OpcoesRegistroUiState())
     val uiState = _uiState.asStateFlow()
@@ -42,27 +43,79 @@ class OpcoesRegistroViewModel @Inject constructor(
         when (action) {
             is OpcoesRegistroAction.AlterarHabilitarNsr -> _uiState.update { it.copy(habilitarNsr = action.habilitar) }
             is OpcoesRegistroAction.AlterarTipoNsr -> _uiState.update { it.copy(tipoNsr = action.tipo) }
-            is OpcoesRegistroAction.AlterarHabilitarLocalizacao -> _uiState.update { it.copy(habilitarLocalizacao = action.habilitar) }
-            is OpcoesRegistroAction.AlterarLocalizacaoAutomatica -> _uiState.update { it.copy(localizacaoAutomatica = action.automatica) }
-            is OpcoesRegistroAction.AlterarExibirLocalizacaoDetalhes -> _uiState.update { it.copy(exibirLocalizacaoDetalhes = action.exibir) }
-            is OpcoesRegistroAction.AlterarFotoHabilitada -> _uiState.update { it.copy(fotoHabilitada = action.habilitada) }
-            is OpcoesRegistroAction.AlterarFotoObrigatoria -> _uiState.update { it.copy(fotoObrigatoria = action.obrigatoria) }
-            is OpcoesRegistroAction.AlterarFotoValidarComprovante -> _uiState.update { it.copy(fotoValidarComprovante = action.validar) }
+            is OpcoesRegistroAction.AlterarHabilitarLocalizacao -> _uiState.update {
+                it.copy(
+                    habilitarLocalizacao = action.habilitar
+                )
+            }
+
+            is OpcoesRegistroAction.AlterarLocalizacaoAutomatica -> _uiState.update {
+                it.copy(
+                    localizacaoAutomatica = action.automatica
+                )
+            }
+
+            is OpcoesRegistroAction.AlterarExibirLocalizacaoDetalhes -> _uiState.update {
+                it.copy(
+                    exibirLocalizacaoDetalhes = action.exibir
+                )
+            }
+
+            is OpcoesRegistroAction.AlterarFotoHabilitada -> _uiState.update {
+                it.copy(
+                    fotoHabilitada = action.habilitada
+                )
+            }
+
+            is OpcoesRegistroAction.AlterarFotoObrigatoria -> _uiState.update {
+                it.copy(
+                    fotoObrigatoria = action.obrigatoria
+                )
+            }
+
+            is OpcoesRegistroAction.AlterarFotoValidarComprovante -> _uiState.update {
+                it.copy(
+                    fotoValidarComprovante = action.validar
+                )
+            }
+
             is OpcoesRegistroAction.AlterarComentarioHabilitado -> _uiState.update {
                 it.copy(
                     comentarioHabilitado = action.habilitado,
                     comentarioObrigatorioHoraExtra = if (!action.habilitado) false else it.comentarioObrigatorioHoraExtra
                 )
             }
+
             is OpcoesRegistroAction.AlterarComentarioObrigatorioHoraExtra -> {
                 if (_uiState.value.comentarioHabilitado) {
                     _uiState.update { it.copy(comentarioObrigatorioHoraExtra = action.obrigatorio) }
                 }
             }
-            is OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario -> _uiState.update { it.copy(limiteHoraExtraSemComentario = action.limite) }
-            is OpcoesRegistroAction.AlterarExibirDuracaoTurno -> _uiState.update { it.copy(exibirDuracaoTurno = action.exibir) }
-            is OpcoesRegistroAction.AlterarExibirDuracaoIntervalo -> _uiState.update { it.copy(exibirDuracaoIntervalo = action.exibir) }
-            OpcoesRegistroAction.ConfigurarLocalizacao -> viewModelScope.launch { _eventos.emit(OpcoesRegistroEvent.NavegarParaLocalizacao(empregoId)) }
+
+            is OpcoesRegistroAction.AlterarLimiteHoraExtraSemComentario -> _uiState.update {
+                it.copy(
+                    limiteHoraExtraSemComentario = action.limite
+                )
+            }
+
+            is OpcoesRegistroAction.AlterarExibirDuracaoTurno -> _uiState.update {
+                it.copy(
+                    exibirDuracaoTurno = action.exibir
+                )
+            }
+
+            is OpcoesRegistroAction.AlterarExibirDuracaoIntervalo -> _uiState.update {
+                it.copy(
+                    exibirDuracaoIntervalo = action.exibir
+                )
+            }
+
+            OpcoesRegistroAction.ConfigurarLocalizacao -> viewModelScope.launch {
+                _eventos.emit(
+                    OpcoesRegistroEvent.NavegarParaLocalizacao(empregoId)
+                )
+            }
+
             OpcoesRegistroAction.Salvar -> salvar()
             OpcoesRegistroAction.Voltar -> viewModelScope.launch { _eventos.emit(OpcoesRegistroEvent.Voltar) }
         }
@@ -71,12 +124,12 @@ class OpcoesRegistroViewModel @Inject constructor(
     private fun carregarConfiguracao() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+
             val emprego = empregoRepository.buscarPorId(empregoId)
             val config = configuracaoRepository.buscarPorEmpregoId(empregoId)
-            
+
             configuracaoOriginal = config
-            
+
             _uiState.update {
                 it.copy(
                     isLoading = false,
@@ -92,7 +145,8 @@ class OpcoesRegistroViewModel @Inject constructor(
                     fotoObrigatoria = config?.fotoObrigatoria ?: false,
                     fotoValidarComprovante = config?.fotoValidarComprovante ?: false,
                     comentarioHabilitado = config?.comentarioHabilitado ?: false,
-                    comentarioObrigatorioHoraExtra = config?.comentarioObrigatorioHoraExtra ?: false,
+                    comentarioObrigatorioHoraExtra = config?.comentarioObrigatorioHoraExtra
+                        ?: false,
                     limiteHoraExtraSemComentario = config?.limiteHoraExtraSemComentario ?: 0,
                     exibirDuracaoTurno = config?.exibirDuracaoTurno ?: true,
                     exibirDuracaoIntervalo = config?.exibirDuracaoIntervalo ?: true
@@ -103,21 +157,22 @@ class OpcoesRegistroViewModel @Inject constructor(
 
     private fun salvar() {
         val configAtual = uiState.value
-        val configParaSalvar = (configuracaoOriginal ?: ConfiguracaoEmprego(empregoId = empregoId)).copy(
-            habilitarNsr = configAtual.habilitarNsr,
-            tipoNsr = configAtual.tipoNsr,
-            habilitarLocalizacao = configAtual.habilitarLocalizacao,
-            localizacaoAutomatica = configAtual.localizacaoAutomatica,
-            exibirLocalizacaoDetalhes = configAtual.exibirLocalizacaoDetalhes,
-            fotoHabilitada = configAtual.fotoHabilitada,
-            fotoObrigatoria = configAtual.fotoObrigatoria,
-            fotoValidarComprovante = configAtual.fotoValidarComprovante,
-            comentarioHabilitado = configAtual.comentarioHabilitado,
-            comentarioObrigatorioHoraExtra = configAtual.comentarioObrigatorioHoraExtra,
-            limiteHoraExtraSemComentario = configAtual.limiteHoraExtraSemComentario,
-            exibirDuracaoTurno = configAtual.exibirDuracaoTurno,
-            exibirDuracaoIntervalo = configAtual.exibirDuracaoIntervalo
-        )
+        val configParaSalvar =
+            (configuracaoOriginal ?: ConfiguracaoEmprego(empregoId = empregoId)).copy(
+                habilitarNsr = configAtual.habilitarNsr,
+                tipoNsr = configAtual.tipoNsr,
+                habilitarLocalizacao = configAtual.habilitarLocalizacao,
+                localizacaoAutomatica = configAtual.localizacaoAutomatica,
+                exibirLocalizacaoDetalhes = configAtual.exibirLocalizacaoDetalhes,
+                fotoHabilitada = configAtual.fotoHabilitada,
+                fotoObrigatoria = configAtual.fotoObrigatoria,
+                fotoValidarComprovante = configAtual.fotoValidarComprovante,
+                comentarioHabilitado = configAtual.comentarioHabilitado,
+                comentarioObrigatorioHoraExtra = configAtual.comentarioObrigatorioHoraExtra,
+                limiteHoraExtraSemComentario = configAtual.limiteHoraExtraSemComentario,
+                exibirDuracaoTurno = configAtual.exibirDuracaoTurno,
+                exibirDuracaoIntervalo = configAtual.exibirDuracaoIntervalo
+            )
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
@@ -165,7 +220,9 @@ sealed interface OpcoesRegistroAction {
     data class AlterarFotoObrigatoria(val obrigatoria: Boolean) : OpcoesRegistroAction
     data class AlterarFotoValidarComprovante(val validar: Boolean) : OpcoesRegistroAction
     data class AlterarComentarioHabilitado(val habilitado: Boolean) : OpcoesRegistroAction
-    data class AlterarComentarioObrigatorioHoraExtra(val obrigatorio: Boolean) : OpcoesRegistroAction
+    data class AlterarComentarioObrigatorioHoraExtra(val obrigatorio: Boolean) :
+        OpcoesRegistroAction
+
     data class AlterarLimiteHoraExtraSemComentario(val limite: Int) : OpcoesRegistroAction
     data class AlterarExibirDuracaoTurno(val exibir: Boolean) : OpcoesRegistroAction
     data class AlterarExibirDuracaoIntervalo(val exibir: Boolean) : OpcoesRegistroAction

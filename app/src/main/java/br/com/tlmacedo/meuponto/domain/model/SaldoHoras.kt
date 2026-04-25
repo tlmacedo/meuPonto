@@ -131,7 +131,7 @@ data class SaldoHoras(
                 val limpo = formatado.removePrefix("+").removePrefix("-")
                 val partes = limpo.split(":")
                 if (partes.size != 2) return null
-                
+
                 val horas = partes[0].toInt()
                 val minutos = partes[1].toInt()
                 of(horas, minutos, isPositivo)

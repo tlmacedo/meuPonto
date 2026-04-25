@@ -75,12 +75,13 @@ class AtualizarEmpregoUseCase @Inject constructor(
             val agora = LocalDateTime.now()
 
             // 1. Processar Logo se necessário
-            val logoFinal = if (parametros.logo != null && parametros.logo.startsWith("content://")) {
-                logoImageStorage.saveFromUri(parametros.logo.toUri(), parametros.empregoId)
-                    ?: parametros.logo
-            } else {
-                parametros.logo
-            }
+            val logoFinal =
+                if (parametros.logo != null && parametros.logo.startsWith("content://")) {
+                    logoImageStorage.saveFromUri(parametros.logo.toUri(), parametros.empregoId)
+                        ?: parametros.logo
+                } else {
+                    parametros.logo
+                }
 
             // 2. Atualizar Emprego
             empregoRepository.atualizar(
@@ -97,7 +98,8 @@ class AtualizarEmpregoUseCase @Inject constructor(
             )
 
             // 3. Atualizar ConfiguracaoEmprego
-            val configExistente = configuracaoEmpregoRepository.buscarPorEmpregoId(parametros.empregoId)
+            val configExistente =
+                configuracaoEmpregoRepository.buscarPorEmpregoId(parametros.empregoId)
             if (configExistente != null) {
                 configuracaoEmpregoRepository.atualizar(
                     configExistente.copy(

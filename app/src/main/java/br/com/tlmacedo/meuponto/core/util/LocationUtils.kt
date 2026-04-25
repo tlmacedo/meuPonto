@@ -147,9 +147,9 @@ object LocationUtils {
     private fun toDMS(coord: Double, isLat: Boolean): String {
         val direction = when {
             isLat && coord >= 0 -> "N"
-            isLat              -> "S"
-            coord >= 0         -> "E"
-            else               -> "W"
+            isLat -> "S"
+            coord >= 0 -> "E"
+            else -> "W"
         }
         val absCoord = abs(coord)
         val degrees = absCoord.toInt()

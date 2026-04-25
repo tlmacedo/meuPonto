@@ -52,7 +52,12 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
 
         val saidaIntervaloIdeal = configDia?.saidaIntervaloIdeal
 
-        return aplicarTolerancia(pontosOrdenados, intervaloMinimoMinutos, toleranciaMinutos, saidaIntervaloIdeal)
+        return aplicarTolerancia(
+            pontosOrdenados,
+            intervaloMinimoMinutos,
+            toleranciaMinutos,
+            saidaIntervaloIdeal
+        )
     }
 
     fun invokeComConfiguracao(
@@ -63,7 +68,12 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
     ): List<Ponto> {
         if (pontos.size < 4) return pontos
         val pontosOrdenados = pontos.sortedBy { it.dataHora }
-        return aplicarTolerancia(pontosOrdenados, intervaloMinimoMinutos, toleranciaMinutos, saidaIntervaloIdeal)
+        return aplicarTolerancia(
+            pontosOrdenados,
+            intervaloMinimoMinutos,
+            toleranciaMinutos,
+            saidaIntervaloIdeal
+        )
     }
 
     suspend fun calcularDetalhado(pontos: List<Ponto>, empregoId: Long): List<ResultadoTolerancia> {
@@ -89,10 +99,22 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         val saidaIntervaloIdeal = configDia?.saidaIntervaloIdeal
 
         val limiteMaximoMinutos = intervaloMinimoMinutos + toleranciaMinutos
-        val indiceAlmoco = identificarIndiceAlmoco(pontosOrdenados, intervaloMinimoMinutos, toleranciaMinutos, saidaIntervaloIdeal)
+        val indiceAlmoco = identificarIndiceAlmoco(
+            pontosOrdenados,
+            intervaloMinimoMinutos,
+            toleranciaMinutos,
+            saidaIntervaloIdeal
+        )
 
         return pontosOrdenados.mapIndexed { indice, ponto ->
-            calcularToleranciaParaPonto(ponto, indice, pontosOrdenados, intervaloMinimoMinutos, limiteMaximoMinutos, indiceAlmoco)
+            calcularToleranciaParaPonto(
+                ponto,
+                indice,
+                pontosOrdenados,
+                intervaloMinimoMinutos,
+                limiteMaximoMinutos,
+                indiceAlmoco
+            )
         }
     }
 
@@ -103,10 +125,22 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         saidaIntervaloIdeal: LocalTime? = null
     ): List<Ponto> {
         val limiteMaximoMinutos = intervaloMinimoMinutos + toleranciaMinutos
-        val indiceAlmoco = identificarIndiceAlmoco(pontosOrdenados, intervaloMinimoMinutos, toleranciaMinutos, saidaIntervaloIdeal)
+        val indiceAlmoco = identificarIndiceAlmoco(
+            pontosOrdenados,
+            intervaloMinimoMinutos,
+            toleranciaMinutos,
+            saidaIntervaloIdeal
+        )
 
         return pontosOrdenados.mapIndexed { indice, ponto ->
-            calcularToleranciaParaPonto(ponto, indice, pontosOrdenados, intervaloMinimoMinutos, limiteMaximoMinutos, indiceAlmoco).pontoAtualizado()
+            calcularToleranciaParaPonto(
+                ponto,
+                indice,
+                pontosOrdenados,
+                intervaloMinimoMinutos,
+                limiteMaximoMinutos,
+                indiceAlmoco
+            ).pontoAtualizado()
         }
     }
 
@@ -128,7 +162,7 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         if (pausas.isEmpty()) return null
 
         val pausasLongas = pausas.filter { it.second >= (minimo - tolerancia) }
-        
+
         return if (ideal != null && pausasLongas.isNotEmpty()) {
             pausasLongas.minByOrNull { p ->
                 val horaSaida = pontos[(p.first + 1) * 2 - 1].dataHora.toLocalTime()
@@ -158,11 +192,13 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         }
 
         val saidaIntervalo = pontosOrdenados[indice - 1]
-        val intervaloRealMinutos = Duration.between(saidaIntervalo.dataHora, ponto.dataHora).toMinutes()
+        val intervaloRealMinutos =
+            Duration.between(saidaIntervalo.dataHora, ponto.dataHora).toMinutes()
         val dentroTolerancia = intervaloRealMinutos <= limiteMaximoMinutos
 
         return if (dentroTolerancia && intervaloRealMinutos > intervaloMinimoMinutos) {
-            val horaConsiderada = saidaIntervalo.dataHora.plusMinutes(intervaloMinimoMinutos.toLong()).toLocalTime()
+            val horaConsiderada =
+                saidaIntervalo.dataHora.plusMinutes(intervaloMinimoMinutos.toLong()).toLocalTime()
             ResultadoTolerancia(
                 ponto, horaConsiderada, true, intervaloRealMinutos, intervaloMinimoMinutos.toLong(),
                 "Intervalo de ${intervaloRealMinutos}min ajustado para ${intervaloMinimoMinutos}min"
@@ -182,13 +218,19 @@ class AplicarToleranciaIntervaloUseCase @Inject constructor(
         toleranciaMinutos: Int
     ): ResultadoTolerancia {
         val limiteMaximoMinutos = intervaloMinimoMinutos + toleranciaMinutos
-        val intervaloRealMinutos = Duration.between(saidaIntervalo.dataHora, voltaIntervalo.dataHora).toMinutes()
+        val intervaloRealMinutos =
+            Duration.between(saidaIntervalo.dataHora, voltaIntervalo.dataHora).toMinutes()
         val dentroTolerancia = intervaloRealMinutos <= limiteMaximoMinutos
 
         return if (dentroTolerancia && intervaloRealMinutos > intervaloMinimoMinutos) {
-            val horaConsiderada = saidaIntervalo.dataHora.plusMinutes(intervaloMinimoMinutos.toLong()).toLocalTime()
+            val horaConsiderada =
+                saidaIntervalo.dataHora.plusMinutes(intervaloMinimoMinutos.toLong()).toLocalTime()
             ResultadoTolerancia(
-                voltaIntervalo, horaConsiderada, true, intervaloRealMinutos, intervaloMinimoMinutos.toLong(),
+                voltaIntervalo,
+                horaConsiderada,
+                true,
+                intervaloRealMinutos,
+                intervaloMinimoMinutos.toLong(),
                 "Intervalo ajustado de ${intervaloRealMinutos}min para ${intervaloMinimoMinutos}min"
             )
         } else {

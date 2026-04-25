@@ -134,7 +134,11 @@ fun FechamentoCicloBanner(
                 // Período do ciclo fechado
                 InfoChipFechamento(
                     label = "Período",
-                    value = "${fechamento.dataInicioPeriodo.format(formatterDataCurta)} a ${fechamento.dataFimPeriodo.format(formatterDataCurta)}",
+                    value = "${fechamento.dataInicioPeriodo.format(formatterDataCurta)} a ${
+                        fechamento.dataFimPeriodo.format(
+                            formatterDataCurta
+                        )
+                    }",
                     contentColor = contentColor,
                     modifier = Modifier.weight(1f)
                 )

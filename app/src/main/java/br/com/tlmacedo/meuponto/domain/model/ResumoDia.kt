@@ -382,6 +382,7 @@ data class ResumoDia(
 
     val isDescanso: Boolean
         get() = tipoDiaEspecial == TipoDiaEspecial.DESCANSO
+
     /** Verifica se é um dia de feriado (inclui ponte e facultativo) */
     val isFeriado: Boolean
         get() = tipoDiaEspecial.isTipoFeriado
@@ -468,7 +469,7 @@ data class ResumoDia(
             if (pontos.size >= 4 && !tipoDiaEspecial.zeraJornada) {
                 val pausaPrincipal = intervalos.find { it.isPausaPrincipal }
                 val pausaPrincipalMinutos = pausaPrincipal?.pausaAntesMinutos ?: 0
-                
+
                 if (pausaPrincipalMinutos < (intervaloMinimoMinutos - 10)) {
                     inconsistencias.add("Intervalo principal não atingiu o mínimo de ${intervaloMinimoMinutos.minutosParaIntervalo()} (pausa: ${pausaPrincipalMinutos.minutosParaIntervalo()})")
                 }
@@ -590,7 +591,8 @@ data class ResumoDia(
             val saidaAnterior = if (i >= 2) pontosOrdenados.getOrNull(i - 1) else null
 
             if (entrada != null && saidaAnterior != null) {
-                val pausaMinutos = Duration.between(saidaAnterior.dataHora, entrada.dataHora).toMinutes().toInt()
+                val pausaMinutos =
+                    Duration.between(saidaAnterior.dataHora, entrada.dataHora).toMinutes().toInt()
 
                 infoPausas.add(
                     InfoPausa(
@@ -610,7 +612,8 @@ data class ResumoDia(
         // 1. Se houver saidaIntervaloIdeal: a pausa mais próxima desse horário (que tenha >= intervaloMinimoMinutos)
         // 2. Se não houver: a pausa com duração mais próxima do intervaloMinimoMinutos (global)
         val indicePausaPrincipal: Int? = if (infoPausas.isNotEmpty()) {
-            val pausasLongas = infoPausas.filter { it.pausaRealMinutos >= (intervaloMinimoMinutos - toleranciaIntervaloMinutos) }
+            val pausasLongas =
+                infoPausas.filter { it.pausaRealMinutos >= (intervaloMinimoMinutos - toleranciaIntervaloMinutos) }
 
             if (saidaIntervaloIdeal != null && pausasLongas.isNotEmpty()) {
                 // Seleciona a pausa mais próxima do horário ideal (comportamento para dias úteis)
@@ -655,7 +658,8 @@ data class ResumoDia(
                 }
 
                 // Aplica tolerância APENAS se esta for a pausa selecionada
-                val deveAplicarTolerancia = saidaAnterior != null && indicePausa == indicePausaComTolerancia
+                val deveAplicarTolerancia =
+                    saidaAnterior != null && indicePausa == indicePausaComTolerancia
 
                 val pausaConsideradaMinutos = pausaAntesMinutos?.let { pausa ->
                     if (deveAplicarTolerancia && pausa in limiteInferior..limiteSuperior) {

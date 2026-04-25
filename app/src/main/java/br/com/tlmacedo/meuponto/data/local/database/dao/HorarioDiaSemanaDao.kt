@@ -64,7 +64,10 @@ interface HorarioDiaSemanaDao {
     fun observarPorVersaoJornada(versaoJornadaId: Long): Flow<List<HorarioDiaSemanaEntity>>
 
     @Query("SELECT * FROM horarios_dia_semana WHERE versaoJornadaId = :versaoJornadaId AND diaSemana = :diaSemana")
-    suspend fun buscarPorVersaoEDia(versaoJornadaId: Long, diaSemana: DiaSemana): HorarioDiaSemanaEntity?
+    suspend fun buscarPorVersaoEDia(
+        versaoJornadaId: Long,
+        diaSemana: DiaSemana
+    ): HorarioDiaSemanaEntity?
 
     // ========================================================================
     // Consultas de dias ativos

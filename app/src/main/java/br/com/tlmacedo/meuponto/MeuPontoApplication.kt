@@ -5,8 +5,8 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import br.com.tlmacedo.meuponto.domain.service.MigracaoManager
-import br.com.tlmacedo.meuponto.worker.TrashCleanupWorker
 import br.com.tlmacedo.meuponto.util.logging.CrashlyticsTree
+import br.com.tlmacedo.meuponto.worker.TrashCleanupWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

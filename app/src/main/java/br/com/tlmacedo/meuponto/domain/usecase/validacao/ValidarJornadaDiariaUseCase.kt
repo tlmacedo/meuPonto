@@ -18,7 +18,9 @@ class ValidarJornadaDiariaUseCase @Inject constructor() {
     sealed class ResultadoValidacaoJornada {
         object Valida : ResultadoValidacaoJornada()
         data class JornadaExcedida(val minutosExcedidos: Long) : ResultadoValidacaoJornada()
-        data class IntervaloInsuficiente(val minutosIntervalo: Long, val minimoNecessario: Long) : ResultadoValidacaoJornada()
+        data class IntervaloInsuficiente(val minutosIntervalo: Long, val minimoNecessario: Long) :
+            ResultadoValidacaoJornada()
+
         object DadosInsuficientes : ResultadoValidacaoJornada()
     }
 

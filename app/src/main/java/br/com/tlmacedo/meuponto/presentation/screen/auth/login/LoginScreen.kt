@@ -76,8 +76,9 @@ fun LoginScreen(
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                         super.onAuthenticationError(errorCode, errString)
                         // Silencia erro de cancelamento pelo usuário
-                        if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && 
-                            errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                        if (errorCode != BiometricPrompt.ERROR_USER_CANCELED &&
+                            errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON
+                        ) {
                             // viewModel.onAction(LoginAction.ErroBiometria(errString.toString()))
                         }
                     }
@@ -100,9 +101,11 @@ fun LoginScreen(
         val canAuthenticate = biometricManager.canAuthenticate(
             BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
         )
-        viewModel.onAction(LoginAction.BiometriaDisponibilidadeAlterada(
-            canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS
-        ))
+        viewModel.onAction(
+            LoginAction.BiometriaDisponibilidadeAlterada(
+                canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS
+            )
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -113,6 +116,7 @@ fun LoginScreen(
                 is LoginEvent.SolicitarBiometria -> {
                     biometricPrompt?.authenticate(promptInfo)
                 }
+
                 else -> {}
             }
         }
@@ -219,7 +223,9 @@ fun LoginScreen(
 
             Button(
                 onClick = { viewModel.onAction(LoginAction.ClicarEntrar) },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
                 enabled = uiState.isFormValido && !uiState.isCarregando
             ) {
                 if (uiState.isCarregando) {
@@ -237,7 +243,9 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
                     onClick = { viewModel.onAction(LoginAction.LoginBiometriaClick) },
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
                 ) {
                     Icon(Icons.Default.Fingerprint, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))

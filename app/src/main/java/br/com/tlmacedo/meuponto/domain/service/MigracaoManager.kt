@@ -32,7 +32,8 @@ class MigracaoManager @Inject constructor(
 
     companion object {
         // Chaves das migrações - adicione novas migrações aqui
-        private val MIGRACAO_V7_1_TOLERANCIA_INTERVALO = booleanPreferencesKey("migracao_v7_1_tolerancia_intervalo")
+        private val MIGRACAO_V7_1_TOLERANCIA_INTERVALO =
+            booleanPreferencesKey("migracao_v7_1_tolerancia_intervalo")
     }
 
     /**

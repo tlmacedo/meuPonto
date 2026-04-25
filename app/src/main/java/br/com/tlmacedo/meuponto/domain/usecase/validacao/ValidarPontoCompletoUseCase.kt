@@ -143,12 +143,14 @@ class ValidarPontoCompletoUseCase @Inject constructor(
                     detalhes = "Jornada excedeu em ${resultado.minutosExcedidos} minutos"
                 )
             }
+
             is ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada.IntervaloInsuficiente -> {
                 InconsistenciaDetectada(
                     inconsistencia = Inconsistencia.INTERVALO_ALMOCO_INSUFICIENTE,
                     detalhes = "Intervalo de ${resultado.minutosIntervalo} min, mínimo: ${resultado.minimoNecessario} min"
                 )
             }
+
             ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada.Valida,
             ValidarJornadaDiariaUseCase.ResultadoValidacaoJornada.DadosInsuficientes -> null
         }

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronRight
@@ -98,21 +96,27 @@ fun EmpregoSettingsDetailScreen(
                 is EmpregoSettingsDetailEvent.NavegarParaVersoes -> {
                     onNavigateToVersoes(evento.empregoId)
                 }
+
                 is EmpregoSettingsDetailEvent.NavegarParaAusencias -> {
                     onNavigateToAusencias?.invoke(evento.empregoId)
                 }
+
                 is EmpregoSettingsDetailEvent.NavegarParaAjustesSaldo -> {
                     onNavigateToAjustesSaldo?.invoke(evento.empregoId)
                 }
+
                 is EmpregoSettingsDetailEvent.NavegarParaEditar -> {
                     onNavigateToEditarEmprego?.invoke(evento.empregoId)
                 }
+
                 is EmpregoSettingsDetailEvent.NavegarParaCargos -> {
                     onNavigateToCargos?.invoke(evento.empregoId)
                 }
+
                 is EmpregoSettingsDetailEvent.NavegarParaOpcoesRegistro -> {
                     onNavigateToOpcoesRegistro?.invoke(evento.empregoId)
                 }
+
                 is EmpregoSettingsDetailEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
@@ -248,7 +252,9 @@ private fun EmpregoSettingsDetailContent(
                     title = "Empresa e Cargos",
                     icon = Icons.Default.Business,
                     isExpanded = expandedStates["Empresa"] == true,
-                    onToggle = { expandedStates["Empresa"] = expandedStates["Empresa"]?.not() ?: true }
+                    onToggle = {
+                        expandedStates["Empresa"] = expandedStates["Empresa"]?.not() ?: true
+                    }
                 ) {
                     SettingsNavigationItem(
                         icon = Icons.Default.Edit,
@@ -282,7 +288,10 @@ private fun EmpregoSettingsDetailContent(
                     title = "Configuração Geral",
                     icon = Icons.Default.Settings,
                     isExpanded = expandedStates["ConfiguracaoGeral"] == true,
-                    onToggle = { expandedStates["ConfiguracaoGeral"] = expandedStates["ConfiguracaoGeral"]?.not() ?: true }
+                    onToggle = {
+                        expandedStates["ConfiguracaoGeral"] =
+                            expandedStates["ConfiguracaoGeral"]?.not() ?: true
+                    }
                 ) {
                     SettingsNavigationItem(
                         icon = Icons.Default.CalendarMonth,
@@ -320,7 +329,9 @@ private fun EmpregoSettingsDetailContent(
                     title = "Jornadas e Registros",
                     icon = Icons.Default.Schedule,
                     isExpanded = expandedStates["Jornadas"] == true,
-                    onToggle = { expandedStates["Jornadas"] = expandedStates["Jornadas"]?.not() ?: true }
+                    onToggle = {
+                        expandedStates["Jornadas"] = expandedStates["Jornadas"]?.not() ?: true
+                    }
                 ) {
                     SettingsNavigationItem(
                         icon = Icons.Default.History,

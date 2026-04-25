@@ -4,28 +4,48 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -78,6 +98,7 @@ fun OnboardingScreen(
                             permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
                             permissionLauncher.launch(permissions.toTypedArray())
                         }
+
                         6 -> viewModel.concluirOnboarding()
                     }
                 },
@@ -105,25 +126,30 @@ fun OnboardingScreen(
                     nomeEmprego = uiState.nomeEmprego,
                     onNomeChange = viewModel::onNomeEmpregoChange
                 )
+
                 2 -> WorkingDaysPage(
                     diasSelecionados = uiState.diasTrabalho,
                     onToggleDia = viewModel::onDiaTrabalhoToggle
                 )
+
                 3 -> RegistrationOptionsPage(
                     uiState = uiState,
                     onFotoChange = viewModel::onFotoHabilitadaChange,
                     onLocalizacaoChange = viewModel::onLocalizacaoHabilitadaChange,
                     onNsrChange = viewModel::onNsrHabilitadoChange
                 )
+
                 4 -> RhInfoPage(
                     uiState = uiState,
                     onDiaFechamentoChange = viewModel::onDiaFechamentoRHChange,
                     onBancoHorasChange = viewModel::onBancoHorasHabilitadoChange
                 )
+
                 5 -> CloudSyncPage(
                     habilitado = uiState.backupNuvemHabilitado,
                     onHabilitadoChange = viewModel::onBackupNuvemHabilitadoChange
                 )
+
                 6 -> ScheduleSetupPage(
                     cargaHoraria = uiState.cargaHorariaDiaria,
                     onCargaHorariaChange = viewModel::onCargaHorariaDiariaChange
@@ -185,10 +211,15 @@ private fun ScheduleSetupPage(
                 suffix = "m"
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = String.format(Locale.getDefault(), "%02d:%02d", cargaHoraria / 60, cargaHoraria % 60),
+            text = String.format(
+                Locale.getDefault(),
+                "%02d:%02d",
+                cargaHoraria / 60,
+                cargaHoraria % 60
+            ),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
@@ -404,8 +435,16 @@ private fun OnboardingSwitchItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }

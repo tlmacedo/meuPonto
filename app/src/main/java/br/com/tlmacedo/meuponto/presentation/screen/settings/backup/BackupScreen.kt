@@ -5,7 +5,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -143,30 +142,37 @@ fun BackupScreen(
                 is BackupEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 is BackupEvent.ExportacaoConcluida -> {
                     snackbarHostState.showSnackbar("Backup exportado com sucesso!")
                 }
+
                 is BackupEvent.ImportacaoConcluida -> {
                     snackbarHostState.showSnackbar("Backup importado com sucesso!")
                 }
+
                 is BackupEvent.LimpezaConcluida -> {
                     snackbarHostState.showSnackbar("${evento.registrosRemovidos} registros removidos")
                 }
+
                 is BackupEvent.SolicitarDestinoExportacao -> {
                     val fileName = "meuponto_backup_${
                         LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
                     }.db"
                     exportLauncher.launch(fileName)
                 }
+
                 is BackupEvent.SolicitarOrigemImportacao -> {
                     importLauncher.launch(arrayOf("*/*")) // Permitir qualquer arquivo, o repo trata
                 }
+
                 is BackupEvent.SolicitarAutenticacaoGoogle -> {
                     @Suppress("DEPRECATION")
                     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestEmail()
                         .requestScopes(Scope(DriveScopes.DRIVE_FILE))
                         .build()
+
                     @Suppress("DEPRECATION")
                     val client = GoogleSignIn.getClient(context, gso)
                     googleAuthLauncher.launch(client.signInIntent)
@@ -269,7 +275,15 @@ fun BackupScreen(
             },
             title = { Text("Excluir Backup na Nuvem") },
             text = {
-                Text("Deseja excluir permanentemente o backup de ${LocalDateTime.ofInstant(Instant.ofEpochMilli(backupParaExcluirNuvem!!.modifiedTime), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))} da nuvem?")
+                Text(
+                    "Deseja excluir permanentemente o backup de ${
+                        LocalDateTime.ofInstant(
+                            Instant.ofEpochMilli(
+                                backupParaExcluirNuvem!!.modifiedTime
+                            ), ZoneId.systemDefault()
+                        ).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                    } da nuvem?"
+                )
             },
             confirmButton = {
                 TextButton(
@@ -350,7 +364,11 @@ fun BackupScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.onAction(BackupAction.RestaurarBackupLocal(backupLocalParaRestaurar!!.nome))
+                        viewModel.onAction(
+                            BackupAction.RestaurarBackupLocal(
+                                backupLocalParaRestaurar!!.nome
+                            )
+                        )
                         backupLocalParaRestaurar = null
                     }
                 ) {
@@ -572,7 +590,13 @@ fun BackupScreen(
                                     }
                                     Switch(
                                         checked = uiState.backupNuvemAtivo,
-                                        onCheckedChange = { viewModel.onAction(BackupAction.ToggleBackupNuvem(it)) }
+                                        onCheckedChange = {
+                                            viewModel.onAction(
+                                                BackupAction.ToggleBackupNuvem(
+                                                    it
+                                                )
+                                            )
+                                        }
                                     )
                                 }
 
@@ -647,7 +671,10 @@ fun BackupScreen(
                                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                                         contentPadding = PaddingValues(0.dp)
                                     ) {
-                                        Text("Limpar Todos Nuvem", style = MaterialTheme.typography.labelSmall)
+                                        Text(
+                                            "Limpar Todos Nuvem",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
                                     }
                                 }
 
@@ -660,7 +687,13 @@ fun BackupScreen(
                                     ListItem(
                                         headlineContent = { Text(data) },
                                         supportingContent = {
-                                            Text("Tamanho compactado: ${FileUtils.formatarTamanho(backup.size)}")
+                                            Text(
+                                                "Tamanho compactado: ${
+                                                    FileUtils.formatarTamanho(
+                                                        backup.size
+                                                    )
+                                                }"
+                                            )
                                         },
                                         leadingContent = {
                                             Icon(
@@ -671,14 +704,18 @@ fun BackupScreen(
                                         },
                                         trailingContent = {
                                             Row {
-                                                IconButton(onClick = { backupParaRestaurar = backup }) {
+                                                IconButton(onClick = {
+                                                    backupParaRestaurar = backup
+                                                }) {
                                                     Icon(
                                                         Icons.Outlined.Restore,
                                                         contentDescription = "Restaurar",
                                                         tint = MaterialTheme.colorScheme.primary
                                                     )
                                                 }
-                                                IconButton(onClick = { backupParaExcluirNuvem = backup }) {
+                                                IconButton(onClick = {
+                                                    backupParaExcluirNuvem = backup
+                                                }) {
                                                     Icon(
                                                         Icons.Outlined.DeleteSweep,
                                                         contentDescription = "Excluir",
@@ -695,7 +732,9 @@ fun BackupScreen(
                                         HorizontalDivider(
                                             modifier = Modifier.padding(horizontal = 16.dp),
                                             thickness = 0.5.dp,
-                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                                alpha = 0.5f
+                                            )
                                         )
                                     }
                                 }
@@ -733,7 +772,10 @@ fun BackupScreen(
                                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                                         contentPadding = PaddingValues(0.dp)
                                     ) {
-                                        Text("Limpar Todos", style = MaterialTheme.typography.labelSmall)
+                                        Text(
+                                            "Limpar Todos",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
                                     }
                                 }
 
@@ -752,19 +794,25 @@ fun BackupScreen(
                                             Icon(
                                                 Icons.Outlined.Storage,
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                                                tint = MaterialTheme.colorScheme.secondary.copy(
+                                                    alpha = 0.6f
+                                                )
                                             )
                                         },
                                         trailingContent = {
                                             Row {
-                                                IconButton(onClick = { backupLocalParaRestaurar = backup }) {
+                                                IconButton(onClick = {
+                                                    backupLocalParaRestaurar = backup
+                                                }) {
                                                     Icon(
                                                         Icons.Outlined.Restore,
                                                         contentDescription = "Restaurar",
                                                         tint = MaterialTheme.colorScheme.primary
                                                     )
                                                 }
-                                                IconButton(onClick = { backupLocalParaExcluir = backup }) {
+                                                IconButton(onClick = {
+                                                    backupLocalParaExcluir = backup
+                                                }) {
                                                     Icon(
                                                         Icons.Outlined.DeleteSweep,
                                                         contentDescription = "Excluir",
@@ -781,7 +829,9 @@ fun BackupScreen(
                                         HorizontalDivider(
                                             modifier = Modifier.padding(horizontal = 16.dp),
                                             thickness = 0.5.dp,
-                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                                alpha = 0.5f
+                                            )
                                         )
                                     }
                                 }
@@ -863,7 +913,9 @@ fun BackupScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Card(
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(
+                                        alpha = 0.2f
+                                    )
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -935,18 +987,22 @@ fun BackupScreen(
                                     text = "Manter últimos",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
-                                
+
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     IconButton(
-                                        onClick = { if (uiState.mesesParaLimpeza > 1) viewModel.onAction(BackupAction.AlterarMesesLimpeza(uiState.mesesParaLimpeza - 1)) },
+                                        onClick = {
+                                            if (uiState.mesesParaLimpeza > 1) viewModel.onAction(
+                                                BackupAction.AlterarMesesLimpeza(uiState.mesesParaLimpeza - 1)
+                                            )
+                                        },
                                         enabled = uiState.mesesParaLimpeza > 1
                                     ) {
                                         Text("-", style = MaterialTheme.typography.headlineSmall)
                                     }
-                                    
+
                                     Text(
                                         text = "${uiState.mesesParaLimpeza} meses",
                                         style = MaterialTheme.typography.titleMedium,
@@ -955,7 +1011,13 @@ fun BackupScreen(
                                     )
 
                                     IconButton(
-                                        onClick = { viewModel.onAction(BackupAction.AlterarMesesLimpeza(uiState.mesesParaLimpeza + 1)) }
+                                        onClick = {
+                                            viewModel.onAction(
+                                                BackupAction.AlterarMesesLimpeza(
+                                                    uiState.mesesParaLimpeza + 1
+                                                )
+                                            )
+                                        }
                                     ) {
                                         Text("+", style = MaterialTheme.typography.headlineSmall)
                                     }

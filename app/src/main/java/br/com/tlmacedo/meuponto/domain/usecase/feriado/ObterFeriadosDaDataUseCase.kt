@@ -42,6 +42,7 @@ class ObterFeriadosDaDataUseCase @Inject constructor(
                                 diaMes.month == data.month
                     } ?: false
                 }
+
                 RecorrenciaFeriado.UNICO -> {
                     feriado.dataEspecifica == data
                 }
@@ -56,7 +57,8 @@ class ObterFeriadosDaDataUseCase @Inject constructor(
             }
 
             aplicavelAData && aplicavelAoEmprego
-        }.sortedBy { it.tipo.ordinal } // Ordenar por tipo (Nacional, Estadual, Municipal, Facultativo, Ponte)
+        }
+            .sortedBy { it.tipo.ordinal } // Ordenar por tipo (Nacional, Estadual, Municipal, Facultativo, Ponte)
     }
 
     /**

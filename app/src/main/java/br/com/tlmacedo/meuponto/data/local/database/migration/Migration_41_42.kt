@@ -14,10 +14,10 @@ val MIGRATION_41_42 = object : Migration(41, 42) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // Adiciona coluna nsr_auto_filled
         db.execSQL("ALTER TABLE pontos ADD COLUMN nsr_auto_filled INTEGER NOT NULL DEFAULT 0")
-        
+
         // Adiciona coluna hora_auto_filled
         db.execSQL("ALTER TABLE pontos ADD COLUMN hora_auto_filled INTEGER NOT NULL DEFAULT 0")
-        
+
         // Adiciona coluna data_auto_filled
         db.execSQL("ALTER TABLE pontos ADD COLUMN data_auto_filled INTEGER NOT NULL DEFAULT 0")
     }

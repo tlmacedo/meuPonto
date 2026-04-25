@@ -42,12 +42,14 @@ interface ChamadoDao {
     @Query("UPDATE chamados SET status = :status, atualizadoEm = :atualizadoEm WHERE id = :id")
     suspend fun atualizarStatus(id: Long, status: String, atualizadoEm: String)
 
-    @Query("""
+    @Query(
+        """
         UPDATE chamados 
         SET avaliacaoNota = :nota, avaliacaoComentario = :comentario, 
             avaliadoEm = :avaliadoEm, atualizadoEm = :atualizadoEm 
         WHERE id = :id
-    """)
+    """
+    )
     suspend fun registrarAvaliacao(
         id: Long,
         nota: String,

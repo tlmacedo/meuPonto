@@ -13,7 +13,8 @@ val MIGRATION_37_38 = object : Migration(37, 38) {
         db.execSQL("DROP TABLE IF EXISTS `ausencias_new`")
 
         // 1. Criar nova tabela com a estrutura EXATA (conforme MeuPontoDatabase_Impl.java)
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE IF NOT EXISTS `ausencias_new` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
                 `empregoId` INTEGER NOT NULL, 
@@ -36,7 +37,8 @@ val MIGRATION_37_38 = object : Migration(37, 38) {
                 `atualizadoEm` TEXT NOT NULL, 
                 FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE 
             )
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // 2. Copiar dados da tabela antiga para a nova
         // Primeiro, obter as colunas que realmente existem na tabela atual
@@ -57,11 +59,13 @@ val MIGRATION_37_38 = object : Migration(37, 38) {
         ).filter { it in existingColumns }
 
         val columnsString = columnsToCopy.joinToString(", ")
-        
-        db.execSQL("""
+
+        db.execSQL(
+            """
             INSERT INTO `ausencias_new` ($columnsString)
             SELECT $columnsString FROM `ausencias`
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // 3. Remover a tabela antiga
         db.execSQL("DROP TABLE `ausencias`")

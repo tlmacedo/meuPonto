@@ -69,22 +69,22 @@ sealed interface GerenciarEmpregosEvent {
 sealed interface GerenciarEmpregosAction {
     /** Alterna a visibilidade da seção de empregos arquivados */
     data object ToggleMostrarArquivados : GerenciarEmpregosAction
-    
+
     /** Define um emprego como ativo */
     data class DefinirAtivo(val emprego: Emprego) : GerenciarEmpregosAction
-    
+
     /** Arquiva um emprego */
     data class Arquivar(val emprego: Emprego) : GerenciarEmpregosAction
-    
+
     /** Desarquiva um emprego */
     data class Desarquivar(val emprego: Emprego) : GerenciarEmpregosAction
-    
+
     /** Solicita confirmação para excluir um emprego */
     data class SolicitarExclusao(val emprego: Emprego) : GerenciarEmpregosAction
-    
+
     /** Cancela o diálogo de confirmação de exclusão */
     data object CancelarExclusao : GerenciarEmpregosAction
-    
+
     /** Confirma a exclusão do emprego */
     data object ConfirmarExclusao : GerenciarEmpregosAction
 }
@@ -190,12 +190,15 @@ class GerenciarEmpregosViewModel @Inject constructor(
                 is TrocarEmpregoAtivoUseCase.Resultado.Sucesso -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("${emprego.nome} definido como ativo"))
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.NaoEncontrado -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("Emprego não encontrado"))
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.EmpregoIndisponivel -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("Emprego indisponível"))
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.Erro -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem(resultado.mensagem))
                 }
@@ -214,12 +217,15 @@ class GerenciarEmpregosViewModel @Inject constructor(
                 is ArquivarEmpregoUseCase.Resultado.Sucesso -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("${emprego.nome} arquivado"))
                 }
+
                 is ArquivarEmpregoUseCase.Resultado.NaoEncontrado -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("Emprego não encontrado"))
                 }
+
                 is ArquivarEmpregoUseCase.Resultado.UltimoEmprego -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("Não é possível arquivar o único emprego"))
                 }
+
                 is ArquivarEmpregoUseCase.Resultado.Erro -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem(resultado.mensagem))
                 }
@@ -238,13 +244,16 @@ class GerenciarEmpregosViewModel @Inject constructor(
                 is ArquivarEmpregoUseCase.Resultado.Sucesso -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("${emprego.nome} restaurado"))
                 }
+
                 is ArquivarEmpregoUseCase.Resultado.NaoEncontrado -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("Emprego não encontrado"))
                 }
+
                 is ArquivarEmpregoUseCase.Resultado.UltimoEmprego -> {
                     // Não deve ocorrer no desarquivar
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("Erro inesperado"))
                 }
+
                 is ArquivarEmpregoUseCase.Resultado.Erro -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem(resultado.mensagem))
                 }
@@ -273,17 +282,19 @@ class GerenciarEmpregosViewModel @Inject constructor(
      */
     private fun confirmarExclusao() {
         val emprego = _uiState.value.dialogConfirmacaoExclusao ?: return
-        
+
         viewModelScope.launch {
             _uiState.update { it.copy(dialogConfirmacaoExclusao = null) }
-            
+
             when (val resultado = excluirEmpregoUseCase(emprego.id)) {
                 is ExcluirEmpregoUseCase.Resultado.Sucesso -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("${emprego.nome} excluído"))
                 }
+
                 is ExcluirEmpregoUseCase.Resultado.NaoEncontrado -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem("Emprego não encontrado"))
                 }
+
                 is ExcluirEmpregoUseCase.Resultado.Erro -> {
                     _eventos.emit(GerenciarEmpregosEvent.MostrarMensagem(resultado.mensagem))
                 }

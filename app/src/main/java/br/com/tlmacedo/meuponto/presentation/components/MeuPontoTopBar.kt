@@ -84,7 +84,7 @@ fun MeuPontoTopBar(
                         )
                     }
                 }
-                
+
                 logo?.let {
                     Box(modifier = Modifier.padding(start = if (showBackButton) 0.dp else 8.dp)) {
                         LocalImage(

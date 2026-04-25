@@ -76,6 +76,7 @@ data class Feriado(
                     it.dayOfMonth == data.dayOfMonth && it.month == data.month
                 } ?: false
             }
+
             RecorrenciaFeriado.UNICO -> dataEspecifica == data
         }
     }

@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.time.Instant
 import java.time.YearMonth
 import java.time.ZoneId
@@ -144,7 +143,10 @@ class SettingsMainViewModel @Inject constructor(
                 .flatMapLatest { emprego ->
                     if (emprego == null) {
                         combine(empregosFlow, preferenciasFlow) { empregos, prefs ->
-                            val dataBackup = obterDataBackupRecente(prefs.ultimoBackupLocal, prefs.ultimoBackupNuvem)
+                            val dataBackup = obterDataBackupRecente(
+                                prefs.ultimoBackupLocal,
+                                prefs.ultimoBackupNuvem
+                            )
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
@@ -164,14 +166,18 @@ class SettingsMainViewModel @Inject constructor(
                             versaoJornadaRepository.observarVigente(emprego.id),
                             observarSaldoMensal(emprego.id)
                         ) { empregos, prefs, versao, saldo ->
-                            val dataBackup = obterDataBackupRecente(prefs.ultimoBackupLocal, prefs.ultimoBackupNuvem)
+                            val dataBackup = obterDataBackupRecente(
+                                prefs.ultimoBackupLocal,
+                                prefs.ultimoBackupNuvem
+                            )
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
                                     empregoAtual = emprego,
                                     empregosDisponiveis = empregos,
                                     versaoVigenteDescricao = versao?.let { v ->
-                                        "Versão ${v.numeroVersao}" + (v.descricao?.let { d -> " - $d" } ?: "")
+                                        "Versão ${v.numeroVersao}" + (v.descricao?.let { d -> " - $d" }
+                                            ?: "")
                                     },
                                     totalVersoes = 0,
                                     saldoAtualTexto = saldo,
@@ -186,7 +192,7 @@ class SettingsMainViewModel @Inject constructor(
 
     private suspend fun obterDataBackupRecente(prefLocal: Long?, prefNuvem: Long?): Long? {
         val backupLocalReal = backupRepository.obterDataUltimoBackupLocal()
-        
+
         // Só considera a data da nuvem se o usuário ainda estiver autenticado
         val isNuvemValido = cloudBackupRepository.isUsuarioAutenticado()
         val dataNuvemConsiderar = if (isNuvemValido) prefNuvem else 0L
@@ -225,12 +231,15 @@ class SettingsMainViewModel @Inject constructor(
                 is TrocarEmpregoAtivoUseCase.Resultado.Sucesso -> {
                     _eventos.emit(SettingsMainEvent.EmpregoTrocado(emprego.nome))
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.NaoEncontrado -> {
                     _eventos.emit(SettingsMainEvent.MostrarMensagem("Emprego não encontrado"))
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.EmpregoIndisponivel -> {
                     _eventos.emit(SettingsMainEvent.MostrarMensagem("Emprego indisponível"))
                 }
+
                 is TrocarEmpregoAtivoUseCase.Resultado.Erro -> {
                     _eventos.emit(SettingsMainEvent.MostrarMensagem(resultado.mensagem))
                 }

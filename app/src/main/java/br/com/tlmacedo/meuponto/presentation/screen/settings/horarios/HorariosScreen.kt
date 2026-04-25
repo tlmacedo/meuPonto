@@ -62,6 +62,7 @@ fun HorariosScreen(
                 is HorariosEvent.MostrarMensagem -> {
                     snackbarHostState.showSnackbar(evento.mensagem)
                 }
+
                 is HorariosEvent.Voltar -> {
                     onNavigateBack()
                 }
@@ -127,7 +128,13 @@ fun HorariosScreen(
                 mostrarTimePicker = uiState.mostrarTimePicker,
                 campoTimePicker = uiState.campoTimePicker,
                 onAlterarCargaHoraria = { viewModel.onAction(HorariosAction.AlterarCargaHoraria(it)) },
-                onAlterarIntervaloMinimo = { viewModel.onAction(HorariosAction.AlterarIntervaloMinimo(it)) },
+                onAlterarIntervaloMinimo = {
+                    viewModel.onAction(
+                        HorariosAction.AlterarIntervaloMinimo(
+                            it
+                        )
+                    )
+                },
                 onAbrirTimePicker = { viewModel.onAction(HorariosAction.AbrirTimePicker(it)) },
                 onSelecionarHorario = { viewModel.onAction(HorariosAction.SelecionarHorario(it)) },
                 onFecharTimePicker = { viewModel.onAction(HorariosAction.FecharTimePicker) },

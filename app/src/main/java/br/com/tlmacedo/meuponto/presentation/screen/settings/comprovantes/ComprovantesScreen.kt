@@ -1,25 +1,56 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.comprovantes
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material3.*
-import androidx.compose.ui.graphics.Color
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -42,7 +73,7 @@ fun ComprovantesScreen(
     viewModel: ComprovantesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -72,15 +103,21 @@ fun ComprovantesScreen(
                         IconButton(onClick = { showDatePicker = true }) {
                             Icon(Icons.Default.CalendarMonth, contentDescription = "Filtrar Data")
                         }
-                        
+
                         IconButton(onClick = { viewModel.onAction(ComprovantesAction.AnalisarFotosLocais) }) {
-                            Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = "Analisar Fotos")
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = "Analisar Fotos"
+                            )
                         }
-                        
+
                         var showFiltroMenu by remember { mutableStateOf(false) }
                         Box {
                             IconButton(onClick = { showFiltroMenu = true }) {
-                                Icon(Icons.Default.FilterList, contentDescription = "Filtrar Associação")
+                                Icon(
+                                    Icons.Default.FilterList,
+                                    contentDescription = "Filtrar Associação"
+                                )
                             }
                             DropdownMenu(
                                 expanded = showFiltroMenu,
@@ -88,13 +125,21 @@ fun ComprovantesScreen(
                             ) {
                                 FiltroAssociacao.entries.forEach { filtro ->
                                     DropdownMenuItem(
-                                        text = { Text(when(filtro) {
-                                            FiltroAssociacao.TODOS -> "Todos"
-                                            FiltroAssociacao.COM_PONTO -> "Com Ponto"
-                                            FiltroAssociacao.SEM_PONTO -> "Sem Ponto"
-                                        }) },
+                                        text = {
+                                            Text(
+                                                when (filtro) {
+                                                    FiltroAssociacao.TODOS -> "Todos"
+                                                    FiltroAssociacao.COM_PONTO -> "Com Ponto"
+                                                    FiltroAssociacao.SEM_PONTO -> "Sem Ponto"
+                                                }
+                                            )
+                                        },
                                         onClick = {
-                                            viewModel.onAction(ComprovantesAction.AlterarFiltroAssociacao(filtro))
+                                            viewModel.onAction(
+                                                ComprovantesAction.AlterarFiltroAssociacao(
+                                                    filtro
+                                                )
+                                            )
                                             showFiltroMenu = false
                                         },
                                         leadingIcon = {
@@ -128,21 +173,40 @@ fun ComprovantesScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Período: ${uiState.dataInicio.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))} a ${uiState.dataFim.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))}",
+                            text = "Período: ${
+                                uiState.dataInicio.format(
+                                    java.time.format.DateTimeFormatter.ofPattern(
+                                        "dd/MM/yy"
+                                    )
+                                )
+                            } a ${
+                                uiState.dataFim.format(
+                                    java.time.format.DateTimeFormatter.ofPattern(
+                                        "dd/MM/yy"
+                                    )
+                                )
+                            }",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Filtro: ${when(uiState.filtroAssociacao) {
-                                FiltroAssociacao.TODOS -> "Todos os registros"
-                                FiltroAssociacao.COM_PONTO -> "Apenas vinculados"
-                                FiltroAssociacao.SEM_PONTO -> "Não vinculados"
-                            }}",
+                            text = "Filtro: ${
+                                when (uiState.filtroAssociacao) {
+                                    FiltroAssociacao.TODOS -> "Todos os registros"
+                                    FiltroAssociacao.COM_PONTO -> "Apenas vinculados"
+                                    FiltroAssociacao.SEM_PONTO -> "Não vinculados"
+                                }
+                            }",
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                     Text(
-                        text = "${uiState.totalCount} fotos • ${String.format("%.2f", uiState.totalSizeMb)} MB",
+                        text = "${uiState.totalCount} fotos • ${
+                            String.format(
+                                "%.2f",
+                                uiState.totalSizeMb
+                            )
+                        } MB",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -157,7 +221,10 @@ fun ComprovantesScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Nenhum comprovante encontrado.")
-                        Button(onClick = { showDatePicker = true }, modifier = Modifier.padding(top = 16.dp)) {
+                        Button(
+                            onClick = { showDatePicker = true },
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
                             Text("Alterar Período")
                         }
                     }
@@ -222,8 +289,10 @@ fun DateRangePickerModal(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val start = dateRangePickerState.selectedStartDateMillis?.toLocalDateFromDatePicker()
-                    val end = dateRangePickerState.selectedEndDateMillis?.toLocalDateFromDatePicker()
+                    val start =
+                        dateRangePickerState.selectedStartDateMillis?.toLocalDateFromDatePicker()
+                    val end =
+                        dateRangePickerState.selectedEndDateMillis?.toLocalDateFromDatePicker()
                     if (start != null && end != null) {
                         onDateSelected(start, end)
                     }
@@ -241,7 +310,8 @@ fun DateRangePickerModal(
             state = dateRangePickerState,
             title = { Text("Selecionar Período", modifier = Modifier.padding(16.dp)) },
             headline = {
-                val start = dateRangePickerState.selectedStartDateMillis?.toLocalDateFromDatePicker()
+                val start =
+                    dateRangePickerState.selectedStartDateMillis?.toLocalDateFromDatePicker()
                 val end = dateRangePickerState.selectedEndDateMillis?.toLocalDateFromDatePicker()
                 Text(
                     text = if (start != null && end != null) "${start} - ${end}" else "Escolha as datas",
@@ -249,7 +319,9 @@ fun DateRangePickerModal(
                 )
             },
             showModeToggle = false,
-            modifier = Modifier.fillMaxWidth().height(400.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp)
         )
     }
 }
@@ -297,16 +369,22 @@ private fun ComprovanteGridItem(
                 onLongClick = onLongClick
             ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 8.dp else 2.dp),
-        border = if (isSelected) CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary), width = 3.dp) else null
+        border = if (isSelected) CardDefaults.outlinedCardBorder().copy(
+            brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+            width = 3.dp
+        ) else null
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             LocalImage(
-                imagePath = File(File(context.filesDir, "comprovantes"), foto.fotoPath).absolutePath,
+                imagePath = File(
+                    File(context.filesDir, "comprovantes"),
+                    foto.fotoPath
+                ).absolutePath,
                 contentDescription = "Comprovante ${foto.dataFormatada}",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            
+
             if (isSelected) {
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
@@ -325,7 +403,9 @@ private fun ComprovanteGridItem(
 
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(2.dp)) {
                     Text(
@@ -365,13 +445,16 @@ private fun ComprovanteDetailsDialog(
                         .height(250.dp)
                 ) {
                     LocalImage(
-                        imagePath = File(File(context.filesDir, "comprovantes"), foto.fotoPath).absolutePath,
+                        imagePath = File(
+                            File(context.filesDir, "comprovantes"),
+                            foto.fotoPath
+                        ).absolutePath,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
                     )
                 }
-                
+
                 DetailRow("Hora:", foto.horaFormatada)
                 DetailRow("Tipo:", foto.tipoPontoDescricao)
                 if (foto.temObservacao) {
@@ -390,7 +473,11 @@ private fun ComprovanteDetailsDialog(
         },
         dismissButton = {
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Excluir", tint = MaterialTheme.colorScheme.error)
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Excluir",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     )
@@ -399,7 +486,12 @@ private fun ComprovanteDetailsDialog(
 @Composable
 private fun DetailRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth()) {
-        Text(text = label, fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp), style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = label,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(80.dp),
+            style = MaterialTheme.typography.bodySmall
+        )
         Text(text = value, style = MaterialTheme.typography.bodySmall)
     }
 }

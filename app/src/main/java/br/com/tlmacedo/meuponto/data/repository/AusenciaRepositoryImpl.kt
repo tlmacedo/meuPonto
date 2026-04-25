@@ -41,7 +41,11 @@ class AusenciaRepositoryImpl @Inject constructor(
         auditService.logCreate(
             entidade = ENTIDADE,
             entidadeId = id,
-            motivo = "Ausência criada: ${ausencia.tipo.descricao} de ${ausencia.dataInicio.format(dateFormatter)} a ${ausencia.dataFim.format(dateFormatter)}",
+            motivo = "Ausência criada: ${ausencia.tipo.descricao} de ${
+                ausencia.dataInicio.format(
+                    dateFormatter
+                )
+            } a ${ausencia.dataFim.format(dateFormatter)}",
             novoValor = ausencia,
             serializer = { auditService.toJson(it.toAuditMap()) }
         )
@@ -83,7 +87,11 @@ class AusenciaRepositoryImpl @Inject constructor(
         auditService.logPermanentDelete(
             entidade = ENTIDADE,
             entidadeId = ausencia.id,
-            motivo = "Ausência excluída: ${ausencia.tipo.descricao} de ${ausencia.dataInicio.format(dateFormatter)} a ${ausencia.dataFim.format(dateFormatter)}"
+            motivo = "Ausência excluída: ${ausencia.tipo.descricao} de ${
+                ausencia.dataInicio.format(
+                    dateFormatter
+                )
+            } a ${ausencia.dataFim.format(dateFormatter)}"
         )
 
         ausenciaDao.excluir(ausencia.toEntity())
@@ -96,7 +104,11 @@ class AusenciaRepositoryImpl @Inject constructor(
             entidade = ENTIDADE,
             entidadeId = id,
             motivo = ausencia?.let {
-                "Ausência excluída: ${it.tipo.descricao} de ${it.dataInicio.format(dateFormatter)} a ${it.dataFim.format(dateFormatter)}"
+                "Ausência excluída: ${it.tipo.descricao} de ${it.dataInicio.format(dateFormatter)} a ${
+                    it.dataFim.format(
+                        dateFormatter
+                    )
+                }"
             } ?: "Ausência excluída"
         )
 

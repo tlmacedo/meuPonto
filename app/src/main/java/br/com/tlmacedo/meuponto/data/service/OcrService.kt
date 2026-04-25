@@ -347,7 +347,12 @@ class OcrService @Inject constructor(
                     }
                     val nomeLimpo = nomeExtraido.split(Regex("[-/|]")).first().trim()
                     if (nomeLimpo.length >= 5 &&
-                        nomeLimpo.matches(Regex("^[A-Z\\sÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ]+$", RegexOption.IGNORE_CASE))
+                        nomeLimpo.matches(
+                            Regex(
+                                "^[A-Z\\sÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ]+$",
+                                RegexOption.IGNORE_CASE
+                            )
+                        )
                     ) {
                         return nomeLimpo.uppercase()
                     }
@@ -370,7 +375,13 @@ class OcrService @Inject constructor(
             ) continue
 
             val possivelNome = cleaned.split(Regex("[-|]")).first().trim()
-            if (possivelNome.matches(Regex("^[A-Z\\sÁÉÍÓÚÂÊÎÔÛÃÕÇ]{8,50}$", RegexOption.IGNORE_CASE))) {
+            if (possivelNome.matches(
+                    Regex(
+                        "^[A-Z\\sÁÉÍÓÚÂÊÎÔÛÃÕÇ]{8,50}$",
+                        RegexOption.IGNORE_CASE
+                    )
+                )
+            ) {
                 return possivelNome.uppercase()
             }
         }
@@ -409,7 +420,8 @@ class OcrService @Inject constructor(
         val horasEncontradas = mutableListOf<LocalTime>()
 
         // Caso especial: hora imediatamente antes de "REP"
-        val patternRep = Pattern.compile("(\\d{2}[:.,\\s]\\s*\\d{2})\\s*REP", Pattern.CASE_INSENSITIVE)
+        val patternRep =
+            Pattern.compile("(\\d{2}[:.,\\s]\\s*\\d{2})\\s*REP", Pattern.CASE_INSENSITIVE)
         val matcherRep = patternRep.matcher(textoSemDatas)
         if (matcherRep.find()) {
             val horaStr = matcherRep.group(1)
@@ -498,7 +510,7 @@ class OcrService @Inject constructor(
         return grupos
     }
 
-    private fun calcularBoundingBox(blocos: List<Text.TextBlock>): android.graphics.Rect? {
+    private fun calcularBoundingBox(blocos: List<Text.TextBlock>): Rect? {
         if (blocos.isEmpty()) return null
         var left = Int.MAX_VALUE
         var top = Int.MAX_VALUE

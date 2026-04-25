@@ -37,14 +37,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
@@ -130,14 +130,16 @@ fun AusenciaCard(
                 ) {
                     // Nome do tipo
                     Text(
-                        text = stringResource(when (ausencia.tipo) {
-                            TipoAusencia.FERIAS -> R.string.tipo_ausencia_ferias
-                            TipoAusencia.ATESTADO -> R.string.tipo_ausencia_atestado
-                            TipoAusencia.DECLARACAO -> R.string.tipo_ausencia_declaracao
-                            TipoAusencia.FALTA_JUSTIFICADA -> R.string.tipo_ausencia_falta_justificada
-                            TipoAusencia.FOLGA -> R.string.tipo_ausencia_folga
-                            TipoAusencia.FALTA_INJUSTIFICADA -> R.string.tipo_ausencia_falta_injustificada
-                        }),
+                        text = stringResource(
+                            when (ausencia.tipo) {
+                                TipoAusencia.FERIAS -> R.string.tipo_ausencia_ferias
+                                TipoAusencia.ATESTADO -> R.string.tipo_ausencia_atestado
+                                TipoAusencia.DECLARACAO -> R.string.tipo_ausencia_declaracao
+                                TipoAusencia.FALTA_JUSTIFICADA -> R.string.tipo_ausencia_falta_justificada
+                                TipoAusencia.FOLGA -> R.string.tipo_ausencia_folga
+                                TipoAusencia.FALTA_INJUSTIFICADA -> R.string.tipo_ausencia_falta_injustificada
+                            }
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -156,8 +158,12 @@ fun AusenciaCard(
                         TipoAusencia.FERIAS -> {
                             // Mostrar período aquisitivo se houver
                             if (ausencia.dataInicioPeriodoAquisitivo != null && ausencia.dataFimPeriodoAquisitivo != null) {
-                                val inicioStr = ausencia.dataInicioPeriodoAquisitivo.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))
-                                val fimStr = ausencia.dataFimPeriodoAquisitivo.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"))
+                                val inicioStr = ausencia.dataInicioPeriodoAquisitivo.format(
+                                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy")
+                                )
+                                val fimStr = ausencia.dataFimPeriodoAquisitivo.format(
+                                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy")
+                                )
                                 Text(
                                     text = "${stringResource(R.string.ausencia_periodo_aquisitivo)}: $inicioStr - $fimStr",
                                     style = MaterialTheme.typography.bodySmall,
@@ -179,7 +185,10 @@ fun AusenciaCard(
                                     text = if (ausencia.quantidadeDias == 1)
                                         stringResource(R.string.ausencia_periodo_dias_singular, 1)
                                     else
-                                        stringResource(R.string.ausencia_periodo_dias_plural, ausencia.quantidadeDias),
+                                        stringResource(
+                                            R.string.ausencia_periodo_dias_plural,
+                                            ausencia.quantidadeDias
+                                        ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.SemiBold
@@ -196,17 +205,22 @@ fun AusenciaCard(
                                             text = stringResource(R.string.ausencia_ferias_badge),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            modifier = Modifier.padding(
+                                                horizontal = 8.dp,
+                                                vertical = 2.dp
+                                            ),
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
                             }
                         }
+
                         TipoAusencia.DECLARACAO -> {
                             ausencia.horaInicio?.let { horaInicio ->
                                 val horaStr = horaInicio.toString().substring(0, 5)
-                                val duracaoStr = formatarMinutosString(ausencia.duracaoDeclaracaoMinutos ?: 0)
+                                val duracaoStr =
+                                    formatarMinutosString(ausencia.duracaoDeclaracaoMinutos ?: 0)
                                 Text(
                                     text = "🕐 $horaStr • $duracaoStr",
                                     style = MaterialTheme.typography.bodySmall,
@@ -223,6 +237,7 @@ fun AusenciaCard(
                                 )
                             }
                         }
+
                         else -> {
                             // Mostrar quantidade de dias para períodos
                             if (ausencia.quantidadeDias > 1 || ausencia.isPeriodo) {
@@ -230,7 +245,10 @@ fun AusenciaCard(
                                     text = if (ausencia.quantidadeDias == 1)
                                         stringResource(R.string.ausencia_periodo_dias_singular, 1)
                                     else
-                                        stringResource(R.string.ausencia_periodo_dias_plural, ausencia.quantidadeDias),
+                                        stringResource(
+                                            R.string.ausencia_periodo_dias_plural,
+                                            ausencia.quantidadeDias
+                                        ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Medium
@@ -277,7 +295,11 @@ fun AusenciaCard(
                     )
                     DropdownMenuItem(
                         text = {
-                            Text(if (ausencia.ativo) stringResource(R.string.ausencia_desativar) else stringResource(R.string.ausencia_ativar))
+                            Text(
+                                if (ausencia.ativo) stringResource(R.string.ausencia_desativar) else stringResource(
+                                    R.string.ausencia_ativar
+                                )
+                            )
                         },
                         onClick = {
                             showMenu = false

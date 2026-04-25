@@ -23,7 +23,8 @@ class LocalizacaoTrabalhoViewModel @Inject constructor(
     private val empregoRepository: EmpregoRepository
 ) : ViewModel() {
 
-    private val empregoId: Long = checkNotNull(savedStateHandle[MeuPontoDestinations.ARG_EMPREGO_ID])
+    private val empregoId: Long =
+        checkNotNull(savedStateHandle[MeuPontoDestinations.ARG_EMPREGO_ID])
 
     private val _uiState = MutableStateFlow(LocalizacaoTrabalhoUiState())
     val uiState = _uiState.asStateFlow()
@@ -62,28 +63,33 @@ class LocalizacaoTrabalhoViewModel @Inject constructor(
             is LocalizacaoTrabalhoAction.SelecionarLocalizacao -> {
                 _uiState.update { it.copy(localizacaoSelecionada = action.latLng) }
             }
+
             is LocalizacaoTrabalhoAction.AlterarRaio -> {
                 _uiState.update { it.copy(raioMetros = action.raio) }
             }
+
             LocalizacaoTrabalhoAction.Confirmar -> {
                 val loc = _uiState.value.localizacaoSelecionada
                 if (loc != null) {
                     viewModelScope.launch {
                         _uiState.update { it.copy(isLoading = true) }
                         val config = configuracaoRepository.buscarPorEmpregoId(empregoId)
-                        val configParaSalvar = (config ?: br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego(empregoId = empregoId)).copy(
-                            latitude = loc.latitude,
-                            longitude = loc.longitude,
-                            raioGeofencing = _uiState.value.raioMetros,
-                            habilitarLocalizacao = true // Habilita automaticamente se configurar o local
-                        )
-                        
+                        val configParaSalvar =
+                            (config ?: br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego(
+                                empregoId = empregoId
+                            )).copy(
+                                latitude = loc.latitude,
+                                longitude = loc.longitude,
+                                raioGeofencing = _uiState.value.raioMetros,
+                                habilitarLocalizacao = true // Habilita automaticamente se configurar o local
+                            )
+
                         if (configParaSalvar.id == 0L) {
                             configuracaoRepository.inserir(configParaSalvar)
                         } else {
                             configuracaoRepository.atualizar(configParaSalvar)
                         }
-                        
+
                         _uiState.update { it.copy(isLoading = false) }
                         _eventos.emit(
                             LocalizacaoTrabalhoEvent.Confirmado(
@@ -95,6 +101,7 @@ class LocalizacaoTrabalhoViewModel @Inject constructor(
                     }
                 }
             }
+
             LocalizacaoTrabalhoAction.Voltar -> {
                 viewModelScope.launch {
                     _eventos.emit(LocalizacaoTrabalhoEvent.Voltar)

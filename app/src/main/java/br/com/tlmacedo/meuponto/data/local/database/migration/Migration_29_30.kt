@@ -61,7 +61,7 @@ val MIGRATION_29_30 = Migration(29, 30) { database ->
     // 3. Montar a lista de colunas para o INSERT (apenas as que existem)
     val columnsToCopy = listOf(
         "id", "empregoId", "dataInicio", "dataFim", "descricao", "numeroVersao", "vigente",
-        "jornadaMaximaDiariaMinutos", "intervaloMinimoInterjornadaMinutos", 
+        "jornadaMaximaDiariaMinutos", "intervaloMinimoInterjornadaMinutos",
         "intervaloMinimoAlmocoMinutos", "toleranciaIntervaloMaisMinutos", "turnoMaximoMinutos",
         "cargaHorariaDiariaMinutos", "acrescimoMinutosDiasPontes", "cargaHorariaSemanalMinutos",
         "primeiroDiaSemana", "diaInicioFechamentoRH", "zerarSaldoSemanal", "zerarSaldoPeriodoRH",
@@ -72,7 +72,7 @@ val MIGRATION_29_30 = Migration(29, 30) { database ->
     ).filter { existingColumns.contains(it) }
 
     val columnsCsv = columnsToCopy.joinToString(", ")
-    
+
     if (columnsCsv.isNotEmpty()) {
         database.execSQL(
             """

@@ -19,7 +19,11 @@ class CalcularSaldoPeriodoUseCase @Inject constructor(
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val calcularSaldoDiaUseCase: CalcularSaldoDiaUseCase
 ) {
-    suspend operator fun invoke(empregoId: Long, dataInicio: LocalDate, dataFim: LocalDate): BancoHoras {
+    suspend operator fun invoke(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): BancoHoras {
         var saldoTotalMinutos = 0L
 
         var dataAtual = dataInicio
@@ -35,7 +39,10 @@ class CalcularSaldoPeriodoUseCase @Inject constructor(
         return BancoHoras(saldoTotal = Duration.ofMinutes(saldoTotalMinutos))
     }
 
-    suspend fun calcularSaldoPeriodoRH(empregoId: Long, dataReferencia: LocalDate = LocalDate.now()): Pair<PeriodoRH, BancoHoras> {
+    suspend fun calcularSaldoPeriodoRH(
+        empregoId: Long,
+        dataReferencia: LocalDate = LocalDate.now()
+    ): Pair<PeriodoRH, BancoHoras> {
         val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
             ?: return PeriodoRH.criarPara(dataReferencia, 1) to BancoHoras()
 
@@ -46,7 +53,10 @@ class CalcularSaldoPeriodoUseCase @Inject constructor(
         return periodo.copy(saldoMinutos = saldo.saldoTotalMinutos) to saldo
     }
 
-    suspend fun calcularSaldoCicloBancoAtual(empregoId: Long, dataReferencia: LocalDate = LocalDate.now()): BancoHoras {
+    suspend fun calcularSaldoCicloBancoAtual(
+        empregoId: Long,
+        dataReferencia: LocalDate = LocalDate.now()
+    ): BancoHoras {
         val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId) ?: return BancoHoras()
 
         if (!versaoVigente.temBancoHoras) return BancoHoras()

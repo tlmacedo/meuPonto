@@ -75,47 +75,55 @@ interface PontoDao {
 
     // === Consultas por Período ===
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM pontos 
         WHERE data BETWEEN :dataInicio AND :dataFim 
         AND is_deleted = 0 
         ORDER BY data DESC, hora DESC
-    """)
+    """
+    )
     fun listarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): Flow<List<PontoEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM pontos 
         WHERE empregoId = :empregoId 
         AND data BETWEEN :dataInicio AND :dataFim 
         AND is_deleted = 0 
         ORDER BY data DESC, hora DESC
-    """)
+    """
+    )
     fun listarPorEmpregoEPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
     ): Flow<List<PontoEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM pontos 
         WHERE empregoId = :empregoId 
         AND data BETWEEN :dataInicio AND :dataFim 
         AND is_deleted = 0 
         ORDER BY data ASC, hora ASC
-    """)
+    """
+    )
     suspend fun buscarPorEmpregoEPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
     ): List<PontoEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM pontos 
         WHERE empregoId = :empregoId 
         AND data BETWEEN :dataInicio AND :dataFim 
         AND is_deleted = 0 
         ORDER BY data ASC, hora ASC
-    """)
+    """
+    )
     fun observarPorEmpregoEPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
@@ -125,7 +133,12 @@ interface PontoDao {
     // === Atualização de foto ===
 
     @Query("UPDATE pontos SET fotoComprovantePath = :fotoPath, foto_origem = :fotoOrigem, updated_at = :updatedAt WHERE id = :pontoId")
-    suspend fun atualizarFotoComprovante(pontoId: Long, fotoPath: String?, fotoOrigem: Int, updatedAt: Long = System.currentTimeMillis())
+    suspend fun atualizarFotoComprovante(
+        pontoId: Long,
+        fotoPath: String?,
+        fotoOrigem: Int,
+        updatedAt: Long = System.currentTimeMillis()
+    )
 
     // === Soft Delete e Lixeira ===
 

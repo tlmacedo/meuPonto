@@ -86,22 +86,22 @@ class WidgetUpdateWorker @AssistedInject constructor(
                 ?: 0
 
             // 4. Formatar textos
-            val horasHojeText     = minutosTrabalhadosHoje.minutosParaHoraMinuto()
-            val saldoDiaText      = saldoDiaMinutos.minutosParaSaldoFormatado()
-            val saldoTotalText    = saldoTotalMinutos.minutosParaSaldoFormatado()
-            val saldoTotalNeg     = saldoTotalMinutos < 0
+            val horasHojeText = minutosTrabalhadosHoje.minutosParaHoraMinuto()
+            val saldoDiaText = saldoDiaMinutos.minutosParaSaldoFormatado()
+            val saldoTotalText = saldoTotalMinutos.minutosParaSaldoFormatado()
+            val saldoTotalNeg = saldoTotalMinutos < 0
             val ultimaAtualizacao = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
 
             // 5. Gravar no DataStore
             applicationContext.widgetDataStore.edit { prefs ->
-                prefs[KEY_APELIDO_EMPREGO]       = empregoAtivo.apelido ?: empregoAtivo.nome
-                prefs[KEY_HORAS_HOJE]            = horasHojeText
-                prefs[KEY_SALDO_DIA]             = saldoDiaText
-                prefs[KEY_SALDO_TOTAL]           = saldoTotalText
-                prefs[KEY_SALDO_TOTAL_NEGATIVO]  = saldoTotalNeg.toString()
-                prefs[KEY_PREVISAO_SAIDA]        = "--:--"
-                prefs[KEY_ULTIMA_ATUALIZACAO]    = ultimaAtualizacao
+                prefs[KEY_APELIDO_EMPREGO] = empregoAtivo.apelido ?: empregoAtivo.nome
+                prefs[KEY_HORAS_HOJE] = horasHojeText
+                prefs[KEY_SALDO_DIA] = saldoDiaText
+                prefs[KEY_SALDO_TOTAL] = saldoTotalText
+                prefs[KEY_SALDO_TOTAL_NEGATIVO] = saldoTotalNeg.toString()
+                prefs[KEY_PREVISAO_SAIDA] = "--:--"
+                prefs[KEY_ULTIMA_ATUALIZACAO] = ultimaAtualizacao
             }
 
             Timber.d("WidgetUpdateWorker: concluído — $horasHojeText / $saldoDiaText / $saldoTotalText")
@@ -119,13 +119,13 @@ class WidgetUpdateWorker @AssistedInject constructor(
 
     private suspend fun salvarPlaceholderSemEmprego() {
         applicationContext.widgetDataStore.edit { prefs ->
-            prefs[KEY_APELIDO_EMPREGO]      = "Sem emprego ativo"
-            prefs[KEY_HORAS_HOJE]           = "--h --min"
-            prefs[KEY_SALDO_DIA]            = "+--h --min"
-            prefs[KEY_SALDO_TOTAL]          = "+--h --min"
+            prefs[KEY_APELIDO_EMPREGO] = "Sem emprego ativo"
+            prefs[KEY_HORAS_HOJE] = "--h --min"
+            prefs[KEY_SALDO_DIA] = "+--h --min"
+            prefs[KEY_SALDO_TOTAL] = "+--h --min"
             prefs[KEY_SALDO_TOTAL_NEGATIVO] = "false"
-            prefs[KEY_PREVISAO_SAIDA]       = "--:--"
-            prefs[KEY_ULTIMA_ATUALIZACAO]   = LocalDateTime.now()
+            prefs[KEY_PREVISAO_SAIDA] = "--:--"
+            prefs[KEY_ULTIMA_ATUALIZACAO] = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
         }
     }
@@ -138,13 +138,13 @@ class WidgetUpdateWorker @AssistedInject constructor(
         const val WORK_NAME = "WidgetUpdateWorker"
 
         // Chaves do DataStore — devem bater com as que MeuPontoWidget lê
-        val KEY_APELIDO_EMPREGO      = stringPreferencesKey("apelido_emprego")
-        val KEY_HORAS_HOJE           = stringPreferencesKey("horas_hoje")
-        val KEY_SALDO_DIA            = stringPreferencesKey("saldo_dia")
-        val KEY_SALDO_TOTAL          = stringPreferencesKey("saldo_total")
+        val KEY_APELIDO_EMPREGO = stringPreferencesKey("apelido_emprego")
+        val KEY_HORAS_HOJE = stringPreferencesKey("horas_hoje")
+        val KEY_SALDO_DIA = stringPreferencesKey("saldo_dia")
+        val KEY_SALDO_TOTAL = stringPreferencesKey("saldo_total")
         val KEY_SALDO_TOTAL_NEGATIVO = stringPreferencesKey("saldo_total_negativo")
-        val KEY_PREVISAO_SAIDA       = stringPreferencesKey("previsao_saida")
-        val KEY_ULTIMA_ATUALIZACAO   = stringPreferencesKey("ultima_atualizacao")
+        val KEY_PREVISAO_SAIDA = stringPreferencesKey("previsao_saida")
+        val KEY_ULTIMA_ATUALIZACAO = stringPreferencesKey("ultima_atualizacao")
 
         fun scheduleNow(context: Context) {
             val request = OneTimeWorkRequestBuilder<WidgetUpdateWorker>().build()

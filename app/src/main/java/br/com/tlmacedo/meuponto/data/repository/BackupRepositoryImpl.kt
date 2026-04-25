@@ -9,16 +9,13 @@ import br.com.tlmacedo.meuponto.domain.repository.LocalBackupFile
 import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import kotlinx.coroutines.flow.first
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -235,8 +232,9 @@ class BackupRepositoryImpl @Inject constructor(
     private suspend fun getBackupFolder(): File {
         val empregoId = preferencesRepository.obterEmpregoAtivoId() ?: 0L
         val emprego = database.empregoDao().buscarPorId(empregoId)
-        val hashEmprego = (emprego?.apelido ?: emprego?.nome ?: "default").hashCode().toString(16).take(10)
-        
+        val hashEmprego =
+            (emprego?.apelido ?: emprego?.nome ?: "default").hashCode().toString(16).take(10)
+
         return File(context.getExternalFilesDir(null), "Meu Ponto/$hashEmprego/backups")
     }
 }

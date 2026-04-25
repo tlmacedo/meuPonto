@@ -1,4 +1,5 @@
 package br.com.tlmacedo.meuponto.presentation.screen.settings.versoes
+
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import java.time.LocalDate
 

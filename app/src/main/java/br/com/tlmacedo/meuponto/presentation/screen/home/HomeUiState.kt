@@ -16,8 +16,8 @@ import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -195,7 +195,11 @@ data class HomeUiState(
     val pontosHoje: List<Ponto> = emptyList(),
     val resumoDia: ResumoDia = ResumoDia(data = LocalDate.now()),
     val bancoHoras: BancoHoras = BancoHoras(),
-    val proximoTipo: ProximoPonto = ProximoPonto(isEntrada = true, descricao = "Entrada", indice = 0),
+    val proximoTipo: ProximoPonto = ProximoPonto(
+        isEntrada = true,
+        descricao = "Entrada",
+        indice = 0
+    ),
     val empregoAtivo: Emprego? = null,
     val empregosDisponiveis: List<Emprego> = emptyList(),
     val versaoJornadaAtual: VersaoJornada? = null,
@@ -235,7 +239,8 @@ data class HomeUiState(
         private val localeBR = Locale.forLanguageTag("pt-BR")
         internal val formatterDiaSemana = DateTimeFormatter.ofPattern("EEEE", localeBR)
         internal val formatterDiaSemanaAbrev = DateTimeFormatter.ofPattern("EEE", localeBR)
-        internal val formatterDataCompleta = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM 'de' yyyy", localeBR)
+        internal val formatterDataCompleta =
+            DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM 'de' yyyy", localeBR)
         internal val formatterDataCurta = DateTimeFormatter.ofPattern("dd/MM/yyyy", localeBR)
     }
 
@@ -400,7 +405,7 @@ data class HomeUiState(
 
     val dataFormatada: String
         get() {
-            val diaSemana = dataSelecionada.format(formatterDiaSemana)
+            dataSelecionada.format(formatterDiaSemana)
                 .replaceFirstChar { it.uppercase() }
 
             return when {
@@ -505,6 +510,7 @@ data class HomeUiState(
                     "desconta do banco"
                 "$tipoFolgaDescricao - $complemento"
             }
+
             isFalta -> "Falta - dia não trabalhado"
             isFeriadoTrabalhado -> "Feriado trabalhado - horas contam como extra"
             isFeriadoEfetivo -> "Feriado - sem jornada obrigatória"

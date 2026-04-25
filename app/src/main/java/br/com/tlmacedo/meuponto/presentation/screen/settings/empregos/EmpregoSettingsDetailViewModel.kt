@@ -68,6 +68,7 @@ class EmpregoSettingsDetailViewModel @Inject constructor(
             is EmpregoSettingsDetailAction.NavegarParaAjustesSaldo -> navegarParaAjustesSaldo()
             is EmpregoSettingsDetailAction.NavegarParaEditar,
             is EmpregoSettingsDetailAction.NavegarParaConfiguracaoGeral -> navegarParaEditar()
+
             is EmpregoSettingsDetailAction.NavegarParaCargos -> navegarParaCargos()
             is EmpregoSettingsDetailAction.NavegarParaOpcoesRegistro -> navegarParaOpcoesRegistro()
             is EmpregoSettingsDetailAction.LimparErro -> limparErro()
@@ -106,7 +107,8 @@ class EmpregoSettingsDetailViewModel @Inject constructor(
 
                 // Carregar cargos
                 val cargos = historicoCargoRepository.listarPorEmprego(empregoId).first()
-                val cargoAtual = cargos.firstOrNull { it.dataFim == null || !it.dataFim.isBefore(LocalDate.now()) }
+                val cargoAtual =
+                    cargos.firstOrNull { it.dataFim == null || !it.dataFim.isBefore(LocalDate.now()) }
 
                 // Carregar configuração
                 val configuracao = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)

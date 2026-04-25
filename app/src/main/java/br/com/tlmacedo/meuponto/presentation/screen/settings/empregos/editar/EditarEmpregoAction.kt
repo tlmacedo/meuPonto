@@ -38,7 +38,9 @@ sealed class EditarEmpregoAction {
     data class AlterarFotoObrigatoria(val obrigatoria: Boolean) : EditarEmpregoAction()
     data class AlterarFotoValidarComprovante(val validar: Boolean) : EditarEmpregoAction()
     data class AlterarComentarioHabilitado(val habilitar: Boolean) : EditarEmpregoAction()
-    data class AlterarComentarioObrigatorioHoraExtra(val obrigatorio: Boolean) : EditarEmpregoAction()
+    data class AlterarComentarioObrigatorioHoraExtra(val obrigatorio: Boolean) :
+        EditarEmpregoAction()
+
     data class AlterarExibirDuracaoTurno(val exibir: Boolean) : EditarEmpregoAction()
     data class AlterarExibirDuracaoIntervalo(val exibir: Boolean) : EditarEmpregoAction()
 

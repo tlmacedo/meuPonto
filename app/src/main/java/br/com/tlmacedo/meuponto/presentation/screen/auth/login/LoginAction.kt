@@ -9,7 +9,7 @@ sealed interface LoginAction {
     object ClicarEntrar : LoginAction
     object ClicarCadastrar : LoginAction
     object ClicarEsqueciSenha : LoginAction
-    
+
     // Novas ações para biometria
     data class BiometriaDisponibilidadeAlterada(val disponivel: Boolean) : LoginAction
     object HabilitarBiometriaConfirmado : LoginAction

@@ -158,11 +158,13 @@ fun AuditoriaScreen(
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }
+
                     !uiState.temLogs -> {
                         AuditoriaVazia(
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }
+
                     else -> {
                         AuditoriaContent(
                             logsAgrupados = uiState.logsAgrupados,

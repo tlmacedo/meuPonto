@@ -108,7 +108,10 @@ class FotoStorageManager @Inject constructor(
 
             buildSaveResult(result, outputFile, empregoId, data)
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao salvar foto via URI — empregoId=$empregoId, pontoId=$pontoId") // Correção aqui
+            Timber.e(
+                e,
+                "Falha ao salvar foto via URI — empregoId=$empregoId, pontoId=$pontoId"
+            ) // Correção aqui
             SavePhotoResult.Error("Erro ao salvar foto: ${e.message}")
         }
     }
@@ -159,7 +162,10 @@ class FotoStorageManager @Inject constructor(
 
             saveResult
         } catch (e: Exception) {
-            Timber.e(e, "Falha ao salvar foto via arquivo — empregoId=$empregoId, pontoId=$pontoId") // Correção aqui
+            Timber.e(
+                e,
+                "Falha ao salvar foto via arquivo — empregoId=$empregoId, pontoId=$pontoId"
+            ) // Correção aqui
             SavePhotoResult.Error("Erro ao salvar foto: ${e.message}")
         }
     }
@@ -413,6 +419,7 @@ class FotoStorageManager @Inject constructor(
                     finalQuality = result.finalQuality
                 )
             }
+
             is ImageProcessingResult.Error -> {
                 // Remove arquivo parcial do disco para não deixar lixo
                 if (outputFile.exists()) outputFile.delete()

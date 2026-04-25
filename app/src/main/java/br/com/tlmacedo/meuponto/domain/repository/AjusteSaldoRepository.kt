@@ -86,7 +86,11 @@ interface AjusteSaldoRepository {
      * @param dataFim Data final (inclusive)
      * @return Lista de ajustes do período
      */
-    suspend fun buscarPorPeriodo(empregoId: Long, dataInicio: LocalDate, dataFim: LocalDate): List<AjusteSaldo>
+    suspend fun buscarPorPeriodo(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): List<AjusteSaldo>
 
     // ========================================================================
     // Cálculos
@@ -138,7 +142,11 @@ interface AjusteSaldoRepository {
      * @param dataFim Data final (inclusive)
      * @return Flow que emite a lista do período
      */
-    fun observarPorPeriodo(empregoId: Long, dataInicio: LocalDate, dataFim: LocalDate): Flow<List<AjusteSaldo>>
+    fun observarPorPeriodo(
+        empregoId: Long,
+        dataInicio: LocalDate,
+        dataFim: LocalDate
+    ): Flow<List<AjusteSaldo>>
 
     /**
      * Observa os últimos ajustes de um emprego.

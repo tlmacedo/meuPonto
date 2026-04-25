@@ -57,8 +57,9 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
         val horaReal = dataHora.toLocalTime()
 
         // Busca a versão da jornada vigente
-        val versao = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, dataHora.toLocalDate())
-            ?: return horaReal
+        val versao =
+            versaoJornadaRepository.buscarPorEmpregoEData(empregoId, dataHora.toLocalDate())
+                ?: return horaReal
 
         // Busca configuração do dia
         val diaSemana = DiaSemana.fromJavaDayOfWeek(dataHora.dayOfWeek)
@@ -133,7 +134,9 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
         // 1. Verifica se este é o intervalo de almoço (proximidade com o ideal)
         // Se não houver ideal, qualquer intervalo >= mínimo pode ser candidato, mas priorizamos o primeiro
         val isAlmoco = if (saidaIntervaloIdeal != null) {
-            Math.abs(Duration.between(horaSaidaReal, saidaIntervaloIdeal).toMinutes()) <= 120 // 2h de margem
+            Math.abs(
+                Duration.between(horaSaidaReal, saidaIntervaloIdeal).toMinutes()
+            ) <= 120 // 2h de margem
         } else {
             // Se não tem horário ideal, assume que o primeiro intervalo longo do dia é o almoço
             indicePonto == 2
@@ -142,13 +145,20 @@ class CalcularHoraConsideradaUseCase @Inject constructor(
         if (!isAlmoco) return horaReal
 
         // 2. Calcula hora ideal de volta e verifica a duração real
-        val intervaloRealMinutos = Duration.between(pontoSaidaAnterior.dataHora, dataHora).toMinutes()
-        val horaIdealVolta = pontoSaidaAnterior.horaConsiderada.plusMinutes(intervaloMinimoMinutos.toLong())
+        val intervaloRealMinutos =
+            Duration.between(pontoSaidaAnterior.dataHora, dataHora).toMinutes()
+        val horaIdealVolta =
+            pontoSaidaAnterior.horaConsiderada.plusMinutes(intervaloMinimoMinutos.toLong())
 
-        val dentroTolerancia = intervaloRealMinutos in (intervaloMinimoMinutos.toLong()..(intervaloMinimoMinutos + toleranciaMinutos).toLong())
+        val dentroTolerancia =
+            intervaloRealMinutos in (intervaloMinimoMinutos.toLong()..(intervaloMinimoMinutos + toleranciaMinutos).toLong())
 
         if (dentroTolerancia && horaReal.isAfter(horaIdealVolta)) {
-            Timber.d("Tolerância ALMOÇO aplicada: real=%s → considerado=%s", horaReal, horaIdealVolta)
+            Timber.d(
+                "Tolerância ALMOÇO aplicada: real=%s → considerado=%s",
+                horaReal,
+                horaIdealVolta
+            )
             return horaIdealVolta
         }
 

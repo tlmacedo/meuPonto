@@ -3,7 +3,12 @@ package br.com.tlmacedo.meuponto.data.mapper
 
 import br.com.tlmacedo.meuponto.data.local.database.entity.ChamadoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.HistoricoChamadoEntity
-import br.com.tlmacedo.meuponto.domain.model.chamado.*
+import br.com.tlmacedo.meuponto.domain.model.chamado.AvaliacaoChamado
+import br.com.tlmacedo.meuponto.domain.model.chamado.CategoriaChamado
+import br.com.tlmacedo.meuponto.domain.model.chamado.Chamado
+import br.com.tlmacedo.meuponto.domain.model.chamado.HistoricoChamado
+import br.com.tlmacedo.meuponto.domain.model.chamado.PrioridadeChamado
+import br.com.tlmacedo.meuponto.domain.model.chamado.StatusChamado
 import java.time.LocalDateTime
 
 fun ChamadoEntity.toDomain(): Chamado = Chamado(

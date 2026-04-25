@@ -87,7 +87,8 @@ fun ResumoCard(
 
     val minutosTrabalhados = resumoDia.horasTrabalhadasComAndamentoMinutos(horaAtual)
     val saldoDiaMinutos = resumoDia.saldoDiaComAndamentoMinutos(horaAtual)
-    val bancoTotalMinutos = bancoHoras.saldoTotalMinutos + saldoDiaMinutos - resumoDia.saldoDiaMinutos
+    val bancoTotalMinutos =
+        bancoHoras.saldoTotalMinutos + saldoDiaMinutos - resumoDia.saldoDiaMinutos
 
     val gradientBrush = Brush.linearGradient(
         colors = listOf(GradientStart, GradientEnd)
@@ -140,9 +141,11 @@ fun ResumoCard(
                                             corTexto = textoTerciario
                                         )
                                     }
+
                                     resumoDia.isFeriado -> {
                                         FeriadoJornadaInfo(corTexto = textoTerciario)
                                     }
+
                                     else -> {
                                         JornadaVersaoInfoCompact(
                                             cargaHorariaFormatada = resumoDia.cargaHorariaDiariaFormatada,
@@ -152,7 +155,7 @@ fun ResumoCard(
                                     }
                                 }
                             }
-                            
+
                             if (onEditarJornada != null) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
@@ -404,16 +407,19 @@ private fun ResumoItemPrincipal(
             corIcone = corIconeEspecial ?: Color.White.copy(alpha = 0.8f)
             corFundoIcone = (corIconeEspecial ?: Color.White).copy(alpha = 0.15f)
         }
+
         isFeriado && temTrabalho -> {
             corValor = Success
             corIcone = Success
             corFundoIcone = Success.copy(alpha = 0.15f)
         }
+
         atingiuJornada -> {
             corValor = Success
             corIcone = Success
             corFundoIcone = Success.copy(alpha = 0.15f)
         }
+
         else -> {
             corValor = Color.White
             corIcone = Color.White.copy(alpha = 0.8f)
@@ -701,5 +707,8 @@ private fun formatarSaldoCompacto(minutos: Int): String {
     val horas = minutosAbs / 60
     val mins = minutosAbs % 60
     val sinal = if (minutos > 0) "+ " else "- "
-    return if (horas > 0) "$sinal%02dh %02dmin".format(horas, mins) else "$sinal%02dmin".format(mins)
+    return if (horas > 0) "$sinal%02dh %02dmin".format(
+        horas,
+        mins
+    ) else "$sinal%02dmin".format(mins)
 }

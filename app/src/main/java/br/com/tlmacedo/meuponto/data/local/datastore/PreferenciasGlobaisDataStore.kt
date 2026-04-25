@@ -60,30 +60,39 @@ class PreferenciasGlobaisDataStore @Inject constructor(
         val PRIMEIRO_DIA_SEMANA = intPreferencesKey("primeiro_dia_semana")
     }
 
-    val preferenciasGlobais: Flow<PreferenciasGlobais> = context.prefsGlobaisDataStore.data.map { prefs ->
-        PreferenciasGlobais(
-            temaEscuro = TemaEscuro.fromOrdinal(prefs[Keys.TEMA_ESCURO] ?: TemaEscuro.SISTEMA.ordinal),
-            usarCoresDoSistema = prefs[Keys.USAR_CORES_SISTEMA] ?: true,
-            corDestaque = prefs[Keys.COR_DESTAQUE] ?: 0xFF6200EE,
-            lembretePontoAtivo = prefs[Keys.LEMBRETE_PONTO_ATIVO] ?: true,
-            alertaFeriadoAtivo = prefs[Keys.ALERTA_FERIADO_ATIVO] ?: true,
-            alertaBancoHorasAtivo = prefs[Keys.ALERTA_BANCO_HORAS_ATIVO] ?: true,
-            antecedenciaAlertaFeriadoDias = prefs[Keys.ANTECEDENCIA_ALERTA_FERIADO] ?: 7,
-            localizacaoPadraoNome = prefs[Keys.LOCALIZACAO_PADRAO_NOME] ?: "",
-            localizacaoPadraoLatitude = prefs[Keys.LOCALIZACAO_PADRAO_LAT],
-            localizacaoPadraoLongitude = prefs[Keys.LOCALIZACAO_PADRAO_LONG],
-            raioGeofencingMetros = prefs[Keys.RAIO_GEOFENCING] ?: 100,
-            registroAutomaticoGeofencing = prefs[Keys.REGISTRO_AUTOMATICO_GEOFENCING] ?: false,
-            backupAutomaticoAtivo = prefs[Keys.BACKUP_AUTOMATICO] ?: false,
-            backupNuvemAtivo = prefs[Keys.BACKUP_NUVEM_ATIVO] ?: false,
-            ultimoBackupLocal = prefs[Keys.ULTIMO_BACKUP_LOCAL] ?: 0L,
-            ultimoBackupNuvem = prefs[Keys.ULTIMO_BACKUP_NUVEM] ?: 0L,
-            contaGoogleConectada = prefs[Keys.CONTA_GOOGLE_CONECTADA],
-            formatoData = FormatoData.fromOrdinal(prefs[Keys.FORMATO_DATA] ?: FormatoData.DD_MM_YYYY.ordinal),
-            formatoHora = FormatoHora.fromOrdinal(prefs[Keys.FORMATO_HORA] ?: FormatoHora.H24.ordinal),
-            primeiroDiaSemana = DayOfWeek.of(prefs[Keys.PRIMEIRO_DIA_SEMANA] ?: DayOfWeek.SUNDAY.value)
-        )
-    }
+    val preferenciasGlobais: Flow<PreferenciasGlobais> =
+        context.prefsGlobaisDataStore.data.map { prefs ->
+            PreferenciasGlobais(
+                temaEscuro = TemaEscuro.fromOrdinal(
+                    prefs[Keys.TEMA_ESCURO] ?: TemaEscuro.SISTEMA.ordinal
+                ),
+                usarCoresDoSistema = prefs[Keys.USAR_CORES_SISTEMA] ?: true,
+                corDestaque = prefs[Keys.COR_DESTAQUE] ?: 0xFF6200EE,
+                lembretePontoAtivo = prefs[Keys.LEMBRETE_PONTO_ATIVO] ?: true,
+                alertaFeriadoAtivo = prefs[Keys.ALERTA_FERIADO_ATIVO] ?: true,
+                alertaBancoHorasAtivo = prefs[Keys.ALERTA_BANCO_HORAS_ATIVO] ?: true,
+                antecedenciaAlertaFeriadoDias = prefs[Keys.ANTECEDENCIA_ALERTA_FERIADO] ?: 7,
+                localizacaoPadraoNome = prefs[Keys.LOCALIZACAO_PADRAO_NOME] ?: "",
+                localizacaoPadraoLatitude = prefs[Keys.LOCALIZACAO_PADRAO_LAT],
+                localizacaoPadraoLongitude = prefs[Keys.LOCALIZACAO_PADRAO_LONG],
+                raioGeofencingMetros = prefs[Keys.RAIO_GEOFENCING] ?: 100,
+                registroAutomaticoGeofencing = prefs[Keys.REGISTRO_AUTOMATICO_GEOFENCING] ?: false,
+                backupAutomaticoAtivo = prefs[Keys.BACKUP_AUTOMATICO] ?: false,
+                backupNuvemAtivo = prefs[Keys.BACKUP_NUVEM_ATIVO] ?: false,
+                ultimoBackupLocal = prefs[Keys.ULTIMO_BACKUP_LOCAL] ?: 0L,
+                ultimoBackupNuvem = prefs[Keys.ULTIMO_BACKUP_NUVEM] ?: 0L,
+                contaGoogleConectada = prefs[Keys.CONTA_GOOGLE_CONECTADA],
+                formatoData = FormatoData.fromOrdinal(
+                    prefs[Keys.FORMATO_DATA] ?: FormatoData.DD_MM_YYYY.ordinal
+                ),
+                formatoHora = FormatoHora.fromOrdinal(
+                    prefs[Keys.FORMATO_HORA] ?: FormatoHora.H24.ordinal
+                ),
+                primeiroDiaSemana = DayOfWeek.of(
+                    prefs[Keys.PRIMEIRO_DIA_SEMANA] ?: DayOfWeek.SUNDAY.value
+                )
+            )
+        }
 
     suspend fun salvarAparencia(
         temaEscuro: TemaEscuro,
@@ -166,9 +175,9 @@ class PreferenciasGlobaisDataStore @Inject constructor(
             backupNuvemAtivo?.let { prefs[Keys.BACKUP_NUVEM_ATIVO] = it }
             ultimoBackup?.let { prefs[Keys.ULTIMO_BACKUP_LOCAL] = it }
             ultimoBackupNuvem?.let { prefs[Keys.ULTIMO_BACKUP_NUVEM] = it }
-            contaGoogle?.let { 
+            contaGoogle?.let {
                 if (it.isEmpty()) prefs.remove(Keys.CONTA_GOOGLE_CONECTADA)
-                else prefs[Keys.CONTA_GOOGLE_CONECTADA] = it 
+                else prefs[Keys.CONTA_GOOGLE_CONECTADA] = it
             }
         }
     }

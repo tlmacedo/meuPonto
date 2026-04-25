@@ -112,7 +112,7 @@ class ImageCompressor @Inject constructor() {
             quality >= 80 -> 0.5
             quality >= 70 -> 0.35
             quality >= 60 -> 0.25
-            else          -> 0.15
+            else -> 0.15
         }
         return (pixelCount * bytesPerPixel).toLong()
     }

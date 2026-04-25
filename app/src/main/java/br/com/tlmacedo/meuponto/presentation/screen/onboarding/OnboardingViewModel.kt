@@ -19,10 +19,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import javax.inject.Inject
 
 data class OnboardingUiState(
     val currentPage: Int = 0,
@@ -153,7 +153,8 @@ class OnboardingViewModel @Inject constructor(
             val entrada = LocalTime.of(8, 0)
             val saidaIntervalo = entrada.plusHours(4)
             val voltaIntervalo = saidaIntervalo.plusHours(1)
-            val saida = voltaIntervalo.plusMinutes(cargaMinutos.toLong() - 300) // 300 = 5h de trabalho antes do intervalo
+            val saida =
+                voltaIntervalo.plusMinutes(cargaMinutos.toLong() - 300) // 300 = 5h de trabalho antes do intervalo
 
             DiaSemana.entries.forEach { dia ->
                 val isDiaTrabalho = _uiState.value.diasTrabalho.contains(dia)

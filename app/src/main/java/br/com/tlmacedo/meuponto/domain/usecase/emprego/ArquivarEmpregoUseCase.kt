@@ -74,7 +74,7 @@ class ArquivarEmpregoUseCase @Inject constructor(
             // Verifica se é o único emprego (ativo ou não)
             val quantidadeTotal = empregoRepository.contarTodos()
             val quantidadeAtivos = empregoRepository.contarAtivos()
-            
+
             // Não pode arquivar se for o único emprego não arquivado
             if (quantidadeTotal <= 1 || (quantidadeAtivos <= 1 && emprego.ativo && !emprego.arquivado)) {
                 return Resultado.UltimoEmprego

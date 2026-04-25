@@ -196,7 +196,8 @@ data class AusenciaFormUiState(
          * Cria um UiState a partir de uma Ausencia existente (modo edição).
          */
         fun fromAusencia(ausencia: Ausencia): AusenciaFormUiState {
-            val totalDias = ChronoUnit.DAYS.between(ausencia.dataInicio, ausencia.dataFim).toInt() + 1
+            val totalDias =
+                ChronoUnit.DAYS.between(ausencia.dataInicio, ausencia.dataFim).toInt() + 1
 
             return AusenciaFormUiState(
                 id = ausencia.id,
@@ -309,6 +310,7 @@ data class AusenciaFormUiState(
                         dataInicioPeriodoAquisitivo != null &&
                         dataFimPeriodoAquisitivo != null
             }
+
             TipoAusencia.ATESTADO -> empregoId > 0 && observacao.isNotBlank()
             TipoAusencia.DECLARACAO -> {
                 empregoId > 0 &&
@@ -317,6 +319,7 @@ data class AusenciaFormUiState(
                         duracaoAbonoTotalMinutos > 0 &&
                         duracaoAbonoTotalMinutos <= duracaoDeclaracaoTotalMinutos
             }
+
             TipoAusencia.FALTA_JUSTIFICADA -> empregoId > 0 && observacao.isNotBlank()
             TipoAusencia.FOLGA -> empregoId > 0
             TipoAusencia.FALTA_INJUSTIFICADA -> empregoId > 0
@@ -329,25 +332,35 @@ data class AusenciaFormUiState(
                 when {
                     dataInicioPeriodoAquisitivo == null || dataFimPeriodoAquisitivo == null ->
                         "Informe o período aquisitivo (início e fim)"
+
                     dataInicioPeriodoAquisitivo!!.isAfter(dataFimPeriodoAquisitivo) ->
                         "Início do período aquisitivo não pode ser após o fim"
+
                     dataFim < dataInicio ->
                         "Data de fim não pode ser anterior à data de início"
+
                     else -> null
                 }
             }
+
             tipo == TipoAusencia.ATESTADO && observacao.isBlank() ->
                 "Informe o motivo do atestado"
+
             tipo == TipoAusencia.DECLARACAO && observacao.isBlank() ->
                 "Informe o motivo da declaração"
+
             tipo == TipoAusencia.DECLARACAO && duracaoDeclaracaoTotalMinutos <= 0 ->
                 "Informe a duração da declaração"
+
             tipo == TipoAusencia.DECLARACAO && duracaoAbonoTotalMinutos <= 0 ->
                 "Informe o tempo de abono"
+
             tipo == TipoAusencia.DECLARACAO && duracaoAbonoTotalMinutos > duracaoDeclaracaoTotalMinutos ->
                 "O tempo de abono não pode ser maior que a duração da declaração"
+
             tipo == TipoAusencia.FALTA_JUSTIFICADA && observacao.isBlank() ->
                 "Informe o motivo da falta justificada"
+
             else -> null
         }
 

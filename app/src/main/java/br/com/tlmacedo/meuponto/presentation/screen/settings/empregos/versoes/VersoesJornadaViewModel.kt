@@ -27,7 +27,8 @@ class VersoesJornadaViewModel @Inject constructor(
     private val versaoJornadaRepository: VersaoJornadaRepository
 ) : ViewModel() {
 
-    private val empregoId: Long = savedStateHandle.get<Long>(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
+    private val empregoId: Long =
+        savedStateHandle.get<Long>(MeuPontoDestinations.ARG_EMPREGO_ID) ?: -1L
 
     private val _uiState = MutableStateFlow(VersoesJornadaUiState(empregoId = empregoId))
     val uiState: StateFlow<VersoesJornadaUiState> = _uiState.asStateFlow()
@@ -57,7 +58,7 @@ class VersoesJornadaViewModel @Inject constructor(
                     }
                 }
             }
-            
+
             val versoes = versaoJornadaRepository.listarPorEmprego(empregoId)
                 .sortedByDescending { it.dataInicio }
 

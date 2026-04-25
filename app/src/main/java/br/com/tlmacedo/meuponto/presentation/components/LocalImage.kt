@@ -18,14 +18,17 @@ fun LocalImage(
     errorPlaceholder: Int? = null
 ) {
     val context = LocalContext.current
-    
+
     if (imagePath == null) {
         placeholder?.invoke()
         return
     }
 
     val imageData = when {
-        imagePath.startsWith("content://") || imagePath.startsWith("file://") || imagePath.startsWith("http") -> imagePath
+        imagePath.startsWith("content://") || imagePath.startsWith("file://") || imagePath.startsWith(
+            "http"
+        ) -> imagePath
+
         imagePath.startsWith("/") -> File(imagePath)
         else -> File(context.filesDir, "logos/$imagePath")
     }

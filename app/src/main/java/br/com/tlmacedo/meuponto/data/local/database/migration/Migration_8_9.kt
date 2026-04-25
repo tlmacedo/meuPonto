@@ -20,7 +20,8 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
         // Precisamos recriar a tabela sem as colunas
 
         // 1. Criar tabela temporária sem as colunas removidas
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE IF NOT EXISTS configuracoes_emprego_new (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 empregoId INTEGER NOT NULL,
@@ -51,10 +52,12 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
                 atualizadoEm TEXT NOT NULL,
                 FOREIGN KEY (empregoId) REFERENCES empregos(id) ON DELETE CASCADE
             )
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // 2. Copiar dados (exceto as colunas removidas)
-        db.execSQL("""
+        db.execSQL(
+            """
             INSERT INTO configuracoes_emprego_new (
                 id, empregoId, cargaHorariaDiariaMinutos, jornadaMaximaDiariaMinutos,
                 intervaloMinimoInterjornadaMinutos, intervaloMinimoMinutos,
@@ -77,7 +80,8 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
                 diasUteisLembreteFechamento, habilitarSugestaoAjuste, zerarBancoAntesPeriodo,
                 criadoEm, atualizadoEm
             FROM configuracoes_emprego
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // 3. Remover tabela antiga
         db.execSQL("DROP TABLE configuracoes_emprego")

@@ -25,7 +25,10 @@ data class MetadataFerias(
 class CalcularMetadataFeriasUseCase @Inject constructor(
     private val ausenciaRepository: AusenciaRepository
 ) {
-    suspend operator fun invoke(ausencia: Ausencia, referencia: LocalDate? = null): MetadataFerias? {
+    suspend operator fun invoke(
+        ausencia: Ausencia,
+        referencia: LocalDate? = null
+    ): MetadataFerias? {
         if (ausencia.tipo != TipoAusencia.FERIAS) return null
         val inicioAquisitivo = ausencia.dataInicioPeriodoAquisitivo ?: return null
         val fimAquisitivo = ausencia.dataFimPeriodoAquisitivo ?: return null
@@ -47,20 +50,21 @@ class CalcularMetadataFeriasUseCase @Inject constructor(
         val indice = feriasNoPeriodo.indexOfFirst { it.id == ausencia.id }
         val sequencia = if (indice != -1) indice + 1 else 0
 
-        val diasGanhos = 30 
+        val diasGanhos = 30
         val diasMarcados = feriasNoPeriodo.sumOf { it.quantidadeDias }
-        
+
         // Dias aproveitados: dias de férias marcadas que já passaram (ou estão passando) em relação à data de referência
         val diasAproveitados = feriasNoPeriodo.sumOf { f ->
             when {
                 dataRef.isAfter(f.dataFim) -> f.quantidadeDias
                 dataRef.isBefore(f.dataInicio) -> 0
-                else -> java.time.temporal.ChronoUnit.DAYS.between(f.dataInicio, dataRef).toInt() + 1
+                else -> java.time.temporal.ChronoUnit.DAYS.between(f.dataInicio, dataRef)
+                    .toInt() + 1
             }
         }
 
         val diasRestantesParaMarcar = (diasGanhos - diasMarcados).coerceAtLeast(0)
-        
+
         // Dias que faltam aproveitar: Dias ganhos (30) menos os que já foram aproveitados
         val diasRestantesParaAproveitar = (diasGanhos - diasAproveitados).coerceAtLeast(0)
 

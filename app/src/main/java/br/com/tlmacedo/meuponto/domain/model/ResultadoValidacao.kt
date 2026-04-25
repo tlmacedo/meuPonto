@@ -68,8 +68,9 @@ data class ResultadoValidacao(
         get() = when {
             isValido && !temInconsistencias -> "Registro válido"
             isValido && temApenasAlertas -> "Registro válido com alertas"
-            !isValido && temInconsistenciasBloqueantes -> 
+            !isValido && temInconsistenciasBloqueantes ->
                 inconsistenciasBloqueantes.first().inconsistencia.descricao
+
             else -> mensagens.firstOrNull() ?: "Validação concluída"
         }
 

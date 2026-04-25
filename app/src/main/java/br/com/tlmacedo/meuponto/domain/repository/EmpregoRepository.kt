@@ -95,7 +95,7 @@ interface EmpregoRepository {
      * @param cnpj CNPJ a ser buscado (apenas números)
      * @return Emprego correspondente ou null se não encontrado
      */
-    suspend fun buscarPorCnpj(cnpj: String): br.com.tlmacedo.meuponto.domain.model.Emprego?
+    suspend fun buscarPorCnpj(cnpj: String): Emprego?
 
     // ========================================================================
     // Operações Reativas (Flows)

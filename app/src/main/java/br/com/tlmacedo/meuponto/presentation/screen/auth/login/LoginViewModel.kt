@@ -37,16 +37,18 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             val lembrarMe = preferenciasRepository.isLembrarMeAtivo()
             val biometriaHabilitada = preferenciasRepository.isBiometriaHabilitada()
-            
-            _uiState.update { it.copy(
-                lembrarMe = lembrarMe,
-                biometriaHabilitada = biometriaHabilitada
-            ) }
+
+            _uiState.update {
+                it.copy(
+                    lembrarMe = lembrarMe,
+                    biometriaHabilitada = biometriaHabilitada
+                )
+            }
 
             if (lembrarMe) {
                 val ultimoEmail = preferenciasRepository.obterUltimoEmailLogado()
                 if (!ultimoEmail.isNullOrBlank()) {
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(email = ultimoEmail).also { newState ->
                             validarFormulario(newState)
                         }
@@ -64,26 +66,28 @@ class LoginViewModel @Inject constructor(
     fun onAction(action: LoginAction) {
         when (action) {
             is LoginAction.EmailAlterado -> {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(email = action.email, emailErro = null, erro = null).also { newState ->
                         validarFormulario(newState)
                     }
                 }
             }
+
             is LoginAction.SenhaAlterada -> {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(senha = action.senha, senhaErro = null, erro = null).also { newState ->
                         validarFormulario(newState)
                     }
                 }
             }
+
             is LoginAction.LembrarMeAlterado -> _uiState.update { it.copy(lembrarMe = action.lembrar) }
             LoginAction.AlternarSenhaVisibilidade -> _uiState.update { it.copy(isSenhaVisivel = !it.isSenhaVisivel) }
             LoginAction.ClicarEntrar -> login()
             LoginAction.LoginBiometriaClick -> loginComBiometria()
             LoginAction.ClicarCadastrar -> emitirEvento(LoginEvent.NavegarParaRegistro)
             LoginAction.ClicarEsqueciSenha -> emitirEvento(LoginEvent.NavegarParaEsqueciSenha)
-            
+
             is LoginAction.BiometriaDisponibilidadeAlterada -> {
                 _uiState.update { it.copy(biometriaDisponivel = action.disponivel) }
                 // Se biometria está habilitada e disponível, tenta disparar o login biográfico
@@ -91,13 +95,20 @@ class LoginViewModel @Inject constructor(
                     loginComBiometria()
                 }
             }
+
             LoginAction.HabilitarBiometriaConfirmado -> {
                 viewModelScope.launch {
                     preferenciasRepository.definirBiometriaHabilitada(true)
-                    _uiState.update { it.copy(biometriaHabilitada = true, showDialogHabilitarBiometria = false) }
+                    _uiState.update {
+                        it.copy(
+                            biometriaHabilitada = true,
+                            showDialogHabilitarBiometria = false
+                        )
+                    }
                     _eventos.emit(LoginEvent.LoginSucesso)
                 }
             }
+
             LoginAction.HabilitarBiometriaCancelado -> {
                 _uiState.update { it.copy(showDialogHabilitarBiometria = false) }
                 viewModelScope.launch { _eventos.emit(LoginEvent.LoginSucesso) }
@@ -107,10 +118,12 @@ class LoginViewModel @Inject constructor(
 
     private fun validarFormulario(state: LoginUiState) {
         val resultado = validarLoginUseCase(state.email, state.senha)
-        
-        _uiState.update { it.copy(
-            isFormValido = resultado.isValido
-        ) }
+
+        _uiState.update {
+            it.copy(
+                isFormValido = resultado.isValido
+            )
+        }
     }
 
     private fun login() {
@@ -124,9 +137,9 @@ class LoginViewModel @Inject constructor(
 
             resultado.onSuccess {
                 salvarPreferenciasPosLogin(estadoAtual)
-                
+
                 _uiState.update { it.copy(isCarregando = false) }
-                
+
                 // Se a biometria está disponível mas NÃO está habilitada, pergunta se quer habilitar
                 if (estadoAtual.biometriaDisponivel && !estadoAtual.biometriaHabilitada) {
                     _uiState.update { it.copy(showDialogHabilitarBiometria = true) }
@@ -146,18 +159,18 @@ class LoginViewModel @Inject constructor(
             _eventos.emit(LoginEvent.SolicitarBiometria)
         }
     }
-    
+
     // Chamado pelo LoginScreen após autenticação biométrica com sucesso
     fun onBiometriaSucesso() {
         viewModelScope.launch {
             _uiState.update { it.copy(isCarregando = true, erro = null) }
-            
+
             // Em um app real, aqui usaríamos um token salvo com segurança (EncryptedSharedPreferences/DataStore)
             // Para este exemplo, vamos assumir que o sucesso da biometria permite o login do último usuário.
             val ultimoEmail = preferenciasRepository.obterUltimoEmailLogado()
             if (ultimoEmail != null) {
                 _uiState.update { it.copy(isCarregando = false) }
-                
+
                 // Se logou com biometria mas o recurso ainda não está "Habilitado" para login automático, pergunta se quer ativar
                 if (!_uiState.value.biometriaHabilitada) {
                     _uiState.update { it.copy(showDialogHabilitarBiometria = true) }
@@ -165,7 +178,12 @@ class LoginViewModel @Inject constructor(
                     _eventos.emit(LoginEvent.LoginSucesso)
                 }
             } else {
-                _uiState.update { it.copy(isCarregando = false, erro = "Nenhum usuário salvo para biometria") }
+                _uiState.update {
+                    it.copy(
+                        isCarregando = false,
+                        erro = "Nenhum usuário salvo para biometria"
+                    )
+                }
                 _eventos.emit(LoginEvent.MostrarErro("Nenhum usuário salvo para biometria. Faça login com senha primeiro."))
             }
         }
@@ -175,7 +193,7 @@ class LoginViewModel @Inject constructor(
         preferenciasRepository.definirLembrarMe(estado.lembrarMe)
         if (estado.lembrarMe) {
             preferenciasRepository.definirUltimoEmailLogado(estado.email)
-        } else if (!estado.biometriaHabilitada) { 
+        } else if (!estado.biometriaHabilitada) {
             // Se nem lembrar me nem biometria estão ativos, limpa o email
             preferenciasRepository.definirUltimoEmailLogado("")
         }

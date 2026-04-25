@@ -28,7 +28,7 @@ class CriarVersaoJornadaUseCase @Inject constructor(
     suspend operator fun invoke(params: Params): Result<VersaoJornada> {
         return try {
             val emprego = empregoRepository.buscarAtivos().firstOrNull()
-                ?: return Result.failure(VersaoJornadaException.EmpregoNaoEncontrado)
+                ?: return Result.failure(VersaoJornadaException.EmpregoNaoEncontrado())
 
             val versoesExistentes = versaoJornadaRepository.buscarPorEmprego(emprego.id)
 
@@ -168,7 +168,7 @@ class CriarVersaoJornadaUseCase @Inject constructor(
         val cargaHorariaSemanalMinutos: Int = 2460,
 
         // Período/Saldo
-        val primeiroDiaSemana: br.com.tlmacedo.meuponto.domain.model.DiaSemana = br.com.tlmacedo.meuponto.domain.model.DiaSemana.SEGUNDA,
+        val primeiroDiaSemana: DiaSemana = DiaSemana.SEGUNDA,
         val diaInicioFechamentoRH: Int = 1,
         val zerarSaldoSemanal: Boolean = false,
         val zerarSaldoPeriodoRH: Boolean = false,

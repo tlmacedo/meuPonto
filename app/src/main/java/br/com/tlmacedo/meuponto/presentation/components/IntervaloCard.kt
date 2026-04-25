@@ -39,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -138,7 +137,8 @@ fun IntervaloCard(
                             ponto = intervalo.entrada,
                             horaReal = intervalo.entrada.hora.format(formatadorHora),
                             horaConsiderada = if (intervalo.temHoraEntradaConsiderada) {
-                                intervalo.horaEntradaConsiderada!!.toLocalTime().format(formatadorHora)
+                                intervalo.horaEntradaConsiderada!!.toLocalTime()
+                                    .format(formatadorHora)
                             } else if (intervalo.entrada.temAjusteTolerancia) {
                                 intervalo.entrada.horaConsiderada.format(formatadorHora)
                             } else null,
@@ -535,18 +535,25 @@ private fun PausaEntreIntervalos(
     }
 }
 
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, name = "Intervalo com Tolerância Aplicada")
+@androidx.compose.ui.tooling.preview.Preview(
+    showBackground = true,
+    name = "Intervalo com Tolerância Aplicada"
+)
 @Composable
 private fun IntervaloComToleranciaPreview() {
     val hoje = java.time.LocalDate.now()
     val empregoId = 1L
-    
+
     // Simula uma pausa de 68 minutos (mínimo 60, tolerância 15)
     // A tolerância deve "puxar" para 60min e marcar a entrada seguinte como considerada
-    val ponto1 = br.com.tlmacedo.meuponto.domain.model.Ponto.criar(empregoId, hoje.atTime(8, 0)).copy(id = 1L)
-    val ponto2 = br.com.tlmacedo.meuponto.domain.model.Ponto.criar(empregoId, hoje.atTime(12, 0)).copy(id = 2L)
-    val ponto3 = br.com.tlmacedo.meuponto.domain.model.Ponto.criar(empregoId, hoje.atTime(13, 8)).copy(id = 3L) // 68min de pausa
-    val ponto4 = br.com.tlmacedo.meuponto.domain.model.Ponto.criar(empregoId, hoje.atTime(17, 0)).copy(id = 4L)
+    val ponto1 = Ponto.criar(empregoId, hoje.atTime(8, 0))
+        .copy(id = 1L)
+    val ponto2 = Ponto.criar(empregoId, hoje.atTime(12, 0))
+        .copy(id = 2L)
+    val ponto3 = Ponto.criar(empregoId, hoje.atTime(13, 8))
+        .copy(id = 3L) // 68min de pausa
+    val ponto4 = Ponto.criar(empregoId, hoje.atTime(17, 0))
+        .copy(id = 4L)
 
     val resumo = br.com.tlmacedo.meuponto.domain.model.ResumoDia(
         data = hoje,
@@ -557,11 +564,14 @@ private fun IntervaloComToleranciaPreview() {
     )
 
     br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme {
-        androidx.compose.foundation.layout.Column(
-            modifier = androidx.compose.ui.Modifier.padding(16.dp), 
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Exemplo de Tolerância Global (Sábado/Sem Horário Fixo)", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Exemplo de Tolerância Global (Sábado/Sem Horário Fixo)",
+                style = MaterialTheme.typography.titleSmall
+            )
             // Exibimos o segundo intervalo, que contém a pausa de almoço antes dele
             IntervaloCard(
                 intervalo = resumo.intervalos[1],

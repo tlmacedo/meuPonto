@@ -10,7 +10,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class EmailNotificacaoServiceImpl @Inject constructor(chamadoApiService: ChamadoApiService) : EmailNotificacaoService {
+class EmailNotificacaoServiceImpl @Inject constructor(chamadoApiService: ChamadoApiService) :
+    EmailNotificacaoService {
 
     override suspend fun notificarNovoChamado(chamado: Chamado) {
         try {

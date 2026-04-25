@@ -40,6 +40,7 @@ fun FeriadoDatePicker(
                 LocalDate.now().withMonth(it.monthValue).withDayOfMonth(it.dayOfMonth)
             } ?: LocalDate.now()
         }
+
         RecorrenciaFeriado.UNICO -> dataAtual ?: LocalDate.now()
     }.toDatePickerMillis()
 
@@ -63,6 +64,7 @@ fun FeriadoDatePicker(
                                     MonthDay.of(selectedDate.monthValue, selectedDate.dayOfMonth)
                                 )
                             }
+
                             RecorrenciaFeriado.UNICO -> {
                                 onDataSelected(selectedDate)
                             }

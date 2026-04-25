@@ -62,21 +62,33 @@ interface AjusteSaldoDao {
     // Listagens por período
     // ========================================================================
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ajustes_saldo 
         WHERE empregoId = :empregoId 
         AND data BETWEEN :dataInicio AND :dataFim 
         ORDER BY data ASC
-    """)
-    fun listarPorPeriodo(empregoId: Long, dataInicio: String, dataFim: String): Flow<List<AjusteSaldoEntity>>
+    """
+    )
+    fun listarPorPeriodo(
+        empregoId: Long,
+        dataInicio: String,
+        dataFim: String
+    ): Flow<List<AjusteSaldoEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM ajustes_saldo 
         WHERE empregoId = :empregoId 
         AND data BETWEEN :dataInicio AND :dataFim 
         ORDER BY data ASC
-    """)
-    suspend fun buscarPorPeriodo(empregoId: Long, dataInicio: String, dataFim: String): List<AjusteSaldoEntity>
+    """
+    )
+    suspend fun buscarPorPeriodo(
+        empregoId: Long,
+        dataInicio: String,
+        dataFim: String
+    ): List<AjusteSaldoEntity>
 
     // ========================================================================
     // Consultas por data específica
@@ -92,11 +104,13 @@ interface AjusteSaldoDao {
     @Query("SELECT COALESCE(SUM(minutos), 0) FROM ajustes_saldo WHERE empregoId = :empregoId")
     suspend fun somarTotalPorEmprego(empregoId: Long): Int
 
-    @Query("""
+    @Query(
+        """
         SELECT COALESCE(SUM(minutos), 0) FROM ajustes_saldo 
         WHERE empregoId = :empregoId 
         AND data BETWEEN :dataInicio AND :dataFim
-    """)
+    """
+    )
     suspend fun somarPorPeriodo(empregoId: Long, dataInicio: String, dataFim: String): Int
 
     @Query("SELECT COUNT(*) FROM ajustes_saldo WHERE empregoId = :empregoId")

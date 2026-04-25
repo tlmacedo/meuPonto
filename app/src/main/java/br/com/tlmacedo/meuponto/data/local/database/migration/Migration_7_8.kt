@@ -19,9 +19,10 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // SQLite não suporta DROP COLUMN diretamente
         // Precisamos recriar a tabela sem a coluna 'tipo'
-        
+
         // 1. Criar tabela temporária sem a coluna tipo
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE IF NOT EXISTS pontos_new (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 empregoId INTEGER NOT NULL DEFAULT 1,
@@ -42,10 +43,12 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
                 FOREIGN KEY (empregoId) REFERENCES empregos(id) ON DELETE CASCADE,
                 FOREIGN KEY (marcadorId) REFERENCES marcadores(id) ON DELETE SET NULL
             )
-        """.trimIndent())
-        
+        """.trimIndent()
+        )
+
         // 2. Copiar dados (exceto coluna tipo)
-        db.execSQL("""
+        db.execSQL(
+            """
             INSERT INTO pontos_new (
                 id, empregoId, dataHora, observacao, isEditadoManualmente,
                 nsr, latitude, longitude, endereco, marcadorId,
@@ -58,14 +61,15 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
                 justificativaInconsistencia, horaConsiderada,
                 criadoEm, atualizadoEm, data, hora
             FROM pontos
-        """.trimIndent())
-        
+        """.trimIndent()
+        )
+
         // 3. Remover tabela antiga
         db.execSQL("DROP TABLE pontos")
-        
+
         // 4. Renomear nova tabela
         db.execSQL("ALTER TABLE pontos_new RENAME TO pontos")
-        
+
         // 5. Recriar índices
         db.execSQL("CREATE INDEX IF NOT EXISTS index_pontos_empregoId ON pontos(empregoId)")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_pontos_data ON pontos(data)")

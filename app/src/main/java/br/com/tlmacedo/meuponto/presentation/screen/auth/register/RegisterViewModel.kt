@@ -28,33 +28,38 @@ class RegisterViewModel @Inject constructor(
     fun onAction(action: RegisterAction) {
         when (action) {
             is RegisterAction.NomeAlterado -> {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(nome = action.nome, nomeErro = null, erro = null).also { newState ->
                         validarFormulario(newState)
                     }
                 }
             }
+
             is RegisterAction.EmailAlterado -> {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(email = action.email, emailErro = null, erro = null).also { newState ->
                         validarFormulario(newState)
                     }
                 }
             }
+
             is RegisterAction.SenhaAlterada -> {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(senha = action.senha, senhaErro = null, erro = null).also { newState ->
                         validarFormulario(newState)
                     }
                 }
             }
+
             is RegisterAction.ConfirmarSenhaAlterada -> {
-                _uiState.update { 
-                    it.copy(confirmarSenha = action.senha, confirmarSenhaErro = null, erro = null).also { newState ->
-                        validarFormulario(newState)
-                    }
+                _uiState.update {
+                    it.copy(confirmarSenha = action.senha, confirmarSenhaErro = null, erro = null)
+                        .also { newState ->
+                            validarFormulario(newState)
+                        }
                 }
             }
+
             RegisterAction.AlternarSenhaVisibilidade -> _uiState.update { it.copy(isSenhaVisivel = !it.isSenhaVisivel) }
             RegisterAction.ClicarCadastrar -> cadastrar()
             RegisterAction.NavegarParaLogin -> emitirEvento(RegisterEvent.CadastroSucesso)
@@ -62,39 +67,49 @@ class RegisterViewModel @Inject constructor(
     }
 
     private fun validarFormulario(state: RegisterUiState) {
-        val emailValido = state.email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(state.email).matches()
+        val emailValido =
+            state.email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(state.email)
+                .matches()
         val senhaValida = state.senha.length >= 6
         val senhasCoincidem = state.senha == state.confirmarSenha
         val nomeValido = state.nome.trim().split(" ").size >= 2
 
-        _uiState.update { it.copy(
-            isFormValido = nomeValido && emailValido && senhaValida && senhasCoincidem
-        ) }
+        _uiState.update {
+            it.copy(
+                isFormValido = nomeValido && emailValido && senhaValida && senhasCoincidem
+            )
+        }
     }
 
     private fun cadastrar() {
         val estadoAtual = _uiState.value
-        
+
         // Validação final detalhada para exibir erros específicos se o usuário clicar em "Cadastrar" com o form inválido
         val nomeValido = estadoAtual.nome.trim().split(" ").size >= 2
-        val emailValido = estadoAtual.email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(estadoAtual.email).matches()
+        val emailValido =
+            estadoAtual.email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(
+                estadoAtual.email
+            ).matches()
         val senhaValida = estadoAtual.senha.length >= 6
         val senhasCoincidem = estadoAtual.senha == estadoAtual.confirmarSenha
 
         if (!nomeValido || !emailValido || !senhaValida || !senhasCoincidem) {
-            _uiState.update { it.copy(
-                nomeErro = if (nomeValido) null else "Informe nome e sobrenome",
-                emailErro = if (emailValido) null else "E-mail inválido",
-                senhaErro = if (senhaValida) null else "Mínimo 6 caracteres",
-                confirmarSenhaErro = if (senhasCoincidem) null else "As senhas não coincidem"
-            ) }
+            _uiState.update {
+                it.copy(
+                    nomeErro = if (nomeValido) null else "Informe nome e sobrenome",
+                    emailErro = if (emailValido) null else "E-mail inválido",
+                    senhaErro = if (senhaValida) null else "Mínimo 6 caracteres",
+                    confirmarSenhaErro = if (senhasCoincidem) null else "As senhas não coincidem"
+                )
+            }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCarregando = true, erro = null) }
 
-            val resultado = authRepository.register(estadoAtual.nome, estadoAtual.email, estadoAtual.senha)
+            val resultado =
+                authRepository.register(estadoAtual.nome, estadoAtual.email, estadoAtual.senha)
 
             resultado.onSuccess {
                 _uiState.update { it.copy(isCarregando = false) }

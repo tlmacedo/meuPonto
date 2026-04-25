@@ -55,8 +55,10 @@ class ImageResizer @Inject constructor(
     enum class ResizeStrategy {
         /** Cabe dentro das dimensões preservando aspect ratio (pode resultar menor) */
         FIT,
+
         /** Preenche as dimensões com crop central (pode cortar bordas) */
         FILL,
+
         /** Dimensões exatas sem preservar aspect ratio (pode distorcer) */
         EXACT
     }
@@ -149,8 +151,8 @@ class ImageResizer @Inject constructor(
         strategy: ResizeStrategy = ResizeStrategy.FIT
     ): Bitmap {
         return when (strategy) {
-            ResizeStrategy.FIT   -> resizeToFit(bitmap, maxOf(targetWidth, targetHeight))
-            ResizeStrategy.FILL  -> resizeToFill(bitmap, targetWidth, targetHeight)
+            ResizeStrategy.FIT -> resizeToFit(bitmap, maxOf(targetWidth, targetHeight))
+            ResizeStrategy.FILL -> resizeToFill(bitmap, targetWidth, targetHeight)
             ResizeStrategy.EXACT -> resizeExact(bitmap, targetWidth, targetHeight)
         }
     }
@@ -319,7 +321,8 @@ class ImageResizer @Inject constructor(
             val halfWidth = width / 2
 
             while (halfHeight / inSampleSize >= reqHeight &&
-                halfWidth / inSampleSize >= reqWidth) {
+                halfWidth / inSampleSize >= reqWidth
+            ) {
                 inSampleSize *= 2
             }
         }

@@ -116,9 +116,9 @@ fun JornadaScreen(
                 range = 0f..60f, // 0 a 60 min
                 onValueChange = { viewModel.onAction(JornadaAction.AlterarToleranciaGeral(it)) }
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -179,7 +179,7 @@ private fun JornadaSettingItem(
                     fontWeight = FontWeight.Bold
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(16.dp))

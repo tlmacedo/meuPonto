@@ -13,7 +13,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 val MIGRATION_12_13 = object : Migration(12, 13) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // Criar tabela de ausências
-        db.execSQL("""
+        db.execSQL(
+            """
             CREATE TABLE IF NOT EXISTS `ausencias` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `empregoId` INTEGER NOT NULL,
@@ -27,7 +28,8 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
                 `atualizadoEm` TEXT NOT NULL,
                 FOREIGN KEY(`empregoId`) REFERENCES `empregos`(`id`) ON DELETE CASCADE
             )
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         // Criar índices
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_ausencias_empregoId` ON `ausencias` (`empregoId`)")

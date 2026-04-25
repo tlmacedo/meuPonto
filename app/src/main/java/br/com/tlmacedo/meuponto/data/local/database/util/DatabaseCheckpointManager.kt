@@ -95,7 +95,10 @@ class DatabaseCheckpointManager @Inject constructor(
                     val checkpointed = cursor.getInt(2)  // Páginas efetivamente movidas
                     cursor.close()
 
-                    Log.d(TAG, "Checkpoint ${mode.name}: blocked=$blocked, walPages=$walPages, checkpointed=$checkpointed")
+                    Log.d(
+                        TAG,
+                        "Checkpoint ${mode.name}: blocked=$blocked, walPages=$walPages, checkpointed=$checkpointed"
+                    )
 
                     CheckpointResult(
                         success = blocked == 0,

@@ -407,6 +407,7 @@ enum class TipoAusencia(
             TipoFolga.DAY_OFF -> TipoDiaEspecial.FALTA_JUSTIFICADA // Zera jornada
             TipoFolga.COMPENSACAO, null -> TipoDiaEspecial.FOLGA   // Mantém jornada
         }
+
         FALTA_INJUSTIFICADA -> TipoDiaEspecial.FALTA_INJUSTIFICADA
     }
 
@@ -461,10 +462,13 @@ enum class TipoAusencia(
 enum class TipoAusenciaCor {
     /** Situação positiva - abonado */
     VERDE,
+
     /** Situação neutra - abono parcial */
     AZUL,
+
     /** Situação de atenção - desconta do banco */
     AMARELO,
+
     /** Situação negativa - gera débito/penalidade */
     VERMELHO
 }

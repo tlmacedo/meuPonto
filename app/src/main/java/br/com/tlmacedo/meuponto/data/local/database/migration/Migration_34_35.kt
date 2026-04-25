@@ -16,7 +16,7 @@ val MIGRATION_34_35 = object : Migration(34, 35) {
         var hasApelido = false
         var hasEndereco = false
         var hasLogo = false
-        
+
         val nameIndexEmpregos = cursorEmpregos.getColumnIndexOrThrow("name")
         while (cursorEmpregos.moveToNext()) {
             val name = cursorEmpregos.getString(nameIndexEmpregos)

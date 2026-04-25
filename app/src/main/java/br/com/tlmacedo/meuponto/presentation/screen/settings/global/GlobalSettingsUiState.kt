@@ -29,7 +29,7 @@ data class GlobalSettingsUiState(
             val local = preferencias.ultimoBackupLocal
             val nuvem = preferencias.ultimoBackupNuvem
             val maisRecente = maxOf(local, nuvem)
-            
+
             return maisRecente.takeIf { it > 0 }?.let { timestamp ->
                 val instant = Instant.ofEpochMilli(timestamp)
                 val dateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime()
@@ -67,33 +67,34 @@ sealed interface GlobalSettingsAction {
     data object Voltar : GlobalSettingsAction
     data class AbrirDialog(val tipo: DialogTipo) : GlobalSettingsAction
     data object FecharDialog : GlobalSettingsAction
-    
+
     // Aparência
     data class AlterarTema(val tema: TemaEscuro) : GlobalSettingsAction
     data class AlterarCoresSistema(val usar: Boolean) : GlobalSettingsAction
-    
+
     // Formatos
     data class AlterarFormatoData(val formato: FormatoData) : GlobalSettingsAction
     data class AlterarFormatoHora(val formato: FormatoHora) : GlobalSettingsAction
     data class AlterarPrimeiroDiaSemana(val dia: DayOfWeek) : GlobalSettingsAction
-    
+
     // Notificações
     data class AlterarLembretePonto(val ativo: Boolean) : GlobalSettingsAction
     data class AlterarAlertaFeriado(val ativo: Boolean) : GlobalSettingsAction
     data class AlterarAlertaBancoHoras(val ativo: Boolean) : GlobalSettingsAction
     data class AlterarAntecedenciaFeriado(val dias: Int) : GlobalSettingsAction
-    
+
     // Localização
     data class AlterarLocalizacaoPadrao(
         val nome: String,
         val latitude: Double?,
         val longitude: Double?
     ) : GlobalSettingsAction
+
     data class AlterarRaioGeofencing(val metros: Int) : GlobalSettingsAction
     data class AlterarRegistroAutomatico(val ativo: Boolean) : GlobalSettingsAction
-    
+
     // Backup
     data class AlterarBackupAutomatico(val ativo: Boolean) : GlobalSettingsAction
-    
+
     data object LimparMensagem : GlobalSettingsAction
 }

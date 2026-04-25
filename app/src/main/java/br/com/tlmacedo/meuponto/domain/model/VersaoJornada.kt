@@ -183,7 +183,10 @@ data class VersaoJornada(
         get() = formatarMinutosComoHora(intervaloMinimoDescansoMinutos, usarFormatoReduzido = true)
 
     val toleranciaRetornoIntervaloFormatada: String
-        get() = formatarMinutosComoHora(toleranciaRetornoIntervaloMinutos, usarFormatoReduzido = true)
+        get() = formatarMinutosComoHora(
+            toleranciaRetornoIntervaloMinutos,
+            usarFormatoReduzido = true
+        )
 
     // ════════════════════════════════════════════════════════════════════════
     // PROPRIEDADES COMPUTADAS - BANCO DE HORAS
@@ -224,9 +227,15 @@ data class VersaoJornada(
 
         return when {
             periodoBancoDias > 0 -> dataInicioCiclo.plusDays(periodoBancoDias.toLong()).minusDays(1)
-            periodoBancoSemanas > 0 -> dataInicioCiclo.plusWeeks(periodoBancoSemanas.toLong()).minusDays(1)
-            periodoBancoMeses > 0 -> dataInicioCiclo.plusMonths(periodoBancoMeses.toLong()).minusDays(1)
-            periodoBancoAnos > 0 -> dataInicioCiclo.plusYears(periodoBancoAnos.toLong()).minusDays(1)
+            periodoBancoSemanas > 0 -> dataInicioCiclo.plusWeeks(periodoBancoSemanas.toLong())
+                .minusDays(1)
+
+            periodoBancoMeses > 0 -> dataInicioCiclo.plusMonths(periodoBancoMeses.toLong())
+                .minusDays(1)
+
+            periodoBancoAnos > 0 -> dataInicioCiclo.plusYears(periodoBancoAnos.toLong())
+                .minusDays(1)
+
             else -> null
         }
     }
@@ -282,7 +291,10 @@ data class VersaoJornada(
     // UTILITÁRIOS
     // ════════════════════════════════════════════════════════════════════════
 
-    private fun formatarMinutosComoHora(minutos: Int, usarFormatoReduzido: Boolean = false): String {
+    private fun formatarMinutosComoHora(
+        minutos: Int,
+        usarFormatoReduzido: Boolean = false
+    ): String {
         if (usarFormatoReduzido && minutos < 60) {
             return "${minutos}min"
         }

@@ -67,13 +67,16 @@ fun ComprovanteSection(
                     onFotoSaved(event.filePath, event.hash)
                     Toast.makeText(context, "Comprovante salvo!", Toast.LENGTH_SHORT).show()
                 }
+
                 is FotoEvent.DeleteSuccess -> {
                     onFotoDeleted()
                     Toast.makeText(context, "Comprovante excluído", Toast.LENGTH_SHORT).show()
                 }
+
                 is FotoEvent.ValidationError -> {
                     Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                 }
+
                 is FotoEvent.Error -> {
                     Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                 }

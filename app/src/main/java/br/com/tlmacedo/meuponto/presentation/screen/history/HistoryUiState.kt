@@ -36,7 +36,7 @@ enum class FiltroHistorico(
     ATESTADOS("Atestados", "🏥", true),
     DECLARACOES("Declarações", "📄", true),
     FALTAS("Faltas", "❌", true),
-    
+
     // Novo modo de visualização
     CALENDARIO("Calendário", "📅");
 
@@ -136,7 +136,8 @@ data class PeriodoHistorico(
             return PeriodoHistorico(dataInicio, dataFim, diaFechamento)
         }
 
-        fun periodoAtual(diaInicioFechamento: Int = 1) = fromPeriodoRH(LocalDate.now(), diaInicioFechamento)
+        fun periodoAtual(diaInicioFechamento: Int = 1) =
+            fromPeriodoRH(LocalDate.now(), diaInicioFechamento)
     }
 
     fun periodoAnterior() = fromPeriodoRH(dataInicio.minusDays(1), diaInicioFechamento)
@@ -332,6 +333,7 @@ data class HistoryUiState(
             FiltroHistorico.INCOMPLETOS -> diasHistorico.filter {
                 !it.jornadaCompleta && it.pontos.isNotEmpty() && !it.resumoDia.isFuturo
             }
+
             FiltroHistorico.COM_PROBLEMAS -> diasHistorico.filter { it.temProblemas }
             FiltroHistorico.FUTUROS -> diasHistorico.filter { it.resumoDia.isFuturo }
             FiltroHistorico.DESCANSO -> diasHistorico.filter { it.isDescanso }
@@ -339,21 +341,26 @@ data class HistoryUiState(
             FiltroHistorico.FERIAS -> diasHistorico.filter {
                 it.ausencias.any { a -> a.tipo == TipoAusencia.FERIAS }
             }
+
             FiltroHistorico.FOLGAS -> diasHistorico.filter {
                 it.ausencias.any { a -> a.tipo == TipoAusencia.FOLGA && a.tipoFolga != TipoFolga.DAY_OFF }
             }
+
             FiltroHistorico.DAY_OFF -> diasHistorico.filter {
                 it.ausencias.any { a -> a.tipo == TipoAusencia.FOLGA && a.tipoFolga == TipoFolga.DAY_OFF }
             }
+
             FiltroHistorico.ATESTADOS -> diasHistorico.filter {
                 it.ausencias.any { a -> a.tipo == TipoAusencia.ATESTADO }
             }
+
             FiltroHistorico.DECLARACOES -> diasHistorico.filter { it.declaracoes.isNotEmpty() }
             FiltroHistorico.FALTAS -> diasHistorico.filter {
                 it.ausencias.any { a ->
                     a.tipo == TipoAusencia.FALTA_JUSTIFICADA || a.tipo == TipoAusencia.FALTA_INJUSTIFICADA
                 }
             }
+
             FiltroHistorico.CALENDARIO -> diasHistorico
         }
 

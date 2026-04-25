@@ -95,7 +95,8 @@ fun RegistrarPontoModal(
     onDismiss: () -> Unit
 ) {
     val corPrincipal = if (proximoTipo.isEntrada) EntradaColor else SaidaColor
-    val temDadosLocalizacao = state.latitude != null || state.longitude != null || state.isCapturingLocation || state.erroLocalizacao != null
+    val temDadosLocalizacao =
+        state.latitude != null || state.longitude != null || state.isCapturingLocation || state.erroLocalizacao != null
 
     val podeConfirmar = !state.isSaving && !state.isProcessingOcr &&
             (!fotoObrigatoria || state.fotoUri != null) &&
@@ -153,7 +154,7 @@ fun RegistrarPontoModal(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     if (!state.isSaving) {
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.Default.Close, contentDescription = "Fechar")
@@ -216,7 +217,7 @@ fun RegistrarPontoModal(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    
+
                     if (state.fotoUri != null) {
                         Box(
                             modifier = Modifier
@@ -252,7 +253,10 @@ fun RegistrarPontoModal(
                                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .padding(top = 8.dp, end = 88.dp) // Posicionado antes do reprocessar
+                                    .padding(
+                                        top = 8.dp,
+                                        end = 88.dp
+                                    ) // Posicionado antes do reprocessar
                                     .size(32.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .clickable(!state.isProcessingOcr) { onCapturarFoto() },
@@ -270,7 +274,10 @@ fun RegistrarPontoModal(
                                 color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .padding(top = 8.dp, end = 48.dp) // Posicionado ao lado da lixeira
+                                    .padding(
+                                        top = 8.dp,
+                                        end = 48.dp
+                                    ) // Posicionado ao lado da lixeira
                                     .size(32.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .clickable(!state.isProcessingOcr) { onReprocessarOcr() },
@@ -375,7 +382,12 @@ fun RegistrarPontoModal(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4,
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "Campo Observação") }
+                        leadingIcon = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Comment,
+                                contentDescription = "Campo Observação"
+                            )
+                        }
                     )
                     Spacer(modifier = Modifier.height(20.dp))
                 }
@@ -414,7 +426,9 @@ fun RegistrarPontoModal(
                             Column(modifier = Modifier.weight(1f)) {
                                 if (state.isCapturingLocation) {
                                     LinearProgressIndicator(
-                                        modifier = Modifier.fillMaxWidth().height(2.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(2.dp),
                                         color = corPrincipal
                                     )
                                     Text(

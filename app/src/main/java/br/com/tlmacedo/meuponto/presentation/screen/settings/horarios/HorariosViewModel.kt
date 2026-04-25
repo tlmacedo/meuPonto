@@ -90,6 +90,7 @@ class HorariosViewModel @Inject constructor(
                     )
                 }
             }
+
             empregoId <= 0L -> {
                 _uiState.update {
                     it.copy(
@@ -98,6 +99,7 @@ class HorariosViewModel @Inject constructor(
                     )
                 }
             }
+
             else -> {
                 carregarDadosIniciais()
             }

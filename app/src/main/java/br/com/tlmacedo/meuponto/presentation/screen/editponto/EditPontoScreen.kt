@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -100,7 +99,9 @@ fun EditPontoScreen(
         topBar = {
             MeuPontoTopBar(
                 title = "Editar Ponto",
-                subtitle = (uiState.empregoApelido?.uppercase() ?: (uiState.empregoSelecionado?.apelido ?: uiState.empregoSelecionado?.nome)?.uppercase()),
+                subtitle = (uiState.empregoApelido?.uppercase()
+                    ?: (uiState.empregoSelecionado?.apelido
+                        ?: uiState.empregoSelecionado?.nome)?.uppercase()),
                 logo = uiState.empregoLogo ?: uiState.empregoSelecionado?.logo,
                 showBackButton = true,
                 onBackClick = onNavigateBack,
