@@ -78,7 +78,7 @@ fun OnboardingScreen(
                             permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
                             permissionLauncher.launch(permissions.toTypedArray())
                         }
-                        6 -> viewModel.nextStep()
+                        6 -> viewModel.concluirOnboarding()
                     }
                 },
                 onBack = {
@@ -126,7 +126,7 @@ fun OnboardingScreen(
                 )
                 6 -> ScheduleSetupPage(
                     cargaHoraria = uiState.cargaHorariaDiaria,
-                    onCargaHorariaChange = viewModel::onCargaHorariaChange
+                    onCargaHorariaChange = viewModel::onCargaHorariaDiariaChange
                 )
             }
         }

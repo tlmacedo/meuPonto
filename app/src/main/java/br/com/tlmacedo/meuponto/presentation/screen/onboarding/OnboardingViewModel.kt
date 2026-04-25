@@ -1,8 +1,12 @@
+// path: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/onboarding/OnboardingViewModel.kt
 package br.com.tlmacedo.meuponto.presentation.screen.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.tlmacedo.meuponto.data.local.database.MeuPontoDatabase
+import br.com.tlmacedo.meuponto.data.local.database.dao.ConfiguracaoEmpregoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.EmpregoDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.HorarioDiaSemanaDao
+import br.com.tlmacedo.meuponto.data.local.database.dao.VersaoJornadaDao
 import br.com.tlmacedo.meuponto.data.local.database.entity.ConfiguracaoEmpregoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.EmpregoEntity
 import br.com.tlmacedo.meuponto.data.local.database.entity.HorarioDiaSemanaEntity
@@ -27,48 +31,51 @@ data class OnboardingUiState(
         DiaSemana.SEGUNDA, DiaSemana.TERCA, DiaSemana.QUARTA, DiaSemana.QUINTA, DiaSemana.SEXTA
     ),
     val cargaHorariaDiaria: Int = 480,
-    
+
     // Opções de Registro
     val fotoHabilitada: Boolean = true,
     val localizacaoHabilitada: Boolean = true,
     val nsrHabilitado: Boolean = false,
-    
+
     // Info RH e Banco de Horas
     val diaFechamentoRH: Int = 1,
     val bancoHorasHabilitado: Boolean = false,
-    
+
     // Sincronização
     val backupNuvemHabilitado: Boolean = true,
-    
+
     val isConcluido: Boolean = false
 )
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val preferenciasRepository: PreferenciasRepository,
-    private val database: MeuPontoDatabase
+    private val empregoDao: EmpregoDao,
+    private val configuracaoEmpregoDao: ConfiguracaoEmpregoDao,
+    private val versaoJornadaDao: VersaoJornadaDao,
+    private val horarioDiaSemanaDao: HorarioDiaSemanaDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
-    fun onNomeEmpregoChange(novoNome: String) {
-        _uiState.update { it.copy(nomeEmprego = novoNome) }
+    fun onNomeEmpregoChange(nome: String) {
+        _uiState.update { it.copy(nomeEmprego = nome) }
     }
 
     fun onDiaTrabalhoToggle(dia: DiaSemana) {
-        _uiState.update { state ->
-            val novosDias = if (state.diasTrabalho.contains(dia)) {
-                state.diasTrabalho - dia
+        _uiState.update {
+            val novosDias = if (it.diasTrabalho.contains(dia)) {
+                it.diasTrabalho - dia
             } else {
-                state.diasTrabalho + dia
+                it.diasTrabalho + dia
             }
-            state.copy(diasTrabalho = novosDias)
+            it.copy(diasTrabalho = novosDias)
         }
     }
 
-    fun onCargaHorariaChange(minutos: Int) {
-        _uiState.update { it.copy(cargaHorariaDiaria = minutos) }
+    fun onCargaHorariaDiariaChange(carga: Int) {
+        _uiState.update { it.copy(cargaHorariaDiaria = carga) }
     }
 
     fun onFotoHabilitadaChange(habilitada: Boolean) {
@@ -95,30 +102,24 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(backupNuvemHabilitado = habilitado) }
     }
 
-    fun nextStep() {
-        if (_uiState.value.currentPage < 6) {
-            _uiState.update { it.copy(currentPage = it.currentPage + 1) }
-        } else {
-            concluirOnboarding()
-        }
+    fun onNextPage() {
+        _uiState.update { it.copy(currentPage = it.currentPage + 1) }
     }
 
-    fun prevStep() {
-        if (_uiState.value.currentPage > 0) {
-            _uiState.update { it.copy(currentPage = it.currentPage - 1) }
-        }
+    fun onPreviousPage() {
+        _uiState.update { it.copy(currentPage = it.currentPage - 1) }
     }
 
-    private fun concluirOnboarding() {
+    fun concluirOnboarding() {
         viewModelScope.launch {
-            // 1. Criar o primeiro emprego no banco de dados
+            // 1. Criar Emprego, Configuração, Versão de Jornada e Horários
             val novoEmprego = EmpregoEntity(
                 nome = _uiState.value.nomeEmprego,
-                ativo = true,
+                apelido = _uiState.value.nomeEmprego, // Pode ser editado depois
                 criadoEm = LocalDateTime.now(),
                 atualizadoEm = LocalDateTime.now()
             )
-            val idInserido = database.empregoDao().inserir(novoEmprego)
+            val idInserido = empregoDao.inserir(novoEmprego)
 
             // 1.1 Criar configuração padrão para o novo emprego
             val novaConfiguracao = ConfiguracaoEmpregoEntity(
@@ -130,7 +131,7 @@ class OnboardingViewModel @Inject constructor(
                 criadoEm = LocalDateTime.now(),
                 atualizadoEm = LocalDateTime.now()
             )
-            database.configuracaoEmpregoDao().inserir(novaConfiguracao)
+            configuracaoEmpregoDao.inserir(novaConfiguracao)
 
             // 1.2 Criar uma versão de jornada padrão (configurável no onboarding)
             val novaVersao = VersaoJornadaEntity(
@@ -145,18 +146,18 @@ class OnboardingViewModel @Inject constructor(
                 criadoEm = LocalDateTime.now(),
                 atualizadoEm = LocalDateTime.now()
             )
-            val versaoId = database.versaoJornadaDao().inserir(novaVersao)
+            val versaoId = versaoJornadaDao.inserir(novaVersao)
 
             // 1.3 Criar horários padrão para a versão baseados na carga horária escolhida
             val cargaMinutos = _uiState.value.cargaHorariaDiaria
             val entrada = LocalTime.of(8, 0)
             val saidaIntervalo = entrada.plusHours(4)
             val voltaIntervalo = saidaIntervalo.plusHours(1)
-            val saida = voltaIntervalo.plusMinutes((cargaMinutos - 240).toLong())
+            val saida = voltaIntervalo.plusMinutes(cargaMinutos.toLong() - 300) // 300 = 5h de trabalho antes do intervalo
 
             DiaSemana.entries.forEach { dia ->
                 val isDiaTrabalho = _uiState.value.diasTrabalho.contains(dia)
-                database.horarioDiaSemanaDao().inserir(
+                horarioDiaSemanaDao.inserir(
                     HorarioDiaSemanaEntity(
                         empregoId = idInserido,
                         versaoJornadaId = versaoId,
@@ -172,13 +173,18 @@ class OnboardingViewModel @Inject constructor(
                     )
                 )
             }
-            
+
             // 2. Definir este emprego como o ativo nas preferências
             preferenciasRepository.definirEmpregoAtivoId(idInserido)
-            
+
             // 3. Marcar onboarding como concluído
             preferenciasRepository.marcarOnboardingConcluido()
+
             _uiState.update { it.copy(isConcluido = true) }
         }
+    }
+
+    fun onOnboardingConcluido() {
+        _uiState.update { it.copy(isConcluido = false) }
     }
 }

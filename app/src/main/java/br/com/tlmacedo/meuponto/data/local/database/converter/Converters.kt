@@ -11,9 +11,15 @@ import br.com.tlmacedo.meuponto.domain.model.TipoJornadaDia
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
+import br.com.tlmacedo.meuponto.domain.model.chamado.AvaliacaoChamado
+import br.com.tlmacedo.meuponto.domain.model.chamado.CategoriaChamado
+import br.com.tlmacedo.meuponto.domain.model.chamado.PrioridadeChamado
+import br.com.tlmacedo.meuponto.domain.model.chamado.StatusChamado
 import br.com.tlmacedo.meuponto.domain.model.feriado.AbrangenciaFeriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -177,5 +183,52 @@ class Converters {
     @TypeConverter
     fun toAbrangenciaFeriado(value: String?): AbrangenciaFeriado? = value?.let {
         try { AbrangenciaFeriado.valueOf(it) } catch (e: Exception) { AbrangenciaFeriado.GLOBAL }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CONVERSORES DE CHAMADOS
+    // ════════════════════════════════════════════════════════════════════════
+
+    @TypeConverter
+    fun fromCategoriaChamado(categoria: CategoriaChamado?): String? = categoria?.name
+
+    @TypeConverter
+    fun toCategoriaChamado(value: String?): CategoriaChamado? = value?.let {
+        try { CategoriaChamado.valueOf(it) } catch (e: Exception) { null }
+    }
+
+    @TypeConverter
+    fun fromPrioridadeChamado(prioridade: PrioridadeChamado?): String? = prioridade?.name
+
+    @TypeConverter
+    fun toPrioridadeChamado(value: String?): PrioridadeChamado? = value?.let {
+        try { PrioridadeChamado.valueOf(it) } catch (e: Exception) { null }
+    }
+
+    @TypeConverter
+    fun fromStatusChamado(status: StatusChamado?): String? = status?.name
+
+    @TypeConverter
+    fun toStatusChamado(value: String?): StatusChamado? = value?.let {
+        try { StatusChamado.valueOf(it) } catch (e: Exception) { null }
+    }
+
+    @TypeConverter
+    fun fromAvaliacaoChamado(avaliacao: AvaliacaoChamado?): String? =
+        avaliacao?.let { Gson().toJson(it) }
+
+    @TypeConverter
+    fun toAvaliacaoChamado(value: String?): AvaliacaoChamado? = value?.let {
+        Gson().fromJson(it, AvaliacaoChamado::class.java)
+    }
+
+    @TypeConverter
+    fun fromArrayListString(list: ArrayList<String>?): String? =
+        list?.let { Gson().toJson(it) }
+
+    @TypeConverter
+    fun toArrayListString(value: String?): ArrayList<String>? = value?.let {
+        val listType = object : TypeToken<ArrayList<String>?>() {}.type
+        Gson().fromJson(it, listType)
     }
 }

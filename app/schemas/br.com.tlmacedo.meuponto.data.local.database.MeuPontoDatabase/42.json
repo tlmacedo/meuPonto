@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 42,
-    "identityHash": "af3dbefb040113b78459db6e2dbbd7c0",
+    "identityHash": "ab458b4ff74284da39aaaa493ff1ce58",
     "entities": [
       {
         "tableName": "ajustes_salariais",
@@ -2484,12 +2484,212 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "chamados",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `identificador` TEXT NOT NULL, `titulo` TEXT NOT NULL, `descricao` TEXT NOT NULL, `categoria` TEXT NOT NULL, `prioridade` TEXT NOT NULL, `status` TEXT NOT NULL, `empregoId` INTEGER, `usuarioEmail` TEXT NOT NULL, `usuarioNome` TEXT NOT NULL, `resposta` TEXT, `anexos` TEXT, `criadoEm` TEXT NOT NULL, `atualizadoEm` TEXT NOT NULL, `resolvidoEm` TEXT, `avaliacaoNota` TEXT, `avaliacaoComentario` TEXT, `avaliadoEm` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "identificador",
+            "columnName": "identificador",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "titulo",
+            "columnName": "titulo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descricao",
+            "columnName": "descricao",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "categoria",
+            "columnName": "categoria",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prioridade",
+            "columnName": "prioridade",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "empregoId",
+            "columnName": "empregoId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "usuarioEmail",
+            "columnName": "usuarioEmail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usuarioNome",
+            "columnName": "usuarioNome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resposta",
+            "columnName": "resposta",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "anexos",
+            "columnName": "anexos",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resolvidoEm",
+            "columnName": "resolvidoEm",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "avaliacaoNota",
+            "columnName": "avaliacaoNota",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "avaliacaoComentario",
+            "columnName": "avaliacaoComentario",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "avaliadoEm",
+            "columnName": "avaliadoEm",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "historico_chamados",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `chamadoId` INTEGER NOT NULL, `statusAnterior` TEXT, `statusNovo` TEXT NOT NULL, `mensagem` TEXT NOT NULL, `autor` TEXT NOT NULL, `criadoEm` TEXT NOT NULL, FOREIGN KEY(`chamadoId`) REFERENCES `chamados`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chamadoId",
+            "columnName": "chamadoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "statusAnterior",
+            "columnName": "statusAnterior",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "statusNovo",
+            "columnName": "statusNovo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mensagem",
+            "columnName": "mensagem",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "autor",
+            "columnName": "autor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criadoEm",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_historico_chamados_chamadoId",
+            "unique": false,
+            "columnNames": [
+              "chamadoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_historico_chamados_chamadoId` ON `${TABLE_NAME}` (`chamadoId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "chamados",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "chamadoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'af3dbefb040113b78459db6e2dbbd7c0')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ab458b4ff74284da39aaaa493ff1ce58')"
     ]
   }
 }
