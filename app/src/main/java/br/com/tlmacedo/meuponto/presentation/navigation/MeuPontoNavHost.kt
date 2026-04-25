@@ -49,6 +49,9 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.main.SettingsMainSc
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.AjudaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.ReportarProblemaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.sobre.SobreScreen
+import br.com.tlmacedo.meuponto.presentation.screen.chamado.list.ChamadoListScreen
+import br.com.tlmacedo.meuponto.presentation.screen.chamado.detail.ChamadoDetailScreen
+import br.com.tlmacedo.meuponto.presentation.screen.chamado.create.ChamadoCreateScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.EditarVersaoScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.VersoesJornadaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.comparar.CompararVersoesScreen
@@ -109,6 +112,38 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
                     }
                 }
             }
+        )
+    }
+
+    // ===== CHAMADOS =====
+    composable(MeuPontoDestinations.CHAMADOS_LIST) {
+        ChamadoListScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToDetail = { chamadoId ->
+                navController.navigate(MeuPontoDestinations.chamadoDetail(chamadoId))
+            },
+            onNavigateToCreate = {
+                navController.navigate(MeuPontoDestinations.CHAMADO_CREATE)
+            }
+        )
+    }
+
+    composable(
+        route = MeuPontoDestinations.CHAMADO_DETAIL,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_CHAMADO_ID) {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        ChamadoDetailScreen(
+            onNavigateBack = { navController.popBackStack() }
+        )
+    }
+
+    composable(MeuPontoDestinations.CHAMADO_CREATE) {
+        ChamadoCreateScreen(
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 
@@ -238,6 +273,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToJornada = {
                 navController.navigate(MeuPontoDestinations.CONFIGURACAO_JORNADA)
+            },
+            onNavigateToChamados = {
+                navController.navigate(MeuPontoDestinations.CHAMADOS_LIST)
             }
         )
     }

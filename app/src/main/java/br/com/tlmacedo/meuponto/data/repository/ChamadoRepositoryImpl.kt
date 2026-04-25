@@ -37,12 +37,14 @@ class ChamadoRepositoryImpl @Inject constructor(
     override fun observarPorId(id: Long): Flow<Chamado?> =
         chamadoDao.observarPorId(id).map { it?.toDomain() }
 
-    override fun observarHistorico(chamadoId: Long): Flow<List<HistoricoChamado>> {
-        TODO("Not yet implemented")
-    }
+    override fun observarHistorico(chamadoId: Long): Flow<List<HistoricoChamado>> =
+        chamadoDao.observarHistorico(chamadoId).map { list -> list.map { it.toDomain() } }
 
     override suspend fun criar(chamado: Chamado, anexos: List<Uri>): Result<Chamado> {
-        TODO("Not yet implemented")
+        val chamadoComAnexos = chamado.copy(
+            anexos = if (anexos.isNotEmpty()) ArrayList(anexos.map { it.toString() }) else null
+        )
+        return criarChamado(chamadoComAnexos)
     }
 
     override suspend fun atualizarStatus(

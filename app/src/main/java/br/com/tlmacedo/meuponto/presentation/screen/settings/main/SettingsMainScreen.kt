@@ -117,6 +117,7 @@ fun SettingsMainScreen(
     onNavigateToComprovantes: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
     onNavigateToJornada: () -> Unit,
+    onNavigateToChamados: () -> Unit,
     viewModel: SettingsMainViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -157,6 +158,7 @@ fun SettingsMainScreen(
         onNavigateToComprovantes = onNavigateToComprovantes,
         onNavigateToOpcoesRegistro = onNavigateToOpcoesRegistro,
         onNavigateToJornada = onNavigateToJornada,
+        onNavigateToChamados = onNavigateToChamados,
         onTrocarEmprego = { viewModel.onAction(SettingsMainAction.TrocarEmprego(it)) },
         onAlternarSecao = { viewModel.onAction(SettingsMainAction.AlternarExpansaoSecao(it)) },
         snackbarHostState = snackbarHostState
@@ -188,6 +190,7 @@ fun SettingsMainContent(
     onNavigateToComprovantes: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
     onNavigateToJornada: () -> Unit,
+    onNavigateToChamados: () -> Unit,
     onTrocarEmprego: (Emprego) -> Unit,
     onAlternarSecao: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -424,6 +427,12 @@ fun SettingsMainContent(
                             subtitle = "Suporte técnico e tutoriais",
                             icon = Icons.Outlined.QuestionMark,
                             onClick = onNavigateToAjuda
+                        )
+                        SettingsNavigationItem(
+                            title = "Meus Chamados",
+                            subtitle = "Suporte e acompanhamento de tickets",
+                            icon = Icons.AutoMirrored.Outlined.EventNote,
+                            onClick = onNavigateToChamados
                         )
                         SettingsNavigationItem(
                             title = "Reportar Problema",
@@ -826,6 +835,7 @@ private fun SettingsMainContentPreview() {
             onNavigateToComprovantes = {},
             onNavigateToOpcoesRegistro = {},
             onNavigateToJornada = {},
+            onNavigateToChamados = {},
             onTrocarEmprego = {},
             onAlternarSecao = {}
         )

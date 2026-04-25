@@ -9,40 +9,35 @@ import br.com.tlmacedo.meuponto.domain.model.chamado.CategoriaChamado
 import br.com.tlmacedo.meuponto.domain.model.chamado.Chamado
 import br.com.tlmacedo.meuponto.domain.model.chamado.PrioridadeChamado
 import br.com.tlmacedo.meuponto.domain.model.chamado.StatusChamado
+import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ChamadoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
-import java.util.Collections.emptyList
 import javax.inject.Inject
 
 @HiltViewModel
 class ChamadoViewModel @Inject constructor(
-    private val chamadoRepository: ChamadoRepository
+    private val chamadoRepository: ChamadoRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChamadoUiState())
     val uiState: StateFlow<ChamadoUiState> = _uiState.asStateFlow()
 
-    val chamados: StateFlow<List<Chamado>> = chamadoRepository
-        .observarTodos()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val usuarioLogado = authRepository.observarUsuarioLogado()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun criarChamado(
         titulo: String,
         descricao: String,
         categoria: CategoriaChamado,
         prioridade: PrioridadeChamado,
-        anexos: List<Uri>,
-        usuarioEmail: String,
-        usuarioNome: String
+        anexos: List<Uri>
     ) {
+        val usuario = usuarioLogado.value ?: return
+        
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -55,8 +50,8 @@ class ChamadoViewModel @Inject constructor(
                 prioridade = prioridade,
                 status = StatusChamado.ABERTO,
                 empregoId = null,
-                usuarioEmail = usuarioEmail,
-                usuarioNome = usuarioNome,
+                usuarioEmail = usuario.email,
+                usuarioNome = usuario.nome,
                 criadoEm = LocalDateTime.now(),
                 atualizadoEm = LocalDateTime.now(),
                 resposta = null,

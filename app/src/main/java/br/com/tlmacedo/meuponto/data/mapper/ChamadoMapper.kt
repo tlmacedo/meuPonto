@@ -2,11 +2,8 @@
 package br.com.tlmacedo.meuponto.data.mapper
 
 import br.com.tlmacedo.meuponto.data.local.database.entity.ChamadoEntity
-import br.com.tlmacedo.meuponto.domain.model.chamado.AvaliacaoChamado
-import br.com.tlmacedo.meuponto.domain.model.chamado.Chamado
-import br.com.tlmacedo.meuponto.domain.model.chamado.CategoriaChamado
-import br.com.tlmacedo.meuponto.domain.model.chamado.PrioridadeChamado
-import br.com.tlmacedo.meuponto.domain.model.chamado.StatusChamado
+import br.com.tlmacedo.meuponto.data.local.database.entity.HistoricoChamadoEntity
+import br.com.tlmacedo.meuponto.domain.model.chamado.*
 import java.time.LocalDateTime
 
 fun ChamadoEntity.toDomain(): Chamado = Chamado(
@@ -69,3 +66,24 @@ fun Chamado.toEntity(): ChamadoEntity = ChamadoEntity(
 
 fun List<ChamadoEntity>.toDomain(): List<Chamado> = map { it.toDomain() }
 fun List<Chamado>.toEntity(): List<ChamadoEntity> = map { it.toEntity() }
+
+fun HistoricoChamadoEntity.toDomain(): HistoricoChamado = HistoricoChamado(
+    id = id,
+    chamadoId = chamadoId,
+    statusAnterior = statusAnterior?.let { StatusChamado.valueOf(it) },
+    statusNovo = StatusChamado.valueOf(statusNovo),
+    mensagem = mensagem,
+    autor = autor,
+    criadoEm = LocalDateTime.parse(criadoEm)
+)
+
+fun HistoricoChamado.toEntity(): HistoricoChamadoEntity = HistoricoChamadoEntity(
+    id = id,
+    chamadoId = chamadoId,
+    chamadoIdentificador = "", // Preencher se necessário
+    statusAnterior = statusAnterior?.name,
+    statusNovo = statusNovo.name,
+    mensagem = mensagem,
+    autor = autor,
+    criadoEm = criadoEm.toString()
+)

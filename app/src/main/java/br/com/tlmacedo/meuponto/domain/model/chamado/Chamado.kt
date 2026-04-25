@@ -36,7 +36,8 @@ enum class CategoriaChamado(val label: String) {
     SUPORTE("Suporte"),
     DUVIDA("Dúvida"),
     DESEMPENHO("Desempenho"),
-    OUTRO("Outro")
+    OUTRO("Outro"),
+    SUPORTE_TECNICO("Suporte Técnico")
 }
 
 enum class PrioridadeChamado(val label: String) {
@@ -53,5 +54,5 @@ enum class StatusChamado(val label: String) {
     AGUARDANDO_USUARIO("Aguardando usuário"),
     RESOLVIDO("Resolvido"),
     FECHADO("Fechado"),
-    CANCELADO("Cancelado")
+    CANCELADO("Cancelado"),
 }

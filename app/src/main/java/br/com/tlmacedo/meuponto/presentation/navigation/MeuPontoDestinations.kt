@@ -36,6 +36,12 @@ object MeuPontoDestinations {
     const val ARG_VERSAO_ID_1 = "versaoId1"
     const val ARG_VERSAO_ID_2 = "versaoId2"
     const val ARG_CARGO_ID = "cargoId"
+    const val ARG_CHAMADO_ID = "chamadoId"
+
+    // Chamados
+    const val CHAMADOS_LIST = "chamados_list"
+    const val CHAMADO_DETAIL = "chamado_detail/{$ARG_CHAMADO_ID}"
+    const val CHAMADO_CREATE = "chamado_create"
 
     // Pontos
     const val EDIT_PONTO = "edit_ponto/{$ARG_PONTO_ID}"
@@ -131,6 +137,8 @@ object MeuPontoDestinations {
     fun editarCargoEmprego(empregoId: Long, cargoId: Long) = "emprego/$empregoId/cargos/$cargoId"
     fun opcoesRegistro(empregoId: Long) = "emprego/$empregoId/opcoes_registro"
     fun localizacaoTrabalho(empregoId: Long) = "emprego/$empregoId/localizacao_trabalho"
+
+    fun chamadoDetail(chamadoId: Long) = "chamado_detail/$chamadoId"
 
     fun novaAusencia(tipo: String? = null, data: String? = null): String {
         return buildString {
