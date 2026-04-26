@@ -19,45 +19,46 @@ import androidx.compose.ui.unit.sp
 private val SidiaLightColorScheme = lightColorScheme(
     primary = SidiaBlue,
     onPrimary = Color.White,
-    primaryContainer = SidiaBlue.copy(alpha = 0.1f),
-    onPrimaryContainer = SidiaBlue,
+    primaryContainer = SidiaBlue.copy(alpha = 0.08f),
+    onPrimaryContainer = SidiaDarkBlue,
     secondary = SidiaGreen,
     onSecondary = Color.White,
     secondaryContainer = SidiaGreen.copy(alpha = 0.1f),
-    onSecondaryContainer = SidiaGreen,
+    onSecondaryContainer = SidiaDarkGreen,
     tertiary = SidiaMediumGray,
     onTertiary = Color.White,
-    background = SidiaLightGray,
+    background = Color(0xFFF8FAFF), // Fundo levemente azulado para limpeza visual
     onBackground = SidiaNavy,
-    surface = SidiaLightGray,
+    surface = Color.White, // Superfícies puras
     onSurface = SidiaNavy,
-    surfaceVariant = Color.White,
+    surfaceVariant = Color(0xFFF1F5F9), // Variante para containers secundários
     onSurfaceVariant = SidiaMediumGray,
     error = Error,
     onError = OnError,
-    outline = SidiaMediumGray
+    outline = SidiaMediumGray.copy(alpha = 0.5f),
+    outlineVariant = SidiaMediumGray.copy(alpha = 0.2f)
 )
 
 private val SidiaDarkColorScheme = darkColorScheme(
     primary = DarkPrimary,
     onPrimary = Color.White,
-    primaryContainer = DarkPrimary.copy(alpha = 0.2f),
+    primaryContainer = DarkPrimary.copy(alpha = 0.15f),
     onPrimaryContainer = DarkPrimary,
     secondary = DarkSecondary,
     onSecondary = Color.Black,
-    secondaryContainer = DarkSecondary.copy(alpha = 0.2f),
+    secondaryContainer = DarkSecondary.copy(alpha = 0.15f),
     onSecondaryContainer = DarkSecondary,
     tertiary = DarkOnSurfaceVariant,
     onTertiary = Color.Black,
-    background = DarkBackground,
-    onBackground = DarkOnBackground,
-    surface = DarkSurface,
-    onSurface = DarkOnSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant,
+    background = Color(0xFF020617), // Fundo ultra escuro
+    onBackground = Color(0xFFF1F5F9),
+    surface = Color(0xFF0B1120),
+    onSurface = Color(0xFFF8FAFC),
+    surfaceVariant = Color(0xFF1E293B),
+    onSurfaceVariant = Color(0xFF94A3B8),
     error = DarkError,
     onError = Color.White,
-    outline = DarkOnSurfaceVariant
+    outline = Color(0xFF334155)
 )
 
 private val AppTypography = Typography(
@@ -138,7 +139,7 @@ private val AppTypography = Typography(
 @Composable
 fun MeuPontoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true, // Ativado por padrão se disponível
+    dynamicColor: Boolean = false, // Desativado por padrão para consistência visual do Sidia
     temaForcado: String = "system",
     content: @Composable () -> Unit
 ) {

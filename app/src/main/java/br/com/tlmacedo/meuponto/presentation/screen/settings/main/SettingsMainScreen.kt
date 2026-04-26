@@ -6,7 +6,9 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.outlined.AccessTime
@@ -67,11 +70,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.graphics.ColorUtils
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.Emprego
@@ -79,6 +88,8 @@ import br.com.tlmacedo.meuponto.presentation.components.LocalImage
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.settings.main.components.TrocarEmpregoBottomSheet
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaBlue
+import br.com.tlmacedo.meuponto.presentation.theme.SidiaDarkBlue
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -94,7 +105,7 @@ import kotlinx.coroutines.launch
  *
  * @author Thiago
  * @since 9.0.0
- * @updated 9.2.0 - Refatorado para separar Content e adicionar Previews
+ * @updated 9.2.1 - Melhorias visuais no ActiveEmploymentCard e SystemStatusCard
  */
 @Composable
 fun SettingsMainScreen(
@@ -489,8 +500,10 @@ private fun SystemStatusCard(
         // Card de Saldo
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                containerColor = MaterialTheme.colorScheme.surface
             ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
@@ -514,7 +527,7 @@ private fun SystemStatusCard(
                         color = when {
                             saldoMensal.startsWith("-") -> MaterialTheme.colorScheme.error
                             saldoMensal.contains("00:00") -> MaterialTheme.colorScheme.onSurface
-                            else -> MaterialTheme.colorScheme.secondary // Sidia Green
+                            else -> MaterialTheme.colorScheme.secondary
                         }
                     )
                 }
@@ -538,8 +551,10 @@ private fun SystemStatusCard(
         Card(
             onClick = onBackupClick,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                containerColor = MaterialTheme.colorScheme.surface
             ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
@@ -584,14 +599,37 @@ private fun ActiveEmploymentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    
     Card(
         onClick = onClick,
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = Color.Transparent,
+            contentColor = if (isDark) Color.White else SidiaDarkBlue
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier.fillMaxWidth()
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                    )
+                ),
+                shape = MaterialTheme.shapes.extraLarge
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    )
+                ),
+                shape = MaterialTheme.shapes.extraLarge
+            )
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -600,24 +638,28 @@ private fun ActiveEmploymentCard(
                 // Logo da Empresa
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
+                        .size(72.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+                        .background(Color.White)
+                        .padding(2.dp)
+                        .shadow(2.dp, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     if (logoUri != null) {
                         LocalImage(
                             imagePath = logoUri,
                             contentDescription = "Logo da empresa",
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Outlined.Business,
                             contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            modifier = Modifier.size(36.dp),
+                            tint = SidiaBlue
                         )
                     }
                 }
@@ -628,27 +670,31 @@ private fun ActiveEmploymentCard(
                     Text(
                         text = "Emprego Ativo",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp
                     )
                     Text(
                         text = nomeEmprego,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color.White else SidiaDarkBlue,
+                        lineHeight = 26.sp
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.EventNote,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = versaoVigente,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -656,7 +702,8 @@ private fun ActiveEmploymentCard(
                 Icon(
                     imageVector = Icons.Outlined.ChevronRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -776,8 +823,10 @@ private fun SettingsNavigationItem(
         onClick = onClick,
         enabled = enabled,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = MaterialTheme.colorScheme.surface
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -787,7 +836,7 @@ private fun SettingsNavigationItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -796,7 +845,7 @@ private fun SettingsNavigationItem(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = subtitle,
@@ -808,7 +857,7 @@ private fun SettingsNavigationItem(
             Icon(
                 imageVector = Icons.Outlined.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
         }
     }
