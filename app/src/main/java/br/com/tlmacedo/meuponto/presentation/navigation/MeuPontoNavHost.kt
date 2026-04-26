@@ -115,11 +115,7 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
         HistoryScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToDay = { data ->
-                navController.navigate(MeuPontoDestinations.homeComData(data.toString())) {
-                    popUpTo(MeuPontoDestinations.HOME_BASE) {
-                        inclusive = true
-                    }
-                }
+                navController.navigate(MeuPontoDestinations.homeComData(data.toString()))
             },
             onNovaAusenciaComData = { data ->
                 navController.navigate(MeuPontoDestinations.novaAusencia(data = data))
