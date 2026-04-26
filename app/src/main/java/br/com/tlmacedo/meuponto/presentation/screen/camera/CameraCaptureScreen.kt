@@ -198,9 +198,11 @@ fun CameraCaptureScreen(
         imageCaptureUseCase?.flashMode = flashMode
     }
 
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(Color.Black)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
         AndroidView(
             factory = { previewView },
             modifier = Modifier.fillMaxSize()

@@ -53,7 +53,8 @@ class ChamadoListViewModel @Inject constructor(
             .onStart { _uiState.value = ChamadoListUiState.Loading }
             .catch { e ->
                 Timber.e(e, "Erro ao carregar chamados")
-                _uiState.value = ChamadoListUiState.Error("Erro ao carregar chamados: ${e.localizedMessage}")
+                _uiState.value =
+                    ChamadoListUiState.Error("Erro ao carregar chamados: ${e.localizedMessage}")
             }
             .onEach { state ->
                 _uiState.value = state

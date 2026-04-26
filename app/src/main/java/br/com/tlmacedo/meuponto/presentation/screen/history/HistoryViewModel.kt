@@ -77,7 +77,12 @@ class HistoryViewModel @Inject constructor(
             try {
                 val filtro = FiltroHistorico.valueOf(filtroStr)
                 if (filtro == FiltroHistorico.CALENDARIO) {
-                    _uiState.update { it.copy(visualizacaoCalendario = true, filtrosAtivos = emptySet()) }
+                    _uiState.update {
+                        it.copy(
+                            visualizacaoCalendario = true,
+                            filtrosAtivos = emptySet()
+                        )
+                    }
                 } else {
                     _uiState.update { it.copy(filtrosAtivos = setOf(filtro)) }
                 }
@@ -309,7 +314,8 @@ class HistoryViewModel @Inject constructor(
         var dataAtual = dataInicio
         while (dataAtual <= dataFim) {
             val isFuturo = dataAtual.isAfter(hoje)
-            val pontosNoDia = if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
+            val pontosNoDia =
+                if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
             val ausenciasDoDia = ausenciasPorData[dataAtual] ?: emptyList()
             val feriadoDoDia = feriadosPorData[dataAtual]
 
@@ -322,8 +328,9 @@ class HistoryViewModel @Inject constructor(
 
             val horarioDia = if (versaoJornada != null) {
                 val cached = versaoCache[versaoJornada.id] ?: run {
-                    val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
-                        .associateBy { it.diaSemana }
+                    val horarios =
+                        horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
+                            .associateBy { it.diaSemana }
                     VersaoCache(versaoJornada, horarios).also { versaoCache[versaoJornada.id] = it }
                 }
                 cached.horariosPorDia[diaSemana]
@@ -489,7 +496,8 @@ class HistoryViewModel @Inject constructor(
         dataInicioPeriodo: LocalDate
     ): Int {
         val hoje = LocalDate.now()
-        val dataReferencia = if (dataInicioPeriodo.isAfter(hoje)) hoje else dataInicioPeriodo.minusDays(1)
+        val dataReferencia =
+            if (dataInicioPeriodo.isAfter(hoje)) hoje else dataInicioPeriodo.minusDays(1)
 
         if (dataReferencia.isBefore(LocalDate.of(2020, 1, 1))) return 0
 

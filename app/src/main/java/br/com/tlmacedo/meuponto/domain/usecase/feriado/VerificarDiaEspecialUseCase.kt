@@ -177,16 +177,16 @@ class VerificarDiaEspecialUseCase @Inject constructor(
         // Ordenar por prioridade
         return feriados.sortedWith(
             compareBy(
-            { if (it.empregoId == empregoId) 0 else 1 },
-            {
-                when (it.tipo) {
-                    TipoFeriado.MUNICIPAL -> 0
-                    TipoFeriado.ESTADUAL -> 1
-                    TipoFeriado.NACIONAL -> 2
-                    TipoFeriado.FACULTATIVO -> 3
-                    TipoFeriado.PONTE -> 4
+                { if (it.empregoId == empregoId) 0 else 1 },
+                {
+                    when (it.tipo) {
+                        TipoFeriado.MUNICIPAL -> 0
+                        TipoFeriado.ESTADUAL -> 1
+                        TipoFeriado.NACIONAL -> 2
+                        TipoFeriado.FACULTATIVO -> 3
+                        TipoFeriado.PONTE -> 4
+                    }
                 }
-            }
-        )).first()
+            )).first()
     }
 }

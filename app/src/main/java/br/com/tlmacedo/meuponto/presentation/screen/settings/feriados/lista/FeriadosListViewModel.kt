@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.YearMonth
 import javax.inject.Inject
 
 /**
@@ -337,7 +336,7 @@ class FeriadosListViewModel @Inject constructor(
         val state = _uiState.value
         val mes = state.mesVisualizacao
         val feriados = state.feriados.filter { it.ativo }
-        
+
         val dias = mutableListOf<InfoDiaHistorico>()
         val dataInicio = mes.atDay(1)
         val dataInicioGrid = dataInicio.minusDays(dataInicio.dayOfWeek.value % 7L)
@@ -346,16 +345,18 @@ class FeriadosListViewModel @Inject constructor(
         var dataAtual = dataInicioGrid
         while (dataAtual <= dataFimGrid) {
             val feriadoDoDia = feriados.find { it.getDataParaAno(dataAtual.year) == dataAtual }
-            
+
             val resumoDia = ResumoDia(
                 data = dataAtual,
                 tipoDiaEspecial = if (feriadoDoDia != null) TipoDiaEspecial.FERIADO else TipoDiaEspecial.NORMAL
             )
 
-            dias.add(InfoDiaHistorico(
-                resumoDia = resumoDia,
-                feriado = feriadoDoDia
-            ))
+            dias.add(
+                InfoDiaHistorico(
+                    resumoDia = resumoDia,
+                    feriado = feriadoDoDia
+                )
+            )
             dataAtual = dataAtual.plusDays(1)
         }
         return dias

@@ -177,8 +177,24 @@ fun AusenciasScreen(
             if (uiState.visualizacaoCalendario) {
                 MonthNavigator(
                     mesVisualizacao = uiState.mesVisualizacao,
-                    onMesAnterior = { viewModel.onAction(AusenciasAction.MesChange(uiState.mesVisualizacao.minusMonths(1))) },
-                    onProximoMes = { viewModel.onAction(AusenciasAction.MesChange(uiState.mesVisualizacao.plusMonths(1))) },
+                    onMesAnterior = {
+                        viewModel.onAction(
+                            AusenciasAction.MesChange(
+                                uiState.mesVisualizacao.minusMonths(
+                                    1
+                                )
+                            )
+                        )
+                    },
+                    onProximoMes = {
+                        viewModel.onAction(
+                            AusenciasAction.MesChange(
+                                uiState.mesVisualizacao.plusMonths(
+                                    1
+                                )
+                            )
+                        )
+                    },
                     onIrParaAtual = { viewModel.onAction(AusenciasAction.MesChange(YearMonth.now())) }
                 )
             } else {
@@ -316,7 +332,8 @@ private fun MonthNavigator(
 ) {
     val locale = Locale.forLanguageTag("pt-BR")
     val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
-    val descricaoFormatada = mesVisualizacao.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
+    val descricaoFormatada =
+        mesVisualizacao.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -334,7 +351,10 @@ private fun MonthNavigator(
             IconButton(
                 onClick = onMesAnterior,
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    )
                     .size(40.dp)
             ) {
                 Icon(Icons.Default.ChevronLeft, "Anterior")
@@ -370,7 +390,10 @@ private fun MonthNavigator(
             IconButton(
                 onClick = onProximoMes,
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    )
                     .size(40.dp)
             ) {
                 Icon(

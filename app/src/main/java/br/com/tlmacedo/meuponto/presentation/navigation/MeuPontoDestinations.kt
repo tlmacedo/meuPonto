@@ -125,7 +125,9 @@ object MeuPontoDestinations {
     fun historicoComFiltro(filtro: String) = "history?filtro=$filtro"
     fun editarEmprego(empregoId: Long) = "editar_emprego/$empregoId"
     fun editarFeriado(feriadoId: Long) = "editar_feriado/$feriadoId"
-    fun novoFeriado(data: String? = null) = if (data == null) NOVO_FERIADO_BASE else "$NOVO_FERIADO_BASE?data=$data"
+    fun novoFeriado(data: String? = null) =
+        if (data == null) NOVO_FERIADO_BASE else "$NOVO_FERIADO_BASE?data=$data"
+
     fun editarAusencia(ausenciaId: Long) = "editar_ausencia/$ausenciaId"
 
     // Versão legacy (sem emprego)

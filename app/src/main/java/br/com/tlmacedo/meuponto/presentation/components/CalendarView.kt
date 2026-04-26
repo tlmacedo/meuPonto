@@ -93,7 +93,7 @@ fun CalendarView(
         // Grid de dias
         val calendarDays = remember(yearMonth, diasHistorico) {
             val list = mutableListOf<CalendarDayData>()
-            
+
             // Dias do mês anterior
             val prevMonth = yearMonth.minusMonths(1)
             val daysInPrevMonth = prevMonth.lengthOfMonth()
@@ -138,7 +138,7 @@ fun CalendarView(
                                 is CalendarDayData.Day -> dayData.info
                                 is CalendarDayData.Empty -> dayData.info
                             }
-                            
+
                             val matchesFilter = if (filtrosAtivos.isEmpty()) true else {
                                 info?.let { dia ->
                                     filtrosAtivos.any { filtro ->
@@ -173,7 +173,7 @@ fun CalendarView(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
         CalendarLegend()
     }
@@ -181,8 +181,10 @@ fun CalendarView(
 
 sealed class CalendarDayData {
     abstract val date: LocalDate
+
     data class Day(override val date: LocalDate, val info: InfoDiaHistorico?) : CalendarDayData()
-    data class Empty(override val date: LocalDate, val info: InfoDiaHistorico? = null) : CalendarDayData()
+    data class Empty(override val date: LocalDate, val info: InfoDiaHistorico? = null) :
+        CalendarDayData()
 }
 
 @Composable
@@ -195,13 +197,16 @@ private fun CalendarDay(
 ) {
     val isToday = date == LocalDate.now()
     val contentAlpha = if (isMuted) 0.2f else 1f
-    
+
     val backgroundColor = when {
         !isCurrentMonth -> Color.Transparent
         isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
         infoDia?.temFeriado == true -> Color(0xFF9C27B0).copy(alpha = 0.1f)
         infoDia?.temAusencia == true -> getAbsenceColor(infoDia.ausenciaPrincipal!!).copy(alpha = 0.1f)
-        date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY -> MaterialTheme.colorScheme.error.copy(alpha = 0.05f)
+        date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY -> MaterialTheme.colorScheme.error.copy(
+            alpha = 0.05f
+        )
+
         else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     }
 
@@ -227,8 +232,8 @@ private fun CalendarDay(
             style = MaterialTheme.typography.labelSmall,
             fontSize = 11.sp,
             fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Normal,
-            color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) 
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
             modifier = Modifier.align(Alignment.TopStart)
         )
 
@@ -267,6 +272,7 @@ private fun CalendarDay(
                             )
                         }
                     }
+
                     infoDia.temAusencia -> {
                         val principal = infoDia.ausenciaPrincipal!!
                         Text(
@@ -292,6 +298,7 @@ private fun CalendarDay(
                             )
                         }
                     }
+
                     infoDia.temFeriado -> {
                         Text(
                             text = infoDia.feriado?.nome ?: "Feriado",
@@ -304,6 +311,7 @@ private fun CalendarDay(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+
                     infoDia.isDescanso -> {
                         Text(
                             text = "Descanso",

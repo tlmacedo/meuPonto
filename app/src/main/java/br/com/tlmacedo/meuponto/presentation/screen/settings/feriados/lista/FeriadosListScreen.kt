@@ -220,8 +220,24 @@ fun FeriadosListContent(
             if (uiState.visualizacaoCalendario) {
                 MonthNavigator(
                     mesVisualizacao = uiState.mesVisualizacao,
-                    onMesAnterior = { onEvent(FeriadosListEvent.OnMesChange(uiState.mesVisualizacao.minusMonths(1))) },
-                    onProximoMes = { onEvent(FeriadosListEvent.OnMesChange(uiState.mesVisualizacao.plusMonths(1))) },
+                    onMesAnterior = {
+                        onEvent(
+                            FeriadosListEvent.OnMesChange(
+                                uiState.mesVisualizacao.minusMonths(
+                                    1
+                                )
+                            )
+                        )
+                    },
+                    onProximoMes = {
+                        onEvent(
+                            FeriadosListEvent.OnMesChange(
+                                uiState.mesVisualizacao.plusMonths(
+                                    1
+                                )
+                            )
+                        )
+                    },
                     onIrParaAtual = { onEvent(FeriadosListEvent.OnMesChange(YearMonth.now())) }
                 )
             } else {
@@ -379,7 +395,8 @@ private fun MonthNavigator(
 ) {
     val locale = Locale.forLanguageTag("pt-BR")
     val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
-    val descricaoFormatada = mesVisualizacao.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
+    val descricaoFormatada =
+        mesVisualizacao.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
     val isPeriodoAtual = mesVisualizacao == YearMonth.now()
 
     Surface(
@@ -398,7 +415,10 @@ private fun MonthNavigator(
             IconButton(
                 onClick = onMesAnterior,
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    )
                     .size(40.dp)
             ) {
                 Icon(Icons.Default.ChevronLeft, "Anterior")
@@ -434,7 +454,10 @@ private fun MonthNavigator(
             IconButton(
                 onClick = onProximoMes,
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    )
                     .size(40.dp)
             ) {
                 Icon(

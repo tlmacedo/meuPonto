@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.YearMonth
 import javax.inject.Inject
 
 /**
@@ -67,6 +66,7 @@ class AusenciasViewModel @Inject constructor(
                 _uiState.update { it.copy(visualizacaoCalendario = !it.visualizacaoCalendario) }
                 atualizarDiasCalendario()
             }
+
             is AusenciasAction.MesChange -> {
                 _uiState.update { it.copy(mesVisualizacao = action.mes) }
                 atualizarDiasCalendario()
@@ -142,17 +142,18 @@ class AusenciasViewModel @Inject constructor(
         val state = _uiState.value
         val mes = state.mesVisualizacao
         val ausencias = state.ausencias.filter { it.ativo }
-        
+
         val diasNoMes = mutableListOf<InfoDiaHistorico>()
         val dataInicio = mes.atDay(1)
-        
+
         val dataInicioGrid = dataInicio.minusDays(dataInicio.dayOfWeek.value % 7L)
         val dataFimGrid = dataInicioGrid.plusDays(41)
 
         var dataAtual = dataInicioGrid
         while (dataAtual <= dataFimGrid) {
-            val ausenciasDoDia = ausencias.filter { it.dataInicio <= dataAtual && it.dataFim >= dataAtual }
-            
+            val ausenciasDoDia =
+                ausencias.filter { it.dataInicio <= dataAtual && it.dataFim >= dataAtual }
+
             // Mapeia para o tipo de dia especial baseado na ausência principal
             val tipoEspecial = when {
                 ausenciasDoDia.any { it.tipo == TipoAusencia.FERIAS } -> TipoDiaEspecial.FERIAS
@@ -168,10 +169,12 @@ class AusenciasViewModel @Inject constructor(
                 tipoDiaEspecial = tipoEspecial
             )
 
-            diasNoMes.add(InfoDiaHistorico(
-                resumoDia = resumoDia,
-                ausencias = ausenciasDoDia
-            ))
+            diasNoMes.add(
+                InfoDiaHistorico(
+                    resumoDia = resumoDia,
+                    ausencias = ausenciasDoDia
+                )
+            )
             dataAtual = dataAtual.plusDays(1)
         }
 
