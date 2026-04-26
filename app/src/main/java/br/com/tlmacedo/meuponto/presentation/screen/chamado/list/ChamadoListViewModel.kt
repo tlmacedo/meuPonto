@@ -11,11 +11,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.onStart
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -34,26 +35,30 @@ class ChamadoListViewModel @Inject constructor(
     }
 
     fun loadChamados() {
-        viewModelScope.launch {
-            authRepository.observarUsuarioLogado()
-                .filterNotNull()
-                .flatMapLatest { usuario ->
+        authRepository.observarUsuarioLogado()
+            .flatMapLatest { usuario ->
+                if (usuario == null) {
+                    flowOf(ChamadoListUiState.Error("Usuário não autenticado. Por favor, faça login novamente."))
+                } else {
                     chamadoRepository.observarTodosPorUsuario(usuario.email)
+                        .map { chamados ->
+                            if (chamados.isEmpty()) {
+                                ChamadoListUiState.Empty
+                            } else {
+                                ChamadoListUiState.Success(chamados)
+                            }
+                        }
                 }
-                .onEach { chamados ->
-                    if (chamados.isEmpty()) {
-                        _uiState.value = ChamadoListUiState.Empty
-                    } else {
-                        _uiState.value = ChamadoListUiState.Success(chamados)
-                    }
-                }
-                .catch { e ->
-                    Timber.e(e, "Erro ao carregar chamados")
-                    _uiState.value =
-                        ChamadoListUiState.Error("Erro ao carregar chamados: ${e.localizedMessage}")
-                }
-                .launchIn(viewModelScope)
-        }
+            }
+            .onStart { _uiState.value = ChamadoListUiState.Loading }
+            .catch { e ->
+                Timber.e(e, "Erro ao carregar chamados")
+                _uiState.value = ChamadoListUiState.Error("Erro ao carregar chamados: ${e.localizedMessage}")
+            }
+            .onEach { state ->
+                _uiState.value = state
+            }
+            .launchIn(viewModelScope)
     }
 }
 

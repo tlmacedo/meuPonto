@@ -3,6 +3,8 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 
+import java.time.YearMonth
+
 enum class OrdemData(val descricao: String, val emoji: String) {
     CRESCENTE("Mais próximos primeiro", "⬆️"),
     DECRESCENTE("Mais distantes primeiro", "⬇️")
@@ -17,6 +19,8 @@ data class FeriadosListUiState(
     val anosDisponiveis: List<Int> = emptyList(),
     val searchQuery: String = "",
     val ordemData: OrdemData = OrdemData.CRESCENTE,
+    val visualizacaoCalendario: Boolean = false,
+    val mesVisualizacao: YearMonth = YearMonth.now(),
     val showImportDialog: Boolean = false,
     val showDeleteDialog: Boolean = false,
     val feriadoParaExcluir: Feriado? = null,
@@ -38,6 +42,8 @@ sealed class FeriadosListEvent {
     data class OnToggleTipo(val tipo: TipoFeriado) : FeriadosListEvent()
     data class OnFiltroAnoChange(val ano: Int?) : FeriadosListEvent()
     data object OnToggleOrdem : FeriadosListEvent()
+    data object OnToggleVisualizacao : FeriadosListEvent()
+    data class OnMesChange(val mes: YearMonth) : FeriadosListEvent()
     data object OnLimparFiltros : FeriadosListEvent()
     data object OnShowImportDialog : FeriadosListEvent()
     data object OnDismissImportDialog : FeriadosListEvent()

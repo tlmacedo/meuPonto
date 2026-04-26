@@ -3,11 +3,14 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.feriado.ImportarFeriadosNacionaisUseCase
+import br.com.tlmacedo.meuponto.presentation.screen.history.InfoDiaHistorico
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 
 /**
@@ -25,6 +29,7 @@ import javax.inject.Inject
  * @since 3.0.0
  * @updated 5.3.0 - Suporte a múltiplos filtros de tipo e ordenação
  * @updated 12.1.1 - Adicionado suporte ao job metadata
+ * @updated 12.2.0 - Adicionada visualização de calendário
  */
 @HiltViewModel
 class FeriadosListViewModel @Inject constructor(
@@ -75,6 +80,14 @@ class FeriadosListViewModel @Inject constructor(
                     state.copy(ordemData = novaOrdem)
                 }
                 aplicarFiltros()
+            }
+
+            FeriadosListEvent.OnToggleVisualizacao -> {
+                _uiState.update { it.copy(visualizacaoCalendario = !it.visualizacaoCalendario) }
+            }
+
+            is FeriadosListEvent.OnMesChange -> {
+                _uiState.update { it.copy(mesVisualizacao = event.mes) }
             }
 
             FeriadosListEvent.OnLimparFiltros -> {
@@ -315,5 +328,36 @@ class FeriadosListViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Mapeia os feriados para o formato esperado pelo CalendarView.
+     */
+    fun getDiasCalendario(): List<InfoDiaHistorico> {
+        val state = _uiState.value
+        val mes = state.mesVisualizacao
+        val feriados = state.feriados.filter { it.ativo }
+        
+        val dias = mutableListOf<InfoDiaHistorico>()
+        val dataInicio = mes.atDay(1)
+        val dataInicioGrid = dataInicio.minusDays(dataInicio.dayOfWeek.value % 7L)
+        val dataFimGrid = dataInicioGrid.plusDays(41)
+
+        var dataAtual = dataInicioGrid
+        while (dataAtual <= dataFimGrid) {
+            val feriadoDoDia = feriados.find { it.getDataParaAno(dataAtual.year) == dataAtual }
+            
+            val resumoDia = ResumoDia(
+                data = dataAtual,
+                tipoDiaEspecial = if (feriadoDoDia != null) TipoDiaEspecial.FERIADO else TipoDiaEspecial.NORMAL
+            )
+
+            dias.add(InfoDiaHistorico(
+                resumoDia = resumoDia,
+                feriado = feriadoDoDia
+            ))
+            dataAtual = dataAtual.plusDays(1)
+        }
+        return dias
     }
 }

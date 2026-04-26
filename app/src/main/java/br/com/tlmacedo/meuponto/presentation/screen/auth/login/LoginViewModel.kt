@@ -165,17 +165,23 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isCarregando = true, erro = null) }
 
-            // Em um app real, aqui usaríamos um token salvo com segurança (EncryptedSharedPreferences/DataStore)
-            // Para este exemplo, vamos assumir que o sucesso da biometria permite o login do último usuário.
             val ultimoEmail = preferenciasRepository.obterUltimoEmailLogado()
-            if (ultimoEmail != null) {
-                _uiState.update { it.copy(isCarregando = false) }
+            if (!ultimoEmail.isNullOrBlank()) {
+                val resultado = authRepository.loginPorEmail(ultimoEmail)
 
-                // Se logou com biometria mas o recurso ainda não está "Habilitado" para login automático, pergunta se quer ativar
-                if (!_uiState.value.biometriaHabilitada) {
-                    _uiState.update { it.copy(showDialogHabilitarBiometria = true) }
-                } else {
-                    _eventos.emit(LoginEvent.LoginSucesso)
+                resultado.onSuccess {
+                    _uiState.update { it.copy(isCarregando = false) }
+
+                    // Se logou com biometria mas o recurso ainda não está "Habilitado" para login automático, pergunta se quer ativar
+                    if (!_uiState.value.biometriaHabilitada) {
+                        _uiState.update { it.copy(showDialogHabilitarBiometria = true) }
+                    } else {
+                        _eventos.emit(LoginEvent.LoginSucesso)
+                    }
+                }.onFailure { excecao ->
+                    val msgErro = excecao.message ?: "Erro ao fazer login com biometria"
+                    _uiState.update { it.copy(isCarregando = false, erro = msgErro) }
+                    _eventos.emit(LoginEvent.MostrarErro(msgErro))
                 }
             } else {
                 _uiState.update {

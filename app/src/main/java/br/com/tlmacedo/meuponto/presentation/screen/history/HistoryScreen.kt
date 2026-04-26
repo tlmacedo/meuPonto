@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
@@ -40,6 +41,8 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Today
@@ -49,6 +52,9 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,7 +67,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -107,6 +115,8 @@ import java.util.Locale
 fun HistoryScreen(
     onNavigateBack: () -> Unit,
     onNavigateToDay: (LocalDate) -> Unit = {},
+    onNovaAusenciaComData: (String) -> Unit = {},
+    onNovoFeriadoComData: (String) -> Unit = {},
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -153,6 +163,8 @@ fun HistoryScreen(
         uiState = uiState,
         onNavigateBack = onNavigateBack,
         onNavigateToDay = onNavigateToDay,
+        onNovaAusencia = { onNovaAusenciaComData(it.toString()) },
+        onNovoFeriado = { onNovoFeriadoComData(it.toString()) },
         onPeriodoAnterior = viewModel::periodoAnterior,
         onProximoPeriodo = viewModel::proximoPeriodo,
         onIrParaAtual = viewModel::irParaPeriodoAtual,
@@ -171,6 +183,8 @@ fun HistoryContent(
     uiState: HistoryUiState,
     onNavigateBack: () -> Unit,
     onNavigateToDay: (LocalDate) -> Unit,
+    onNovaAusencia: (LocalDate) -> Unit,
+    onNovoFeriado: (LocalDate) -> Unit,
     onPeriodoAnterior: () -> Unit,
     onProximoPeriodo: () -> Unit,
     onIrParaAtual: () -> Unit,
@@ -183,6 +197,8 @@ fun HistoryContent(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
+    var showFabMenu by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             MeuPontoTopBar(
@@ -215,6 +231,34 @@ fun HistoryContent(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            Box {
+                FloatingActionButton(onClick = { showFabMenu = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Adicionar")
+                }
+                DropdownMenu(
+                    expanded = showFabMenu,
+                    onDismissRequest = { showFabMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Nova Ausência") },
+                        onClick = {
+                            showFabMenu = false
+                            onNovaAusencia(LocalDate.now())
+                        },
+                        leadingIcon = { Icon(Icons.Default.History, null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Novo Feriado") },
+                        onClick = {
+                            showFabMenu = false
+                            onNovoFeriado(LocalDate.now())
+                        },
+                        leadingIcon = { Icon(Icons.Default.Today, null) }
+                    )
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier
@@ -283,7 +327,7 @@ fun HistoryContent(
                                 yearMonth = YearMonth.from(uiState.periodoSelecionado.dataInicio),
                                 diasHistorico = uiState.diasHistorico,
                                 filtrosAtivos = uiState.filtrosAtivos,
-                                onDateClick = onNavigateToDay,
+                                onDateClick = { date -> onNavigateToDay(date) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp)
@@ -1149,6 +1193,6 @@ private fun getStatusColor(status: StatusDiaResumo): Color = when (status) {
 @Composable
 private fun HistoryContentPreview() {
     MeuPontoTheme {
-        HistoryContent(uiState = HistoryUiState(), onNavigateBack = {}, onNavigateToDay = {}, onPeriodoAnterior = {}, onProximoPeriodo = {}, onIrParaAtual = {}, onFiltroSelecionado = {}, onToggleDiaExpandido = {}, onToggleResumoExpandido = {}, onToggleVisualizacao = {}, onLimparFiltros = {}, onExportar = {})
+        HistoryContent(uiState = HistoryUiState(), onNavigateBack = {}, onNavigateToDay = {}, onNovaAusencia = {}, onNovoFeriado = {}, onPeriodoAnterior = {}, onProximoPeriodo = {}, onIrParaAtual = {}, onFiltroSelecionado = {}, onToggleDiaExpandido = {}, onToggleResumoExpandido = {}, onToggleVisualizacao = {}, onLimparFiltros = {}, onExportar = {})
     }
 }

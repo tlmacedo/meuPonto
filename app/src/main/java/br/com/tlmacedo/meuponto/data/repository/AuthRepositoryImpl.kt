@@ -40,6 +40,24 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun loginPorEmail(email: String): Result<Usuario> {
+        return try {
+            val entity = usuarioDao.buscarPorEmail(email)
+                ?: return Result.failure(Exception("Usuário não encontrado."))
+
+            val usuario = Usuario(
+                id = entity.id,
+                nome = entity.nome,
+                email = entity.email,
+                biometriaHabilitada = entity.biometriaHabilitada
+            )
+            _usuarioLogado.value = usuario
+            Result.success(usuario)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun register(nome: String, email: String, senha: String): Result<Usuario> {
         return try {
             val existente = usuarioDao.buscarPorEmail(email)

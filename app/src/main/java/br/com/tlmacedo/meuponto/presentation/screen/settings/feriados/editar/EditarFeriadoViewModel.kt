@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.MonthDay
@@ -41,7 +42,22 @@ class EditarFeriadoViewModel @Inject constructor(
     init {
         carregarEmpregos()
         carregarEmpregoAtivo()
-        feriadoId?.let { carregarFeriado(it) }
+        feriadoId?.let { carregarFeriado(it) } ?: run {
+            savedStateHandle.get<String>(MeuPontoDestinations.ARG_DATA)?.let { dataStr ->
+                try {
+                    val date = LocalDate.parse(dataStr)
+                    _uiState.update {
+                        it.copy(
+                            dataEspecifica = date,
+                            diaMes = MonthDay.from(date),
+                            recorrencia = RecorrenciaFeriado.UNICO
+                        )
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Erro ao parsear data recebida: $dataStr")
+                }
+            }
+        }
     }
 
     private fun carregarEmpregoAtivo() {

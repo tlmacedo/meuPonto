@@ -120,6 +120,12 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
                         inclusive = true
                     }
                 }
+            },
+            onNovaAusenciaComData = { data ->
+                navController.navigate(MeuPontoDestinations.novaAusencia(data = data))
+            },
+            onNovoFeriadoComData = { data ->
+                navController.navigate(MeuPontoDestinations.novoFeriado(data = data))
             }
         )
     }
@@ -185,6 +191,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onVoltar = { navController.popBackStack() },
             onNovaAusencia = {
                 navController.navigate(MeuPontoDestinations.NOVA_AUSENCIA_BASE)
+            },
+            onNovaAusenciaComData = { data ->
+                navController.navigate(MeuPontoDestinations.novaAusencia(data = data))
             },
             onEditarAusencia = { ausenciaId ->
                 navController.navigate(MeuPontoDestinations.editarAusencia(ausenciaId))
@@ -642,6 +651,9 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             onNovaAusencia = {
                 navController.navigate(MeuPontoDestinations.NOVA_AUSENCIA_BASE)
             },
+            onNovaAusenciaComData = { data ->
+                navController.navigate(MeuPontoDestinations.novaAusencia(data = data))
+            },
             onEditarAusencia = { ausenciaId ->
                 navController.navigate(MeuPontoDestinations.editarAusencia(ausenciaId))
             }
@@ -657,12 +669,24 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
                 navController.navigate(MeuPontoDestinations.editarFeriado(feriadoId))
             },
             onNavigateToNovo = {
-                navController.navigate(MeuPontoDestinations.NOVO_FERIADO)
+                navController.navigate(MeuPontoDestinations.NOVO_FERIADO_BASE)
+            },
+            onNavigateToNovoComData = { data ->
+                navController.navigate(MeuPontoDestinations.novoFeriado(data = data))
             }
         )
     }
 
-    composable(MeuPontoDestinations.NOVO_FERIADO) {
+    composable(
+        route = MeuPontoDestinations.NOVO_FERIADO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_DATA) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) {
         EditarFeriadoScreen(
             feriadoId = null,
             onNavigateBack = { navController.popBackStack() },

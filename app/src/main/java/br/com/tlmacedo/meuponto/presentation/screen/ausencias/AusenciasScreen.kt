@@ -1,26 +1,42 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/AusenciasScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.ausencias
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -30,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,10 +55,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.R
+import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaCard
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaFilterChips
 import kotlinx.coroutines.flow.collectLatest
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * Tela de listagem de ausências.
@@ -49,12 +70,14 @@ import kotlinx.coroutines.flow.collectLatest
  * @author Thiago
  * @since 4.0.0
  * @updated 5.6.0 - Filtros múltiplos e lista unificada
+ * @updated 12.2.0 - Adicionada visualização de calendário
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AusenciasScreen(
     onVoltar: () -> Unit,
     onNovaAusencia: () -> Unit,
+    onNovaAusenciaComData: (String) -> Unit,
     onEditarAusencia: (Long) -> Unit,
     viewModel: AusenciasViewModel = hiltViewModel()
 ) {
@@ -126,6 +149,14 @@ fun AusenciasScreen(
                 logo = uiState.empregoAtivo?.logo,
                 showBackButton = true,
                 onBackClick = { viewModel.onAction(AusenciasAction.Voltar) },
+                actions = {
+                    IconButton(onClick = { viewModel.onAction(AusenciasAction.ToggleVisualizacao) }) {
+                        Icon(
+                            imageVector = if (uiState.visualizacaoCalendario) Icons.AutoMirrored.Filled.List else Icons.Default.ViewModule,
+                            contentDescription = if (uiState.visualizacaoCalendario) "Ver Lista" else "Ver Calendário"
+                        )
+                    }
+                },
                 scrollBehavior = scrollBehavior
             )
         },
@@ -143,17 +174,26 @@ fun AusenciasScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Filtros
-            AusenciaFilterChips(
-                tiposSelecionados = uiState.filtroTipos,
-                anoSelecionado = uiState.filtroAno,
-                anosDisponiveis = uiState.anosDisponiveis,
-                ordemData = uiState.ordemData,
-                onToggleTipo = { viewModel.onAction(AusenciasAction.ToggleTipo(it)) },
-                onAnoChange = { viewModel.onAction(AusenciasAction.FiltroAnoChange(it)) },
-                onToggleOrdem = { viewModel.onAction(AusenciasAction.ToggleOrdem) },
-                onLimparFiltros = { viewModel.onAction(AusenciasAction.LimparFiltros) }
-            )
+            if (uiState.visualizacaoCalendario) {
+                MonthNavigator(
+                    mesVisualizacao = uiState.mesVisualizacao,
+                    onMesAnterior = { viewModel.onAction(AusenciasAction.MesChange(uiState.mesVisualizacao.minusMonths(1))) },
+                    onProximoMes = { viewModel.onAction(AusenciasAction.MesChange(uiState.mesVisualizacao.plusMonths(1))) },
+                    onIrParaAtual = { viewModel.onAction(AusenciasAction.MesChange(YearMonth.now())) }
+                )
+            } else {
+                // Filtros
+                AusenciaFilterChips(
+                    tiposSelecionados = uiState.filtroTipos,
+                    anoSelecionado = uiState.filtroAno,
+                    anosDisponiveis = uiState.anosDisponiveis,
+                    ordemData = uiState.ordemData,
+                    onToggleTipo = { viewModel.onAction(AusenciasAction.ToggleTipo(it)) },
+                    onAnoChange = { viewModel.onAction(AusenciasAction.FiltroAnoChange(it)) },
+                    onToggleOrdem = { viewModel.onAction(AusenciasAction.ToggleOrdem) },
+                    onLimparFiltros = { viewModel.onAction(AusenciasAction.LimparFiltros) }
+                )
+            }
 
             // Conteúdo
             when {
@@ -171,6 +211,17 @@ fun AusenciasScreen(
                         emoji = "🏢",
                         titulo = stringResource(R.string.ausencia_sem_emprego_titulo),
                         mensagem = stringResource(R.string.ausencia_sem_emprego_desc)
+                    )
+                }
+
+                uiState.visualizacaoCalendario -> {
+                    CalendarView(
+                        yearMonth = uiState.mesVisualizacao,
+                        diasHistorico = uiState.diasHistorico,
+                        onDateClick = { data -> onNovaAusenciaComData(data.toString()) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     )
                 }
 
@@ -251,6 +302,82 @@ fun AusenciasScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthNavigator(
+    mesVisualizacao: YearMonth,
+    onMesAnterior: () -> Unit,
+    onProximoMes: () -> Unit,
+    onIrParaAtual: () -> Unit
+) {
+    val locale = Locale.forLanguageTag("pt-BR")
+    val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
+    val descricaoFormatada = mesVisualizacao.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp)
+        ) {
+            IconButton(
+                onClick = onMesAnterior,
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .size(40.dp)
+            ) {
+                Icon(Icons.Default.ChevronLeft, "Anterior")
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { onIrParaAtual() }
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                Icon(
+                    Icons.Default.CalendarMonth,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = descricaoFormatada,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            IconButton(
+                onClick = onProximoMes,
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .size(40.dp)
+            ) {
+                Icon(
+                    Icons.Default.ChevronRight,
+                    "Próximo",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }

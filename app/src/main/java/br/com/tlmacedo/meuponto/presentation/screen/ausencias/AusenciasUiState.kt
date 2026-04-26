@@ -6,8 +6,10 @@ import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
+import br.com.tlmacedo.meuponto.presentation.screen.history.InfoDiaHistorico
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -26,16 +28,22 @@ enum class OrdemData {
  * @author Thiago
  * @since 4.0.0
  * @updated 5.6.0 - Filtros múltiplos e lista unificada
+ * @updated 12.2.0 - Adicionado suporte a visualização de calendário
  */
 data class AusenciasUiState(
     // Dados
     val ausencias: List<Ausencia> = emptyList(),
     val empregoAtivo: Emprego? = null,
+    val diasHistorico: List<InfoDiaHistorico> = emptyList(),
 
     // Filtros
     val filtroTipos: Set<TipoAusencia> = emptySet(),
     val filtroAno: Int? = LocalDate.now().year,
     val ordemData: OrdemData = OrdemData.CRESCENTE,
+
+    // Visualização
+    val visualizacaoCalendario: Boolean = false,
+    val mesVisualizacao: YearMonth = YearMonth.now(),
 
     // Estados de UI
     val isLoading: Boolean = false,

@@ -8,6 +8,7 @@ package br.com.tlmacedo.meuponto.presentation.navigation
  * @updated 9.2.0 - Adicionada rota para Lixeira
  * @updated 11.0.0 - Adicionada rota para Auditoria
  * @updated 12.0.0 - Adicionadas rotas para Autenticação (Fase 1)
+ * @updated 12.2.0 - Adicionado suporte a data em novos feriados e ausências
  */
 object MeuPontoDestinations {
     // Autenticação (Fase 1)
@@ -83,7 +84,8 @@ object MeuPontoDestinations {
 
     // Feriados
     const val FERIADOS = "feriados"
-    const val NOVO_FERIADO = "novo_feriado"
+    const val NOVO_FERIADO_BASE = "novo_feriado"
+    const val NOVO_FERIADO = "novo_feriado?data={$ARG_DATA}"
     const val EDITAR_FERIADO = "editar_feriado/{$ARG_FERIADO_ID}"
 
     // Ausências (globais)
@@ -123,6 +125,7 @@ object MeuPontoDestinations {
     fun historicoComFiltro(filtro: String) = "history?filtro=$filtro"
     fun editarEmprego(empregoId: Long) = "editar_emprego/$empregoId"
     fun editarFeriado(feriadoId: Long) = "editar_feriado/$feriadoId"
+    fun novoFeriado(data: String? = null) = if (data == null) NOVO_FERIADO_BASE else "$NOVO_FERIADO_BASE?data=$data"
     fun editarAusencia(ausenciaId: Long) = "editar_ausencia/$ausenciaId"
 
     // Versão legacy (sem emprego)

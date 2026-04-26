@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface AuthRepository {
     suspend fun login(email: String, senha: String): Result<Usuario>
+    suspend fun loginPorEmail(email: String): Result<Usuario>
     suspend fun register(nome: String, email: String, senha: String): Result<Usuario>
     suspend fun recuperarSenha(email: String): Result<Unit>
     suspend fun logout()
