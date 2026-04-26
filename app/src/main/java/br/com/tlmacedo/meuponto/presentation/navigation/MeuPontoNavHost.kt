@@ -102,7 +102,16 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
         )
     }
 
-    composable(MeuPontoDestinations.HISTORY) {
+    composable(
+        route = MeuPontoDestinations.HISTORY,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_FILTRO) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) {
         HistoryScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToDay = { data ->
@@ -237,6 +246,11 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToCalendario = {
                 navController.navigate(MeuPontoDestinations.FERIADOS)
+            },
+            onNavigateToHistoryCalendar = {
+                navController.navigate(
+                    MeuPontoDestinations.historicoComFiltro(br.com.tlmacedo.meuponto.presentation.screen.history.FiltroHistorico.CALENDARIO.name)
+                )
             },
             onNavigateToAparencia = {
                 navController.navigate(MeuPontoDestinations.APARENCIA)

@@ -19,7 +19,8 @@ object MeuPontoDestinations {
     // Telas principais
     const val HOME_BASE = "home"
     const val HOME = "home?data={data}"
-    const val HISTORY = "history"
+    const val HISTORY_BASE = "history"
+    const val HISTORY = "history?filtro={filtro}"
     const val HISTORICO_CICLOS = "historico_ciclos"
     const val SETTINGS = "settings"
     const val COMPROVANTES_MANAGER = "comprovantes_manager"
@@ -37,6 +38,7 @@ object MeuPontoDestinations {
     const val ARG_VERSAO_ID_2 = "versaoId2"
     const val ARG_CARGO_ID = "cargoId"
     const val ARG_CHAMADO_ID = "chamadoId"
+    const val ARG_FILTRO = "filtro"
 
     // Chamados
     const val CHAMADOS_LIST = "chamados_list"
@@ -118,6 +120,7 @@ object MeuPontoDestinations {
 
     fun homeComData(data: String) = "home?data=$data"
     fun editPonto(pontoId: Long) = "edit_ponto/$pontoId"
+    fun historicoComFiltro(filtro: String) = "history?filtro=$filtro"
     fun editarEmprego(empregoId: Long) = "editar_emprego/$empregoId"
     fun editarFeriado(feriadoId: Long) = "editar_feriado/$feriadoId"
     fun editarAusencia(ausenciaId: Long) = "editar_ausencia/$ausenciaId"

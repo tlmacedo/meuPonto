@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/history/HistoryViewModel.kt
 package br.com.tlmacedo.meuponto.presentation.screen.history
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.AjusteSaldo
@@ -24,6 +25,7 @@ import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterResumoDiaCompletoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.relatorio.ExportarRelatorioCsvUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.relatorio.GerarResumoPeriodoUseCase
+import br.com.tlmacedo.meuponto.presentation.navigation.MeuPontoDestinations
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,10 +42,6 @@ import kotlin.math.abs
 
 /**
  * ViewModel da tela de Histórico.
- *
- * @author Thiago
- * @since 1.0.0
- * @updated 8.0.0 - Migrado para usar VersaoJornada
  */
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
@@ -57,7 +55,8 @@ class HistoryViewModel @Inject constructor(
     private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
     private val ajusteSaldoRepository: AjusteSaldoRepository,
     private val gerarResumoPeriodoUseCase: GerarResumoPeriodoUseCase,
-    private val exportarRelatorioCsvUseCase: ExportarRelatorioCsvUseCase
+    private val exportarRelatorioCsvUseCase: ExportarRelatorioCsvUseCase,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -73,8 +72,38 @@ class HistoryViewModel @Inject constructor(
     )
 
     init {
+        // Aplica filtro inicial se fornecido via navegação
+        savedStateHandle.get<String>(MeuPontoDestinations.ARG_FILTRO)?.let { filtroStr ->
+            try {
+                val filtro = FiltroHistorico.valueOf(filtroStr)
+                if (filtro == FiltroHistorico.CALENDARIO) {
+                    _uiState.update { it.copy(visualizacaoCalendario = true, filtrosAtivos = emptySet()) }
+                } else {
+                    _uiState.update { it.copy(filtrosAtivos = setOf(filtro)) }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Filtro inválido recebido: $filtroStr")
+            }
+        }
         carregarConfiguracaoEHistorico()
     }
+
+    fun toggleVisualizacao() =
+        _uiState.update { it.copy(visualizacaoCalendario = !it.visualizacaoCalendario) }
+
+    fun alterarFiltro(filtro: FiltroHistorico) {
+        _uiState.update { state ->
+            val novosFiltros = if (state.filtrosAtivos.contains(filtro)) {
+                state.filtrosAtivos - filtro
+            } else {
+                state.filtrosAtivos + filtro
+            }
+            state.copy(filtrosAtivos = novosFiltros, diaExpandido = null)
+        }
+    }
+
+    fun limparFiltros() =
+        _uiState.update { it.copy(filtrosAtivos = emptySet(), diaExpandido = null) }
 
     private fun carregarConfiguracaoEHistorico() {
         viewModelScope.launch {
@@ -94,7 +123,7 @@ class HistoryViewModel @Inject constructor(
                     versaoVigenteAtual = versaoVigente
 
                     val diaInicio = versaoVigente?.diaInicioFechamentoRH ?: 1
-                    val periodoInicial = if (_uiState.value.nomeEmprego == null) {
+                    val periodoIncial = if (_uiState.value.nomeEmprego == null) {
                         PeriodoHistorico.periodoAtual(diaInicio)
                     } else {
                         _uiState.value.periodoSelecionado.copy(diaInicioFechamento = diaInicio)
@@ -105,7 +134,7 @@ class HistoryViewModel @Inject constructor(
                             nomeEmprego = emprego.nome,
                             apelidoEmprego = emprego.apelido,
                             logoEmprego = emprego.logo,
-                            periodoSelecionado = periodoInicial,
+                            periodoSelecionado = periodoIncial,
                             diaInicioFechamento = diaInicio
                         )
                     }
@@ -145,6 +174,7 @@ class HistoryViewModel @Inject constructor(
                 val dataFim = periodo.dataFim
                 val hoje = LocalDate.now()
 
+                // Calculamos saldo inicial até o dia anterior ao início do período
                 val saldoInicialPeriodo = if (dataInicio.isAfter(hoje)) {
                     calcularSaldoInicialDoPeriodo(empregoId, hoje.plusDays(1))
                 } else {
@@ -279,8 +309,7 @@ class HistoryViewModel @Inject constructor(
         var dataAtual = dataInicio
         while (dataAtual <= dataFim) {
             val isFuturo = dataAtual.isAfter(hoje)
-            val pontosNoDia =
-                if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
+            val pontosNoDia = if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
             val ausenciasDoDia = ausenciasPorData[dataAtual] ?: emptyList()
             val feriadoDoDia = feriadosPorData[dataAtual]
 
@@ -293,9 +322,8 @@ class HistoryViewModel @Inject constructor(
 
             val horarioDia = if (versaoJornada != null) {
                 val cached = versaoCache[versaoJornada.id] ?: run {
-                    val horarios =
-                        horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
-                            .associateBy { it.diaSemana }
+                    val horarios = horarioDiaSemanaRepository.buscarPorVersaoJornada(versaoJornada.id)
+                        .associateBy { it.diaSemana }
                     VersaoCache(versaoJornada, horarios).also { versaoCache[versaoJornada.id] = it }
                 }
                 cached.horariosPorDia[diaSemana]
@@ -461,8 +489,7 @@ class HistoryViewModel @Inject constructor(
         dataInicioPeriodo: LocalDate
     ): Int {
         val hoje = LocalDate.now()
-        val dataReferencia =
-            if (dataInicioPeriodo.isAfter(hoje)) hoje else dataInicioPeriodo.minusDays(1)
+        val dataReferencia = if (dataInicioPeriodo.isAfter(hoje)) hoje else dataInicioPeriodo.minusDays(1)
 
         if (dataReferencia.isBefore(LocalDate.of(2020, 1, 1))) return 0
 
@@ -485,11 +512,11 @@ class HistoryViewModel @Inject constructor(
     fun irParaPeriodoAtual() =
         selecionarPeriodo(PeriodoHistorico.periodoAtual(_uiState.value.diaInicioFechamento))
 
-    fun alterarFiltro(filtro: FiltroHistorico) =
-        _uiState.update { it.copy(filtroAtivo = filtro, diaExpandido = null) }
-
     fun toggleDiaExpandido(data: LocalDate) =
         _uiState.update { it.copy(diaExpandido = if (it.diaExpandido == data) null else data) }
+
+    fun toggleResumoExpandido() =
+        _uiState.update { it.copy(resumoExpandido = !it.resumoExpandido) }
 
     fun limparErro() = _uiState.update { it.copy(errorMessage = null) }
 

@@ -38,12 +38,13 @@ enum class FiltroHistorico(
     FALTAS("Faltas", "❌", true),
 
     // Novo modo de visualização
+    LISTA("Lista", "📝"),
     CALENDARIO("Calendário", "📅");
 
     companion object {
         /** Retorna apenas os filtros principais (para exibir nos chips) */
         val principais: List<FiltroHistorico>
-            get() = entries.filter { !it.isSecundario }
+            get() = entries.filter { !it.isSecundario && it != LISTA && it != CALENDARIO }
     }
 }
 
@@ -314,6 +315,9 @@ data class HistoryUiState(
     val csvParaExportar: String? = null,
     val errorMessage: String? = null,
     val diaExpandido: LocalDate? = null,
+    val resumoExpandido: Boolean = true,
+    val visualizacaoCalendario: Boolean = false,
+    val filtrosAtivos: Set<FiltroHistorico> = emptySet(),
     val saldosAcumuladosPorDia: Map<LocalDate, Int> = emptyMap(),
     val saldoInicialPeriodo: Int = 0,
     val resumoPeriodo: ResumoPeriodo = ResumoPeriodo(),
@@ -327,41 +331,28 @@ data class HistoryUiState(
 
     /** Aplica o filtro ativo à lista de dias */
     val registrosFiltrados: List<InfoDiaHistorico>
-        get() = when (filtroAtivo) {
-            FiltroHistorico.TODOS -> diasHistorico
-            FiltroHistorico.COMPLETOS -> diasHistorico.filter { it.jornadaCompleta }
-            FiltroHistorico.INCOMPLETOS -> diasHistorico.filter {
-                !it.jornadaCompleta && it.pontos.isNotEmpty() && !it.resumoDia.isFuturo
-            }
-
-            FiltroHistorico.COM_PROBLEMAS -> diasHistorico.filter { it.temProblemas }
-            FiltroHistorico.FUTUROS -> diasHistorico.filter { it.resumoDia.isFuturo }
-            FiltroHistorico.DESCANSO -> diasHistorico.filter { it.isDescanso }
-            FiltroHistorico.FERIADOS -> diasHistorico.filter { it.temFeriado }
-            FiltroHistorico.FERIAS -> diasHistorico.filter {
-                it.ausencias.any { a -> a.tipo == TipoAusencia.FERIAS }
-            }
-
-            FiltroHistorico.FOLGAS -> diasHistorico.filter {
-                it.ausencias.any { a -> a.tipo == TipoAusencia.FOLGA && a.tipoFolga != TipoFolga.DAY_OFF }
-            }
-
-            FiltroHistorico.DAY_OFF -> diasHistorico.filter {
-                it.ausencias.any { a -> a.tipo == TipoAusencia.FOLGA && a.tipoFolga == TipoFolga.DAY_OFF }
-            }
-
-            FiltroHistorico.ATESTADOS -> diasHistorico.filter {
-                it.ausencias.any { a -> a.tipo == TipoAusencia.ATESTADO }
-            }
-
-            FiltroHistorico.DECLARACOES -> diasHistorico.filter { it.declaracoes.isNotEmpty() }
-            FiltroHistorico.FALTAS -> diasHistorico.filter {
-                it.ausencias.any { a ->
-                    a.tipo == TipoAusencia.FALTA_JUSTIFICADA || a.tipo == TipoAusencia.FALTA_INJUSTIFICADA
+        get() = if (filtrosAtivos.isEmpty()) {
+            diasHistorico
+        } else {
+            diasHistorico.filter { dia ->
+                filtrosAtivos.any { filtro ->
+                    when (filtro) {
+                        FiltroHistorico.TODOS, FiltroHistorico.LISTA, FiltroHistorico.CALENDARIO -> true
+                        FiltroHistorico.COMPLETOS -> dia.jornadaCompleta
+                        FiltroHistorico.INCOMPLETOS -> !dia.jornadaCompleta && dia.pontos.isNotEmpty() && !dia.resumoDia.isFuturo
+                        FiltroHistorico.COM_PROBLEMAS -> dia.temProblemas
+                        FiltroHistorico.FUTUROS -> dia.resumoDia.isFuturo
+                        FiltroHistorico.DESCANSO -> dia.isDescanso
+                        FiltroHistorico.FERIADOS -> dia.temFeriado
+                        FiltroHistorico.FERIAS -> dia.ausencias.any { it.tipo == TipoAusencia.FERIAS }
+                        FiltroHistorico.FOLGAS -> dia.ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga != TipoFolga.DAY_OFF }
+                        FiltroHistorico.DAY_OFF -> dia.ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga == TipoFolga.DAY_OFF }
+                        FiltroHistorico.ATESTADOS -> dia.ausencias.any { it.tipo == TipoAusencia.ATESTADO }
+                        FiltroHistorico.DECLARACOES -> dia.declaracoes.isNotEmpty()
+                        FiltroHistorico.FALTAS -> dia.ausencias.any { it.tipo == TipoAusencia.FALTA_JUSTIFICADA || it.tipo == TipoAusencia.FALTA_INJUSTIFICADA }
+                    }
                 }
             }
-
-            FiltroHistorico.CALENDARIO -> diasHistorico
         }
 
     // Delegações para ResumoPeriodo

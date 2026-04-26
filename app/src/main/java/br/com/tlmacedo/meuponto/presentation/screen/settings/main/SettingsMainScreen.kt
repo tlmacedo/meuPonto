@@ -104,6 +104,7 @@ fun SettingsMainScreen(
     onNavigateToEmpregoSettings: (Long) -> Unit,
     onNavigateToAusencias: (Long) -> Unit,
     onNavigateToCalendario: () -> Unit,
+    onNavigateToHistoryCalendar: () -> Unit,
     onNavigateToAparencia: () -> Unit,
     onNavigateToNotificacoes: () -> Unit,
     onNavigateToPrivacidade: () -> Unit,
@@ -145,6 +146,7 @@ fun SettingsMainScreen(
         onNavigateToEmpregoSettings = onNavigateToEmpregoSettings,
         onNavigateToAusencias = onNavigateToAusencias,
         onNavigateToCalendario = onNavigateToCalendario,
+        onNavigateToHistoryCalendar = onNavigateToHistoryCalendar,
         onNavigateToAparencia = onNavigateToAparencia,
         onNavigateToNotificacoes = onNavigateToNotificacoes,
         onNavigateToPrivacidade = onNavigateToPrivacidade,
@@ -177,6 +179,7 @@ fun SettingsMainContent(
     onNavigateToEmpregoSettings: (Long) -> Unit,
     onNavigateToAusencias: (Long) -> Unit,
     onNavigateToCalendario: () -> Unit,
+    onNavigateToHistoryCalendar: () -> Unit,
     onNavigateToAparencia: () -> Unit,
     onNavigateToNotificacoes: () -> Unit,
     onNavigateToPrivacidade: () -> Unit,
@@ -306,6 +309,12 @@ fun SettingsMainContent(
                     onToggle = { onAlternarSecao("Calendario") }
                 ) {
                     SettingsItemsLayout {
+                        SettingsNavigationItem(
+                            title = "Visualizar Calendário",
+                            subtitle = "Visão mensal completa de registros",
+                            icon = Icons.Outlined.CalendarMonth,
+                            onClick = onNavigateToHistoryCalendar
+                        )
                         SettingsNavigationItem(
                             title = "Feriados",
                             subtitle = "Nacionais, Estaduais e Municipais",
@@ -838,6 +847,7 @@ private fun SettingsMainContentPreview() {
             onNavigateToOpcoesRegistro = {},
             onNavigateToJornada = {},
             onNavigateToChamados = {},
+            onNavigateToHistoryCalendar = {},
             onTrocarEmprego = {},
             onAlternarSecao = {}
         )
