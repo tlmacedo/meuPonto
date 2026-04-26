@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Today
@@ -440,7 +439,9 @@ private fun SecaoFiltros(
             }
             if (resumoPeriodo.diasFolgaCompensacao > 0 || resumoPeriodo.diasFolgaFuturo > 0) {
                 ResumoSecundarioChip(
-                    emoji = "😴", label = "Folgas", valor = resumoPeriodo.diasFolgaCompensacao + resumoPeriodo.diasFolgaFuturo,
+                    emoji = "😴",
+                    label = "Folgas",
+                    valor = resumoPeriodo.diasFolgaCompensacao + resumoPeriodo.diasFolgaFuturo,
                     isSelected = filtrosAtivos.contains(FiltroHistorico.FOLGAS),
                     onClick = { onFiltroClick(FiltroHistorico.FOLGAS) }
                 )
@@ -475,7 +476,7 @@ private fun SecaoFiltros(
                     onClick = { onFiltroClick(FiltroHistorico.COM_PROBLEMAS) }
                 )
             }
-            
+
             // Filtros que eram principais
             ResumoSecundarioChip(
                 emoji = "✅", label = "Completos", valor = resumoPeriodo.diasCompletos,
@@ -513,7 +514,9 @@ private fun FiltroAtivoIndicator(
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp).clickable { onLimparFiltro() },
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clickable { onLimparFiltro() },
                     tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Spacer(Modifier.width(8.dp))
@@ -565,7 +568,10 @@ private fun MonthNavigator(
             IconButton(
                 onClick = onPeriodoAnterior,
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    )
                     .size(40.dp)
             ) {
                 Icon(Icons.Default.ChevronLeft, "Anterior")
@@ -602,7 +608,10 @@ private fun MonthNavigator(
                 onClick = onProximoPeriodo,
                 enabled = podeIrProximo,
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    )
                     .size(40.dp)
             ) {
                 Icon(
@@ -656,18 +665,51 @@ private fun ResumoMes(
                         }
                     }
                     if (!isExpandido && !isPeriodoFuturo) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         Row(
-                            modifier = Modifier.padding(top = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("📊", style = MaterialTheme.typography.bodySmall)
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "Saldo anterior",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            val anteriorColor =
+                                if (saldoInicialPeriodo == 0) MaterialTheme.colorScheme.outline else if (saldoInicialPeriodo >= 0) Success else Error
                             Text(
-                                text = "Anterior: ${saldoInicialPeriodo.toLong().minutosParaSaldoFormatado()}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (saldoInicialPeriodo >= 0) Success else Error
+                                saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = anteriorColor
                             )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("🏦", style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Saldo acumulado",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                             Text(
-                                text = "Acumulado: ${saldoAcumuladoTotal.toLong().minutosParaSaldoFormatado()}",
-                                style = MaterialTheme.typography.labelSmall,
+                                saldoAcumuladoTotal.toLong().minutosParaSaldoFormatado(),
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if (saldoAcumuladoTotal >= 0) Success else Error
                             )
@@ -794,7 +836,8 @@ private fun ResumoMes(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            val anteriorColor = if (saldoInicialPeriodo == 0) MaterialTheme.colorScheme.outline else if (saldoInicialPeriodo >= 0) Success else Error
+                            val anteriorColor =
+                                if (saldoInicialPeriodo == 0) MaterialTheme.colorScheme.outline else if (saldoInicialPeriodo >= 0) Success else Error
                             Text(
                                 saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
                                 style = MaterialTheme.typography.bodySmall,
@@ -982,14 +1025,23 @@ private fun DiaCard(
                         )
                         Text(
                             buildString {
-                                append(resumo.data.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR")).replaceFirstChar { it.uppercase() })
+                                append(
+                                    resumo.data.dayOfWeek.getDisplayName(
+                                        TextStyle.FULL,
+                                        Locale.forLanguageTag("pt-BR")
+                                    ).replaceFirstChar { it.uppercase() })
                                 if (infoDia.pontos.isNotEmpty()) append(" (${resumo.cargaHorariaDiariaFormatada})")
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         infoDia.descricaoCurta?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = statusColor)
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = statusColor
+                            )
                         }
                     }
                 }
@@ -997,10 +1049,23 @@ private fun DiaCard(
                 Row(verticalAlignment = Alignment.Top) {
                     Column(horizontalAlignment = Alignment.End) {
                         if (resumo.pontos.isNotEmpty()) {
-                            Text(resumo.horasTrabalhadasFormatadas, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = statusColor)
-                            Text("${resumo.quantidadePontos} ponto(s)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                resumo.horasTrabalhadasFormatadas,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = statusColor
+                            )
+                            Text(
+                                "${resumo.quantidadePontos} ponto(s)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         } else {
-                            Text("Sem registro", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "Sem registro",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.width(4.dp))
@@ -1013,18 +1078,38 @@ private fun DiaCard(
                 }
             }
 
-            AnimatedVisibility(visible = isExpandido, enter = expandVertically(), exit = shrinkVertically()) {
+            AnimatedVisibility(
+                visible = isExpandido,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
                     if (resumo.listaInconsistencias.isNotEmpty()) {
                         InconsistenciasSection(resumo.listaInconsistencias)
                         Spacer(Modifier.height(8.dp))
                     }
                     infoDia.feriado?.let { FeriadoInfoSection(it); Spacer(Modifier.height(8.dp)) }
-                    infoDia.ausenciaPrincipal?.let { AusenciaInfoSection(it); Spacer(Modifier.height(8.dp)) }
-                    if (infoDia.declaracoes.isNotEmpty()) { DeclaracoesSection(infoDia.declaracoes); Spacer(Modifier.height(8.dp)) }
+                    infoDia.ausenciaPrincipal?.let {
+                        AusenciaInfoSection(it); Spacer(
+                        Modifier.height(
+                            8.dp
+                        )
+                    )
+                    }
+                    if (infoDia.declaracoes.isNotEmpty()) {
+                        DeclaracoesSection(infoDia.declaracoes); Spacer(Modifier.height(8.dp))
+                    }
                     if (resumo.intervalos.isNotEmpty()) TurnosSection(resumo.intervalos)
-                    if (resumo.temIntervalo) { Spacer(Modifier.height(8.dp)); IntervaloSection(resumo) }
-                    if (resumo.jornadaCompleta || resumo.isJornadaZerada || infoDia.isSemJornada) { Spacer(Modifier.height(8.dp)); SaldosSection(resumo, saldoBancoAcumulado, infoDia.isSemJornada) }
+                    if (resumo.temIntervalo) {
+                        Spacer(Modifier.height(8.dp)); IntervaloSection(resumo)
+                    }
+                    if (resumo.jornadaCompleta || resumo.isJornadaZerada || infoDia.isSemJornada) {
+                        Spacer(Modifier.height(8.dp)); SaldosSection(
+                            resumo,
+                            saldoBancoAcumulado,
+                            infoDia.isSemJornada
+                        )
+                    }
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
                         onClick = onNavigateToDay,
@@ -1032,7 +1117,13 @@ private fun DiaCard(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Ver detalhes do dia", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer, textAlign = TextAlign.Center, modifier = Modifier.padding(12.dp))
+                        Text(
+                            "Ver detalhes do dia",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(12.dp)
+                        )
                     }
                 }
             }
@@ -1045,31 +1136,65 @@ private fun InconsistenciasSection(inconsistencias: List<String>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+            .background(
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                RoundedCornerShape(8.dp)
+            )
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
+                RoundedCornerShape(8.dp)
+            )
             .padding(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+            Icon(
+                Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(16.dp)
+            )
             Spacer(Modifier.width(8.dp))
-            Text("Atenção: Inconsistências", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+            Text(
+                "Atenção: Inconsistências",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.Bold
+            )
         }
         Spacer(Modifier.height(4.dp))
         inconsistencias.forEach { erro ->
-            Text("• $erro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            Text(
+                "• $erro",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
 
 @Composable
 private fun FeriadoInfoSection(feriado: Feriado) {
-    Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF9C27B0).copy(alpha = 0.1f), modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFF9C27B0).copy(alpha = 0.1f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp)) {
             Text("🎉", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.width(8.dp))
             Column {
-                Text(feriado.nome, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF9C27B0))
-                Text(feriado.tipo.descricao, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    feriado.nome,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF9C27B0)
+                )
+                Text(
+                    feriado.tipo.descricao,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -1093,13 +1218,27 @@ private fun AusenciaInfoSection(ausencia: Ausencia) {
         TipoAusencia.FALTA_INJUSTIFICADA -> "❌"
         else -> "📄"
     }
-    Surface(shape = RoundedCornerShape(8.dp), color = corFundo, modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = corFundo,
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp)) {
             Text(emoji, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(ausencia.tipoDescricaoCompleta, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                ausencia.observacao?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                Text(
+                    ausencia.tipoDescricaoCompleta,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                ausencia.observacao?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             Text(ausencia.tipo.impactoResumido, style = MaterialTheme.typography.labelSmall)
         }
@@ -1109,26 +1248,67 @@ private fun AusenciaInfoSection(ausencia: Ausencia) {
 @Composable
 private fun DeclaracoesSection(declaracoes: List<Ausencia>) {
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
-    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(modifier = Modifier.padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("📄", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.width(4.dp))
-                Text("Declarações (${declaracoes.size})", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Declarações (${declaracoes.size})",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Spacer(Modifier.height(4.dp))
             declaracoes.forEachIndexed { index, decl ->
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp)
+                ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        decl.observacao?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                        decl.horaInicio?.let { inicio -> Text("⏰ ${inicio.format(timeFormatter)} - ${decl.horaFimDeclaracao?.format(timeFormatter) ?: ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        decl.observacao?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        decl.horaInicio?.let { inicio ->
+                            Text(
+                                "⏰ ${inicio.format(timeFormatter)} - ${
+                                    decl.horaFimDeclaracao?.format(
+                                        timeFormatter
+                                    ) ?: ""
+                                }",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("+${decl.duracaoAbonoMinutos?.minutosParaDuracaoCompacta() ?: "0min"}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
-                        Text("abono", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "+${decl.duracaoAbonoMinutos?.minutosParaDuracaoCompacta() ?: "0min"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)
+                        )
+                        Text(
+                            "abono",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
-                if (index < declaracoes.lastIndex) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f) )
+                if (index < declaracoes.lastIndex) HorizontalDivider(
+                    modifier = Modifier.padding(
+                        vertical = 4.dp
+                    ), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
             }
         }
     }
@@ -1137,13 +1317,27 @@ private fun DeclaracoesSection(declaracoes: List<Ausencia>) {
 @Composable
 private fun TurnosSection(intervalos: List<IntervaloPonto>) {
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
-    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(modifier = Modifier.padding(10.dp)) {
             intervalos.forEachIndexed { index, intervalo ->
-                val hourStr = "${intervalo.entrada.horaConsiderada.format(timeFormatter)} - ${intervalo.saida?.horaConsiderada?.format(timeFormatter) ?: "..."}"
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                val hourStr = "${intervalo.entrada.horaConsiderada.format(timeFormatter)} - ${
+                    intervalo.saida?.horaConsiderada?.format(timeFormatter) ?: "..."
+                }"
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Turno ${index + 1}: $hourStr", style = MaterialTheme.typography.bodySmall)
-                    Text("→ ${intervalo.formatarDuracaoCompacta()}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = if (intervalo.aberto) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
+                    Text(
+                        "→ ${intervalo.formatarDuracaoCompacta()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (intervalo.aberto) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+                    )
                 }
                 if (index < intervalos.lastIndex) Spacer(Modifier.height(8.dp))
             }
@@ -1153,27 +1347,59 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
 
 @Composable
 private fun IntervaloSection(resumo: ResumoDia) {
-    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Row(modifier = Modifier.padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Intervalo Real", style = MaterialTheme.typography.bodySmall)
-            Text(resumo.minutosIntervaloReal.minutosParaDuracaoCompacta(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+            Text(
+                resumo.minutosIntervaloReal.minutosParaDuracaoCompacta(),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
 
 @Composable
-private fun SaldosSection(resumo: ResumoDia, saldoBancoAcumulado: Int? = null, isSemJornada: Boolean = false) {
-    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth()) {
+private fun SaldosSection(
+    resumo: ResumoDia,
+    saldoBancoAcumulado: Int? = null,
+    isSemJornada: Boolean = false
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Saldo do dia", style = MaterialTheme.typography.bodySmall)
-                Text(resumo.saldoDiaFormatado, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = if (resumo.saldoDiaMinutos >= 0) Success else Error)
+                Text(
+                    resumo.saldoDiaFormatado,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (resumo.saldoDiaMinutos >= 0) Success else Error
+                )
             }
             if (saldoBancoAcumulado != null) {
                 Spacer(Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Acumulado", style = MaterialTheme.typography.bodySmall)
-                    Text(saldoBancoAcumulado.toLong().minutosParaSaldoFormatado(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = if (saldoBancoAcumulado >= 0) Success else Error)
+                    Text(
+                        saldoBancoAcumulado.toLong().minutosParaSaldoFormatado(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (saldoBancoAcumulado >= 0) Success else Error
+                    )
                 }
             }
         }
@@ -1193,6 +1419,20 @@ private fun getStatusColor(status: StatusDiaResumo): Color = when (status) {
 @Composable
 private fun HistoryContentPreview() {
     MeuPontoTheme {
-        HistoryContent(uiState = HistoryUiState(), onNavigateBack = {}, onNavigateToDay = {}, onNovaAusencia = {}, onNovoFeriado = {}, onPeriodoAnterior = {}, onProximoPeriodo = {}, onIrParaAtual = {}, onFiltroSelecionado = {}, onToggleDiaExpandido = {}, onToggleResumoExpandido = {}, onToggleVisualizacao = {}, onLimparFiltros = {}, onExportar = {})
+        HistoryContent(
+            uiState = HistoryUiState(),
+            onNavigateBack = {},
+            onNavigateToDay = {},
+            onNovaAusencia = {},
+            onNovoFeriado = {},
+            onPeriodoAnterior = {},
+            onProximoPeriodo = {},
+            onIrParaAtual = {},
+            onFiltroSelecionado = {},
+            onToggleDiaExpandido = {},
+            onToggleResumoExpandido = {},
+            onToggleVisualizacao = {},
+            onLimparFiltros = {},
+            onExportar = {})
     }
 }
