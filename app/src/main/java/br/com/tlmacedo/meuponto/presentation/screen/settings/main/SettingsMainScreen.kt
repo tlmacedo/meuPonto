@@ -26,12 +26,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -58,6 +56,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -80,7 +79,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.ColorUtils
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.Emprego
@@ -105,7 +103,7 @@ import kotlinx.coroutines.launch
  *
  * @author Thiago
  * @since 9.0.0
- * @updated 9.2.1 - Melhorias visuais no ActiveEmploymentCard e SystemStatusCard
+ * @updated 9.2.2 - Correção de imports, cores e layout premium
  */
 @Composable
 fun SettingsMainScreen(
@@ -122,7 +120,6 @@ fun SettingsMainScreen(
     onNavigateToBackup: () -> Unit,
     onNavigateToSobre: () -> Unit,
     onNavigateToAjuda: () -> Unit,
-    onNavigateToReportarProblema: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     onNavigateToComprovantes: () -> Unit,
@@ -164,7 +161,6 @@ fun SettingsMainScreen(
         onNavigateToBackup = onNavigateToBackup,
         onNavigateToSobre = onNavigateToSobre,
         onNavigateToAjuda = onNavigateToAjuda,
-        onNavigateToReportarProblema = onNavigateToReportarProblema,
         onNavigateToLixeira = onNavigateToLixeira,
         onNavigateToAuditoria = onNavigateToAuditoria,
         onNavigateToComprovantes = onNavigateToComprovantes,
@@ -197,7 +193,6 @@ fun SettingsMainContent(
     onNavigateToBackup: () -> Unit,
     onNavigateToSobre: () -> Unit,
     onNavigateToAjuda: () -> Unit,
-    onNavigateToReportarProblema: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     onNavigateToComprovantes: () -> Unit,
@@ -448,16 +443,10 @@ fun SettingsMainContent(
                             onClick = onNavigateToAjuda
                         )
                         SettingsNavigationItem(
-                            title = "Meus Chamados",
-                            subtitle = "Suporte e acompanhamento de tickets",
+                            title = "Suporte e Chamados",
+                            subtitle = "Dúvidas, sugestões ou problemas",
                             icon = Icons.AutoMirrored.Outlined.EventNote,
                             onClick = onNavigateToChamados
-                        )
-                        SettingsNavigationItem(
-                            title = "Reportar Problema",
-                            subtitle = "Beta: Erros, bugs ou sugestões",
-                            icon = Icons.Outlined.BugReport,
-                            onClick = onNavigateToReportarProblema
                         )
                     }
                 }
@@ -502,8 +491,8 @@ private fun SystemStatusCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
@@ -522,7 +511,7 @@ private fun SystemStatusCard(
                     )
                     Text(
                         text = saldoMensal,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black,
                         color = when {
                             saldoMensal.startsWith("-") -> MaterialTheme.colorScheme.error
@@ -553,8 +542,8 @@ private fun SystemStatusCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
@@ -614,8 +603,8 @@ private fun ActiveEmploymentCard(
             .background(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.04f)
                     )
                 ),
                 shape = MaterialTheme.shapes.extraLarge
@@ -624,8 +613,8 @@ private fun ActiveEmploymentCard(
                 width = 1.dp,
                 brush = Brush.horizontalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                     )
                 ),
                 shape = MaterialTheme.shapes.extraLarge
@@ -636,31 +625,31 @@ private fun ActiveEmploymentCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Logo da Empresa
-                Box(
+                Surface(
                     modifier = Modifier
                         .size(72.dp)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .padding(2.dp)
-                        .shadow(2.dp, CircleShape),
-                    contentAlignment = Alignment.Center
+                        .shadow(4.dp, CircleShape),
+                    shape = CircleShape,
+                    color = Color.White
                 ) {
-                    if (logoUri != null) {
-                        LocalImage(
-                            imagePath = logoUri,
-                            contentDescription = "Logo da empresa",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Outlined.Business,
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp),
-                            tint = SidiaBlue
-                        )
+                    Box(contentAlignment = Alignment.Center) {
+                        if (logoUri != null) {
+                            LocalImage(
+                                imagePath = logoUri,
+                                contentDescription = "Logo da empresa",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Business,
+                                contentDescription = null,
+                                modifier = Modifier.size(36.dp),
+                                tint = SidiaBlue
+                            )
+                        }
                     }
                 }
 
@@ -781,32 +770,6 @@ private fun CollapsibleSettingsSection(
     }
 }
 
-@Composable
-private fun SettingsSectionHeader(
-    title: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(vertical = 8.dp, horizontal = 4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
 /**
  * Item de navegação para configurações.
  */
@@ -878,10 +841,10 @@ private fun SettingsMainContentPreview() {
                 secoesExpandidas = setOf("Empregos", "Calendario")
             ),
             onNavigateBack = {},
-            onNavigateToEmpregoEdit = {},
+            onNavigateToEmpregoEdit = { _ -> },
             onNavigateToGerenciarEmpregos = {},
-            onNavigateToEmpregoSettings = {},
-            onNavigateToAusencias = {},
+            onNavigateToEmpregoSettings = { _ -> },
+            onNavigateToAusencias = { _ -> },
             onNavigateToCalendario = {},
             onNavigateToAparencia = {},
             onNavigateToNotificacoes = {},
@@ -889,16 +852,15 @@ private fun SettingsMainContentPreview() {
             onNavigateToBackup = {},
             onNavigateToSobre = {},
             onNavigateToAjuda = {},
-            onNavigateToReportarProblema = {},
             onNavigateToLixeira = {},
             onNavigateToAuditoria = {},
             onNavigateToComprovantes = {},
-            onNavigateToOpcoesRegistro = {},
+            onNavigateToOpcoesRegistro = { _ -> },
             onNavigateToJornada = {},
             onNavigateToChamados = {},
             onNavigateToHistoryCalendar = {},
-            onTrocarEmprego = {},
-            onAlternarSecao = {}
+            onTrocarEmprego = { _ -> },
+            onAlternarSecao = { _ -> }
         )
     }
 }

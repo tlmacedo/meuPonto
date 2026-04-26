@@ -16,6 +16,8 @@ fun ChamadoEntity.toDomain(): Chamado = Chamado(
     identificador = identificador,
     titulo = titulo,
     descricao = descricao,
+    passosParaReproduzir = passosParaReproduzir,
+    deviceInfo = deviceInfo,
     categoria = runCatching { CategoriaChamado.valueOf(categoria) }
         .getOrDefault(CategoriaChamado.OUTRO),
     status = runCatching { StatusChamado.valueOf(status) }
@@ -51,6 +53,8 @@ fun Chamado.toEntity(): ChamadoEntity = ChamadoEntity(
     identificador = identificador,
     titulo = titulo,
     descricao = descricao,
+    passosParaReproduzir = passosParaReproduzir,
+    deviceInfo = deviceInfo,
     categoria = categoria.name,
     status = status.name,
     prioridade = prioridade.name,

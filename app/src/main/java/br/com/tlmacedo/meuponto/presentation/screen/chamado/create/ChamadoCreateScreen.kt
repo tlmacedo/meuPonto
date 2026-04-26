@@ -1,21 +1,38 @@
 package br.com.tlmacedo.meuponto.presentation.screen.chamado.create
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,7 +48,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,6 +62,7 @@ import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.chamado.ChamadoUiState
 import br.com.tlmacedo.meuponto.presentation.screen.chamado.ChamadoViewModel
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
+import coil.compose.AsyncImage
 
 @Composable
 fun ChamadoCreateScreen(
@@ -59,13 +81,14 @@ fun ChamadoCreateScreen(
     ChamadoCreateContent(
         uiState = uiState,
         onBackClick = onNavigateBack,
-        onSubmit = { titulo, descricao, categoria, prioridade ->
+        onSubmit = { titulo, descricao, passos, categoria, prioridade, anexos ->
             viewModel.criarChamado(
                 titulo = titulo,
                 descricao = descricao,
+                passosParaReproduzir = passos,
                 categoria = categoria,
                 prioridade = prioridade,
-                anexos = emptyList()
+                anexos = anexos
             )
         }
     )
@@ -76,12 +99,21 @@ fun ChamadoCreateScreen(
 fun ChamadoCreateContent(
     uiState: ChamadoUiState,
     onBackClick: () -> Unit,
-    onSubmit: (String, String, CategoriaChamado, PrioridadeChamado) -> Unit
+    onSubmit: (String, String, String, CategoriaChamado, PrioridadeChamado, List<Uri>) -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
-    var categoria by remember { mutableStateOf(CategoriaChamado.OUTRO) }
+    var passos by remember { mutableStateOf("") }
+    var categoria by remember { mutableStateOf(CategoriaChamado.SUPORTE) }
     var prioridade by remember { mutableStateOf(PrioridadeChamado.MEDIA) }
+    var anexos by remember { mutableStateOf<List<Uri>>(emptyList()) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(),
+        onResult = { uris ->
+            anexos = (anexos + uris).distinct().take(5)
+        }
+    )
 
     val scrollState = rememberScrollState()
 
@@ -105,7 +137,8 @@ fun ChamadoCreateContent(
             OutlinedTextField(
                 value = titulo,
                 onValueChange = { titulo = it },
-                label = { Text("Título") },
+                label = { Text("Resumo do problema") },
+                placeholder = { Text("Ex: Não consigo editar um ponto antigo") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -113,11 +146,19 @@ fun ChamadoCreateContent(
             OutlinedTextField(
                 value = descricao,
                 onValueChange = { descricao = it },
-                label = { Text("Descrição detalhada") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
+                label = { Text("O que aconteceu?") },
+                placeholder = { Text("Descreva detalhadamente o problema...") },
+                modifier = Modifier.fillMaxWidth(),
                 minLines = 3
+            )
+
+            OutlinedTextField(
+                value = passos,
+                onValueChange = { passos = it },
+                label = { Text("Passos para reproduzir (Opcional)") },
+                placeholder = { Text("1. Abri o histórico\n2. Tentei clicar em...") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
             )
 
             Text("Categoria", style = MaterialTheme.typography.titleSmall)
@@ -132,18 +173,73 @@ fun ChamadoCreateContent(
                 onSelected = { prioridade = it }
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Text("Anexos e Evidências", style = MaterialTheme.typography.titleSmall)
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                item {
+                    Card(
+                        onClick = {
+                            launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                        modifier = Modifier.size(80.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.AttachFile, contentDescription = "Anexar")
+                        }
+                    }
+                }
+
+                items(anexos) { uri ->
+                    Box(modifier = Modifier.size(80.dp)) {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(MaterialTheme.shapes.medium),
+                            contentScale = ContentScale.Crop
+                        )
+                        IconButton(
+                            onClick = { anexos = anexos - uri },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(4.dp)
+                                .size(20.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
+                                    CircleShape
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Close,
+                                contentDescription = "Remover",
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
             if (uiState.erro != null) {
                 Text(
-                    text = uiState.erro,
+                    text = uiState.erro!!,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
 
             Button(
-                onClick = { onSubmit(titulo, descricao, categoria, prioridade) },
+                onClick = { onSubmit(titulo, descricao, passos, categoria, prioridade, anexos) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = titulo.isNotBlank() && descricao.isNotBlank() && !uiState.isLoading
             ) {
@@ -153,9 +249,17 @@ fun ChamadoCreateContent(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Enviar Chamado")
+                    Text("Enviar Solicitação")
                 }
             }
+            
+            Text(
+                text = "Ao enviar, coletaremos automaticamente informações do dispositivo e logs do sistema para ajudar na análise técnica.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -172,7 +276,7 @@ fun CategoryDropdown(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(selected.name.replace("_", " "))
+            Text(selected.label)
         }
         DropdownMenu(
             expanded = expanded,
@@ -181,7 +285,7 @@ fun CategoryDropdown(
         ) {
             CategoriaChamado.entries.forEach { cat ->
                 DropdownMenuItem(
-                    text = { Text(cat.name.replace("_", " ")) },
+                    text = { Text(cat.label) },
                     onClick = {
                         onSelected(cat)
                         expanded = false
@@ -208,7 +312,7 @@ fun PrioritySegmentedButton(
                     count = PrioridadeChamado.entries.size
                 )
             ) {
-                Text(prioridade.name)
+                Text(prioridade.label)
             }
         }
     }
@@ -221,7 +325,7 @@ fun ChamadoCreateContentPreview() {
         ChamadoCreateContent(
             uiState = ChamadoUiState(),
             onBackClick = {},
-            onSubmit = { _, _, _, _ -> }
+            onSubmit = { _, _, _, _, _, _ -> }
         )
     }
 }

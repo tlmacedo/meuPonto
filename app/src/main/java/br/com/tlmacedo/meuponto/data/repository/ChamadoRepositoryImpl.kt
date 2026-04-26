@@ -78,6 +78,8 @@ class ChamadoRepositoryImpl @Inject constructor(
             val request = CriarChamadoRequest(
                 titulo = chamado.titulo,
                 descricao = chamado.descricao,
+                passosParaReproduzir = chamado.passosParaReproduzir,
+                deviceInfo = chamado.deviceInfo,
                 categoria = chamado.categoria,
                 prioridade = chamado.prioridade,
                 empregoId = chamado.empregoId,

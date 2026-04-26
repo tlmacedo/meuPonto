@@ -8,6 +8,8 @@ import com.google.gson.annotations.SerializedName
 data class CriarChamadoRequest(
     @SerializedName("titulo") val titulo: String,
     @SerializedName("descricao") val descricao: String,
+    @SerializedName("passos_para_reproduzir") val passosParaReproduzir: String? = null,
+    @SerializedName("device_info") val deviceInfo: String? = null,
     @SerializedName("categoria") val categoria: CategoriaChamado,
     @SerializedName("prioridade") val prioridade: PrioridadeChamado,
     @SerializedName("emprego_id") val empregoId: Long?,

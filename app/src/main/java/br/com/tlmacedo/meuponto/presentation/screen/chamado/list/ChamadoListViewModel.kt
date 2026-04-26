@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -30,8 +31,19 @@ class ChamadoListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<ChamadoListUiState>(ChamadoListUiState.Loading)
     val uiState: StateFlow<ChamadoListUiState> = _uiState.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     init {
         loadChamados()
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            loadChamados()
+            _isRefreshing.value = false
+        }
     }
 
     fun loadChamados() {
@@ -45,12 +57,12 @@ class ChamadoListViewModel @Inject constructor(
                             if (chamados.isEmpty()) {
                                 ChamadoListUiState.Empty
                             } else {
-                                ChamadoListUiState.Success(chamados)
+                                ChamadoListUiState.Success(chamados.sortedByDescending { it.criadoEm })
                             }
                         }
                 }
             }
-            .onStart { _uiState.value = ChamadoListUiState.Loading }
+            .onStart { if (!_isRefreshing.value) _uiState.value = ChamadoListUiState.Loading }
             .catch { e ->
                 Timber.e(e, "Erro ao carregar chamados")
                 _uiState.value =

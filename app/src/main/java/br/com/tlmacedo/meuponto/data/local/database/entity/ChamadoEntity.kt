@@ -11,6 +11,8 @@ data class ChamadoEntity(
     val identificador: String,
     val titulo: String,
     val descricao: String,
+    val passosParaReproduzir: String? = null,
+    val deviceInfo: String? = null,
     val categoria: String,
     val status: String = "ABERTO",
     val prioridade: String = "NORMAL",

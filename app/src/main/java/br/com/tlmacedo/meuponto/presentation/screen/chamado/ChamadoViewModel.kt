@@ -2,8 +2,10 @@
 package br.com.tlmacedo.meuponto.presentation.screen.chamado
 
 import android.net.Uri
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.tlmacedo.meuponto.BuildConfig
 import br.com.tlmacedo.meuponto.domain.model.chamado.AvaliacaoChamado
 import br.com.tlmacedo.meuponto.domain.model.chamado.CategoriaChamado
 import br.com.tlmacedo.meuponto.domain.model.chamado.Chamado
@@ -11,6 +13,7 @@ import br.com.tlmacedo.meuponto.domain.model.chamado.PrioridadeChamado
 import br.com.tlmacedo.meuponto.domain.model.chamado.StatusChamado
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ChamadoRepository
+import br.com.tlmacedo.meuponto.domain.service.SistemaNotificacaoService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,7 +28,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ChamadoViewModel @Inject constructor(
     private val chamadoRepository: ChamadoRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val sistemaNotificacaoService: SistemaNotificacaoService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChamadoUiState())
@@ -37,6 +41,7 @@ class ChamadoViewModel @Inject constructor(
     fun criarChamado(
         titulo: String,
         descricao: String,
+        passosParaReproduzir: String? = null,
         categoria: CategoriaChamado,
         prioridade: PrioridadeChamado,
         anexos: List<Uri>
@@ -46,11 +51,34 @@ class ChamadoViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
+            val deviceInfo = """
+                App: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})
+                Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})
+                Device: ${Build.MANUFACTURER} ${Build.MODEL}
+            """.trimIndent()
+
+            // Coleta logs (simplificado para o MVP)
+            val logs = try {
+                val process = Runtime.getRuntime().exec("logcat -d")
+                process.inputStream.bufferedReader().use { it.readText() }.takeLast(20000)
+            } catch (e: Exception) {
+                "Erro ao coletar logs: ${e.message}"
+            }
+
+            val descricaoComLogs = """
+                $descricao
+                
+                --- LOGS DO SISTEMA ---
+                $logs
+            """.trimIndent()
+
             val chamado = Chamado(
                 id = 0L,
                 identificador = "",
                 titulo = titulo,
-                descricao = descricao,
+                descricao = descricaoComLogs,
+                passosParaReproduzir = passosParaReproduzir,
+                deviceInfo = deviceInfo,
                 categoria = categoria,
                 prioridade = prioridade,
                 status = StatusChamado.ABERTO,

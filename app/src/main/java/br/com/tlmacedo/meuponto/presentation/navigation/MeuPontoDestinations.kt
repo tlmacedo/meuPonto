@@ -116,7 +116,6 @@ object MeuPontoDestinations {
     // Sobre e Ajuda
     const val SOBRE = "sobre"
     const val AJUDA = "ajuda"
-    const val REPORTAR_PROBLEMA = "reportar_problema"
 
     // ===== Funções auxiliares =====
 

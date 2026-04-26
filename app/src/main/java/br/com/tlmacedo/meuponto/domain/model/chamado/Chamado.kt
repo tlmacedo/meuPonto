@@ -8,6 +8,8 @@ data class Chamado(
     val identificador: String,        // ex: "MP-2026-00042"
     val titulo: String,
     val descricao: String,
+    val passosParaReproduzir: String? = null,
+    val deviceInfo: String? = null,
     val categoria: CategoriaChamado,
     val prioridade: PrioridadeChamado,
     val status: StatusChamado,

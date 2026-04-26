@@ -32,6 +32,8 @@ val MIGRATION_42_43 = object : Migration(42, 43) {
                 `identificador` TEXT NOT NULL, 
                 `titulo` TEXT NOT NULL, 
                 `descricao` TEXT NOT NULL, 
+                `passosParaReproduzir` TEXT, 
+                `deviceInfo` TEXT,
                 `categoria` TEXT NOT NULL, 
                 `status` TEXT NOT NULL, 
                 `prioridade` TEXT NOT NULL, 
