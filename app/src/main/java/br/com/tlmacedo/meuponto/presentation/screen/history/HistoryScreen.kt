@@ -48,8 +48,10 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -63,6 +65,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -91,6 +94,7 @@ import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
+import br.com.tlmacedo.meuponto.presentation.components.CalendarLegend
 import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
 import br.com.tlmacedo.meuponto.presentation.components.HistoryShimmerItem
@@ -173,6 +177,8 @@ fun HistoryScreen(
         onToggleVisualizacao = viewModel::toggleVisualizacao,
         onLimparFiltros = viewModel::limparFiltros,
         onExportar = viewModel::exportarParaCsv,
+        onTogglePeriodoSelection = viewModel::togglePeriodoSelection,
+        onShowPeriodoSelector = viewModel::setShowPeriodoSelector,
         snackbarHostState = snackbarHostState
     )
 }
@@ -193,6 +199,8 @@ fun HistoryContent(
     onToggleVisualizacao: () -> Unit,
     onLimparFiltros: () -> Unit,
     onExportar: () -> Unit,
+    onTogglePeriodoSelection: (PeriodoHistorico) -> Unit,
+    onShowPeriodoSelector: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
@@ -269,11 +277,12 @@ fun HistoryContent(
         ) {
             MonthNavigator(
                 periodoSelecionado = uiState.periodoSelecionado,
+                periodosSelecionados = uiState.periodosSelecionados,
                 podeIrProximo = uiState.podeIrProximoPeriodo,
-                isPeriodoAtual = uiState.isPeriodoAtual,
                 onPeriodoAnterior = onPeriodoAnterior,
                 onProximoPeriodo = onProximoPeriodo,
-                onIrParaAtual = onIrParaAtual
+                onIrParaAtual = onIrParaAtual,
+                onShowSelector = { onShowPeriodoSelector(true) }
             )
 
             LazyColumn(
@@ -321,16 +330,49 @@ fun HistoryContent(
                     }
 
                     uiState.visualizacaoCalendario -> {
-                        item {
+                        val uniqueMonths = uiState.periodosSelecionados.flatMap { periodo ->
+                            val start = YearMonth.from(periodo.dataInicio)
+                            val end = YearMonth.from(periodo.dataFim)
+                            var current = start
+                            val months = mutableListOf<YearMonth>()
+                            while (!current.isAfter(end)) {
+                                months.add(current)
+                                current = current.plusMonths(1)
+                            }
+                            months
+                        }.distinct().sorted()
+
+                        items(uniqueMonths) { yearMonth ->
+                            val locale = Locale.forLanguageTag("pt-BR")
+                            val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
+                            val title = yearMonth.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
+
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            )
+                            
                             CalendarView(
-                                yearMonth = YearMonth.from(uiState.periodoSelecionado.dataInicio),
+                                yearMonth = yearMonth,
                                 diasHistorico = uiState.diasHistorico,
+                                periodosAtivos = uiState.periodosSelecionados,
                                 filtrosAtivos = uiState.filtrosAtivos,
+                                showLegend = false,
                                 onDateClick = { date -> onNavigateToDay(date) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp)
+                                    .padding(horizontal = 16.dp)
                             )
+                            
+                            Spacer(Modifier.height(24.dp))
+                        }
+                        
+                        item {
+                            Spacer(Modifier.height(16.dp))
+                            CalendarLegend()
                         }
                     }
 
@@ -363,6 +405,53 @@ fun HistoryContent(
             }
         }
     }
+
+    if (uiState.showPeriodoSelector) {
+        PeriodoSelectorDialog(
+            periodos = uiState.periodosDisponiveis,
+            selecionados = uiState.periodosSelecionados,
+            onToggle = onTogglePeriodoSelection,
+            onDismiss = { onShowPeriodoSelector(false) }
+        )
+    }
+}
+
+@Composable
+private fun PeriodoSelectorDialog(
+    periodos: List<PeriodoHistorico>,
+    selecionados: List<PeriodoHistorico>,
+    onToggle: (PeriodoHistorico) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Selecionar Períodos") },
+        text = {
+            LazyColumn(modifier = Modifier.height(400.dp)) {
+                items(periodos) { periodo ->
+                    val isSelected = selecionados.contains(periodo)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggle(periodo) }
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Checkbox(checked = isSelected, onCheckedChange = { onToggle(periodo) })
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = periodo.descricaoFormatada,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Concluído") }
+        }
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -546,11 +635,12 @@ private fun FiltroAtivoIndicator(
 @Composable
 private fun MonthNavigator(
     periodoSelecionado: PeriodoHistorico,
+    periodosSelecionados: List<PeriodoHistorico>,
     podeIrProximo: Boolean,
-    isPeriodoAtual: Boolean,
     onPeriodoAnterior: () -> Unit,
     onProximoPeriodo: () -> Unit,
-    onIrParaAtual: () -> Unit
+    onIrParaAtual: () -> Unit,
+    onShowSelector: () -> Unit
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -580,7 +670,7 @@ private fun MonthNavigator(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clickable(enabled = !isPeriodoAtual) { onIrParaAtual() }
+                    .clickable { onShowSelector() }
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 Icon(
@@ -591,7 +681,8 @@ private fun MonthNavigator(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = periodoSelecionado.descricaoFormatada,
+                    text = if (periodosSelecionados.size == 1) periodoSelecionado.descricaoFormatada 
+                           else "${periodosSelecionados.size} períodos",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -953,6 +1044,7 @@ private fun ResumoPrincipalItem(
     emoji: String? = null,
     cor: Color
 ) {
+    @Suppress("DEPRECATION")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(100.dp)
@@ -1106,8 +1198,7 @@ private fun DiaCard(
                     if (resumo.jornadaCompleta || resumo.isJornadaZerada || infoDia.isSemJornada) {
                         Spacer(Modifier.height(8.dp)); SaldosSection(
                             resumo,
-                            saldoBancoAcumulado,
-                            infoDia.isSemJornada
+                            saldoBancoAcumulado
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
@@ -1366,8 +1457,7 @@ private fun IntervaloSection(resumo: ResumoDia) {
 @Composable
 private fun SaldosSection(
     resumo: ResumoDia,
-    saldoBancoAcumulado: Int? = null,
-    isSemJornada: Boolean = false
+    saldoBancoAcumulado: Int? = null
 ) {
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -1433,6 +1523,8 @@ private fun HistoryContentPreview() {
             onToggleResumoExpandido = {},
             onToggleVisualizacao = {},
             onLimparFiltros = {},
-            onExportar = {})
+            onExportar = {},
+            onTogglePeriodoSelection = {},
+            onShowPeriodoSelector = {})
     }
 }

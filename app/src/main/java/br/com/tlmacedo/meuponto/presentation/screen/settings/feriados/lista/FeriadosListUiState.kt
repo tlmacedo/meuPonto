@@ -2,7 +2,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista
 
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
-
+import br.com.tlmacedo.meuponto.presentation.screen.history.InfoDiaHistorico
 import java.time.YearMonth
 
 enum class OrdemData(val descricao: String, val emoji: String) {
@@ -14,6 +14,7 @@ data class FeriadosListUiState(
     val isLoading: Boolean = true,
     val feriados: List<Feriado> = emptyList(),
     val feriadosFiltrados: List<Feriado> = emptyList(),
+    val diasHistorico: List<InfoDiaHistorico> = emptyList(),
     val filtroTipos: Set<TipoFeriado> = emptySet(),
     val filtroAno: Int? = null,
     val anosDisponiveis: List<Int> = emptyList(),

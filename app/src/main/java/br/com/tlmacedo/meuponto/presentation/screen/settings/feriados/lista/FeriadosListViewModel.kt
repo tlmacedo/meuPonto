@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 
 /**
@@ -28,7 +29,7 @@ import javax.inject.Inject
  * @since 3.0.0
  * @updated 5.3.0 - Suporte a múltiplos filtros de tipo e ordenação
  * @updated 12.1.1 - Adicionado suporte ao job metadata
- * @updated 12.2.0 - Adicionada visualização de calendário
+ * @updated 12.2.0 - Adicionada visualização de calendário anual
  */
 @HiltViewModel
 class FeriadosListViewModel @Inject constructor(
@@ -68,6 +69,7 @@ class FeriadosListViewModel @Inject constructor(
             is FeriadosListEvent.OnFiltroAnoChange -> {
                 _uiState.update { it.copy(filtroAno = event.ano) }
                 aplicarFiltros()
+                atualizarDiasCalendario()
             }
 
             FeriadosListEvent.OnToggleOrdem -> {
@@ -83,6 +85,7 @@ class FeriadosListViewModel @Inject constructor(
 
             FeriadosListEvent.OnToggleVisualizacao -> {
                 _uiState.update { it.copy(visualizacaoCalendario = !it.visualizacaoCalendario) }
+                atualizarDiasCalendario()
             }
 
             is FeriadosListEvent.OnMesChange -> {
@@ -93,11 +96,12 @@ class FeriadosListViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         filtroTipos = emptySet(),
-                        filtroAno = null,
+                        filtroAno = LocalDate.now().year,
                         searchQuery = ""
                     )
                 }
                 aplicarFiltros()
+                atualizarDiasCalendario()
             }
 
             FeriadosListEvent.OnShowImportDialog -> {
@@ -168,6 +172,7 @@ class FeriadosListViewModel @Inject constructor(
                         )
                     }
                     aplicarFiltros()
+                    atualizarDiasCalendario()
                 }
             } catch (e: Exception) {
                 _uiState.update {
@@ -329,36 +334,29 @@ class FeriadosListViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Mapeia os feriados para o formato esperado pelo CalendarView.
-     */
-    fun getDiasCalendario(): List<InfoDiaHistorico> {
+    private fun atualizarDiasCalendario() {
         val state = _uiState.value
-        val mes = state.mesVisualizacao
         val feriados = state.feriados.filter { it.ativo }
 
-        val dias = mutableListOf<InfoDiaHistorico>()
-        val dataInicio = mes.atDay(1)
-        val dataInicioGrid = dataInicio.minusDays(dataInicio.dayOfWeek.value % 7L)
-        val dataFimGrid = dataInicioGrid.plusDays(41)
+        val ano = state.filtroAno ?: LocalDate.now().year
+        val dataInicioAno = LocalDate.of(ano, 1, 1)
+        val dataFimAno = LocalDate.of(ano, 12, 31)
 
-        var dataAtual = dataInicioGrid
-        while (dataAtual <= dataFimGrid) {
+        val diasList = mutableListOf<InfoDiaHistorico>()
+        var dataAtual = dataInicioAno
+        while (dataAtual <= dataFimAno) {
             val feriadoDoDia = feriados.find { it.getDataParaAno(dataAtual.year) == dataAtual }
 
-            val resumoDia = ResumoDia(
-                data = dataAtual,
-                tipoDiaEspecial = if (feriadoDoDia != null) TipoDiaEspecial.FERIADO else TipoDiaEspecial.NORMAL
-            )
-
-            dias.add(
+            diasList.add(
                 InfoDiaHistorico(
-                    resumoDia = resumoDia,
+                    resumoDia = ResumoDia(data = dataAtual, tipoDiaEspecial = if (feriadoDoDia != null) TipoDiaEspecial.FERIADO else TipoDiaEspecial.NORMAL),
                     feriado = feriadoDoDia
                 )
             )
             dataAtual = dataAtual.plusDays(1)
         }
-        return dias
+        _uiState.update { it.copy(diasHistorico = diasList) }
     }
+
+    fun getDiasCalendario(): List<InfoDiaHistorico> = _uiState.value.diasHistorico
 }

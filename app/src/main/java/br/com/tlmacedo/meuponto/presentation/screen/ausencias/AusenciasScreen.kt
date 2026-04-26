@@ -11,16 +11,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -55,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.R
+import br.com.tlmacedo.meuponto.presentation.components.CalendarLegend
 import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaCard
@@ -70,7 +73,7 @@ import java.util.Locale
  * @author Thiago
  * @since 4.0.0
  * @updated 5.6.0 - Filtros múltiplos e lista unificada
- * @updated 12.2.0 - Adicionada visualização de calendário
+ * @updated 12.2.0 - Adicionada visualização de calendário anual
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -174,31 +177,8 @@ fun AusenciasScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (uiState.visualizacaoCalendario) {
-                MonthNavigator(
-                    mesVisualizacao = uiState.mesVisualizacao,
-                    onMesAnterior = {
-                        viewModel.onAction(
-                            AusenciasAction.MesChange(
-                                uiState.mesVisualizacao.minusMonths(
-                                    1
-                                )
-                            )
-                        )
-                    },
-                    onProximoMes = {
-                        viewModel.onAction(
-                            AusenciasAction.MesChange(
-                                uiState.mesVisualizacao.plusMonths(
-                                    1
-                                )
-                            )
-                        )
-                    },
-                    onIrParaAtual = { viewModel.onAction(AusenciasAction.MesChange(YearMonth.now())) }
-                )
-            } else {
-                // Filtros
+            if (!uiState.visualizacaoCalendario) {
+                // Filtros (Apenas na Lista)
                 AusenciaFilterChips(
                     tiposSelecionados = uiState.filtroTipos,
                     anoSelecionado = uiState.filtroAno,
@@ -208,6 +188,25 @@ fun AusenciasScreen(
                     onAnoChange = { viewModel.onAction(AusenciasAction.FiltroAnoChange(it)) },
                     onToggleOrdem = { viewModel.onAction(AusenciasAction.ToggleOrdem) },
                     onLimparFiltros = { viewModel.onAction(AusenciasAction.LimparFiltros) }
+                )
+            } else {
+                // Seletor de Ano no Calendário
+                YearNavigator(
+                    ano = uiState.filtroAno ?: java.time.LocalDate.now().year,
+                    onAnoAnterior = {
+                        viewModel.onAction(
+                            AusenciasAction.FiltroAnoChange(
+                                (uiState.filtroAno ?: java.time.LocalDate.now().year) - 1
+                            )
+                        )
+                    },
+                    onProximoAno = {
+                        viewModel.onAction(
+                            AusenciasAction.FiltroAnoChange(
+                                (uiState.filtroAno ?: java.time.LocalDate.now().year) + 1
+                            )
+                        )
+                    }
                 )
             }
 
@@ -231,14 +230,58 @@ fun AusenciasScreen(
                 }
 
                 uiState.visualizacaoCalendario -> {
-                    CalendarView(
-                        yearMonth = uiState.mesVisualizacao,
-                        diasHistorico = uiState.diasHistorico,
-                        onDateClick = { data -> onNovaAusenciaComData(data.toString()) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    )
+                    val listState = rememberLazyListState()
+                    val ano = uiState.filtroAno ?: java.time.LocalDate.now().year
+                    val months = remember(ano) { (1..12).map { YearMonth.of(ano, it) } }
+
+                    // Scroll para o mês atual
+                    LaunchedEffect(ano) {
+                        val currentYearMonth = YearMonth.now()
+                        if (currentYearMonth.year == ano) {
+                            listState.scrollToItem(currentYearMonth.monthValue - 1)
+                        } else {
+                            listState.scrollToItem(0)
+                        }
+                    }
+
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        itemsIndexed(months) { _, month ->
+                            val locale = Locale.forLanguageTag("pt-BR")
+                            val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
+                            val title =
+                                month.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
+
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            )
+
+                            CalendarView(
+                                yearMonth = month,
+                                diasHistorico = uiState.diasHistorico,
+                                highlightOnlySpecials = true,
+                                showLegend = false,
+                                onDateClick = { data -> onNovaAusenciaComData(data.toString()) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            )
+
+                            Spacer(Modifier.height(24.dp))
+                        }
+
+                        item {
+                            Spacer(Modifier.height(16.dp))
+                            CalendarLegend()
+                        }
+                    }
                 }
 
                 uiState.ausenciasFiltradas.isEmpty() -> {
@@ -324,17 +367,11 @@ fun AusenciasScreen(
 }
 
 @Composable
-private fun MonthNavigator(
-    mesVisualizacao: YearMonth,
-    onMesAnterior: () -> Unit,
-    onProximoMes: () -> Unit,
-    onIrParaAtual: () -> Unit
+private fun YearNavigator(
+    ano: Int,
+    onAnoAnterior: () -> Unit,
+    onProximoAno: () -> Unit
 ) {
-    val locale = Locale.forLanguageTag("pt-BR")
-    val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
-    val descricaoFormatada =
-        mesVisualizacao.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
-
     Surface(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier
@@ -349,7 +386,7 @@ private fun MonthNavigator(
                 .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
             IconButton(
-                onClick = onMesAnterior,
+                onClick = onAnoAnterior,
                 modifier = Modifier
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -362,9 +399,7 @@ private fun MonthNavigator(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { onIrParaAtual() }
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 Icon(
                     Icons.Default.CalendarMonth,
@@ -374,21 +409,15 @@ private fun MonthNavigator(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = descricaoFormatada,
+                    text = ano.toString(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    Icons.Default.ArrowDropDown,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
             IconButton(
-                onClick = onProximoMes,
+                onClick = onProximoAno,
                 modifier = Modifier
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),

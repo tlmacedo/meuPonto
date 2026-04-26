@@ -308,6 +308,9 @@ data class HistoryUiState(
     val logoEmprego: String? = null,
     val diasHistorico: List<InfoDiaHistorico> = emptyList(),
     val periodoSelecionado: PeriodoHistorico = PeriodoHistorico.periodoAtual(),
+    val periodosSelecionados: List<PeriodoHistorico> = listOf(periodoSelecionado),
+    val periodosDisponiveis: List<PeriodoHistorico> = emptyList(),
+    val showPeriodoSelector: Boolean = false,
     val diaInicioFechamento: Int = 1,
     val filtroAtivo: FiltroHistorico = FiltroHistorico.TODOS,
     val isLoading: Boolean = false,
@@ -364,10 +367,13 @@ data class HistoryUiState(
     /** Sempre pode avançar para períodos futuros */
     val podeIrProximoPeriodo: Boolean get() = true
 
-    val isPeriodoAtual: Boolean get() = periodoSelecionado.contemHoje
+    val isPeriodoAtual: Boolean get() = periodosSelecionados.any { it.contemHoje }
     val usaPeriodoRHCustomizado: Boolean get() = diaInicioFechamento != 1
 
-    val periodoDescricao: String get() = periodoSelecionado.descricaoFormatada
+    val periodoDescricao: String
+        get() = if (periodosSelecionados.size == 1) periodosSelecionados.first().descricaoFormatada
+        else "${periodosSelecionados.size} períodos selecionados"
+
     val periodoSubtitulo: String?
         get() = if (usaPeriodoRHCustomizado) "Período RH: dia $diaInicioFechamento" else null
 

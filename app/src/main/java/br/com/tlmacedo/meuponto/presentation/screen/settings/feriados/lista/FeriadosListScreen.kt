@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +14,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -61,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import br.com.tlmacedo.meuponto.presentation.components.CalendarLegend
 import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components.FeriadoCard
@@ -75,7 +78,7 @@ import java.util.Locale
  *
  * @author Thiago
  * @since 3.0.0
- * @updated 12.2.0 - Adicionada visualização de calendário
+ * @updated 12.2.0 - Adicionada visualização de calendário anual
  */
 @Composable
 fun FeriadosListScreen(
@@ -108,7 +111,6 @@ fun FeriadosListScreen(
         onNavigateToNovo = onNavigateToNovo,
         onNavigateToNovoComData = onNavigateToNovoComData,
         onEvent = viewModel::onEvent,
-        getDiasCalendario = viewModel::getDiasCalendario,
         modifier = modifier,
         snackbarHostState = snackbarHostState
     )
@@ -126,7 +128,6 @@ fun FeriadosListContent(
     onNavigateToNovo: () -> Unit,
     onNavigateToNovoComData: (String) -> Unit,
     onEvent: (FeriadosListEvent) -> Unit,
-    getDiasCalendario: () -> List<br.com.tlmacedo.meuponto.presentation.screen.history.InfoDiaHistorico>,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
@@ -218,27 +219,10 @@ fun FeriadosListContent(
                 .padding(paddingValues)
         ) {
             if (uiState.visualizacaoCalendario) {
-                MonthNavigator(
-                    mesVisualizacao = uiState.mesVisualizacao,
-                    onMesAnterior = {
-                        onEvent(
-                            FeriadosListEvent.OnMesChange(
-                                uiState.mesVisualizacao.minusMonths(
-                                    1
-                                )
-                            )
-                        )
-                    },
-                    onProximoMes = {
-                        onEvent(
-                            FeriadosListEvent.OnMesChange(
-                                uiState.mesVisualizacao.plusMonths(
-                                    1
-                                )
-                            )
-                        )
-                    },
-                    onIrParaAtual = { onEvent(FeriadosListEvent.OnMesChange(YearMonth.now())) }
+                YearNavigator(
+                    ano = uiState.filtroAno ?: java.time.LocalDate.now().year,
+                    onAnoAnterior = { onEvent(FeriadosListEvent.OnFiltroAnoChange((uiState.filtroAno ?: java.time.LocalDate.now().year) - 1)) },
+                    onProximoAno = { onEvent(FeriadosListEvent.OnFiltroAnoChange((uiState.filtroAno ?: java.time.LocalDate.now().year) + 1)) }
                 )
             } else {
                 // SearchBar
@@ -322,14 +306,56 @@ fun FeriadosListContent(
                 }
 
                 uiState.visualizacaoCalendario -> {
-                    CalendarView(
-                        yearMonth = uiState.mesVisualizacao,
-                        diasHistorico = getDiasCalendario(),
-                        onDateClick = { data -> onNavigateToNovoComData(data.toString()) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    )
+                    val listState = rememberLazyListState()
+                    val ano = uiState.filtroAno ?: java.time.LocalDate.now().year
+                    val months = remember(ano) { (1..12).map { YearMonth.of(ano, it) } }
+
+                    LaunchedEffect(ano) {
+                        val currentYearMonth = YearMonth.now()
+                        if (currentYearMonth.year == ano) {
+                            listState.scrollToItem(currentYearMonth.monthValue - 1)
+                        } else {
+                            listState.scrollToItem(0)
+                        }
+                    }
+
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        itemsIndexed(months) { _, month ->
+                            val locale = Locale.forLanguageTag("pt-BR")
+                            val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
+                            val title = month.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
+
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            )
+
+                            CalendarView(
+                                yearMonth = month,
+                                diasHistorico = uiState.diasHistorico,
+                                highlightOnlySpecials = true,
+                                showLegend = false,
+                                onDateClick = { data -> onNavigateToNovoComData(data.toString()) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            )
+
+                            Spacer(Modifier.height(24.dp))
+                        }
+
+                        item {
+                            Spacer(Modifier.height(16.dp))
+                            CalendarLegend()
+                        }
+                    }
                 }
 
                 uiState.feriadosFiltrados.isEmpty() -> {
@@ -364,20 +390,31 @@ fun FeriadosListContent(
                             )
                         }
 
-                        items(
-                            items = uiState.feriadosFiltrados,
-                            key = { it.id }
-                        ) { feriado ->
-                            FeriadoCard(
-                                feriado = feriado,
-                                onEditar = { onNavigateToEditar(feriado.id) },
-                                onExcluir = {
-                                    onEvent(FeriadosListEvent.OnShowDeleteDialog(feriado))
-                                },
-                                onToggleAtivo = {
-                                    onEvent(FeriadosListEvent.OnToggleAtivo(feriado))
-                                }
-                            )
+                        uiState.feriadosAgrupados.forEach { (tipo, feriados) ->
+                            item {
+                                Text(
+                                    text = tipo.descricao,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            items(
+                                items = feriados,
+                                key = { it.id }
+                            ) { feriado ->
+                                FeriadoCard(
+                                    feriado = feriado,
+                                    onEditar = { onNavigateToEditar(feriado.id) },
+                                    onExcluir = {
+                                        onEvent(FeriadosListEvent.OnShowDeleteDialog(feriado))
+                                    },
+                                    onToggleAtivo = {
+                                        onEvent(FeriadosListEvent.OnToggleAtivo(feriado))
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -387,18 +424,11 @@ fun FeriadosListContent(
 }
 
 @Composable
-private fun MonthNavigator(
-    mesVisualizacao: YearMonth,
-    onMesAnterior: () -> Unit,
-    onProximoMes: () -> Unit,
-    onIrParaAtual: () -> Unit
+private fun YearNavigator(
+    ano: Int,
+    onAnoAnterior: () -> Unit,
+    onProximoAno: () -> Unit
 ) {
-    val locale = Locale.forLanguageTag("pt-BR")
-    val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
-    val descricaoFormatada =
-        mesVisualizacao.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
-    val isPeriodoAtual = mesVisualizacao == YearMonth.now()
-
     Surface(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier
@@ -413,7 +443,7 @@ private fun MonthNavigator(
                 .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
             IconButton(
-                onClick = onMesAnterior,
+                onClick = onAnoAnterior,
                 modifier = Modifier
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -426,9 +456,7 @@ private fun MonthNavigator(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { onIrParaAtual() }
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 Icon(
                     Icons.Default.CalendarMonth,
@@ -438,21 +466,15 @@ private fun MonthNavigator(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = descricaoFormatada,
+                    text = ano.toString(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    Icons.Default.ArrowDropDown,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
             IconButton(
-                onClick = onProximoMes,
+                onClick = onProximoAno,
                 modifier = Modifier
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),

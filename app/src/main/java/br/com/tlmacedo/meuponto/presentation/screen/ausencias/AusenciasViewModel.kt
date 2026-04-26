@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 
 /**
@@ -31,7 +33,7 @@ import javax.inject.Inject
  * @author Thiago
  * @since 4.0.0
  * @updated 5.6.0 - Filtros múltiplos e lista unificada
- * @updated 12.2.0 - Adicionada visualização de calendário
+ * @updated 12.2.0 - Adicionada visualização de calendário anual
  */
 @HiltViewModel
 class AusenciasViewModel @Inject constructor(
@@ -69,7 +71,7 @@ class AusenciasViewModel @Inject constructor(
 
             is AusenciasAction.MesChange -> {
                 _uiState.update { it.copy(mesVisualizacao = action.mes) }
-                atualizarDiasCalendario()
+                // No modo anual, MesChange pode ser usado para scroll, não precisa atualizar tudo
             }
 
             // CRUD
@@ -140,21 +142,18 @@ class AusenciasViewModel @Inject constructor(
 
     private fun atualizarDiasCalendario() {
         val state = _uiState.value
-        val mes = state.mesVisualizacao
         val ausencias = state.ausencias.filter { it.ativo }
+        
+        // Carregamos o ano inteiro
+        val ano = state.filtroAno ?: LocalDate.now().year
+        val dataInicioAno = LocalDate.of(ano, 1, 1)
+        val dataFimAno = LocalDate.of(ano, 12, 31)
 
-        val diasNoMes = mutableListOf<InfoDiaHistorico>()
-        val dataInicio = mes.atDay(1)
-
-        val dataInicioGrid = dataInicio.minusDays(dataInicio.dayOfWeek.value % 7L)
-        val dataFimGrid = dataInicioGrid.plusDays(41)
-
-        var dataAtual = dataInicioGrid
-        while (dataAtual <= dataFimGrid) {
-            val ausenciasDoDia =
-                ausencias.filter { it.dataInicio <= dataAtual && it.dataFim >= dataAtual }
-
-            // Mapeia para o tipo de dia especial baseado na ausência principal
+        val diasList = mutableListOf<InfoDiaHistorico>()
+        var dataAtual = dataInicioAno
+        while (dataAtual <= dataFimAno) {
+            val ausenciasDoDia = ausencias.filter { it.dataInicio <= dataAtual && it.dataFim >= dataAtual }
+            
             val tipoEspecial = when {
                 ausenciasDoDia.any { it.tipo == TipoAusencia.FERIAS } -> TipoDiaEspecial.FERIAS
                 ausenciasDoDia.any { it.tipo == TipoAusencia.ATESTADO } -> TipoDiaEspecial.ATESTADO
@@ -164,21 +163,14 @@ class AusenciasViewModel @Inject constructor(
                 else -> TipoDiaEspecial.NORMAL
             }
 
-            val resumoDia = ResumoDia(
-                data = dataAtual,
-                tipoDiaEspecial = tipoEspecial
-            )
-
-            diasNoMes.add(
-                InfoDiaHistorico(
-                    resumoDia = resumoDia,
-                    ausencias = ausenciasDoDia
-                )
-            )
+            diasList.add(InfoDiaHistorico(
+                resumoDia = ResumoDia(data = dataAtual, tipoDiaEspecial = tipoEspecial),
+                ausencias = ausenciasDoDia
+            ))
             dataAtual = dataAtual.plusDays(1)
         }
 
-        _uiState.update { it.copy(diasHistorico = diasNoMes) }
+        _uiState.update { it.copy(diasHistorico = diasList) }
     }
 
     private fun toggleTipo(tipo: TipoAusencia) {
@@ -194,6 +186,7 @@ class AusenciasViewModel @Inject constructor(
 
     private fun filtrarPorAno(ano: Int?) {
         _uiState.update { it.copy(filtroAno = ano) }
+        atualizarDiasCalendario()
     }
 
     private fun toggleOrdem() {
@@ -211,9 +204,10 @@ class AusenciasViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 filtroTipos = emptySet(),
-                filtroAno = null
+                filtroAno = LocalDate.now().year
             )
         }
+        atualizarDiasCalendario()
     }
 
     private fun toggleAtivo(ausencia: Ausencia) {

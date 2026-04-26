@@ -128,6 +128,9 @@ class HistoryViewModel @Inject constructor(
                     versaoVigenteAtual = versaoVigente
 
                     val diaInicio = versaoVigente?.diaInicioFechamentoRH ?: 1
+                    
+                    val periodosDisponiveis = gerarPeriodosDisponiveis(diaInicio)
+
                     val periodoIncial = if (_uiState.value.nomeEmprego == null) {
                         PeriodoHistorico.periodoAtual(diaInicio)
                     } else {
@@ -140,6 +143,8 @@ class HistoryViewModel @Inject constructor(
                             apelidoEmprego = emprego.apelido,
                             logoEmprego = emprego.logo,
                             periodoSelecionado = periodoIncial,
+                            periodosSelecionados = listOf(periodoIncial),
+                            periodosDisponiveis = periodosDisponiveis,
                             diaInicioFechamento = diaInicio
                         )
                     }
@@ -154,48 +159,58 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
+    private fun gerarPeriodosDisponiveis(diaInicio: Int): List<PeriodoHistorico> {
+        val hoje = LocalDate.now()
+        val periodos = mutableListOf<PeriodoHistorico>()
+        
+        var ref = hoje.plusMonths(1)
+        repeat(14) {
+            periodos.add(PeriodoHistorico.fromPeriodoRH(ref, diaInicio))
+            ref = ref.minusMonths(1)
+        }
+        return periodos.sortedByDescending { it.dataInicio }
+    }
+
     fun carregarHistorico() {
         carregarJob?.cancel()
         carregarJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                val empregoId = empregoIdAtual ?: run {
-                    when (val resultado = obterEmpregoAtivoUseCase()) {
-                        is ObterEmpregoAtivoUseCase.Resultado.Sucesso -> {
-                            empregoIdAtual = resultado.emprego.id
-                            resultado.emprego.id
-                        }
-
-                        else -> {
-                            _uiState.update { it.copy(isLoading = false) }
-                            return@launch
-                        }
-                    }
+                val empregoId = empregoIdAtual ?: return@launch
+                val periodos = _uiState.value.periodosSelecionados
+                if (periodos.isEmpty()) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    return@launch
                 }
 
-                val periodo = _uiState.value.periodoSelecionado
-                val dataInicio = periodo.dataInicio
-                val dataFim = periodo.dataFim
+                // Para garantir que o calendário mostre os meses inteiros, carregamos do primeiro ao último dia de todos os meses envolvidos
+                val dataInicioTotal = periodos.minOf { it.dataInicio }.withDayOfMonth(1)
+                val dataFimTotal = periodos.maxOf { it.dataFim }.let { it.withDayOfMonth(it.lengthOfMonth()) }
                 val hoje = LocalDate.now()
 
-                // Calculamos saldo inicial até o dia anterior ao início do período
-                val saldoInicialPeriodo = if (dataInicio.isAfter(hoje)) {
-                    calcularSaldoInicialDoPeriodo(empregoId, hoje.plusDays(1))
+                val saldoInicialPeriodo = if (dataInicioTotal.isAfter(hoje)) {
+                    if (periodos.any { !it.isFuturo }) {
+                        val ref = periodos.filter { !it.isFuturo }.minOf { it.dataInicio }
+                        calcularSaldoInicialDoPeriodo(empregoId, ref)
+                    } else {
+                        calcularSaldoInicialDoPeriodo(empregoId, hoje.plusDays(1))
+                    }
                 } else {
-                    calcularSaldoInicialDoPeriodo(empregoId, dataInicio)
+                    calcularSaldoInicialDoPeriodo(empregoId, dataInicioTotal)
                 }
 
                 combine(
-                    pontoRepository.observarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim),
+                    pontoRepository.observarPorEmpregoEPeriodo(empregoId, dataInicioTotal, dataFimTotal),
                     ausenciaRepository.observarAtivasPorEmprego(empregoId),
                     feriadoRepository.observarTodosAtivos(),
                     ajusteSaldoRepository.observarPorEmprego(empregoId)
                 ) { pontos, ausencias, feriados, ajustes ->
-                    processarDadosPeriodo(
+                    processarDadosPeriodos(
                         empregoId = empregoId,
-                        dataInicio = dataInicio,
-                        dataFim = dataFim,
+                        dataInicio = dataInicioTotal,
+                        dataFim = dataFimTotal,
+                        periodosSelecionados = periodos,
                         pontos = pontos,
                         ausencias = ausencias,
                         feriados = feriados,
@@ -223,18 +238,11 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    private data class ResultadoProcessamento(
-        val diasHistorico: List<InfoDiaHistorico>,
-        val saldosAcumulados: Map<LocalDate, Int>,
-        val resumoPeriodo: ResumoPeriodo,
-        val todasAusencias: List<Ausencia>,
-        val todosFeriados: List<Feriado>
-    )
-
-    private suspend fun processarDadosPeriodo(
+    private suspend fun processarDadosPeriodos(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate,
+        periodosSelecionados: List<PeriodoHistorico>,
         pontos: List<Ponto>,
         ausencias: List<Ausencia>,
         feriados: List<Feriado>,
@@ -242,8 +250,7 @@ class HistoryViewModel @Inject constructor(
         saldoInicialPeriodo: Int
     ): ResultadoProcessamento {
         val hoje = LocalDate.now()
-
-        val pontosPorDia = pontos.filter { it.data in dataInicio..dataFim }.groupBy { it.data }
+        val pontosPorDia = pontos.groupBy { it.data }
 
         val ausenciasNoPeriodo = ausencias.filter {
             it.ativo && it.dataInicio <= dataFim && it.dataFim >= dataInicio
@@ -314,8 +321,9 @@ class HistoryViewModel @Inject constructor(
         var dataAtual = dataInicio
         while (dataAtual <= dataFim) {
             val isFuturo = dataAtual.isAfter(hoje)
-            val pontosNoDia =
-                if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
+            val isInAnySelectedPeriod = periodosSelecionados.any { dataAtual >= it.dataInicio && dataAtual <= it.dataFim }
+            
+            val pontosNoDia = if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
             val ausenciasDoDia = ausenciasPorData[dataAtual] ?: emptyList()
             val feriadoDoDia = feriadosPorData[dataAtual]
 
@@ -353,7 +361,6 @@ class HistoryViewModel @Inject constructor(
 
             val resumoDia = resumoCompleto.resumoDia
             val jornadaEsperada = horarioDia?.cargaHorariaMinutos ?: 0
-            val isFimDeSemana = dataAtual.dayOfWeek in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
             val isSemJornada = jornadaEsperada == 0
 
             val descricaoDiaEspecial = when {
@@ -365,7 +372,6 @@ class HistoryViewModel @Inject constructor(
                         ausencia.observacao?.let { append(" - $it") }
                     }
                 }
-
                 else -> null
             }
 
@@ -378,79 +384,79 @@ class HistoryViewModel @Inject constructor(
             )
             diasHistorico.add(infoDia)
 
-            if (isFuturo) {
-                diasFuturos++
-                if (isSemJornada && feriadoDoDia == null && ausenciasDoDia.isEmpty()) diasDescansoFuturo++
-                if (feriadoDoDia != null) diasFeriadoFuturo++
-                for (ausencia in ausenciasDoDia) {
-                    when (ausencia.tipo) {
-                        TipoAusencia.FERIAS -> diasFeriasFuturo++
-                        TipoAusencia.FOLGA -> diasFolgaFuturo++
-                        else -> {}
+            // Só contabilizamos para o resumo se o dia estiver dentro de um dos períodos selecionados
+            if (isInAnySelectedPeriod) {
+                if (isFuturo) {
+                    diasFuturos++
+                    if (isSemJornada && feriadoDoDia == null && ausenciasDoDia.isEmpty()) diasDescansoFuturo++
+                    if (feriadoDoDia != null) diasFeriadoFuturo++
+                    for (ausencia in ausenciasDoDia) {
+                        when (ausencia.tipo) {
+                            TipoAusencia.FERIAS -> diasFeriasFuturo++
+                            TipoAusencia.FOLGA -> diasFolgaFuturo++
+                            else -> {}
+                        }
                     }
-                }
-            } else {
-                if (isSemJornada && pontosNoDia.isEmpty() && feriadoDoDia == null && ausenciasDoDia.isEmpty()) diasDescanso++
-                if (feriadoDoDia != null) diasFeriado++
+                } else {
+                    if (isSemJornada && pontosNoDia.isEmpty() && feriadoDoDia == null && ausenciasDoDia.isEmpty()) diasDescanso++
+                    if (feriadoDoDia != null) diasFeriado++
 
-                for (ausencia in ausenciasDoDia) {
-                    when (ausencia.tipo) {
-                        TipoAusencia.FERIAS -> diasFerias++
-                        TipoAusencia.FOLGA -> {
-                            diasFolga++
-                            when (ausencia.tipoFolga) {
-                                TipoFolga.DAY_OFF -> diasFolgaDayOff++
-                                TipoFolga.COMPENSACAO, null -> {
-                                    diasFolgaCompensacao++
+                    for (ausencia in ausenciasDoDia) {
+                        when (ausencia.tipo) {
+                            TipoAusencia.FERIAS -> diasFerias++
+                            TipoAusencia.FOLGA -> {
+                                diasFolga++
+                                when (ausencia.tipoFolga) {
+                                    TipoFolga.DAY_OFF -> diasFolgaDayOff++
+                                    TipoFolga.COMPENSACAO, null -> {
+                                        diasFolgaCompensacao++
+                                    }
                                 }
                             }
-                        }
-
-                        TipoAusencia.ATESTADO -> {
-                            diasAtestado++; quantidadeAtestados++
-                        }
-
-                        TipoAusencia.DECLARACAO -> {
-                            quantidadeDeclaracoes++
-                            totalMinutosDeclaracoes += ausencia.duracaoAbonoMinutos ?: 0
-                        }
-
-                        TipoAusencia.FALTA_JUSTIFICADA -> diasFaltaJustificada++
-                        TipoAusencia.FALTA_INJUSTIFICADA -> {
-                            diasFaltaInjustificada++
+                            TipoAusencia.ATESTADO -> {
+                                diasAtestado++; quantidadeAtestados++
+                            }
+                            TipoAusencia.DECLARACAO -> {
+                                quantidadeDeclaracoes++
+                                totalMinutosDeclaracoes += ausencia.duracaoAbonoMinutos ?: 0
+                            }
+                            TipoAusencia.FALTA_JUSTIFICADA -> diasFaltaJustificada++
+                            TipoAusencia.FALTA_INJUSTIFICADA -> {
+                                diasFaltaInjustificada++
+                            }
                         }
                     }
+
+                    if (jornadaEsperada > 0 && pontosNoDia.isEmpty() && 
+                        dataAtual.dayOfWeek !in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) &&
+                        resumoDia.tipoDiaEspecial == TipoDiaEspecial.NORMAL && feriadoDoDia == null
+                    ) {
+                        diasUteisSemRegistro++
+                    }
+
+                    if (resumoDia.jornadaCompleta) {
+                        diasCompletos++
+                        totalMinutosTrabalhados += resumoDia.horasTrabalhadasMinutos
+                    }
+                    if (resumoDia.temProblemas) diasComProblemas++
+
+                    totalMinutosAbonados += resumoDia.tempoAbonadoMinutos
+
+                    if (resumoDia.temToleranciaIntervaloAplicada) {
+                        totalMinutosTolerancia += abs(resumoDia.minutosIntervaloReal - resumoDia.minutosIntervaloTotal)
+                    }
+
+                    saldoAcumulado += resumoDia.saldoDiaMinutos
+                    saldoAcumulado += ajustesPorData[dataAtual] ?: 0
+                    saldoPeriodoMinutos += resumoDia.saldoDiaMinutos
                 }
-
-                if (jornadaEsperada > 0 && pontosNoDia.isEmpty() && !isFimDeSemana &&
-                    resumoDia.tipoDiaEspecial == TipoDiaEspecial.NORMAL && feriadoDoDia == null
-                ) {
-                    diasUteisSemRegistro++
-                }
-
-                if (resumoDia.jornadaCompleta) {
-                    diasCompletos++
-                    totalMinutosTrabalhados += resumoDia.horasTrabalhadasMinutos
-                }
-                if (resumoDia.temProblemas) diasComProblemas++
-
-                totalMinutosAbonados += resumoDia.tempoAbonadoMinutos
-
-                if (resumoDia.temToleranciaIntervaloAplicada) {
-                    totalMinutosTolerancia += abs(resumoDia.minutosIntervaloReal - resumoDia.minutosIntervaloTotal)
-                }
-
-                saldoAcumulado += resumoDia.saldoDiaMinutos
-                saldoAcumulado += ajustesPorData[dataAtual] ?: 0
-                saldoPeriodoMinutos += resumoDia.saldoDiaMinutos
             }
 
             saldosAcumulados[dataAtual] = saldoAcumulado
             dataAtual = dataAtual.plusDays(1)
         }
 
-        val totalAjustes = ajustesPorData.values.sum()
-        saldoPeriodoMinutos += totalAjustes
+        val totalAjustes = ajustesPorData.filter { entry -> periodosSelecionados.any { p -> entry.key >= p.dataInicio && entry.key <= p.dataFim } }.values.sum()
 
         val resumoPeriodo = ResumoPeriodo(
             totalMinutosTrabalhados = totalMinutosTrabalhados,
@@ -469,7 +475,7 @@ class HistoryViewModel @Inject constructor(
             totalMinutosAbonados = totalMinutosAbonados,
             totalMinutosTolerancia = totalMinutosTolerancia,
             diasUteisSemRegistro = diasUteisSemRegistro,
-            totalDiasPeriodo = diasHistorico.size,
+            totalDiasPeriodo = periodosSelecionados.sumOf { it.totalDias },
             totalAjustesMinutos = totalAjustes,
             quantidadeDeclaracoes = quantidadeDeclaracoes,
             totalMinutosDeclaracoes = totalMinutosDeclaracoes,
@@ -510,15 +516,54 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    fun selecionarPeriodo(novoPeriodo: PeriodoHistorico) {
-        _uiState.update { it.copy(periodoSelecionado = novoPeriodo, diaExpandido = null) }
+    fun togglePeriodoSelection(periodo: PeriodoHistorico) {
+        _uiState.update { state ->
+            val novosPeriodos = if (state.periodosSelecionados.contains(periodo)) {
+                if (state.periodosSelecionados.size > 1) state.periodosSelecionados - periodo
+                else state.periodosSelecionados
+            } else {
+                (state.periodosSelecionados + periodo).sortedBy { it.dataInicio }
+            }
+            state.copy(
+                periodosSelecionados = novosPeriodos, 
+                periodoSelecionado = novosPeriodos.last(),
+                diaExpandido = null
+            )
+        }
         carregarHistorico()
     }
 
-    fun periodoAnterior() = selecionarPeriodo(_uiState.value.periodoSelecionado.periodoAnterior())
-    fun proximoPeriodo() = selecionarPeriodo(_uiState.value.periodoSelecionado.proximoPeriodo())
-    fun irParaPeriodoAtual() =
-        selecionarPeriodo(PeriodoHistorico.periodoAtual(_uiState.value.diaInicioFechamento))
+    fun setShowPeriodoSelector(show: Boolean) =
+        _uiState.update { it.copy(showPeriodoSelector = show) }
+
+    fun selecionarPeriodoUnico(periodo: PeriodoHistorico) {
+        _uiState.update {
+            it.copy(
+                periodosSelecionados = listOf(periodo),
+                periodoSelecionado = periodo,
+                showPeriodoSelector = false,
+                diaExpandido = null
+            )
+        }
+        carregarHistorico()
+    }
+
+    fun periodoAnterior() {
+        val atual = _uiState.value.periodoSelecionado
+        val novo = atual.periodoAnterior()
+        selecionarPeriodoUnico(novo)
+    }
+
+    fun proximoPeriodo() {
+        val atual = _uiState.value.periodoSelecionado
+        val novo = atual.proximoPeriodo()
+        selecionarPeriodoUnico(novo)
+    }
+
+    fun irParaPeriodoAtual() {
+        val novo = PeriodoHistorico.periodoAtual(_uiState.value.diaInicioFechamento)
+        selecionarPeriodoUnico(novo)
+    }
 
     fun toggleDiaExpandido(data: LocalDate) =
         _uiState.update { it.copy(diaExpandido = if (it.diaExpandido == data) null else data) }
@@ -533,12 +578,16 @@ class HistoryViewModel @Inject constructor(
             _uiState.update { it.copy(isExporting = true) }
             try {
                 val empregoId = empregoIdAtual ?: return@launch
-                val periodo = _uiState.value.periodoSelecionado
+                val periodos = _uiState.value.periodosSelecionados
+                if (periodos.isEmpty()) return@launch
+
+                val dataInicio = periodos.minOf { it.dataInicio }
+                val dataFim = periodos.maxOf { it.dataFim }
 
                 val resumoPeriodo = gerarResumoPeriodoUseCase(
                     empregoId,
-                    periodo.dataInicio,
-                    periodo.dataFim
+                    dataInicio,
+                    dataFim
                 )
 
                 val csv = exportarRelatorioCsvUseCase(resumoPeriodo)
@@ -559,3 +608,11 @@ class HistoryViewModel @Inject constructor(
 
     fun recarregar() = carregarConfiguracaoEHistorico()
 }
+
+private data class ResultadoProcessamento(
+    val diasHistorico: List<InfoDiaHistorico>,
+    val saldosAcumulados: Map<LocalDate, Int>,
+    val resumoPeriodo: ResumoPeriodo,
+    val todasAusencias: List<Ausencia>,
+    val todosFeriados: List<Feriado>
+)
