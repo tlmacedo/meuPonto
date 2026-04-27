@@ -8,10 +8,8 @@ import br.com.tlmacedo.meuponto.domain.model.AjusteSaldo
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
-import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.repository.AjusteSaldoRepository
@@ -64,7 +62,6 @@ class HistoryViewModel @Inject constructor(
 
     private var carregarJob: Job? = null
     private var empregoIdAtual: Long? = null
-    private var versaoVigenteAtual: VersaoJornada? = null
 
     private data class VersaoCache(
         val versao: VersaoJornada,
@@ -106,12 +103,12 @@ class HistoryViewModel @Inject constructor(
             } else {
                 state.filtrosAtivos + filtro
             }
-            state.copy(filtrosAtivos = novosFiltros, diaExpandido = null)
+            state.copy(filtrosAtivos = novosFiltros, diasExpandidos = emptyList())
         }
     }
 
     fun limparFiltros() =
-        _uiState.update { it.copy(filtrosAtivos = emptySet(), diaExpandido = null) }
+        _uiState.update { it.copy(filtrosAtivos = emptySet(), diasExpandidos = emptyList()) }
 
     private fun carregarConfiguracaoEHistorico() {
         viewModelScope.launch {
@@ -128,7 +125,6 @@ class HistoryViewModel @Inject constructor(
 
                     empregoIdAtual = empregoId
                     val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
-                    versaoVigenteAtual = versaoVigente
 
                     val diaInicio = versaoVigente?.diaInicioFechamentoRH ?: 1
                     
@@ -255,28 +251,20 @@ class HistoryViewModel @Inject constructor(
         val hoje = LocalDate.now()
         val pontosPorDia = pontos.groupBy { it.data }
 
-        val ausenciasNoPeriodo = ausencias.filter {
-            it.ativo && it.dataInicio <= dataFim && it.dataFim >= dataInicio
-        }
-
         val feriadosPorData = mutableMapOf<LocalDate, Feriado>()
-        val nomesFeriadosPeriodo = mutableListOf<String>()
         val anosNoPeriodo = (dataInicio.year..dataFim.year).toList()
         for (feriado in feriados.filter { it.ativo }) {
             for (ano in anosNoPeriodo) {
                 feriado.getDataParaAno(ano)?.let { data ->
                     if (data in dataInicio..dataFim) {
                         feriadosPorData[data] = feriado
-                        if (feriado.nome !in nomesFeriadosPeriodo) {
-                            nomesFeriadosPeriodo.add(feriado.nome)
-                        }
                     }
                 }
             }
         }
 
         val ausenciasPorData = mutableMapOf<LocalDate, MutableList<Ausencia>>()
-        for (ausencia in ausenciasNoPeriodo) {
+        for (ausencia in ausencias.filter { it.ativo && it.dataInicio <= dataFim && it.dataFim >= dataInicio }) {
             var data = maxOf(ausencia.dataInicio, dataInicio)
             while (data <= minOf(ausencia.dataFim, dataFim)) {
                 ausenciasPorData.getOrPut(data) { mutableListOf() }.add(ausencia)
@@ -291,32 +279,7 @@ class HistoryViewModel @Inject constructor(
         val versaoCache = mutableMapOf<Long, VersaoCache>()
         val horarioSemVersaoCache = mutableMapOf<DiaSemana, HorarioDiaSemana?>()
 
-        var totalMinutosTrabalhados = 0
-        var saldoPeriodoMinutos = 0
-        var diasCompletos = 0
-        var diasComProblemas = 0
-        var diasDescanso = 0
-        var diasFeriado = 0
-        var diasFerias = 0
-        var diasFolga = 0
-        var diasFolgaDayOff = 0
-        var diasFolgaCompensacao = 0
-        var diasAtestado = 0
-        var diasFaltaJustificada = 0
-        var diasFaltaInjustificada = 0
-        var totalMinutosAbonados = 0
-        var totalMinutosTolerancia = 0
-        var diasUteisSemRegistro = 0
-        var quantidadeDeclaracoes = 0
-        var totalMinutosDeclaracoes = 0
-        var quantidadeAtestados = 0
-
-        var diasFuturos = 0
-        var diasDescansoFuturo = 0
-        var diasFeriadoFuturo = 0
-        var diasFeriasFuturo = 0
-        var diasFolgaFuturo = 0
-
+        val resumosDiaCompletoParaAgregacao = mutableListOf<br.com.tlmacedo.meuponto.domain.usecase.ponto.ResumoDiaCompleto>()
         val diasHistorico = mutableListOf<InfoDiaHistorico>()
         val saldosAcumulados = mutableMapOf<LocalDate, Int>()
         var saldoAcumulado = saldoInicialPeriodo
@@ -387,108 +350,55 @@ class HistoryViewModel @Inject constructor(
             )
             diasHistorico.add(infoDia)
 
-            // Só contabilizamos para o resumo se o dia estiver dentro de um dos períodos selecionados
             if (isInAnySelectedPeriod) {
-                if (isFuturo) {
-                    diasFuturos++
-                    if (isSemJornada && feriadoDoDia == null && ausenciasDoDia.isEmpty()) diasDescansoFuturo++
-                    if (feriadoDoDia != null) diasFeriadoFuturo++
-                    for (ausencia in ausenciasDoDia) {
-                        when (ausencia.tipo) {
-                            TipoAusencia.FERIAS -> diasFeriasFuturo++
-                            TipoAusencia.FOLGA -> diasFolgaFuturo++
-                            else -> {}
-                        }
-                    }
-                } else {
-                    if (isSemJornada && pontosNoDia.isEmpty() && feriadoDoDia == null && ausenciasDoDia.isEmpty()) diasDescanso++
-                    if (feriadoDoDia != null) diasFeriado++
+                resumosDiaCompletoParaAgregacao.add(resumoCompleto)
+            }
 
-                    for (ausencia in ausenciasDoDia) {
-                        when (ausencia.tipo) {
-                            TipoAusencia.FERIAS -> diasFerias++
-                            TipoAusencia.FOLGA -> {
-                                diasFolga++
-                                when (ausencia.tipoFolga) {
-                                    TipoFolga.DAY_OFF -> diasFolgaDayOff++
-                                    TipoFolga.COMPENSACAO, null -> {
-                                        diasFolgaCompensacao++
-                                    }
-                                }
-                            }
-                            TipoAusencia.ATESTADO -> {
-                                diasAtestado++; quantidadeAtestados++
-                            }
-                            TipoAusencia.DECLARACAO -> {
-                                quantidadeDeclaracoes++
-                                totalMinutosDeclaracoes += ausencia.duracaoAbonoMinutos ?: 0
-                            }
-                            TipoAusencia.FALTA_JUSTIFICADA -> diasFaltaJustificada++
-                            TipoAusencia.FALTA_INJUSTIFICADA -> {
-                                diasFaltaInjustificada++
-                            }
-                        }
-                    }
-
-                    if (jornadaEsperada > 0 && pontosNoDia.isEmpty() && 
-                        dataAtual.dayOfWeek !in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) &&
-                        resumoDia.tipoDiaEspecial == TipoDiaEspecial.NORMAL && feriadoDoDia == null
-                    ) {
-                        diasUteisSemRegistro++
-                    }
-
-                    if (resumoDia.jornadaCompleta) {
-                        diasCompletos++
-                        totalMinutosTrabalhados += resumoDia.horasTrabalhadasMinutos
-                    }
-                    if (resumoDia.temProblemas) diasComProblemas++
-
-                    totalMinutosAbonados += resumoDia.tempoAbonadoMinutos
-
-                    if (resumoDia.temToleranciaIntervaloAplicada) {
-                        totalMinutosTolerancia += abs(resumoDia.minutosIntervaloReal - resumoDia.minutosIntervaloTotal)
-                    }
-
-                    saldoAcumulado += resumoDia.saldoDiaMinutos
-                    saldoAcumulado += ajustesPorData[dataAtual] ?: 0
-                    saldoPeriodoMinutos += resumoDia.saldoDiaMinutos
-                }
+            if (!isFuturo) {
+                saldoAcumulado += resumoDia.saldoDiaMinutos
+                saldoAcumulado += ajustesPorData[dataAtual] ?: 0
             }
 
             saldosAcumulados[dataAtual] = saldoAcumulado
             dataAtual = dataAtual.plusDays(1)
         }
 
-        val totalAjustes = ajustesPorData.filter { entry -> periodosSelecionados.any { p -> entry.key >= p.dataInicio && entry.key <= p.dataFim } }.values.sum()
+        // Utiliza o cálculo centralizado no UseCase para garantir paridade
+        val domainResumo = GerarResumoPeriodoUseCase.calcular(
+            dataInicio = dataInicio,
+            dataFim = dataFim,
+            resumos = resumosDiaCompletoParaAgregacao,
+            ajustes = ajustesPorData
+        )
 
         val resumoPeriodo = ResumoPeriodo(
-            totalMinutosTrabalhados = totalMinutosTrabalhados,
-            saldoPeriodoMinutos = saldoPeriodoMinutos,
-            diasCompletos = diasCompletos,
-            diasComProblemas = diasComProblemas,
-            diasDescanso = diasDescanso,
-            diasFeriado = diasFeriado,
-            diasFerias = diasFerias,
-            diasFolga = diasFolga,
-            diasFolgaDayOff = diasFolgaDayOff,
-            diasFolgaCompensacao = diasFolgaCompensacao,
-            diasAtestado = diasAtestado,
-            diasFaltaJustificada = diasFaltaJustificada,
-            diasFaltaInjustificada = diasFaltaInjustificada,
-            totalMinutosAbonados = totalMinutosAbonados,
-            totalMinutosTolerancia = totalMinutosTolerancia,
-            diasUteisSemRegistro = diasUteisSemRegistro,
-            totalDiasPeriodo = periodosSelecionados.sumOf { it.totalDias },
-            totalAjustesMinutos = totalAjustes,
-            quantidadeDeclaracoes = quantidadeDeclaracoes,
-            totalMinutosDeclaracoes = totalMinutosDeclaracoes,
-            quantidadeAtestados = quantidadeAtestados,
-            nomesFeriados = nomesFeriadosPeriodo,
-            diasDescansoFuturo = diasDescansoFuturo,
-            diasFeriadoFuturo = diasFeriadoFuturo,
-            diasFeriasFuturo = diasFeriasFuturo,
-            diasFolgaFuturo = diasFolgaFuturo,
-            diasFuturos = diasFuturos
+            totalMinutosTrabalhados = domainResumo.totalTrabalhadoMinutos,
+            saldoPeriodoMinutos = domainResumo.saldoPeriodoMinutos,
+            diasCompletos = domainResumo.diasCompletos,
+            diasComProblemas = domainResumo.diasComProblemas,
+            diasDescanso = domainResumo.diasDescanso,
+            diasFeriado = domainResumo.diasFeriado,
+            diasFerias = domainResumo.diasFerias,
+            diasFolga = domainResumo.diasFolga,
+            diasFolgaDayOff = domainResumo.diasFolgaDayOff,
+            diasFolgaCompensacao = domainResumo.diasFolgaCompensacao,
+            diasAtestado = domainResumo.diasAtestado,
+            diasFaltaJustificada = domainResumo.diasFaltaJustificada,
+            diasFaltaInjustificada = domainResumo.diasFaltaInjustificada,
+            totalMinutosAbonados = domainResumo.totalAbonadoMinutos,
+            totalMinutosTolerancia = domainResumo.totalMinutosTolerancia,
+            diasUteisSemRegistro = domainResumo.diasUteisSemRegistro,
+            totalDiasPeriodo = domainResumo.resumos.size,
+            totalAjustesMinutos = domainResumo.totalAjustesMinutos,
+            quantidadeDeclaracoes = domainResumo.quantidadeDeclaracoes,
+            totalMinutosDeclaracoes = domainResumo.totalMinutosDeclaracoes,
+            quantidadeAtestados = domainResumo.quantidadeAtestados,
+            nomesFeriados = domainResumo.nomesFeriados,
+            diasDescansoFuturo = domainResumo.diasDescansoFuturo,
+            diasFeriadoFuturo = domainResumo.diasFeriadoFuturo,
+            diasFeriasFuturo = domainResumo.diasFeriasFuturo,
+            diasFolgaFuturo = domainResumo.diasFolgaFuturo,
+            diasFuturos = domainResumo.diasFuturos
         )
 
         return ResultadoProcessamento(
@@ -530,7 +440,7 @@ class HistoryViewModel @Inject constructor(
             state.copy(
                 periodosSelecionados = novosPeriodos, 
                 periodoSelecionado = novosPeriodos.last(),
-                diaExpandido = null
+                diasExpandidos = emptyList()
             )
         }
         carregarHistorico()
@@ -545,7 +455,7 @@ class HistoryViewModel @Inject constructor(
                 periodosSelecionados = listOf(periodo),
                 periodoSelecionado = periodo,
                 showPeriodoSelector = false,
-                diaExpandido = null
+                diasExpandidos = emptyList()
             )
         }
         carregarHistorico()
@@ -568,8 +478,17 @@ class HistoryViewModel @Inject constructor(
         selecionarPeriodoUnico(novo)
     }
 
-    fun toggleDiaExpandido(data: LocalDate) =
-        _uiState.update { it.copy(diaExpandido = if (it.diaExpandido == data) null else data) }
+    fun toggleDiaExpandido(data: LocalDate) {
+        _uiState.update { state ->
+            val novosExpandidos = if (state.diasExpandidos.contains(data)) {
+                state.diasExpandidos - data
+            } else {
+                val list = state.diasExpandidos + data
+                if (list.size > 4) list.drop(1) else list
+            }
+            state.copy(diasExpandidos = novosExpandidos)
+        }
+    }
 
     fun toggleResumoExpandido() =
         _uiState.update { it.copy(resumoExpandido = !it.resumoExpandido) }

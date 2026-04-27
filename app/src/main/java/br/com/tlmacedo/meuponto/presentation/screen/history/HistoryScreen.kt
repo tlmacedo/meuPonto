@@ -292,10 +292,10 @@ fun HistoryContent(
                     item {
                         ResumoMes(
                             resumoPeriodo = uiState.resumoPeriodo,
-                            totalDiasPeriodo = uiState.periodoSelecionado.totalDias,
-                            saldoInicialPeriodo = uiState.saldoInicialPeriodo,
-                            saldoAcumuladoTotal = uiState.saldoAcumuladoTotal,
-                            isPeriodoFuturo = uiState.periodoSelecionado.isFuturo,
+                            totalDiasPeriodo = uiState.periodosSelecionados.sumOf { it.totalDias },
+                            saldoInicialPeriodo = uiState.saldoDiaMaisAntigo,
+                            saldoAcumuladoTotal = uiState.saldoDiaMaisRecente,
+                            isPeriodoFuturo = uiState.periodosSelecionados.any { it.isFuturo },
                             isExpandido = uiState.resumoExpandido,
                             onToggle = onToggleResumoExpandido
                         )
@@ -392,7 +392,7 @@ fun HistoryContent(
                         ) { infoDia ->
                             DiaCard(
                                 infoDia = infoDia,
-                                isExpandido = uiState.diaExpandido == infoDia.data,
+                                isExpandido = uiState.diasExpandidos.contains(infoDia.data),
                                 saldoBancoAcumulado = uiState.saldoAcumuladoAte(infoDia.data),
                                 onToggleExpansao = { onToggleDiaExpandido(infoDia.data) },
                                 onNavigateToDay = { onNavigateToDay(infoDia.data) },
@@ -765,7 +765,7 @@ private fun ResumoMes(
                                 Text("📊", style = MaterialTheme.typography.bodySmall)
                                 Spacer(Modifier.width(4.dp))
                                 Text(
-                                    "Saldo anterior",
+                                    "Saldo inicial",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -790,7 +790,7 @@ private fun ResumoMes(
                                 Text("🏦", style = MaterialTheme.typography.titleMedium)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "Saldo acumulado",
+                                    "Banco de horas",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -919,7 +919,7 @@ private fun ResumoMes(
                                 Text("📊", style = MaterialTheme.typography.bodySmall)
                                 Spacer(Modifier.width(4.dp))
                                 Text(
-                                    "Saldo anterior",
+                                    "Saldo inicial",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -944,7 +944,7 @@ private fun ResumoMes(
                                 Text("🏦", style = MaterialTheme.typography.titleMedium)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "Saldo acumulado",
+                                    "Banco de horas",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -1412,7 +1412,8 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
             intervalos.forEachIndexed { index, intervalo ->
-                val hourStr = "${intervalo.entrada.horaConsiderada.format(timeFormatter)} - ${
+                val horaEntrada = intervalo.horaEntradaConsiderada?.toLocalTime() ?: intervalo.entrada.horaConsiderada
+                val hourStr = "${horaEntrada.format(timeFormatter)} - ${
                     intervalo.saida?.horaConsiderada?.format(timeFormatter) ?: "..."
                 }"
                 Row(
@@ -1440,13 +1441,26 @@ private fun IntervaloSection(resumo: ResumoDia) {
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(modifier = Modifier.padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Intervalo Real", style = MaterialTheme.typography.bodySmall)
-            Text(
-                resumo.minutosIntervaloReal.minutosParaDuracaoCompacta(),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold
-            )
+        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Intervalo Real", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    resumo.minutosIntervaloReal.minutosParaDuracaoCompacta(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            if (resumo.minutosIntervaloReal != resumo.minutosIntervaloTotal) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Intervalo Considerado", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        resumo.minutosIntervaloTotal.minutosParaDuracaoCompacta(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }
@@ -1480,7 +1494,7 @@ private fun SaldosSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Acumulado", style = MaterialTheme.typography.bodySmall)
+                    Text("Banco de horas", style = MaterialTheme.typography.bodySmall)
                     Text(
                         saldoBancoAcumulado.toLong().minutosParaSaldoFormatado(),
                         style = MaterialTheme.typography.bodySmall,

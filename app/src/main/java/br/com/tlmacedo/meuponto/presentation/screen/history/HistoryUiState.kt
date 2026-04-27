@@ -317,7 +317,7 @@ data class HistoryUiState(
     val isExporting: Boolean = false,
     val csvParaExportar: String? = null,
     val errorMessage: String? = null,
-    val diaExpandido: LocalDate? = null,
+    val diasExpandidos: List<LocalDate> = emptyList(),
     val resumoExpandido: Boolean = true,
     val visualizacaoCalendario: Boolean = false,
     val filtrosAtivos: Set<FiltroHistorico> = emptySet(),
@@ -332,12 +332,21 @@ data class HistoryUiState(
     val totalDiasComRegistro: Int
         get() = diasHistorico.count { it.pontos.isNotEmpty() }
 
-    /** Aplica o filtro ativo à lista de dias */
+    /** Aplica o filtro ativo e restrição de período à lista de dias */
     val registrosFiltrados: List<InfoDiaHistorico>
-        get() = if (filtrosAtivos.isEmpty()) {
-            diasHistorico
-        } else {
-            diasHistorico.filter { dia ->
+        get() {
+            // Se não for calendário, filtra estritamente pelo período selecionado
+            val base = if (visualizacaoCalendario) {
+                diasHistorico
+            } else {
+                diasHistorico.filter { dia ->
+                    periodosSelecionados.any { p -> dia.data in p.dataInicio..p.dataFim }
+                }
+            }
+
+            if (filtrosAtivos.isEmpty()) return base
+
+            return base.filter { dia ->
                 filtrosAtivos.any { filtro ->
                     when (filtro) {
                         FiltroHistorico.TODOS, FiltroHistorico.LISTA, FiltroHistorico.CALENDARIO -> true
@@ -390,5 +399,16 @@ data class HistoryUiState(
     val saldoAcumuladoTotal: Int
         get() = saldoInicialPeriodo + resumoPeriodo.saldoPeriodoMinutos
 
-    fun saldoAcumuladoAte(data: LocalDate): Int? = saldosAcumuladosPorDia[data]
+    val dataMaisAntiga: LocalDate? get() = periodosSelecionados.minOfOrNull { it.dataInicio }
+    val dataMaisRecente: LocalDate? get() = periodosSelecionados.maxOfOrNull { it.dataFim }
+
+    /** Saldo acumulado do dia mais antigo selecionado */
+    val saldoDiaMaisAntigo: Int
+        get() = dataMaisAntiga?.let { saldosAcumuladosPorDia[it] } ?: saldoInicialPeriodo
+
+    /** Saldo acumulado do dia mais recente selecionado */
+    val saldoDiaMaisRecente: Int
+        get() = dataMaisRecente?.let { saldosAcumuladosPorDia[it] } ?: saldoAcumuladoTotal
+
+    fun saldoAcumuladoAte(data: LocalDate): Int = saldosAcumuladosPorDia[data] ?: saldoInicialPeriodo
 }

@@ -8,6 +8,7 @@ import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
@@ -51,6 +52,24 @@ data class ResumoDiaCompleto(
         get() = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO }
             ?: ausencias.firstOrNull()
     val declaracoes: List<Ausencia> get() = ausencias.filter { it.tipo == TipoAusencia.DECLARACAO }
+
+    // Helpers para agregação de período
+    val isFuturo: Boolean get() = resumoDia.isFuturo
+    val isHoje: Boolean get() = resumoDia.isHoje
+    val temProblemas: Boolean get() = resumoDia.temProblemas
+    val isDescanso: Boolean get() = resumoDia.isDescanso
+    val isFerias: Boolean get() = ausencias.any { it.tipo == TipoAusencia.FERIAS }
+    val isAtestado: Boolean get() = ausencias.any { it.tipo == TipoAusencia.ATESTADO }
+    val isFolga: Boolean get() = ausencias.any { it.tipo == TipoAusencia.FOLGA }
+    val isDayOff: Boolean get() = ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga == TipoFolga.DAY_OFF }
+    val isFaltaJustificada: Boolean get() = ausencias.any { it.tipo == TipoAusencia.FALTA_JUSTIFICADA }
+    val isFaltaInjustificada: Boolean get() = ausencias.any { it.tipo == TipoAusencia.FALTA_INJUSTIFICADA }
+    val totalMinutosDeclaracoes: Int get() = declaracoes.sumOf { it.duracaoAbonoMinutos ?: 0 }
+    val temToleranciaIntervaloAplicada: Boolean get() = resumoDia.temToleranciaIntervaloAplicada
+    val minutosToleranciaIntervalo: Int
+        get() = if (temToleranciaIntervaloAplicada)
+            Math.abs(resumoDia.minutosIntervaloReal - resumoDia.minutosIntervaloTotal)
+        else 0
 }
 
 /**
