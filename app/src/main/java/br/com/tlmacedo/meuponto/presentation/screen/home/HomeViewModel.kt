@@ -105,6 +105,7 @@ class HomeViewModel @Inject constructor(
     private val ocrService: OcrService,
     private val fotoComprovanteDao: FotoComprovanteDao,
     private val imageHashCalculator: ImageHashCalculator,
+    private val syncPontoStatusWithWearUseCase: br.com.tlmacedo.meuponto.domain.usecase.wear.SyncPontoStatusWithWearUseCase,
     val verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase,
     val ausenciaRepository: AusenciaRepository
 ) : ViewModel() {
@@ -1552,6 +1553,11 @@ class HomeViewModel @Inject constructor(
                         proximoTipo = proximoTipo,
                         isLoading = false
                     )
+                }
+                
+                // Sincronizar com Wear OS sempre que os pontos do dia mudarem
+                if (data == LocalDate.now()) {
+                    syncPontoStatusWithWearUseCase()
                 }
             }
         }

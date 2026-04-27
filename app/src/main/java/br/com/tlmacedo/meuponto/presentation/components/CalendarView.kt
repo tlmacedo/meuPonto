@@ -208,16 +208,17 @@ private fun CalendarDay(
     onClick: () -> Unit
 ) {
     val isToday = date == LocalDate.now()
-    val finalMuted = if (highlightOnlySpecials) false else isMuted
-    val contentAlpha = if (finalMuted) 0.3f else 1f
+    val finalMuted = if (!isCurrentMonth) true else (if (highlightOnlySpecials) false else isMuted)
+    val contentAlpha = if (!isCurrentMonth) 0.15f else (if (finalMuted) 0.3f else 1f)
 
     val baseAlpha = if (finalMuted) 0.05f else 0.15f
     val highlightedAlpha = if (isSpecial) 0.25f else baseAlpha
 
     val backgroundColor = when {
+        !isCurrentMonth -> Color.Transparent
         isToday && !highlightOnlySpecials -> MaterialTheme.colorScheme.primary.copy(alpha = baseAlpha)
         infoDia?.temFeriado == true -> Color(0xFF9C27B0).copy(alpha = highlightedAlpha)
-        infoDia?.temAusencia == true -> getAbsenceColor(infoDia.ausenciaPrincipal!!).copy(alpha = highlightedAlpha)
+        infoDia?.ausenciaPrincipal != null -> getAbsenceColor(infoDia.ausenciaPrincipal!!).copy(alpha = highlightedAlpha)
         (date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY) && !highlightOnlySpecials -> 
             MaterialTheme.colorScheme.error.copy(alpha = if (finalMuted) 0.02f else 0.05f)
         else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (finalMuted) 0.1f else 0.3f)
@@ -231,11 +232,11 @@ private fun CalendarDay(
             .clip(RoundedCornerShape(12.dp))
             .background(backgroundColor)
             .border(
-                width = if (isToday && !finalMuted && !highlightOnlySpecials) 1.dp else 0.dp,
+                width = if (isToday && isCurrentMonth && !finalMuted && !highlightOnlySpecials) 1.dp else 0.dp,
                 color = borderColor,
                 shape = RoundedCornerShape(12.dp)
             )
-            .clickable(onClick = onClick)
+            .clickable(enabled = isCurrentMonth, onClick = onClick)
             .padding(4.dp)
             .alpha(contentAlpha)
     ) {
@@ -244,20 +245,22 @@ private fun CalendarDay(
             text = date.dayOfMonth.toString(),
             style = MaterialTheme.typography.labelSmall,
             fontSize = 11.sp,
-            fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Normal,
+            fontWeight = if (isToday && isCurrentMonth) FontWeight.ExtraBold else FontWeight.Normal,
             color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
             modifier = Modifier.align(Alignment.TopStart)
         )
 
         // Ícone de status (Utilizando o Emoji padrão do dia)
-        infoDia?.let { info ->
-            if (!highlightOnlySpecials || isSpecial) {
-                Text(
-                    text = info.emoji,
-                    fontSize = 10.sp,
-                    modifier = Modifier.align(Alignment.TopEnd)
-                )
+        if (isCurrentMonth) {
+            infoDia?.let { info ->
+                if (!highlightOnlySpecials || isSpecial) {
+                    Text(
+                        text = info.emoji,
+                        fontSize = 10.sp,
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    )
+                }
             }
         }
 
@@ -268,7 +271,7 @@ private fun CalendarDay(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(12.dp))
-            if (infoDia != null) {
+            if (isCurrentMonth && infoDia != null) {
                 if (!highlightOnlySpecials || isSpecial) {
                     when {
                         infoDia.pontos.isNotEmpty() && !highlightOnlySpecials -> {
@@ -289,7 +292,7 @@ private fun CalendarDay(
                             }
                         }
 
-                        infoDia.temAusencia -> {
+                        infoDia.ausenciaPrincipal != null -> {
                             val principal = infoDia.ausenciaPrincipal!!
                             Text(
                                 text = principal.tipo.descricao,

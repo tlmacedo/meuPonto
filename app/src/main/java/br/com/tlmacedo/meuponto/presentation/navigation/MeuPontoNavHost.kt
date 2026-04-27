@@ -1,6 +1,9 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/navigation/MeuPontoNavHost.kt
 package br.com.tlmacedo.meuponto.presentation.navigation
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -60,7 +63,11 @@ import br.com.tlmacedo.meuponto.presentation.screen.settings.versoes.comparar.Co
  *
  * @param navController Controlador de navegação
  */
-fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
+@OptIn(ExperimentalSharedTransitionApi::class)
+fun NavGraphBuilder.meuPontoNavGraph(
+    navController: NavHostController,
+    sharedTransitionScope: SharedTransitionScope
+) {
     // ===== TELAS PRINCIPAIS =====
 
     composable(
@@ -77,8 +84,10 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
 
         HomeScreen(
             dataSelecionadaInicial = dataString,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this@composable,
             onNavigateToHistorico = {
-                navController.navigate(MeuPontoDestinations.HISTORY)
+                navController.navigate(MeuPontoDestinations.HISTORY_BASE)
             },
             onNavigateToConfiguracoes = {
                 navController.navigate(MeuPontoDestinations.SETTINGS)
@@ -97,7 +106,28 @@ fun NavGraphBuilder.meuPontoNavGraph(navController: NavHostController) {
             },
             onNavigateToEditarJornada = { empregoId ->
                 navController.navigate(MeuPontoDestinations.versoesJornada(empregoId))
+            },
+            onNavigateToFotoVisualizacao = { pontoId ->
+                navController.navigate(MeuPontoDestinations.fotoVisualizacao(pontoId))
             }
+        )
+    }
+
+    composable(
+        route = MeuPontoDestinations.FOTO_VISUALIZACAO,
+        arguments = listOf(
+            navArgument(MeuPontoDestinations.ARG_PONTO_ID) {
+                type = NavType.LongType
+            }
+        )
+    ) { backStackEntry ->
+        val pontoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_PONTO_ID) ?: -1L
+        
+        br.com.tlmacedo.meuponto.presentation.screen.comprovante.ComprovanteVisualizacaoScreen(
+            pontoId = pontoId,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this@composable,
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 

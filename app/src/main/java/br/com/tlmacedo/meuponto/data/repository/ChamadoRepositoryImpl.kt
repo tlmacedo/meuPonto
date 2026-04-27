@@ -71,34 +71,38 @@ class ChamadoRepositoryImpl @Inject constructor(
 
     override suspend fun criarChamado(chamado: Chamado): Result<Chamado> {
         return try {
-            // Salva localmente primeiro
-            chamadoDao.inserir(chamado.toEntity())
+            // Salva localmente primeiro e captura o ID gerado pelo Room
+            val localId = chamadoDao.inserir(chamado.toEntity())
+            val chamadoComId = chamado.copy(id = localId)
 
             // Envia para a API
             val request = CriarChamadoRequest(
-                titulo = chamado.titulo,
-                descricao = chamado.descricao,
-                passosParaReproduzir = chamado.passosParaReproduzir,
-                deviceInfo = chamado.deviceInfo,
-                categoria = chamado.categoria,
-                prioridade = chamado.prioridade,
-                empregoId = chamado.empregoId,
-                usuarioEmail = chamado.usuarioEmail,
-                usuarioNome = chamado.usuarioNome
+                titulo = chamadoComId.titulo,
+                descricao = chamadoComId.descricao,
+                passosParaReproduzir = chamadoComId.passosParaReproduzir,
+                deviceInfo = chamadoComId.deviceInfo,
+                categoria = chamadoComId.categoria,
+                prioridade = chamadoComId.prioridade,
+                empregoId = chamadoComId.empregoId,
+                usuarioEmail = chamadoComId.usuarioEmail,
+                usuarioNome = chamadoComId.usuarioNome
             )
 
             val response = chamadoApiService.criarChamado(request)
             if (response.isSuccessful) {
                 val body = response.body()!!
-                val chamadoAtualizado = chamado.copy(
-                    id = body.id.toLong(),
+                // Atualizamos com os dados retornados pela API (ID remoto e Identificador oficial)
+                // Se o seu backend usa IDs diferentes para local/remoto, você pode precisar ajustar isso.
+                // Aqui estamos assumindo que o identificador CHM-... é o que importa para o usuário.
+                val chamadoSincronizado = chamadoComId.copy(
                     identificador = body.identificador
                 )
-                chamadoDao.atualizar(chamadoAtualizado.toEntity())
-                Result.success(chamadoAtualizado)
+                chamadoDao.atualizar(chamadoSincronizado.toEntity())
+                Result.success(chamadoSincronizado)
             } else {
                 Timber.w("Falha ao criar chamado na API: ${response.code()}")
-                Result.success(chamado) // Mantém local mesmo sem sucesso remoto
+                // Retorna o chamado com o ID local mesmo se falhar na API
+                Result.success(chamadoComId)
             }
         } catch (e: Exception) {
             Timber.e(e, "Erro ao criar chamado")

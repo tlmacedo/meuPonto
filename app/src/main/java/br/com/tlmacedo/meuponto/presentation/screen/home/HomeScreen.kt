@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -94,13 +96,16 @@ import java.time.LocalDate
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     dataSelecionadaInicial: String? = null,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     onNavigateToHistorico: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
     onNavigateToEditarPonto: (Long) -> Unit = {},
     onNavigateToNovoEmprego: () -> Unit = {},
     onNavigateToEditarEmprego: (Long) -> Unit = {},
     onNavigateToEditarJornada: (Long) -> Unit = {},
-    onNavigateToHistoricoCiclos: () -> Unit = {}
+    onNavigateToHistoricoCiclos: () -> Unit = {},
+    onNavigateToFotoVisualizacao: (Long) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -221,9 +226,12 @@ fun HomeScreen(
                 HomeContent(
                     uiState = uiState,
                     onAction = viewModel::onAction,
+                    onNavigateToFotoVisualizacao = onNavigateToFotoVisualizacao,
+                    modifier = Modifier.padding(paddingValues),
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope,
                     verificarDiaEspecialUseCase = viewModel.verificarDiaEspecialUseCase,
-                    ausenciaRepository = viewModel.ausenciaRepository,
-                    modifier = Modifier.padding(paddingValues)
+                    ausenciaRepository = viewModel.ausenciaRepository
                 )
             }
         }
@@ -390,9 +398,12 @@ private fun HomeDialogs(
 internal fun HomeContent(
     uiState: HomeUiState,
     onAction: (HomeAction) -> Unit,
+    onNavigateToFotoVisualizacao: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase?,
     ausenciaRepository: AusenciaRepository?,
-    modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         CicloBanner(
@@ -523,13 +534,15 @@ internal fun HomeContent(
                 ) {
                     items(uiState.resumoDia.intervalos, key = { it.entrada.id }) { intervalo ->
                         IntervaloCard(
-                            intervalo,
-                            uiState.isHoje,
-                            uiState.nsrHabilitado,
-                            { onAction(HomeAction.AbrirEdicaoModal(it)) },
-                            { onAction(HomeAction.AbrirExclusaoModal(it)) },
-                            { onAction(HomeAction.AbrirFotoModal(it)) },
-                            { onAction(HomeAction.AbrirLocalizacaoModal(it)) })
+                            intervalo = intervalo,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            mostrarContadorTempoReal = uiState.isHoje,
+                            mostrarNsr = uiState.nsrHabilitado,
+                            onEditar = { onAction(HomeAction.AbrirEdicaoModal(it)) },
+                            onExcluir = { onAction(HomeAction.AbrirExclusaoModal(it)) },
+                            onVerFoto = { onNavigateToFotoVisualizacao(it.id) },
+                            onVerLocalizacao = { onAction(HomeAction.AbrirLocalizacaoModal(it)) })
                     }
                 }
             }
@@ -547,6 +560,7 @@ private fun HomeScreenPreview() {
         HomeContent(
             uiState = uiState,
             onAction = {},
+            onNavigateToFotoVisualizacao = {},
             verificarDiaEspecialUseCase = null,
             ausenciaRepository = null
         )

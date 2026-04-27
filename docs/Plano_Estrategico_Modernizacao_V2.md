@@ -16,9 +16,10 @@ Este documento detalha o planejamento para elevar o nível técnico e a experiê
 - [x] **Atalhos Estáticos:** Criados atalhos para "Registrar Agora" e "Histórico" via `shortcuts.xml`.
 
 ### 6.3. Versão para Smartwatch (Wear OS)
-- [ ] Criar módulo `:wear` para relógios.
-- [ ] Sincronização de dados via DataLayer entre celular e relógio.
-- [ ] Interface simplificada para batida de ponto rápida.
+- [x] **Módulo :wear:** Criado módulo `:wear` para relógios com suporte a Compose.
+- [x] **Sincronização DataLayer:** Implementada sincronização bidirecional de status e comandos entre celular e relógio.
+- [x] **Interface Simplificada:** Criada UI funcional no relógio para visualização de saldo e batida de ponto rápida.
+- [x] **Tile (Bloco):** Criado Tile para visualização instantânea do saldo na tela inicial do relógio.
 
 ---
 

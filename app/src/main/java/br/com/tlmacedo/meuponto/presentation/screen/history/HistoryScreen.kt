@@ -276,8 +276,7 @@ fun HistoryContent(
                 .padding(paddingValues)
         ) {
             MonthNavigator(
-                periodoSelecionado = uiState.periodoSelecionado,
-                periodosSelecionados = uiState.periodosSelecionados,
+                periodoDescricao = uiState.periodoDescricao,
                 podeIrProximo = uiState.podeIrProximoPeriodo,
                 onPeriodoAnterior = onPeriodoAnterior,
                 onProximoPeriodo = onProximoPeriodo,
@@ -634,8 +633,7 @@ private fun FiltroAtivoIndicator(
 
 @Composable
 private fun MonthNavigator(
-    periodoSelecionado: PeriodoHistorico,
-    periodosSelecionados: List<PeriodoHistorico>,
+    periodoDescricao: String,
     podeIrProximo: Boolean,
     onPeriodoAnterior: () -> Unit,
     onProximoPeriodo: () -> Unit,
@@ -681,8 +679,7 @@ private fun MonthNavigator(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (periodosSelecionados.size == 1) periodoSelecionado.descricaoFormatada 
-                           else "${periodosSelecionados.size} períodos",
+                    text = periodoDescricao,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center

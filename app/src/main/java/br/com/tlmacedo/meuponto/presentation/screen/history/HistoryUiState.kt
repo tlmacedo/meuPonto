@@ -183,9 +183,9 @@ data class InfoDiaHistorico(
     val atestados: List<Ausencia>
         get() = ausencias.filter { it.tipo == TipoAusencia.ATESTADO }
 
-    /** Ausência principal (que não é declaração) */
+    /** Ausência principal (que não é declaração, a menos que só existam declarações) */
     val ausenciaPrincipal: Ausencia?
-        get() = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO }
+        get() = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO } ?: ausencias.firstOrNull()
 
     /** Total de minutos abonados por declarações */
     val totalMinutosDeclaracoes: Int
@@ -371,8 +371,17 @@ data class HistoryUiState(
     val usaPeriodoRHCustomizado: Boolean get() = diaInicioFechamento != 1
 
     val periodoDescricao: String
-        get() = if (periodosSelecionados.size == 1) periodosSelecionados.first().descricaoFormatada
-        else "${periodosSelecionados.size} períodos selecionados"
+        get() = when {
+            periodosSelecionados.isEmpty() -> "Nenhum período"
+            periodosSelecionados.size == 1 -> periodosSelecionados.first().descricaoFormatada
+            else -> {
+                val minData = periodosSelecionados.minOf { it.dataInicio }
+                val maxData = periodosSelecionados.maxOf { it.dataFim }
+                val locale = Locale.forLanguageTag("pt-BR")
+                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", locale)
+                "${minData.format(formatter)} a ${maxData.format(formatter)}"
+            }
+        }
 
     val periodoSubtitulo: String?
         get() = if (usaPeriodoRHCustomizado) "Período RH: dia $diaInicioFechamento" else null

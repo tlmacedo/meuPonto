@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "MeuPonto"
 include(":app")
+include(":wear")

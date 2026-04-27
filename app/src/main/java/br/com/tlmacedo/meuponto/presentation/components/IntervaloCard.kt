@@ -1,6 +1,8 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/components/IntervaloCard.kt
 package br.com.tlmacedo.meuponto.presentation.components
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -79,6 +81,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun IntervaloCard(
     intervalo: IntervaloPonto,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     mostrarContadorTempoReal: Boolean = true,
     mostrarNsr: Boolean = false,
     onEditar: (Ponto) -> Unit = {},
@@ -135,6 +139,8 @@ fun IntervaloCard(
                         PontoContent(
                             tipo = TipoRegistro.ENTRADA,
                             ponto = intervalo.entrada,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
                             horaReal = intervalo.entrada.hora.format(formatadorHora),
                             horaConsiderada = if (intervalo.temHoraEntradaConsiderada) {
                                 intervalo.horaEntradaConsiderada!!.toLocalTime()
@@ -229,6 +235,8 @@ fun IntervaloCard(
                             PontoContent(
                                 tipo = TipoRegistro.SAIDA,
                                 ponto = intervalo.saida,
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope,
                                 horaReal = intervalo.saida.hora.format(formatadorHora),
                                 horaConsiderada = null, // Saída não tem tolerância
                                 nsr = if (mostrarNsr) intervalo.saida.nsr else null,
@@ -254,11 +262,12 @@ private enum class TipoRegistro {
     ENTRADA, SAIDA
 }
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun PontoContent(
     tipo: TipoRegistro,
     ponto: Ponto,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     horaReal: String,
     horaConsiderada: String?,
     nsr: String?,
@@ -304,23 +313,50 @@ private fun PontoContent(
                     else -> Icons.Default.Image
                 }
 
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(16.dp)
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 2.dp, y = 2.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(1.dp)
-                        .background(MaterialTheme.colorScheme.secondary, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = iconeFoto,
-                        contentDescription = "Tem foto",
-                        tint = MaterialTheme.colorScheme.onSecondary,
-                        modifier = Modifier.size(10.dp)
-                    )
+                if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                    with(sharedTransitionScope) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .align(Alignment.BottomEnd)
+                                .offset(x = 2.dp, y = 2.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface)
+                                .padding(1.dp)
+                                .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                                .sharedElement(
+                                    rememberSharedContentState(key = "foto_${ponto.id}"),
+                                    animatedVisibilityScope = animatedVisibilityScope
+                                )
+                        ) {
+                            Icon(
+                                imageVector = iconeFoto,
+                                contentDescription = "Tem foto",
+                                tint = MaterialTheme.colorScheme.onSecondary,
+                                modifier = Modifier.size(10.dp)
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 2.dp, y = 2.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(1.dp)
+                            .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = iconeFoto,
+                            contentDescription = "Tem foto",
+                            tint = MaterialTheme.colorScheme.onSecondary,
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
                 }
             }
         }

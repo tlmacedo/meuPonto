@@ -74,6 +74,9 @@ class HistoryViewModel @Inject constructor(
     init {
         // Aplica filtro inicial se fornecido via navegação
         savedStateHandle.get<String>(MeuPontoDestinations.ARG_FILTRO)?.let { filtroStr ->
+            // Ignora se for o placeholder literal (pode ocorrer em navegação incorreta)
+            if (filtroStr == "{${MeuPontoDestinations.ARG_FILTRO}}") return@let
+
             try {
                 val filtro = FiltroHistorico.valueOf(filtroStr)
                 if (filtro == FiltroHistorico.CALENDARIO) {

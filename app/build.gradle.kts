@@ -56,7 +56,10 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-            freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+            freeCompilerArgs.addAll(
+                "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                "-opt-in=androidx.compose.animation.ExperimentalSharedTransitionApi"
+            )
         }
     }
     buildFeatures {
@@ -102,6 +105,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material3.windowSizeClass)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
 
@@ -174,6 +178,9 @@ dependencies {
     implementation(libs.androidx.glance)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+
+    // Wear OS DataLayer
+    implementation("com.google.android.gms:play-services-wearable:19.0.0")
 
     // Testes
     testImplementation(libs.junit)

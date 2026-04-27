@@ -13,8 +13,10 @@ import br.com.tlmacedo.meuponto.domain.model.chamado.PrioridadeChamado
 import br.com.tlmacedo.meuponto.domain.model.chamado.StatusChamado
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ChamadoRepository
+import br.com.tlmacedo.meuponto.domain.service.ChamadoIdentificadorService
 import br.com.tlmacedo.meuponto.domain.service.SistemaNotificacaoService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -29,7 +32,8 @@ import javax.inject.Inject
 class ChamadoViewModel @Inject constructor(
     private val chamadoRepository: ChamadoRepository,
     private val authRepository: AuthRepository,
-    private val sistemaNotificacaoService: SistemaNotificacaoService
+    private val sistemaNotificacaoService: SistemaNotificacaoService,
+    private val chamadoIdentificadorService: ChamadoIdentificadorService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChamadoUiState())
@@ -46,24 +50,35 @@ class ChamadoViewModel @Inject constructor(
         prioridade: PrioridadeChamado,
         anexos: List<Uri>
     ) {
-        val usuario = usuarioLogado.value ?: return
-
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, erro = null) }
+
+            val usuario = usuarioLogado.value
+            if (usuario == null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        erro = "Usuário não identificado. Por favor, verifique se você está logado."
+                    )
+                }
+                return@launch
+            }
+
+            // Coleta logs em background para não travar a UI
+            val logs = withContext(Dispatchers.IO) {
+                try {
+                    val process = Runtime.getRuntime().exec("logcat -d")
+                    process.inputStream.bufferedReader().use { it.readText() }.takeLast(20000)
+                } catch (e: Exception) {
+                    "Erro ao coletar logs: ${e.message}"
+                }
+            }
 
             val deviceInfo = """
                 App: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})
                 Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})
                 Device: ${Build.MANUFACTURER} ${Build.MODEL}
             """.trimIndent()
-
-            // Coleta logs (simplificado para o MVP)
-            val logs = try {
-                val process = Runtime.getRuntime().exec("logcat -d")
-                process.inputStream.bufferedReader().use { it.readText() }.takeLast(20000)
-            } catch (e: Exception) {
-                "Erro ao coletar logs: ${e.message}"
-            }
 
             val descricaoComLogs = """
                 $descricao
@@ -74,7 +89,7 @@ class ChamadoViewModel @Inject constructor(
 
             val chamado = Chamado(
                 id = 0L,
-                identificador = "",
+                identificador = chamadoIdentificadorService.gerar(),
                 titulo = titulo,
                 descricao = descricaoComLogs,
                 passosParaReproduzir = passosParaReproduzir,

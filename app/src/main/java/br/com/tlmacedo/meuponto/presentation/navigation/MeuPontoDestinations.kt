@@ -48,6 +48,7 @@ object MeuPontoDestinations {
 
     // Pontos
     const val EDIT_PONTO = "edit_ponto/{$ARG_PONTO_ID}"
+    const val FOTO_VISUALIZACAO = "foto_visualizacao/{$ARG_PONTO_ID}"
 
     // Empregos
     const val GERENCIAR_EMPREGOS = "gerenciar_empregos"
@@ -121,6 +122,7 @@ object MeuPontoDestinations {
 
     fun homeComData(data: String) = "home?data=$data"
     fun editPonto(pontoId: Long) = "edit_ponto/$pontoId"
+    fun fotoVisualizacao(pontoId: Long) = "foto_visualizacao/$pontoId"
     fun historicoComFiltro(filtro: String) = "history?filtro=$filtro"
     fun editarEmprego(empregoId: Long) = "editar_emprego/$empregoId"
     fun editarFeriado(feriadoId: Long) = "editar_feriado/$feriadoId"
