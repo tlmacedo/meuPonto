@@ -1,26 +1,39 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/history/HistoryScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.history
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,20 +42,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.HistoryToggleOff
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.ViewModule
@@ -74,10 +89,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,6 +121,7 @@ import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
 import br.com.tlmacedo.meuponto.presentation.components.HistoryShimmerItem
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.screen.history.TipoProgresso
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.Info
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
@@ -113,6 +136,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.Float
 
 @Composable
 fun HistoryScreen(
@@ -292,7 +316,6 @@ fun HistoryContent(
                     item {
                         ResumoMes(
                             resumoPeriodo = uiState.resumoPeriodo,
-                            totalDiasPeriodo = uiState.periodosSelecionados.sumOf { it.totalDias },
                             saldoInicialPeriodo = uiState.saldoDiaMaisAntigo,
                             saldoAcumuladoTotal = uiState.saldoDiaMaisRecente,
                             isPeriodoFuturo = uiState.periodosSelecionados.any { it.isFuturo },
@@ -344,7 +367,8 @@ fun HistoryContent(
                         items(uniqueMonths) { yearMonth ->
                             val locale = Locale.forLanguageTag("pt-BR")
                             val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
-                            val title = yearMonth.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
+                            val title = yearMonth.atDay(1).format(formatter)
+                                .replaceFirstChar { it.uppercase() }
 
                             Text(
                                 text = title,
@@ -353,7 +377,7 @@ fun HistoryContent(
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                             )
-                            
+
                             CalendarView(
                                 yearMonth = yearMonth,
                                 diasHistorico = uiState.diasHistorico,
@@ -365,10 +389,10 @@ fun HistoryContent(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
                             )
-                            
+
                             Spacer(Modifier.height(24.dp))
                         }
-                        
+
                         item {
                             Spacer(Modifier.height(16.dp))
                             CalendarLegend()
@@ -489,6 +513,20 @@ private fun SecaoFiltros(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
+            if (resumoPeriodo.diasUteis > 0) {
+                ResumoSecundarioChip(
+                    emoji = "📅", label = "Úteis", valor = resumoPeriodo.diasUteis,
+                    isSelected = filtrosAtivos.contains(FiltroHistorico.UTEIS),
+                    onClick = { onFiltroClick(FiltroHistorico.UTEIS) }
+                )
+            }
+            if (resumoPeriodo.diasCompletos > 0) {
+                ResumoSecundarioChip(
+                    emoji = "✅", label = "Completos", valor = resumoPeriodo.diasCompletos,
+                    isSelected = filtrosAtivos.contains(FiltroHistorico.COMPLETOS),
+                    onClick = { onFiltroClick(FiltroHistorico.COMPLETOS) }
+                )
+            }
             if (resumoPeriodo.temDiasFuturos) {
                 ResumoSecundarioChip(
                     emoji = "🔮", label = "Futuros", valor = resumoPeriodo.diasFuturos,
@@ -497,48 +535,32 @@ private fun SecaoFiltros(
                     onClick = { onFiltroClick(FiltroHistorico.FUTUROS) }
                 )
             }
-            if (resumoPeriodo.totalDescanso > 0) {
+            if (resumoPeriodo.diasIncompletos > 0) {
                 ResumoSecundarioChip(
-                    emoji = "🛋️", label = "Descanso", valor = resumoPeriodo.totalDescanso,
+                    emoji = "🔄", label = "Incompletos", valor = resumoPeriodo.diasIncompletos,
+                    isSelected = filtrosAtivos.contains(FiltroHistorico.INCOMPLETOS),
+                    onClick = { onFiltroClick(FiltroHistorico.INCOMPLETOS) }
+                )
+            }
+            if (resumoPeriodo.diasDescanso > 0) {
+                ResumoSecundarioChip(
+                    emoji = "🛋️", label = "Descanso", valor = resumoPeriodo.diasDescanso,
                     isSelected = filtrosAtivos.contains(FiltroHistorico.DESCANSO),
                     onClick = { onFiltroClick(FiltroHistorico.DESCANSO) }
                 )
             }
-            if (resumoPeriodo.totalFeriados > 0) {
+            if (resumoPeriodo.diasFeriado > 0) {
                 ResumoSecundarioChip(
-                    emoji = "🎉", label = "Feriados", valor = resumoPeriodo.totalFeriados,
+                    emoji = "🎉", label = "Feriados", valor = resumoPeriodo.diasFeriado,
                     isSelected = filtrosAtivos.contains(FiltroHistorico.FERIADOS),
                     onClick = { onFiltroClick(FiltroHistorico.FERIADOS) }
                 )
             }
-            if (resumoPeriodo.totalFerias > 0) {
+            if (resumoPeriodo.diasFerias > 0) {
                 ResumoSecundarioChip(
-                    emoji = "🏖️", label = "Férias", valor = resumoPeriodo.totalFerias,
+                    emoji = "🏖️", label = "Férias", valor = resumoPeriodo.diasFerias,
                     isSelected = filtrosAtivos.contains(FiltroHistorico.FERIAS),
                     onClick = { onFiltroClick(FiltroHistorico.FERIAS) }
-                )
-            }
-            if (resumoPeriodo.diasFolgaDayOff > 0) {
-                ResumoSecundarioChip(
-                    emoji = "🎁", label = "Day-off", valor = resumoPeriodo.diasFolgaDayOff,
-                    isSelected = filtrosAtivos.contains(FiltroHistorico.DAY_OFF),
-                    onClick = { onFiltroClick(FiltroHistorico.DAY_OFF) }
-                )
-            }
-            if (resumoPeriodo.diasFolgaCompensacao > 0 || resumoPeriodo.diasFolgaFuturo > 0) {
-                ResumoSecundarioChip(
-                    emoji = "😴",
-                    label = "Folgas",
-                    valor = resumoPeriodo.diasFolgaCompensacao + resumoPeriodo.diasFolgaFuturo,
-                    isSelected = filtrosAtivos.contains(FiltroHistorico.FOLGAS),
-                    onClick = { onFiltroClick(FiltroHistorico.FOLGAS) }
-                )
-            }
-            if (resumoPeriodo.temAtestados) {
-                ResumoSecundarioChip(
-                    emoji = "🏥", label = "Atestados", valor = resumoPeriodo.quantidadeAtestados,
-                    isSelected = filtrosAtivos.contains(FiltroHistorico.ATESTADOS),
-                    onClick = { onFiltroClick(FiltroHistorico.ATESTADOS) }
                 )
             }
             if (resumoPeriodo.temDeclaracoes) {
@@ -548,9 +570,16 @@ private fun SecaoFiltros(
                     onClick = { onFiltroClick(FiltroHistorico.DECLARACOES) }
                 )
             }
-            if (resumoPeriodo.totalDiasFaltas > 0) {
+            if (resumoPeriodo.temAtestados) {
                 ResumoSecundarioChip(
-                    emoji = "❌", label = "Faltas", valor = resumoPeriodo.totalDiasFaltas,
+                    emoji = "🏥", label = "Atestados", valor = resumoPeriodo.quantidadeAtestados,
+                    isSelected = filtrosAtivos.contains(FiltroHistorico.ATESTADOS),
+                    onClick = { onFiltroClick(FiltroHistorico.ATESTADOS) }
+                )
+            }
+            if (resumoPeriodo.diasFaltas > 0) {
+                ResumoSecundarioChip(
+                    emoji = "❌", label = "Faltas", valor = resumoPeriodo.diasFaltas,
                     isSelected = filtrosAtivos.contains(FiltroHistorico.FALTAS),
                     corFundo = Color(0xFFF44336).copy(alpha = 0.1f),
                     onClick = { onFiltroClick(FiltroHistorico.FALTAS) }
@@ -564,18 +593,6 @@ private fun SecaoFiltros(
                     onClick = { onFiltroClick(FiltroHistorico.COM_PROBLEMAS) }
                 )
             }
-
-            // Filtros que eram principais
-            ResumoSecundarioChip(
-                emoji = "✅", label = "Completos", valor = resumoPeriodo.diasCompletos,
-                isSelected = filtrosAtivos.contains(FiltroHistorico.COMPLETOS),
-                onClick = { onFiltroClick(FiltroHistorico.COMPLETOS) }
-            )
-            ResumoSecundarioChip(
-                emoji = "🔄", label = "Incompletos", valor = resumoPeriodo.diasUteisSemRegistro,
-                isSelected = filtrosAtivos.contains(FiltroHistorico.INCOMPLETOS),
-                onClick = { onFiltroClick(FiltroHistorico.INCOMPLETOS) }
-            )
         }
     }
 }
@@ -717,7 +734,6 @@ private fun MonthNavigator(
 @Composable
 private fun ResumoMes(
     resumoPeriodo: ResumoPeriodo,
-    totalDiasPeriodo: Int,
     saldoInicialPeriodo: Int,
     saldoAcumuladoTotal: Int,
     isPeriodoFuturo: Boolean,
@@ -747,68 +763,38 @@ private fun ResumoMes(
                             fontWeight = FontWeight.Bold,
                             color = if (isPeriodoFuturo) Color(0xFF9C27B0) else MaterialTheme.colorScheme.primary
                         )
-                        if (isPeriodoFuturo) {
-                            Spacer(Modifier.width(8.dp))
-                            Text("🔮", fontSize = 14.sp)
-                        }
-                    }
-                    if (!isExpandido && !isPeriodoFuturo) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("📊", style = MaterialTheme.typography.bodySmall)
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    "Saldo inicial",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            val anteriorColor =
-                                if (saldoInicialPeriodo == 0) MaterialTheme.colorScheme.outline else if (saldoInicialPeriodo >= 0) Success else Error
-                            Text(
-                                saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = anteriorColor
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("🏦", style = MaterialTheme.typography.titleMedium)
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Banco de horas",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Text(
-                                saldoAcumuladoTotal.toLong().minutosParaSaldoFormatado(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (saldoAcumuladoTotal >= 0) Success else Error
-                            )
-                        }
                     }
                 }
-                Icon(
-                    imageVector = if (isExpandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpandido) "Recolher" else "Expandir",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarMonth,
+                                null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                "${resumoPeriodo.totalDiasPeriodo} dias",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = if (isExpandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isExpandido) "Recolher" else "Expandir",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             AnimatedVisibility(
@@ -817,175 +803,637 @@ private fun ResumoMes(
                 exit = shrinkVertically()
             ) {
                 Column {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
+                    // Row with 5 columns
                     Row(
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        ResumoPrincipalItem(
+                        ResumoPrincipalItemV2(
                             label = "Dias úteis",
-                            valor = "${resumoPeriodo.diasUteis}",
-                            sublabel = if (isPeriodoFuturo) "previstos" else "no período",
+                            valor = "${resumoPeriodo.diasUteis}d",
+                            sublabel = "(${resumoPeriodo.totalHorasUteisMinutos.minutosParaDuracaoCompacta()})",
                             icon = Icons.Default.CalendarMonth,
-                            cor = MaterialTheme.colorScheme.onSurface
+                            iconColor = Color(0xFF4285F4),
+                            modifier = Modifier.weight(1f)
                         )
 
-                        if (!isPeriodoFuturo) {
-                            ResumoPrincipalItem(
-                                label = "Trabalhado",
-                                valor = resumoPeriodo.totalMinutosTrabalhados.minutosParaDuracaoCompacta(),
-                                sublabel = null,
-                                icon = Icons.Default.Schedule,
-                                cor = MaterialTheme.colorScheme.primary
-                            )
-                            ResumoPrincipalItem(
-                                label = "Tolerância",
-                                valor = if (resumoPeriodo.temToleranciaAplicada)
-                                    resumoPeriodo.totalMinutosTolerancia.minutosParaDuracaoCompacta()
-                                else "—",
-                                sublabel = if (resumoPeriodo.temToleranciaAplicada) "aplicada" else null,
-                                icon = Icons.Default.Schedule,
-                                cor = if (resumoPeriodo.temToleranciaAplicada)
-                                    Color(0xFF9C27B0) else MaterialTheme.colorScheme.outline
-                            )
-                        } else {
-                            ResumoPrincipalItem(
-                                label = "Total",
-                                valor = "$totalDiasPeriodo",
-                                sublabel = "dias",
-                                icon = Icons.Default.CalendarMonth,
-                                cor = MaterialTheme.colorScheme.outline
-                            )
-                            ResumoPrincipalItem(
-                                label = "Especiais",
-                                valor = "${resumoPeriodo.totalFeriados + resumoPeriodo.totalFerias}",
-                                sublabel = "feriados/férias",
-                                icon = null,
-                                emoji = "🎉",
-                                cor = Color(0xFF9C27B0)
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        ResumoPrincipalItemV2(
+                            label = "Trabalhado",
+                            valor = "${resumoPeriodo.diasTrabalhados}d",
+                            sublabel = "(${resumoPeriodo.totalMinutosTrabalhados.minutosParaDuracaoCompacta()})",
+                            icon = Icons.Default.Check,
+                            iconColor = Color(0xFF34A853),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        ProgressoMeta(
+                            progresso = resumoPeriodo.progressoMeta,
+                            percentualTexto = resumoPeriodo.porcentagemMeta,
+                            descricao = "Progresso",
+                            realizado = resumoPeriodo.totalMinutosTrabalhados.minutosParaDuracaoCompacta(),
+                            meta = resumoPeriodo.totalHorasUteisMinutos.minutosParaDuracaoCompacta(),
+                            tipoInicial = TipoProgresso.CIRCULAR,
+                            modifier = Modifier.weight(1f)
+                        )
+
+//                        val faltaAbonada =
+//                            if (resumoPeriodo.totalMinutosAusenciaAbonada != 0) resumoPeriodo.totalMinutosAusenciaAbonada.toLong()
+//                                .minutosParaSaldoFormatado() else ""
+//                        val faltaNaoAbonada =
+//                            if (resumoPeriodo.totalMinutosAusenciaNaoAbonada != 0) resumoPeriodo.totalMinutosAusenciaNaoAbonada.toLong()
+//                                .minutosParaSaldoFormatado() else ""
+//                        val temBarraParaFaltas =
+//                            if (faltaAbonada != "" && faltaNaoAbonada != "") " / " else ""
+//                        ResumoPrincipalItemV2(
+//                            label = "Ausências",
+//                            valor = "${resumoPeriodo.diasAusenciaTotal}d",
+//                            sublabel = "(${resumoPeriodo.ausenciasDescricao})",
+//                            sublabel2 = if (resumoPeriodo.diasAusenciaTotal != 0)
+//                                "(${faltaAbonada}${temBarraParaFaltas}${faltaNaoAbonada})"
+//                            else null,
+//                            icon = Icons.Default.PersonRemove, // Assuming this exists or similar
+//                            iconColor = Color(0xFFEA4335),
+//                            modifier = Modifier.weight(1f)
+//                        )
+//                        ResumoPrincipalItemV2(
+//                            label = "Descanso",
+//                            valor = "${resumoPeriodo.diasDescansoTotal}d",
+//                            sublabel = "(${resumoPeriodo.descansoDescricao})",
+//                            icon = Icons.Default.Luggage,
+//                            iconColor = Color(0xFF9C27B0),
+//                            modifier = Modifier.weight(1f)
+//                        )
+//                        ResumoPrincipalItemV2(
+//                            label = "Folgas",
+//                            valor = "${resumoPeriodo.diasFolgasSemanaisTotal}d",
+//                            sublabel = "(Descanso)",
+//                            icon = Icons.Default.BeachAccess,
+//                            iconColor = Color(0xFFFBBC05),
+//                            modifier = Modifier.weight(1f)
+//                        )
                     }
 
-                    if (!isPeriodoFuturo) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Meta and Saldo
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Spacer(Modifier.width(16.dp))
 
                         Row(
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.weight(3f),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            ResumoPrincipalItem(
-                                label = "Declarações",
-                                valor = if (resumoPeriodo.temDeclaracoes)
-                                    resumoPeriodo.totalMinutosDeclaracoes.minutosParaDuracaoCompacta()
-                                else "—",
-                                sublabel = if (resumoPeriodo.temDeclaracoes)
-                                    "${resumoPeriodo.quantidadeDeclaracoes} decl." else null,
-                                icon = null,
-                                emoji = "📄",
-                                cor = if (resumoPeriodo.temDeclaracoes)
-                                    Color(0xFF2196F3) else MaterialTheme.colorScheme.outline
-                            )
-                            ResumoPrincipalItem(
-                                label = "Saldo",
+                            ResumoSecundarioItem(
+                                label = "Saldo do período",
                                 valor = resumoPeriodo.saldoPeriodoMinutos.toLong()
                                     .minutosParaSaldoFormatado(),
-                                sublabel = "do período",
-                                icon = if (resumoPeriodo.saldoPeriodoMinutos >= 0)
-                                    Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
-                                cor = if (resumoPeriodo.saldoPeriodoMinutos >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+                                icon = Icons.AutoMirrored.Filled.CompareArrows,
+                                color = if (resumoPeriodo.saldoPeriodoMinutos >= 0) Success else Error
                             )
-                            ResumoPrincipalItem(
-                                label = "Completos",
-                                valor = "${resumoPeriodo.diasCompletos}",
-                                sublabel = "dias",
-                                icon = Icons.Default.CheckCircle,
-                                cor = MaterialTheme.colorScheme.secondary
+                            ResumoSecundarioItem(
+                                label = "Declaração",
+                                valor = resumoPeriodo.totalMinutosDeclaracoes.minutosParaDuracaoCompacta(),
+                                icon = Icons.Default.Description,
+                                color = Color(0xFF2196F3)
                             )
-                        }
-                    }
-
-                    if (!isPeriodoFuturo) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("📊", style = MaterialTheme.typography.bodySmall)
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    "Saldo inicial",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            val anteriorColor =
-                                if (saldoInicialPeriodo == 0) MaterialTheme.colorScheme.outline else if (saldoInicialPeriodo >= 0) Success else Error
-                            Text(
-                                saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = anteriorColor
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("🏦", style = MaterialTheme.typography.titleMedium)
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Banco de horas",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Text(
-                                saldoAcumuladoTotal.toLong().minutosParaSaldoFormatado(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (saldoAcumuladoTotal >= 0) Success else Error
-                            )
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("🏦", style = MaterialTheme.typography.titleMedium)
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Saldo atual",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Text(
-                                saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (saldoInicialPeriodo >= 0) Success else Error
+                            ResumoSecundarioItem(
+                                label = "Tolerância",
+                                valor = resumoPeriodo.totalMinutosTolerancia.minutosParaDuracaoCompacta(),
+                                icon = Icons.Default.HistoryToggleOff,
+                                color = Color(0xFFFF9800)
                             )
                         }
                     }
                 }
             }
+
+            if (!isPeriodoFuturo) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { /* Navigate to Initial Balance Adjustment? */ }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            color = Color(0xFF34A853).copy(alpha = 0.1f),
+                            shape = CircleShape,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.AccountBalanceWallet,
+                                null,
+                                modifier = Modifier.padding(8.dp),
+                                tint = Color(0xFF34A853)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            "Saldo inicial",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (saldoInicialPeriodo >= 0) Success else Error
+                        )
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { /* Navigate to History Cycles? */ }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            color = Color(0xFFEA4335).copy(alpha = 0.1f),
+                            shape = CircleShape,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.AccountBalance,
+                                null,
+                                modifier = Modifier.padding(8.dp),
+                                tint = Color(0xFFEA4335)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            "Banco de horas",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            saldoAcumuladoTotal.toLong().minutosParaSaldoFormatado(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (saldoAcumuladoTotal >= 0) Success else Error
+                        )
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🏦", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Saldo atual",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Text(
+                        saldoInicialPeriodo.toLong().minutosParaSaldoFormatado(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (saldoInicialPeriodo >= 0) Success else Error
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun ResumoPrincipalItemV2(
+    label: String,
+    valor: String,
+    sublabel: String,
+    sublabel2: String? = null,
+    sublabel3: String? = null,
+    icon: ImageVector,
+    iconColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .defaultMinSize(0.dp, DEFAULT_MIN_SIZE),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+        tonalElevation = 2.dp,
+        shadowElevation = 6.dp,
+        border = BorderStroke(
+            0.5.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+        )
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp)
+        ) {
+
+            // 🔵 Ícone premium
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(44.dp)
+                    .shadow(6.dp, CircleShape, clip = false)
+                    .background(
+                        brush = Brush.radialGradient(
+                            listOf(
+                                iconColor.copy(alpha = 0.25f),
+                                iconColor.copy(alpha = 0.05f)
+                            )
+                        ),
+                        shape = CircleShape
+                    )
+                    .border(
+                        0.5.dp,
+                        iconColor.copy(alpha = 0.3f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    icon,
+                    null,
+                    tint = iconColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                valor,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black
+            )
+
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // 🔥 Badge principal
+            Box(
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                iconColor.copy(alpha = 0.25f),
+                                iconColor.copy(alpha = 0.10f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .border(
+                        0.5.dp,
+                        iconColor.copy(alpha = 0.3f),
+                        RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    sublabel,
+                    color = iconColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            sublabel2?.let {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .background(
+                            color = iconColor.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(6.dp)
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        it,
+                        color = iconColor,
+                        fontSize = 8.sp
+                    )
+                }
+            }
+
+            sublabel3?.let {
+                Text(
+                    it,
+                    color = iconColor,
+                    fontSize = 8.sp
+                )
+            }
+        }
+    }
+}
+
+enum class TipoProgresso {
+    LINEAR,
+    CIRCULAR
+}
+
+private val DEFAULT_MIN_SIZE = 140.dp
+
+@Composable
+fun ProgressoMeta(
+    progresso: Float,
+    percentualTexto: String,
+    descricao: String,
+    realizado: String,
+    meta: String,
+    tipoInicial: TipoProgresso = TipoProgresso.LINEAR,
+    modifier: Modifier = Modifier,
+) {
+
+    var tipo by remember { mutableStateOf(tipoInicial) }
+    var larguraPx by remember { mutableStateOf(0f) }
+
+    val density = LocalDensity.current
+
+    val haptic = LocalHapticFeedback.current
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progresso.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 700),
+        label = "progressAnim"
+    )
+
+    // 🎨 Cor dinâmica
+    val cor = when {
+        progresso >= 1f -> Color(0xFF4CAF50) // verde (meta batida)
+        progresso < 0.5f -> Color(0xFFF44336) // vermelho (baixo)
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    Surface(
+        modifier = modifier
+            .defaultMinSize(minHeight = DEFAULT_MIN_SIZE),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+        tonalElevation = 2.dp,
+        shadowElevation = 6.dp,
+        border = BorderStroke(
+            0.5.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+        )
+    ) {
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 8.dp)
+        ) {
+
+            // 🔥 ANIMAÇÃO ENTRE MODOS
+            AnimatedContent(
+                targetState = tipo,
+                transitionSpec = {
+                    fadeIn(tween(300)) + scaleIn(initialScale = 0.92f) togetherWith
+                            fadeOut(tween(200)) + scaleOut(targetScale = 1.05f)
+                },
+                label = "tipoAnim"
+            ) { currentTipo ->
+
+                when (currentTipo) {
+
+                    TipoProgresso.LINEAR -> {
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+
+                            Spacer(Modifier.height(15.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(35.dp)
+                                    .clickable {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        tipo = TipoProgresso.CIRCULAR
+                                    }
+                                    .onGloballyPositioned {
+                                        larguraPx = it.size.width.toFloat()
+                                    }
+                            ) {
+
+                                // 🔵 Barra
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterStart)
+                                        .fillMaxWidth()
+                                        .height(10.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(cor.copy(alpha = 0.08f))
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .fillMaxWidth(animatedProgress)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(
+                                                        cor.copy(alpha = 0.9f),
+                                                        cor.copy(alpha = 0.5f)
+                                                    )
+                                                )
+                                            )
+                                    )
+                                }
+
+                                // 🔥 Tooltip
+                                if (larguraPx > 0f) {
+
+                                    val posX = larguraPx * animatedProgress
+                                    val tooltipWidthPx = with(density) { 60.dp.toPx() }
+
+                                    val safeOffsetPx = when {
+                                        animatedProgress < 0.1f -> 0f
+                                        animatedProgress > 0.9f -> larguraPx - tooltipWidthPx
+                                        else -> posX - (tooltipWidthPx / 2)
+                                    }
+
+                                    val safeOffset = with(density) { safeOffsetPx.toDp() }
+
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .offset(x = safeOffset, y = (-18).dp)
+                                    ) {
+
+                                        Box(
+                                            modifier = Modifier
+                                                .shadow(4.dp, RoundedCornerShape(6.dp))
+                                                .background(
+                                                    color = cor,
+                                                    shape = RoundedCornerShape(6.dp)
+                                                )
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                percentualTexto,
+                                                color = Color.White,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(
+                                                    color = cor,
+                                                    shape = RoundedCornerShape(1.dp)
+                                                )
+                                                .rotate(45f)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(6.dp))
+
+                        }
+                    }
+
+                    TipoProgresso.CIRCULAR -> {
+
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(55.dp)
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    tipo = TipoProgresso.LINEAR
+                                }
+                        ) {
+                            CircularProgressIndicator(
+                                progress = { animatedProgress },
+                                strokeWidth = 6.dp,
+                                color = cor,
+                                trackColor = cor.copy(alpha = 0.1f),
+                                modifier = Modifier.fillMaxSize(),
+                            )
+
+                            Text(
+                                percentualTexto,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = cor
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                descricao,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(meta)
+                Spacer(Modifier.width(4.dp))
+                Text("Meta", style = MaterialTheme.typography.labelSmall)
+            }
+
+            Spacer(Modifier.height(2.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(realizado, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(4.dp))
+                Text("Feito", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+@Composable
+private fun ResumoSecundarioItem(
+    label: String,
+    valor: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                color = color.copy(alpha = 0.1f),
+                shape = CircleShape,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(icon, null, tint = color, modifier = Modifier.padding(4.dp))
+            }
+            Spacer(Modifier.width(4.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 8.sp
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            valor,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
 
@@ -1037,14 +1485,15 @@ private fun ResumoPrincipalItem(
     label: String,
     valor: String,
     sublabel: String?,
-    icon: ImageVector?,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
     emoji: String? = null,
-    cor: Color
+    cor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     @Suppress("DEPRECATION")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(100.dp)
+        modifier = modifier
     ) {
         if (icon != null) {
             Icon(icon, null, tint = cor, modifier = Modifier.size(20.dp))
@@ -1057,13 +1506,16 @@ private fun ResumoPrincipalItem(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = cor,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis
         )
         sublabel?.let {
             Text(
@@ -1071,7 +1523,9 @@ private fun ResumoPrincipalItem(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 fontSize = 10.sp,
-                maxLines = 1
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -1412,7 +1866,8 @@ private fun TurnosSection(intervalos: List<IntervaloPonto>) {
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
             intervalos.forEachIndexed { index, intervalo ->
-                val horaEntrada = intervalo.horaEntradaConsiderada?.toLocalTime() ?: intervalo.entrada.horaConsiderada
+                val horaEntrada = intervalo.horaEntradaConsiderada?.toLocalTime()
+                    ?: intervalo.entrada.horaConsiderada
                 val hourStr = "${horaEntrada.format(timeFormatter)} - ${
                     intervalo.saida?.horaConsiderada?.format(timeFormatter) ?: "..."
                 }"
@@ -1441,8 +1896,14 @@ private fun IntervaloSection(resumo: ResumoDia) {
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text("Intervalo Real", style = MaterialTheme.typography.bodySmall)
                 Text(
                     resumo.minutosIntervaloReal.minutosParaDuracaoCompacta(),
@@ -1451,7 +1912,10 @@ private fun IntervaloSection(resumo: ResumoDia) {
                 )
             }
             if (resumo.minutosIntervaloReal != resumo.minutosIntervaloTotal) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text("Intervalo Considerado", style = MaterialTheme.typography.bodySmall)
                     Text(
                         resumo.minutosIntervaloTotal.minutosParaDuracaoCompacta(),

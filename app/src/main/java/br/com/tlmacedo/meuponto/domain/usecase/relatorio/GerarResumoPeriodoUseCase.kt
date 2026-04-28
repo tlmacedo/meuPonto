@@ -26,11 +26,21 @@ class GerarResumoPeriodoUseCase @Inject constructor(
         val totalAbonadoMinutos: Int,
         val saldoPeriodoMinutos: Int,
         val totalAjustesMinutos: Int = 0,
+        val totalDiasCorridos: Int,
+        val diasUteis: Int,
+        val totalHorasUteisMinutos: Int = 0,
         val diasTrabalhados: Int,
         val diasCompletos: Int = 0,
+        val diasIncompletos: Int = 0,
         val diasComProblemas: Int = 0,
-        val diasUteis: Int,
-        val diasUteisSemRegistro: Int = 0,
+        val diasAusenciaTotal: Int = 0,
+        val quantidadeFaltas: Int = 0,
+        val totalMinutosAusenciaAbonada: Int = 0,
+        val totalMinutosAusenciaNaoAbonada: Int = 0,
+        val diasDescansoTotal: Int = 0,
+        val quantidadeFerias: Int = 0,
+        val quantidadeFeriados: Int = 0,
+        val diasFolgasSemanaisTotal: Int = 0,
         val diasDescanso: Int = 0,
         val diasFeriado: Int = 0,
         val diasFerias: Int = 0,
@@ -40,9 +50,11 @@ class GerarResumoPeriodoUseCase @Inject constructor(
         val diasAtestado: Int = 0,
         val diasFaltaJustificada: Int = 0,
         val diasFaltaInjustificada: Int = 0,
+        val diasFaltas: Int = 0,
+        val diasFeriasFeriadosDescanso: Int = 0,
         val totalMinutosTolerancia: Int = 0,
-        val quantidadeDeclaracoes: Int = 0,
         val totalMinutosDeclaracoes: Int = 0,
+        val quantidadeDeclaracoes: Int = 0,
         val quantidadeAtestados: Int = 0,
         val nomesFeriados: List<String> = emptyList(),
         // Previsão de dias futuros
@@ -81,38 +93,92 @@ class GerarResumoPeriodoUseCase @Inject constructor(
             resumos: List<ResumoDiaCompleto>,
             ajustes: Map<LocalDate, Int> = emptyMap()
         ): ResumoPeriodo {
+            val resumoGeral = resumos
             val resumosPassados = resumos.filter { !it.isFuturo }
             val resumosFuturos = resumos.filter { it.isFuturo }
 
             // Totais de minutos (apenas passado)
-            val totalTrabalhado = resumosPassados.sumOf { it.horasTrabalhadasMinutos }
-            val totalEsperado = resumosPassados.sumOf { it.cargaHorariaEfetivaMinutos }
+            val totalTrabalhado = resumoGeral.sumOf { it.horasTrabalhadasMinutos }
+            val totalEsperado = resumoGeral.sumOf { it.cargaHorariaEfetivaMinutos }
             val totalAbonado = resumosPassados.sumOf { it.tempoAbonadoMinutos }
             val totalTolerancia = resumosPassados.sumOf { it.minutosToleranciaIntervalo }
             val totalDeclaracoes = resumosPassados.sumOf { it.totalMinutosDeclaracoes }
+
             val totalAjustes = ajustes.filter { it.key in dataInicio..dataFim }.values.sum()
 
-            // Contagem de dias (passado)
-            val diasTrabalhados = resumosPassados.count { it.temPontos }
-            val diasCompletos = resumosPassados.count { it.jornadaCompleta }
-            val diasComProblemas = resumosPassados.count { it.temProblemas }
-            val diasUteis = resumosPassados.count { !it.zeraJornada }
-            val diasUteisSemRegistro = resumosPassados.count { 
-                !it.zeraJornada && !it.temPontos && it.data.dayOfWeek.value < 6 
+            // 1. Dias Corridos
+            val totalDiasCorridos = resumosPassados.size + resumosFuturos.size
+
+            // Regra de Prioridade: Falta > Férias > Feriado > Descanso Semanal
+
+            val resumosFaltas =
+                resumoGeral.filter { it.isFaltaJustificada || it.isFaltaInjustificada }
+            val resumosAtestados =
+                resumoGeral.filter { it.isAtestado }
+            val diasAtestados = resumosAtestados.size
+            val diasFaltas = resumosFaltas.size
+            val diasFaltasAtestados = diasFaltas + diasAtestados
+
+            val resumosFerias = resumosPassados.filter {
+                it.isFerias && !(it.isFaltaJustificada || it.isFaltaInjustificada || it.isAtestado)
+            }
+            val diasFeriasCount = resumosFerias.size
+
+            val resumosFeriado = resumosPassados.filter {
+                it.temFeriado && !it.isFerias && !(it.isFaltaJustificada || it.isFaltaInjustificada || it.isAtestado)
+            }
+            val diasFeriadoCount = resumosFeriado.size
+
+            val resumosFolgaSemanal = resumosPassados.filter { resumo ->
+                val isDescansoSemanal = (resumo.horarioDiaSemana?.cargaHorariaMinutos ?: 0) == 0
+                isDescansoSemanal && !resumo.temFeriado && !resumo.isFerias && !(resumo.isFaltaJustificada || resumo.isFaltaInjustificada || resumo.isAtestado)
+            }
+            val diasFolgaSemanalCount = resumosFolgaSemanal.size
+
+            // 2. Dias úteis (Quantidade de dias do período não pode contar com férias, feriados, e descanso (sáb e dom))
+            val diasUteisCount = resumoGeral.count { resumo ->
+                val temJornadaSemanal = (resumo.horarioDiaSemana?.cargaHorariaMinutos ?: 0) > 0
+                temJornadaSemanal && !resumo.temFeriado && !resumo.isFerias && !(resumo.isFaltaJustificada || resumo.isFaltaInjustificada || resumo.isAtestado)
             }
 
-            val diasDescanso = resumosPassados.count { it.isDescanso && !it.temPontos && !it.temFeriado && it.ausencias.isEmpty() }
-            val diasFeriado = resumosPassados.count { it.temFeriado }
-            val diasFerias = resumosPassados.count { it.isFerias }
-            val diasAtestado = resumosPassados.count { it.isAtestado }
-            val diasFaltaJustificada = resumosPassados.count { it.isFaltaJustificada }
-            val diasFaltaInjustificada = resumosPassados.count { it.isFaltaInjustificada }
-            val diasFolga = resumosPassados.count { it.isFolga }
-            val diasFolgaDayOff = resumosPassados.count { it.isDayOff }
-            val diasFolgaCompensacao = resumosPassados.count { it.isFolga && !it.isDayOff }
+            val totalHorasUteisMinutos = resumoGeral.sumOf { resumo ->
+                val temJornadaSemanal = (resumo.horarioDiaSemana?.cargaHorariaMinutos ?: 0) > 0
+                if (temJornadaSemanal && !resumo.temFeriado && !resumo.isFerias && !(resumo.isFaltaJustificada || resumo.isFaltaInjustificada || resumo.isAtestado)) {
+                    resumo.resumoDia.cargaHorariaDiariaMinutos
+                } else 0
+            }
 
-            val quantidadeDeclaracoes = resumosPassados.count { it.declaracoes.isNotEmpty() }
-            val quantidadeAtestados = resumosPassados.count { it.isAtestado }
+            // Trabalhado
+            val diasTrabalhados = resumosPassados.count { it.temPontos }
+
+            // Ausências (Atestado + Faltas)
+            val totalMinutosAusenciaAbonada = resumosPassados.sumOf { resumo ->
+                if (resumo.isFaltaJustificada || resumo.isAtestado) {
+                    resumo.resumoDia.cargaHorariaDiariaMinutos
+                } else 0
+            }
+
+            val totalMinutosAusenciaNaoAbonada = resumosPassados.sumOf { resumo ->
+                if (resumo.isFaltaInjustificada) {
+                    resumo.resumoDia.cargaHorariaDiariaMinutos * -1
+                } else 0
+            }
+
+            // 8. Dias Completos (2 turnos ou >= 4h)
+            val diasCompletosCount = resumosPassados.count {
+                it.pontos.size >= 4 || it.horasTrabalhadasMinutos >= 240
+            }
+
+            // Incompletos: Dia útil E (sem registro OU jornada < 4h)
+            val diasIncompletosCount = resumosPassados.count { resumo ->
+                val temJornadaSemanal = (resumo.horarioDiaSemana?.cargaHorariaMinutos ?: 0) > 0
+                val isDiaUtil =
+                    temJornadaSemanal && !resumo.temFeriado && !resumo.isFerias && !(resumo.isFaltaJustificada || resumo.isFaltaInjustificada || resumo.isAtestado)
+                isDiaUtil && (resumo.pontos.isEmpty() || resumo.horasTrabalhadasMinutos < 240)
+            }
+
+            val diasComProblemas = resumosPassados.count { it.temProblemas }
+
             val nomesFeriados = resumos.flatMap { it.feriadosDoDia }.map { it.nome }.distinct()
 
             // Contagem de dias (futuro)
@@ -129,26 +195,38 @@ class GerarResumoPeriodoUseCase @Inject constructor(
                 totalTrabalhadoMinutos = totalTrabalhado,
                 totalEsperadoMinutos = totalEsperado,
                 totalAbonadoMinutos = totalAbonado,
-                saldoPeriodoMinutos = totalTrabalhado + totalAbonado - totalEsperado,
+                saldoPeriodoMinutos = resumosPassados.sumOf { it.saldoDiaMinutos },
                 totalAjustesMinutos = totalAjustes,
+                totalDiasCorridos = totalDiasCorridos,
+                diasUteis = diasUteisCount,
+                totalHorasUteisMinutos = totalHorasUteisMinutos,
                 diasTrabalhados = diasTrabalhados,
-                diasCompletos = diasCompletos,
+                diasCompletos = diasCompletosCount,
+                diasIncompletos = diasIncompletosCount,
                 diasComProblemas = diasComProblemas,
-                diasUteis = diasUteis,
-                diasUteisSemRegistro = diasUteisSemRegistro,
-                diasDescanso = diasDescanso,
-                diasFeriado = diasFeriado,
-                diasFerias = diasFerias,
-                diasFolga = diasFolga,
-                diasFolgaDayOff = diasFolgaDayOff,
-                diasFolgaCompensacao = diasFolgaCompensacao,
-                diasAtestado = diasAtestado,
-                diasFaltaJustificada = diasFaltaJustificada,
-                diasFaltaInjustificada = diasFaltaInjustificada,
+                diasAusenciaTotal = diasFaltasAtestados,
+                quantidadeFaltas = diasFaltas,
+                quantidadeAtestados = diasAtestados,
+                totalMinutosAusenciaAbonada = totalMinutosAusenciaAbonada,
+                totalMinutosAusenciaNaoAbonada = totalMinutosAusenciaNaoAbonada,
+                diasDescansoTotal = diasFeriasCount + diasFeriadoCount,
+                quantidadeFerias = diasFeriasCount,
+                quantidadeFeriados = diasFeriadoCount,
+                diasFolgasSemanaisTotal = diasFolgaSemanalCount,
+                diasDescanso = resumosPassados.count { it.isDescanso },
+                diasFeriado = resumosPassados.count { it.temFeriado },
+                diasFerias = resumosPassados.count { it.isFerias },
+                diasFolga = resumosPassados.count { it.isFolga },
+                diasFolgaDayOff = resumosPassados.count { it.isDayOff },
+                diasFolgaCompensacao = resumosPassados.count { it.isFolga && !it.isDayOff },
+                diasAtestado = resumosPassados.count { it.isAtestado },
+                diasFaltaJustificada = resumosPassados.count { it.isFaltaJustificada },
+                diasFaltaInjustificada = resumosPassados.count { it.isFaltaInjustificada },
+                diasFaltas = resumosPassados.count { it.isFaltaJustificada || it.isFaltaInjustificada },
+                diasFeriasFeriadosDescanso = diasFeriasCount + diasFeriadoCount + diasFolgaSemanalCount,
                 totalMinutosTolerancia = totalTolerancia,
-                quantidadeDeclaracoes = quantidadeDeclaracoes,
                 totalMinutosDeclaracoes = totalDeclaracoes,
-                quantidadeAtestados = quantidadeAtestados,
+                quantidadeDeclaracoes = resumosPassados.count { it.declaracoes.isNotEmpty() },
                 nomesFeriados = nomesFeriados,
                 diasDescansoFuturo = diasDescansoFuturo,
                 diasFeriadoFuturo = diasFeriadoFuturo,

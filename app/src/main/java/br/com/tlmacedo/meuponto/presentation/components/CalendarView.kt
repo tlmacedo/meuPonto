@@ -144,8 +144,9 @@ fun CalendarView(
                                     filtrosAtivos.any { filtro ->
                                         when (filtro) {
                                             FiltroHistorico.TODOS, FiltroHistorico.CALENDARIO, FiltroHistorico.LISTA -> true
-                                            FiltroHistorico.COMPLETOS -> dia.jornadaCompleta
-                                            FiltroHistorico.INCOMPLETOS -> !dia.jornadaCompleta && dia.pontos.isNotEmpty() && !dia.resumoDia.isFuturo
+                                            FiltroHistorico.UTEIS -> dia.isDiaUtil
+                                            FiltroHistorico.COMPLETOS -> dia.isCompleto
+                                            FiltroHistorico.INCOMPLETOS -> dia.isIncompleto
                                             FiltroHistorico.COM_PROBLEMAS -> dia.temProblemas
                                             FiltroHistorico.FUTUROS -> dia.resumoDia.isFuturo
                                             FiltroHistorico.DESCANSO -> dia.isDescanso

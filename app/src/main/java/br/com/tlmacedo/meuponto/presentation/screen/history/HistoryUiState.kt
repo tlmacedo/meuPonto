@@ -22,6 +22,7 @@ enum class FiltroHistorico(
 ) {
     // Filtros principais (chips visíveis)
     TODOS("Todos"),
+    UTEIS("Úteis"),
     COMPLETOS("Completos"),
     INCOMPLETOS("Incompletos"),
     COM_PROBLEMAS("Problemas"),
@@ -66,7 +67,7 @@ data class PeriodoHistorico(
                 val formatterDiaMes = DateTimeFormatter.ofPattern("dd/MM", locale)
                 val formatterCompleto = DateTimeFormatter.ofPattern("dd/MM/yyyy", locale)
                 if (dataInicio.year == dataFim.year) {
-                    "${dataInicio.format(formatterDiaMes)} a ${dataFim.format(formatterCompleto)}"
+                    "${dataInicio.format(formatterCompleto)} a ${dataFim.format(formatterCompleto)}"
                 } else {
                     "${dataInicio.format(formatterCompleto)} a ${dataFim.format(formatterCompleto)}"
                 }
@@ -171,9 +172,25 @@ data class InfoDiaHistorico(
     val temFeriado: Boolean get() = feriado != null
     val temAusencia: Boolean get() = ausencias.isNotEmpty()
 
+    /** É dia de falta (justificada ou injustificada) */
+    val isFalta: Boolean
+        get() = ausencias.any { it.tipo == TipoAusencia.FALTA_JUSTIFICADA || it.tipo == TipoAusencia.FALTA_INJUSTIFICADA }
+
     /** É dia de descanso (fim de semana sem jornada) */
     val isDescanso: Boolean
         get() = isSemJornada && pontos.isEmpty() && feriado == null && ausencias.isEmpty()
+
+    /** É dia útil (tem jornada programada e não é feriado nem ponte) */
+    val isDiaUtil: Boolean
+        get() = !isSemJornada && !resumoDia.isFeriado
+
+    /** É dia completo (2 turnos ou >= 4h trabalhadas) */
+    val isCompleto: Boolean
+        get() = pontos.size >= 4 || horasTrabalhadasMinutos >= 240
+
+    /** É dia incompleto (dia útil e (sem registro ou < 4h trabalhadas)) */
+    val isIncompleto: Boolean
+        get() = isDiaUtil && (pontos.isEmpty() || horasTrabalhadasMinutos < 240)
 
     /** Declarações do dia */
     val declaracoes: List<Ausencia>
@@ -235,7 +252,19 @@ data class ResumoPeriodo(
     val totalMinutosTrabalhados: Int = 0,
     val saldoPeriodoMinutos: Int = 0,
     val diasCompletos: Int = 0,
+    val diasIncompletos: Int = 0,
     val diasComProblemas: Int = 0,
+    val diasUteis: Int = 0,
+    val totalHorasUteisMinutos: Int = 0,
+    val diasTrabalhados: Int = 0,
+    val diasAusenciaTotal: Int = 0,
+    val quantidadeFaltas: Int = 0,
+    val totalMinutosAusenciaAbonada: Int = 0,
+    val totalMinutosAusenciaNaoAbonada: Int = 0,
+    val diasDescansoTotal: Int = 0,
+    val quantidadeFerias: Int = 0,
+    val quantidadeFeriados: Int = 0,
+    val diasFolgasSemanaisTotal: Int = 0,
     val diasDescanso: Int = 0,
     val diasFeriado: Int = 0,
     val diasFerias: Int = 0,
@@ -245,9 +274,11 @@ data class ResumoPeriodo(
     val diasAtestado: Int = 0,
     val diasFaltaJustificada: Int = 0,
     val diasFaltaInjustificada: Int = 0,
+    val diasFaltas: Int = 0,
+    val diasFeriasFeriadosDescanso: Int = 0,
     val totalMinutosAbonados: Int = 0,
     val totalMinutosTolerancia: Int = 0,
-    val diasUteisSemRegistro: Int = 0,
+    val totalMinutosDeclaracoesAtestadosFaltas: Int = 0,
     val totalDiasPeriodo: Int = 0,
     val totalAjustesMinutos: Int = 0,
     val quantidadeDeclaracoes: Int = 0,
@@ -264,12 +295,40 @@ data class ResumoPeriodo(
     val totalDiasAusencia: Int
         get() = diasFerias + diasFolga + diasAtestado + diasFaltaJustificada + diasFaltaInjustificada
 
-    val temAusencias: Boolean get() = totalDiasAusencia > 0
+    val temAusencias: Boolean get() = diasAusenciaTotal > 0
     val temTempoAbonado: Boolean get() = totalMinutosAbonados > 0
     val temToleranciaAplicada: Boolean get() = totalMinutosTolerancia > 0
     val temDeclaracoes: Boolean get() = quantidadeDeclaracoes > 0
     val temAtestados: Boolean get() = quantidadeAtestados > 0
     val temDiasFuturos: Boolean get() = diasFuturos > 0
+
+    /** Total de faltas e atestados formatado */
+    val ausenciasDescricao: String
+        get() = buildString {
+            val parts = mutableListOf<String>()
+            if (quantidadeFaltas > 0)  parts.add("$quantidadeFaltas Faltas")
+            if (quantidadeAtestados > 0) parts.add("$quantidadeAtestados Atestados")
+            append(parts.joinToString("/ "))
+        }
+
+    /** Descanso (Férias + Feriados) formatado */
+    val descansoDescricao: String
+        get() = buildString {
+            val parts = mutableListOf<String>()
+            if (quantidadeFerias > 0) parts.add("$quantidadeFerias Férias")
+            if (quantidadeFeriados > 0) parts.add("$quantidadeFeriados Feriado")
+            append(parts.joinToString("/ "))
+        }
+
+    /** Progresso da meta do período em porcentagem */
+    val progressoMeta: Float
+        get() = if (totalHorasUteisMinutos > 0) {
+            val numerador = totalMinutosTrabalhados + (totalMinutosAusenciaAbonada - totalMinutosAusenciaNaoAbonada)
+            (numerador.toFloat() / totalHorasUteisMinutos.toFloat()).coerceIn(0f, 1f)
+        } else 0f
+
+    val porcentagemMeta: String
+        get() = String.format(Locale.forLanguageTag("pt-BR"), "%.2f%%", progressoMeta * 100)
 
     /** Total de dias de faltas (justificadas + injustificadas) */
     val totalDiasFaltas: Int get() = diasFaltaJustificada + diasFaltaInjustificada
@@ -290,13 +349,6 @@ data class ResumoPeriodo(
     val temPrevisaoFutura: Boolean
         get() = diasDescansoFuturo > 0 || diasFeriadoFuturo > 0 ||
                 diasFeriasFuturo > 0 || diasFolgaFuturo > 0
-
-    /**
-     * Total de dias úteis no período.
-     * Dias úteis = Total - Descansos - Feriados - Férias - Folgas - Day-offs
-     */
-    val diasUteis: Int
-        get() = totalDiasPeriodo - totalDescanso - totalFeriados - totalFerias - totalFolgas - diasFolgaDayOff
 }
 
 /**
@@ -350,18 +402,19 @@ data class HistoryUiState(
                 filtrosAtivos.any { filtro ->
                     when (filtro) {
                         FiltroHistorico.TODOS, FiltroHistorico.LISTA, FiltroHistorico.CALENDARIO -> true
-                        FiltroHistorico.COMPLETOS -> dia.jornadaCompleta
-                        FiltroHistorico.INCOMPLETOS -> !dia.jornadaCompleta && dia.pontos.isNotEmpty() && !dia.resumoDia.isFuturo
+                        FiltroHistorico.UTEIS -> dia.isDiaUtil
+                        FiltroHistorico.COMPLETOS -> dia.isCompleto
+                        FiltroHistorico.INCOMPLETOS -> dia.isIncompleto
                         FiltroHistorico.COM_PROBLEMAS -> dia.temProblemas
                         FiltroHistorico.FUTUROS -> dia.resumoDia.isFuturo
-                        FiltroHistorico.DESCANSO -> dia.isDescanso
-                        FiltroHistorico.FERIADOS -> dia.temFeriado
-                        FiltroHistorico.FERIAS -> dia.ausencias.any { it.tipo == TipoAusencia.FERIAS }
+                        FiltroHistorico.DESCANSO -> dia.isDescanso && !dia.temFeriado && !(dia.ausencias.any { it.tipo == TipoAusencia.FERIAS }) && !dia.isFalta
+                        FiltroHistorico.FERIADOS -> dia.temFeriado && !(dia.ausencias.any { it.tipo == TipoAusencia.FERIAS }) && !dia.isFalta
+                        FiltroHistorico.FERIAS -> dia.ausencias.any { it.tipo == TipoAusencia.FERIAS } && !dia.isFalta
                         FiltroHistorico.FOLGAS -> dia.ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga != TipoFolga.DAY_OFF }
                         FiltroHistorico.DAY_OFF -> dia.ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga == TipoFolga.DAY_OFF }
                         FiltroHistorico.ATESTADOS -> dia.ausencias.any { it.tipo == TipoAusencia.ATESTADO }
                         FiltroHistorico.DECLARACOES -> dia.declaracoes.isNotEmpty()
-                        FiltroHistorico.FALTAS -> dia.ausencias.any { it.tipo == TipoAusencia.FALTA_JUSTIFICADA || it.tipo == TipoAusencia.FALTA_INJUSTIFICADA }
+                        FiltroHistorico.FALTAS -> dia.isFalta
                     }
                 }
             }
