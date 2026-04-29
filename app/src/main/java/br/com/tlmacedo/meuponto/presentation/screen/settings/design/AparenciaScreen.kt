@@ -120,6 +120,13 @@ fun AparenciaScreen(
                         isSelected = uiState.temaSelecionado == "sidia_dark",
                         onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("sidia_dark")) }
                     )
+                    TemaOption(
+                        title = "Sidia Premium Dark",
+                        subtitle = "Visual moderno e profundo",
+                        icon = Icons.Outlined.Contrast,
+                        isSelected = uiState.temaSelecionado == "sidia_premium_dark",
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("sidia_premium_dark")) }
+                    )
                 }
             }
 

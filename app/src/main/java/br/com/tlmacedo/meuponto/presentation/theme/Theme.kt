@@ -61,6 +61,35 @@ private val SidiaDarkColorScheme = darkColorScheme(
     outline = Color(0xFF334155)
 )
 
+private val SidiaPremiumDarkColorScheme = darkColorScheme(
+    primary = SidiaPremiumBlue,
+    onPrimary = Color.White,
+    primaryContainer = SidiaPremiumBlue.copy(alpha = 0.15f),
+    onPrimaryContainer = SidiaPremiumBlue,
+
+    secondary = SidiaPremiumGreen,
+    onSecondary = Color.Black,
+    secondaryContainer = SidiaPremiumGreen.copy(alpha = 0.15f),
+    onSecondaryContainer = SidiaPremiumGreen,
+
+    tertiary = SidiaPremiumPurple,
+    onTertiary = Color.White,
+
+    background = SidiaPremiumBackground,
+    onBackground = SidiaPremiumTextPrimary,
+
+    surface = SidiaPremiumSurface,
+    onSurface = SidiaPremiumTextPrimary,
+
+    surfaceVariant = SidiaPremiumSurfaceSoft,
+    onSurfaceVariant = SidiaPremiumTextSecondary,
+
+    error = SidiaPremiumRed,
+    onError = Color.White,
+
+    outline = SidiaPremiumBorder
+)
+
 private val AppTypography = Typography(
     headlineLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -149,6 +178,7 @@ fun MeuPontoTheme(
         "dark" -> SidiaDarkColorScheme
         "sidia" -> SidiaLightColorScheme
         "sidia_dark" -> SidiaDarkColorScheme
+        "sidia_premium_dark" -> SidiaPremiumDarkColorScheme
         "system" -> {
             if (dynamicColor) {
                 if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)

@@ -106,6 +106,7 @@ class AparenciaViewModel @Inject constructor(
                 "dark" -> "Escuro"
                 "sidia" -> "Sidia"
                 "sidia_dark" -> "Sidia Dark"
+                "sidia_premium_dark" -> "Sidia Premium Dark"
                 else -> "Sistema"
             }
             _eventos.emit(AparenciaEvent.MostrarMensagem("Tema alterado para $nomeTema"))

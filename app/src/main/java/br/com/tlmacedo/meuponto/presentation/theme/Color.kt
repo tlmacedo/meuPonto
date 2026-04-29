@@ -105,3 +105,40 @@ val TextPrimary = Color(0xFFF1F5F9)        // Texto principal claro
 val TextSecondary = Color(0xFFCBD5E1)      // Texto secundário com bom contraste
 val TextTertiary = Color(0xFF94A3B8)       // Texto terciário
 val TextMuted = Color(0xFF64748B)          // Texto apagado (usar com moderação)
+
+// ============================================================================
+// 🎯 SIDIA PREMIUM DARK
+// ============================================================================
+
+// 🌑 Fundo base (deep dark)
+val SidiaPremiumBackground = Color(0xFF020617)
+
+// 🧊 Superfícies (glass effect)
+val SidiaPremiumSurface = Color(0xFF0B1120)
+val SidiaPremiumSurfaceSoft = Color(0xFF0F172A)
+
+// 🧱 Bordas suaves
+val SidiaPremiumBorder = Color(0xFF1E293B)
+
+// ✍️ Texto
+val SidiaPremiumTextPrimary = Color(0xFFF8FAFC)
+val SidiaPremiumTextSecondary = Color(0xFF94A3B8)
+
+// 🔵 Azul principal (mais vibrante que o atual)
+val SidiaPremiumBlue = Color(0xFF3B82F6)
+
+// 🟢 Verde (sucesso/meta)
+val SidiaPremiumGreen = Color(0xFF22C55E)
+
+// 🔴 Vermelho (erro/falta)
+val SidiaPremiumRed = Color(0xFFEF4444)
+
+// 🟣 Destaque secundário
+val SidiaPremiumPurple = Color(0xFFA855F7)
+
+// 🟡 Warning
+val SidiaPremiumOrange = Color(0xFFF59E0B)
+
+// 🌈 Gradiente base (para usar nos componentes)
+val SidiaPremiumGradientStart = Color(0xFF0B1F3A)
+val SidiaPremiumGradientEnd = Color(0xFF050B18)
