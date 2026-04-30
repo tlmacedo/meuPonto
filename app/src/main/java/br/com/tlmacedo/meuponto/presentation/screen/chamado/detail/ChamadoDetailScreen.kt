@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -136,18 +134,18 @@ fun ChamadoDetailSuccessContent(chamado: Chamado, historico: List<HistoricoChama
                     )
                     StatusChip(status = chamado.status, color = statusColor)
                 }
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
                     text = chamado.titulo,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Text(
                     text = "Aberto em ${chamado.criadoEm.format(dateFormatter)}",
                     style = MaterialTheme.typography.bodySmall,
@@ -161,18 +159,25 @@ fun ChamadoDetailSuccessContent(chamado: Chamado, historico: List<HistoricoChama
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                        alpha = 0.3f
+                    )
+                )
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         DetailItem(
-                            label = "Categoria", 
-                            value = chamado.categoria.label, 
+                            label = "Categoria",
+                            value = chamado.categoria.label,
                             modifier = Modifier.weight(1f)
                         )
                         DetailItem(
-                            label = "Prioridade", 
-                            value = chamado.prioridade.label, 
+                            label = "Prioridade",
+                            value = chamado.prioridade.label,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -203,7 +208,11 @@ fun ChamadoDetailSuccessContent(chamado: Chamado, historico: List<HistoricoChama
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
+                            alpha = 0.5f
+                        )
+                    )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -267,7 +276,7 @@ fun ChamadoDetailSuccessContent(chamado: Chamado, historico: List<HistoricoChama
                 dateFormatter = dateFormatter
             )
         }
-        
+
         item { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }
@@ -294,7 +303,10 @@ fun AttachmentItem(fileName: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -354,9 +366,9 @@ fun TimelineItem(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.width(12.dp))
-        
+
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -375,7 +387,7 @@ fun TimelineItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
-            
+
             if (item.mensagem.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -384,7 +396,7 @@ fun TimelineItem(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "Atualizado por: ${item.autor}",

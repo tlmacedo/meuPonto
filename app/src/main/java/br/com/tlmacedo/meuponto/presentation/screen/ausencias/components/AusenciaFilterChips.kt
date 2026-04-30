@@ -96,7 +96,7 @@ fun AusenciaFilterChips(
             )
 
             // Chips de tipo (múltipla seleção)
-            TipoAusencia.entries.forEach { tipo ->
+            TipoAusencia.todos.forEach { tipo ->
                 FilterChip(
                     selected = tipo in tiposSelecionados,
                     onClick = { onToggleTipo(tipo) },

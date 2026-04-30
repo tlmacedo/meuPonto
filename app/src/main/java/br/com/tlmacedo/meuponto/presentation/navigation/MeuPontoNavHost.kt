@@ -1,7 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/navigation/MeuPontoNavHost.kt
 package br.com.tlmacedo.meuponto.presentation.navigation
 
-import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
@@ -122,7 +121,7 @@ fun NavGraphBuilder.meuPontoNavGraph(
         )
     ) { backStackEntry ->
         val pontoId = backStackEntry.arguments?.getLong(MeuPontoDestinations.ARG_PONTO_ID) ?: -1L
-        
+
         br.com.tlmacedo.meuponto.presentation.screen.comprovante.ComprovanteVisualizacaoScreen(
             pontoId = pontoId,
             sharedTransitionScope = sharedTransitionScope,

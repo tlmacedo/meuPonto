@@ -314,7 +314,7 @@ class AusenciaRepositoryImpl @Inject constructor(
     private fun Ausencia.toAuditMap(): Map<String, Any?> = mapOf(
         "id" to id,
         "empregoId" to empregoId,
-        "tipo" to tipo.name,
+        "tipo" to tipo.descricao,
         "tipoDescricao" to tipo.descricao,
         "dataInicio" to dataInicio.format(dateFormatter),
         "dataFim" to dataFim.format(dateFormatter),

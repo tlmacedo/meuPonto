@@ -4,7 +4,6 @@ package br.com.tlmacedo.meuponto.domain.usecase.ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
-import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import kotlinx.coroutines.flow.Flow
@@ -22,7 +21,7 @@ data class ResultadoTipoDia(
     val descricao: String? = null
 ) {
     val isDiaEspecial: Boolean
-        get() = tipoDiaEspecial != TipoDiaEspecial.NORMAL
+        get() = tipoDiaEspecial != TipoDiaEspecial.Normal
 
     val emoji: String
         get() = tipoDiaEspecial.emoji
@@ -62,7 +61,7 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
 
         if (ausencia != null) {
             return ResultadoTipoDia(
-                tipoDiaEspecial = ausencia.tipo.toTipoDiaEspecial(ausencia.tipoFolga),
+                tipoDiaEspecial = ausencia.tipo.toTipoDiaEspecial(),
                 ausencia = ausencia,
                 descricao = ausencia.descricao ?: ausencia.tipoDescricao
             )
@@ -75,17 +74,8 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
         val feriado = feriados.firstOrNull()
 
         if (feriado != null) {
-            val tipoDiaEspecial = when (feriado.tipo) {
-                TipoFeriado.NACIONAL,
-                TipoFeriado.ESTADUAL,
-                TipoFeriado.MUNICIPAL -> TipoDiaEspecial.FERIADO
-
-                TipoFeriado.PONTE -> TipoDiaEspecial.PONTE
-                TipoFeriado.FACULTATIVO -> TipoDiaEspecial.FACULTATIVO
-            }
-
             return ResultadoTipoDia(
-                tipoDiaEspecial = tipoDiaEspecial,
+                tipoDiaEspecial = feriado.tipo.toTipoDiaEspecial(),
                 feriado = feriado,
                 descricao = feriado.nome
             )
@@ -93,7 +83,7 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
 
         // 3. Dia normal
         return ResultadoTipoDia(
-            tipoDiaEspecial = TipoDiaEspecial.NORMAL
+            tipoDiaEspecial = TipoDiaEspecial.Normal
         )
     }
 
@@ -109,7 +99,7 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
             val ausencia = ausencias.firstOrNull()
             if (ausencia != null) {
                 return@combine ResultadoTipoDia(
-                    tipoDiaEspecial = ausencia.tipo.toTipoDiaEspecial(ausencia.tipoFolga),
+                    tipoDiaEspecial = ausencia.tipo.toTipoDiaEspecial(),
                     ausencia = ausencia,
                     descricao = ausencia.descricao ?: ausencia.tipoDescricao
                 )
@@ -121,24 +111,15 @@ class ObterTipoDiaEspecialUseCase @Inject constructor(
                 .firstOrNull()
 
             if (feriado != null) {
-                val tipoDiaEspecial = when (feriado.tipo) {
-                    TipoFeriado.NACIONAL,
-                    TipoFeriado.ESTADUAL,
-                    TipoFeriado.MUNICIPAL -> TipoDiaEspecial.FERIADO
-
-                    TipoFeriado.PONTE -> TipoDiaEspecial.PONTE
-                    TipoFeriado.FACULTATIVO -> TipoDiaEspecial.FACULTATIVO
-                }
-
                 return@combine ResultadoTipoDia(
-                    tipoDiaEspecial = tipoDiaEspecial,
+                    tipoDiaEspecial = feriado.tipo.toTipoDiaEspecial(),
                     feriado = feriado,
                     descricao = feriado.nome
                 )
             }
 
             // Dia normal
-            ResultadoTipoDia(tipoDiaEspecial = TipoDiaEspecial.NORMAL)
+            ResultadoTipoDia(tipoDiaEspecial = TipoDiaEspecial.Normal)
         }
     }
 }

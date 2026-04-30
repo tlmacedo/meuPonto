@@ -1,8 +1,11 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/Emprego.kt
 package br.com.tlmacedo.meuponto.domain.model
 
+import br.com.tlmacedo.meuponto.domain.model.auditoria.AuditMetadata
+import br.com.tlmacedo.meuponto.domain.model.sync.SyncMetadata
 import java.time.LocalDate
 import java.time.LocalDateTime
+
 
 /**
  * Modelo de domínio que representa um emprego/trabalho do usuário.
@@ -32,8 +35,18 @@ data class Emprego(
     val ordem: Int = 0,
     val logo: String? = null,
     val criadoEm: LocalDateTime = LocalDateTime.now(),
-    val atualizadoEm: LocalDateTime = LocalDateTime.now()
+    val atualizadoEm: LocalDateTime = LocalDateTime.now(),
+    val syncMetadata: SyncMetadata = SyncMetadata(),
+    val auditMetadata: AuditMetadata = AuditMetadata(),
+    val corIdentificacao: String? = null,
+    val favorito: Boolean = false,
 ) {
     val isVisivel: Boolean get() = ativo && !arquivado
     val podeRegistrarPonto: Boolean get() = ativo && !arquivado
+
+    val encerrado: Boolean
+        get() = dataTerminoTrabalho != null
+
+    val nomeExibicao: String
+        get() = apelido?.takeIf { it.isNotBlank() } ?: nome
 }

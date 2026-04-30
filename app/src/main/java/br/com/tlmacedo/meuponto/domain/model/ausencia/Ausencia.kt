@@ -61,10 +61,10 @@ data class Ausencia(
             periodoAquisitivo: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.FERIAS,
+            tipo = TipoAusencia.Ferias,
             dataInicio = dataInicio,
             dataFim = dataFim,
-            descricao = TipoAusencia.FERIAS.descricao,
+            descricao = TipoAusencia.Ferias.descricao,
             dataInicioPeriodoAquisitivo = dataInicioPeriodoAquisitivo,
             dataFimPeriodoAquisitivo = dataFimPeriodoAquisitivo,
             periodoAquisitivo = periodoAquisitivo
@@ -81,10 +81,10 @@ data class Ausencia(
             imagemUri: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.ATESTADO,
+            tipo = TipoAusencia.Atestado,
             dataInicio = dataInicio,
             dataFim = dataFim,
-            descricao = TipoAusencia.ATESTADO.descricao,
+            descricao = TipoAusencia.Atestado.descricao,
             observacao = motivo,
             imagemUri = imagemUri
         )
@@ -102,10 +102,10 @@ data class Ausencia(
             imagemUri: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.DECLARACAO,
+            tipo = TipoAusencia.Declaracao,
             dataInicio = data,
             dataFim = data,
-            descricao = TipoAusencia.DECLARACAO.descricao,
+            descricao = TipoAusencia.Declaracao.descricao,
             observacao = motivo,
             horaInicio = horaInicio,
             duracaoDeclaracaoMinutos = duracaoDeclaracaoMinutos,
@@ -124,10 +124,10 @@ data class Ausencia(
             imagemUri: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.FALTA_JUSTIFICADA,
+            tipo = TipoAusencia.Falta.Justificada,
             dataInicio = dataInicio,
             dataFim = dataFim,
-            descricao = TipoAusencia.FALTA_JUSTIFICADA.descricao,
+            descricao = TipoAusencia.Falta.Justificada.descricao,
             observacao = motivo,
             imagemUri = imagemUri
         )
@@ -142,10 +142,10 @@ data class Ausencia(
             observacao: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.FOLGA,
+            tipo = TipoAusencia.Folga,
             dataInicio = dataInicio,
             dataFim = dataFim,
-            descricao = TipoAusencia.FOLGA.descricao,
+            descricao = TipoAusencia.Folga.descricao,
             observacao = observacao
         )
 
@@ -159,10 +159,10 @@ data class Ausencia(
             observacao: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.FALTA_INJUSTIFICADA,
+            tipo = TipoAusencia.Falta.Injustificada,
             dataInicio = dataInicio,
             dataFim = dataFim,
-            descricao = TipoAusencia.FALTA_INJUSTIFICADA.descricao,
+            descricao = TipoAusencia.Falta.Injustificada.descricao,
             observacao = observacao
         )
 
@@ -176,7 +176,7 @@ data class Ausencia(
             observacao: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.FOLGA,
+            tipo = TipoAusencia.Folga,
             tipoFolga = TipoFolga.DAY_OFF,
             dataInicio = dataInicio,
             dataFim = dataFim,
@@ -194,7 +194,7 @@ data class Ausencia(
             observacao: String? = null
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.FOLGA,
+            tipo = TipoAusencia.Folga,
             tipoFolga = TipoFolga.COMPENSACAO,
             dataInicio = dataInicio,
             dataFim = dataFim,
@@ -213,7 +213,7 @@ data class Ausencia(
             tipoFolga: TipoFolga = TipoFolga.COMPENSACAO
         ): Ausencia = Ausencia(
             empregoId = empregoId,
-            tipo = TipoAusencia.FOLGA,
+            tipo = TipoAusencia.Folga,
             tipoFolga = tipoFolga,
             dataInicio = dataInicio,
             dataFim = dataFim,
@@ -232,7 +232,7 @@ data class Ausencia(
      */
     val tipoDescricaoCompleta: String
         get() = when {
-            tipo == TipoAusencia.FOLGA && tipoFolga != null ->
+            tipo == TipoAusencia.Folga && tipoFolga != null ->
                 "Folga (${tipoFolga.descricaoCurta})"
 
             else -> tipo.descricao
@@ -244,7 +244,7 @@ data class Ausencia(
      */
     val zeraJornadaEfetiva: Boolean
         get() = when {
-            tipo == TipoAusencia.FOLGA -> tipoFolga?.zeraJornada ?: false
+            tipo == TipoAusencia.Folga -> tipoFolga?.zeraJornada ?: false
             else -> tipo.zeraJornada
         }
 
@@ -253,7 +253,7 @@ data class Ausencia(
      */
     val descontaDoBancoEfetivo: Boolean
         get() = when {
-            tipo == TipoAusencia.FOLGA -> tipoFolga == TipoFolga.COMPENSACAO
+            tipo == TipoAusencia.Folga -> tipoFolga == TipoFolga.COMPENSACAO
             else -> tipo.descontaDoBanco
         }
 

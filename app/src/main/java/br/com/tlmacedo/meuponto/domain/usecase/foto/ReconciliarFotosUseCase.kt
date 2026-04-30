@@ -2,7 +2,6 @@ package br.com.tlmacedo.meuponto.domain.usecase.foto
 
 import br.com.tlmacedo.meuponto.domain.model.FotoComprovante
 import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
-import br.com.tlmacedo.meuponto.domain.model.toTipoJornadaDia
 import br.com.tlmacedo.meuponto.domain.repository.FotoComprovanteRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository

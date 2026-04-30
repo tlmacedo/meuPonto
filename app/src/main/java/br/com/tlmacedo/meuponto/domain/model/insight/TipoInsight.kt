@@ -1,0 +1,11 @@
+package br.com.tlmacedo.meuponto.domain.model.insight
+
+enum class TipoInsight {
+    SALDO_NEGATIVO_RECORRENTE,
+    EXCESSO_HORAS_EXTRAS,
+    ATRASO_RECORRENTE,
+    INTERVALO_CURTO_RECORRENTE,
+    PREVISAO_FECHAMENTO_MES,
+    PADRAO_PRODUTIVIDADE,
+    RISCO_INCONSISTENCIA
+}

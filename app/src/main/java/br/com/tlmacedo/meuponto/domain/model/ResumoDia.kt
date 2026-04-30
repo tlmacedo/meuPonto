@@ -19,102 +19,15 @@ import kotlin.math.abs
  * @since 3.0.0
  */
 enum class StatusDiaResumo(val descricao: String, val isConsistente: Boolean) {
-    DESCANSO("Descanso", true),
     COMPLETO("Completo", true),
-    EM_ANDAMENTO("Em andamento", true),
     INCOMPLETO("Incompleto", false),
-    COM_PROBLEMAS("Com problemas", false),
+    EM_ANDAMENTO("Em andamento", true),
+    FUTURO("Futuro", true),
     SEM_REGISTRO("Sem registro", true),
-    FERIADO("Feriado", true),
-    FERIADO_TRABALHADO("Feriado trabalhado", true),
-    FUTURO("Futuro", true)
-}
-
-/**
- * Tipo de dia especial que afeta o cálculo de jornada.
- *
- * REGRAS DE CÁLCULO:
- *
- * Jornada ZERADA (trabalho = hora extra):
- * - FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA
- *
- * Jornada NORMAL (débito se não trabalhar):
- * - NORMAL, FOLGA, FALTA_INJUSTIFICADA
- *
- * @author Thiago
- * @since 4.0.0
- */
-enum class TipoDiaEspecial(val descricao: String, val emoji: String) {
-    /** Dia de descanso semanal */
-    DESCANSO("Descanso", "😴"),
-
-    /** Dia normal de trabalho */
-    NORMAL("Dia normal", "📅"),
-
-    /** Feriado oficial (nacional/estadual/municipal) - jornada zerada */
-    FERIADO("Feriado", "🎉"),
-
-    /** Ponte (dia entre feriado e fim de semana) - jornada zerada */
-    PONTE("Ponte", "⛱️"),
-
-    /** Ponto facultativo - jornada zerada */
-    FACULTATIVO("Ponto Facultativo", "📋"),
-
-    /** Férias - jornada zerada */
-    FERIAS("Férias", "🏖️"),
-
-    /** Atestado/Declaração (ausência justificada) - jornada zerada */
-    ATESTADO("Atestado", "🏥"),
-
-    /** Falta justificada - jornada zerada */
-    FALTA_JUSTIFICADA("Falta Justificada", "📝"),
-
-    /** Folga - jornada normal (gera débito) */
-    FOLGA("Folga", "🏴‍☠️"),
-
-    /** Falta injustificada - jornada normal (gera débito) */
-    FALTA_INJUSTIFICADA("Falta Injustificada", "❌");
-
-    /**
-     * Verifica se este tipo zera a jornada (não gera débito).
-     *
-     * Zeram jornada: FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA
-     * Mantêm jornada: NORMAL, FOLGA, FALTA_INJUSTIFICADA
-     */
-    val zeraJornada: Boolean
-        get() = this in listOf(
-            DESCANSO,
-            FERIADO,
-            PONTE,
-            FACULTATIVO,
-            FERIAS,
-            ATESTADO,
-            FALTA_JUSTIFICADA
-        )
-
-    /**
-     * Verifica se é um tipo de feriado (para exibição do banner).
-     */
-    val isTipoFeriado: Boolean
-        get() = this in listOf(FERIADO, PONTE, FACULTATIVO)
-
-    /**
-     * Verifica se é ausência justificada (abonada).
-     */
-    val isAusenciaJustificada: Boolean
-        get() = this in listOf(FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA)
-
-    /**
-     * Verifica se este tipo representa uma ausência (afastamento, folga ou falta).
-     */
-    val isAusencia: Boolean
-        get() = this in listOf(
-            FERIAS,
-            ATESTADO,
-            FALTA_JUSTIFICADA,
-            FOLGA,
-            FALTA_INJUSTIFICADA
-        )
+    COM_PROBLEMAS("Com problemas", false),
+    DESCANSO("Descanso", true),
+    DESCANSO_TRABALHADO("Descanso trabalhado", true),
+    FOLGA("Folga", true),
 }
 
 /**
@@ -152,7 +65,7 @@ data class ResumoDia(
     val cargaHorariaDiaria: Duration = Duration.ofHours(8),
     val intervaloMinimoMinutos: Int = 60,
     val toleranciaIntervaloMinutos: Int = 15,
-    val tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL,
+    val tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.Normal,
     /** Horário ideal de saída para intervalo (almoço) - usado para determinar qual pausa recebe tolerância */
     val saidaIntervaloIdeal: LocalTime? = null,
     /** Tempo abonado por declaração/atestado parcial (em minutos) - somado ao saldo */
@@ -192,7 +105,9 @@ data class ResumoDia(
      * que justifique a contabilização de horas e saldo.
      */
     val temRegistro: Boolean
-        get() = pontos.isNotEmpty() || tipoDiaEspecial.isAusencia || tipoDiaEspecial.isTipoFeriado || tempoAbonadoMinutos > 0
+        get() = pontos.isNotEmpty()
+                || tipoDiaEspecial !== TipoDiaEspecial.Normal
+                || tempoAbonadoMinutos > 0
 
     // ========================================================================
     // TURNO ABERTO E TEMPO EM ANDAMENTO
@@ -287,10 +202,14 @@ data class ResumoDia(
      * - Jornada zerada (FERIADO, PONTE, FACULTATIVO, FERIAS, ATESTADO, FALTA_JUSTIFICADA): 0h
      * - Jornada normal (NORMAL, FOLGA, FALTA_INJUSTIFICADA): carga configurada
      */
+
+    val zeraJornada: Boolean
+        get() = tipoDiaEspecial.zeraJornada
+
     val cargaHorariaEfetiva: Duration
         get() = when {
             isFuturo -> Duration.ZERO
-            tipoDiaEspecial.zeraJornada -> Duration.ZERO
+            zeraJornada -> Duration.ZERO
             else -> cargaHorariaDiaria
         }
 
@@ -378,38 +297,35 @@ data class ResumoDia(
 
     /** Verifica se é um dia com jornada zerada (não gera débito) */
     val isJornadaZerada: Boolean
-        get() = isFuturo || tipoDiaEspecial.zeraJornada
+        get() = isFuturo || zeraJornada
+
+    val isFolga: Boolean
+        get() = tipoDiaEspecial.isFolga
 
     val isDescanso: Boolean
-        get() = tipoDiaEspecial == TipoDiaEspecial.DESCANSO
+        get() = tipoDiaEspecial.isDescanso
 
     /** Verifica se é um dia de feriado (inclui ponte e facultativo) */
-    val isFeriado: Boolean
-        get() = tipoDiaEspecial.isTipoFeriado
-
-    /** Verifica se é um dia de férias */
     val isFerias: Boolean
-        get() = tipoDiaEspecial == TipoDiaEspecial.FERIAS
+        get() = tipoDiaEspecial.isFerias
 
-    /** Verifica se é um dia de folga */
-    val isFolga: Boolean
-        get() = tipoDiaEspecial == TipoDiaEspecial.FOLGA
+    val isFeriado: Boolean
+        get() = tipoDiaEspecial.isFeriado
 
-    /** Verifica se é um dia de falta injustificada */
+    val isAusencia: Boolean
+        get() = tipoDiaEspecial.isAusencia
+
     val isFaltaInjustificada: Boolean
-        get() = tipoDiaEspecial == TipoDiaEspecial.FALTA_INJUSTIFICADA
+        get() = tipoDiaEspecial.isFaltaInjustificada
 
-    /** Verifica se é um dia de falta justificada */
     val isFaltaJustificada: Boolean
-        get() = tipoDiaEspecial == TipoDiaEspecial.FALTA_JUSTIFICADA
+        get() = tipoDiaEspecial.isFaltaJustificada
 
-    /** Verifica se é um dia de atestado/declaração */
-    val isAtestado: Boolean
-        get() = tipoDiaEspecial == TipoDiaEspecial.ATESTADO
+    val isDayOff: Boolean
+        get() = tipoDiaEspecial.isDayOff
 
-    /** Verifica se é um dia especial (não normal) */
-    val isDiaEspecial: Boolean
-        get() = tipoDiaEspecial != TipoDiaEspecial.NORMAL
+    val isDiminuirBanco: Boolean
+        get() = tipoDiaEspecial.isDiminuirBanco
 
     /**
      * Verifica se há inconsistência de ponto aberto em dia passado.
@@ -466,7 +382,7 @@ data class ResumoDia(
                 inconsistencias.add("Jornada incompleta (${pontos.size} pontos registrados)")
             }
 
-            if (pontos.size >= 4 && !tipoDiaEspecial.zeraJornada) {
+            if (pontos.size >= 4 && !zeraJornada) {
                 val pausaPrincipal = intervalos.find { it.isPausaPrincipal }
                 val pausaPrincipalMinutos = pausaPrincipal?.pausaAntesMinutos ?: 0
 
@@ -489,18 +405,18 @@ data class ResumoDia(
      */
     val statusDia: StatusDiaResumo
         get() = when {
-            // Dias futuros
             isFuturo -> StatusDiaResumo.FUTURO
-            // Dias com jornada zerada (feriado, férias, atestado, etc.)
-            tipoDiaEspecial.zeraJornada && pontos.isNotEmpty() -> StatusDiaResumo.FERIADO_TRABALHADO
-            tipoDiaEspecial.zeraJornada -> StatusDiaResumo.FERIADO
-            // Dia de descanso
-            cargaHorariaDiaria == Duration.ZERO -> StatusDiaResumo.DESCANSO
-            // Dias com jornada normal (normal, folga, falta injustificada)
+
+            zeraJornada && pontos.isNotEmpty() -> StatusDiaResumo.DESCANSO_TRABALHADO
+            zeraJornada -> StatusDiaResumo.DESCANSO
+
             pontos.isEmpty() -> StatusDiaResumo.SEM_REGISTRO
-            !jornadaCompleta && pontos.size == 1 && data == LocalDate.now() -> StatusDiaResumo.EM_ANDAMENTO
+
+            !jornadaCompleta && pontos.size == 1 && isHoje -> StatusDiaResumo.EM_ANDAMENTO
             !jornadaCompleta -> StatusDiaResumo.INCOMPLETO
+
             temProblemas -> StatusDiaResumo.COM_PROBLEMAS
+
             else -> StatusDiaResumo.COMPLETO
         }
 

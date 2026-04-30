@@ -144,7 +144,7 @@ data class AusenciaFormUiState(
     val isEdicao: Boolean = false,
 
     // Tipo
-    val tipo: TipoAusencia = TipoAusencia.FERIAS,
+    val tipo: TipoAusencia = TipoAusencia.Ferias,
     val tipoFolga: TipoFolga = TipoFolga.COMPENSACAO, // Novo campo
 
     // Período (para tipos que usam período)
@@ -265,7 +265,7 @@ data class AusenciaFormUiState(
 
     /** Indica se deve mostrar o seletor de tipo de folga */
     val mostrarTipoFolga: Boolean
-        get() = tipo == TipoAusencia.FOLGA
+        get() = tipo == TipoAusencia.DayOff
 
     /** Ciclo atualmente selecionado (ex: "2022/2023") */
     val cicloSelecionadoPA: String?
@@ -313,14 +313,14 @@ data class AusenciaFormUiState(
 
     val isFormValido: Boolean
         get() = when (tipo) {
-            TipoAusencia.FERIAS -> {
+            TipoAusencia.Ferias -> {
                 empregoId > 0 &&
                         dataInicioPeriodoAquisitivo != null &&
                         dataFimPeriodoAquisitivo != null
             }
 
-            TipoAusencia.ATESTADO -> empregoId > 0 && observacao.isNotBlank()
-            TipoAusencia.DECLARACAO -> {
+            TipoAusencia.Atestado -> empregoId > 0 && observacao.isNotBlank()
+            TipoAusencia.Declaracao -> {
                 empregoId > 0 &&
                         observacao.isNotBlank() &&
                         duracaoDeclaracaoTotalMinutos > 0 &&
@@ -328,15 +328,16 @@ data class AusenciaFormUiState(
                         duracaoAbonoTotalMinutos <= duracaoDeclaracaoTotalMinutos
             }
 
-            TipoAusencia.FALTA_JUSTIFICADA -> empregoId > 0 && observacao.isNotBlank()
-            TipoAusencia.FOLGA -> empregoId > 0
-            TipoAusencia.FALTA_INJUSTIFICADA -> empregoId > 0
+            TipoAusencia.Falta.Justificada -> empregoId > 0 && observacao.isNotBlank()
+            TipoAusencia.DayOff -> empregoId > 0
+            TipoAusencia.Falta.Injustificada -> empregoId > 0
+            else -> true
         }
 
     val mensagemValidacao: String?
         get() = when {
             empregoId <= 0 -> "Nenhum emprego ativo encontrado"
-            tipo == TipoAusencia.FERIAS -> {
+            tipo == TipoAusencia.Ferias -> {
                 when {
                     dataInicioPeriodoAquisitivo == null || dataFimPeriodoAquisitivo == null ->
                         "Informe o período aquisitivo (início e fim)"
@@ -351,22 +352,22 @@ data class AusenciaFormUiState(
                 }
             }
 
-            tipo == TipoAusencia.ATESTADO && observacao.isBlank() ->
+            tipo == TipoAusencia.Atestado && observacao.isBlank() ->
                 "Informe o motivo do atestado"
 
-            tipo == TipoAusencia.DECLARACAO && observacao.isBlank() ->
+            tipo == TipoAusencia.Declaracao && observacao.isBlank() ->
                 "Informe o motivo da declaração"
 
-            tipo == TipoAusencia.DECLARACAO && duracaoDeclaracaoTotalMinutos <= 0 ->
+            tipo == TipoAusencia.Declaracao && duracaoDeclaracaoTotalMinutos <= 0 ->
                 "Informe a duração da declaração"
 
-            tipo == TipoAusencia.DECLARACAO && duracaoAbonoTotalMinutos <= 0 ->
+            tipo == TipoAusencia.Declaracao && duracaoAbonoTotalMinutos <= 0 ->
                 "Informe o tempo de abono"
 
-            tipo == TipoAusencia.DECLARACAO && duracaoAbonoTotalMinutos > duracaoDeclaracaoTotalMinutos ->
+            tipo == TipoAusencia.Declaracao && duracaoAbonoTotalMinutos > duracaoDeclaracaoTotalMinutos ->
                 "O tempo de abono não pode ser maior que a duração da declaração"
 
-            tipo == TipoAusencia.FALTA_JUSTIFICADA && observacao.isBlank() ->
+            tipo == TipoAusencia.Falta.Justificada && observacao.isBlank() ->
                 "Informe o motivo da falta justificada"
 
             else -> null
@@ -402,17 +403,17 @@ data class AusenciaFormUiState(
             id = id,
             empregoId = empregoId,
             tipo = tipo,
-            tipoFolga = if (tipo == TipoAusencia.FOLGA) tipoFolga else null,
+            tipoFolga = if (tipo == TipoAusencia.DayOff) tipoFolga else null,
             dataInicio = dataInicio,
             dataFim = if (tipo.usaPeriodo) dataFimFinal else dataInicio,
             descricao = descricao.ifBlank { tipo.descricao },
             observacao = observacao.ifBlank { null },
-            horaInicio = if (tipo == TipoAusencia.DECLARACAO) horaInicio else null,
-            duracaoDeclaracaoMinutos = if (tipo == TipoAusencia.DECLARACAO) duracaoDeclaracaoTotalMinutos else null,
-            duracaoAbonoMinutos = if (tipo == TipoAusencia.DECLARACAO) duracaoAbonoTotalMinutos else null,
-            dataInicioPeriodoAquisitivo = if (tipo == TipoAusencia.FERIAS) dataInicioPeriodoAquisitivo else null,
-            dataFimPeriodoAquisitivo = if (tipo == TipoAusencia.FERIAS) dataFimPeriodoAquisitivo else null,
-            periodoAquisitivo = if (tipo == TipoAusencia.FERIAS) periodoAquisitivo.ifBlank { null } else null,
+            horaInicio = if (tipo == TipoAusencia.Declaracao) horaInicio else null,
+            duracaoDeclaracaoMinutos = if (tipo == TipoAusencia.Declaracao) duracaoDeclaracaoTotalMinutos else null,
+            duracaoAbonoMinutos = if (tipo == TipoAusencia.Declaracao) duracaoAbonoTotalMinutos else null,
+            dataInicioPeriodoAquisitivo = if (tipo == TipoAusencia.Ferias) dataInicioPeriodoAquisitivo else null,
+            dataFimPeriodoAquisitivo = if (tipo == TipoAusencia.Ferias) dataFimPeriodoAquisitivo else null,
+            periodoAquisitivo = if (tipo == TipoAusencia.Ferias) periodoAquisitivo.ifBlank { null } else null,
             imagemUri = imagemUri
         )
     }

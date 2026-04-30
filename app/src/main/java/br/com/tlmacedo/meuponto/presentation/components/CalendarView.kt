@@ -138,7 +138,7 @@ fun CalendarView(
                                 .aspectRatio(1f)
                         ) {
                             val info = dayData.info
-                            
+
                             val matchesFilter = if (filtrosAtivos.isEmpty()) true else {
                                 info?.let { dia ->
                                     filtrosAtivos.any { filtro ->
@@ -151,22 +151,23 @@ fun CalendarView(
                                             FiltroHistorico.FUTUROS -> dia.resumoDia.isFuturo
                                             FiltroHistorico.DESCANSO -> dia.isDescanso
                                             FiltroHistorico.FERIADOS -> dia.temFeriado
-                                            FiltroHistorico.FERIAS -> dia.ausencias.any { it.tipo == TipoAusencia.FERIAS }
-                                            FiltroHistorico.FOLGAS -> dia.ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga != TipoFolga.DAY_OFF }
-                                            FiltroHistorico.DAY_OFF -> dia.ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga == TipoFolga.DAY_OFF }
-                                            FiltroHistorico.ATESTADOS -> dia.ausencias.any { it.tipo == TipoAusencia.ATESTADO }
+                                            FiltroHistorico.FERIAS -> dia.ausencias.any { it.tipo == TipoAusencia.Ferias }
+                                            FiltroHistorico.FOLGAS -> dia.ausencias.any { it.tipo == TipoAusencia.DayOff && it.tipoFolga != TipoFolga.DAY_OFF }
+                                            FiltroHistorico.DAY_OFF -> dia.ausencias.any { it.tipo == TipoAusencia.DayOff && it.tipoFolga == TipoFolga.DAY_OFF }
+                                            FiltroHistorico.ATESTADOS -> dia.ausencias.any { it.tipo == TipoAusencia.Atestado }
                                             FiltroHistorico.DECLARACOES -> dia.declaracoes.isNotEmpty()
-                                            FiltroHistorico.FALTAS -> dia.ausencias.any { it.tipo == TipoAusencia.FALTA_JUSTIFICADA || it.tipo == TipoAusencia.FALTA_INJUSTIFICADA }
+                                            FiltroHistorico.FALTAS -> dia.ausencias.any { it.tipo == TipoAusencia.Falta.Justificada || it.tipo == TipoAusencia.Falta.Injustificada }
                                         }
                                     }
                                 } ?: false
                             }
-                            
+
                             val isInSelectedPeriod = if (periodosAtivos.isEmpty()) true else {
                                 periodosAtivos.any { it.dataInicio <= dayData.date && it.dataFim >= dayData.date }
                             }
 
-                            val shouldHighlight = info?.let { it.temFeriado || it.temAusencia } ?: false
+                            val shouldHighlight =
+                                info?.let { it.temFeriado || it.temAusencia } ?: false
 
                             CalendarDay(
                                 date = dayData.date,
@@ -194,8 +195,11 @@ sealed class CalendarDayData {
     abstract val date: LocalDate
     abstract val info: InfoDiaHistorico?
 
-    data class CurrentMonth(override val date: LocalDate, override val info: InfoDiaHistorico?) : CalendarDayData()
-    data class OtherMonth(override val date: LocalDate, override val info: InfoDiaHistorico?) : CalendarDayData()
+    data class CurrentMonth(override val date: LocalDate, override val info: InfoDiaHistorico?) :
+        CalendarDayData()
+
+    data class OtherMonth(override val date: LocalDate, override val info: InfoDiaHistorico?) :
+        CalendarDayData()
 }
 
 @Composable
@@ -219,13 +223,18 @@ private fun CalendarDay(
         !isCurrentMonth -> Color.Transparent
         isToday && !highlightOnlySpecials -> MaterialTheme.colorScheme.primary.copy(alpha = baseAlpha)
         infoDia?.temFeriado == true -> Color(0xFF9C27B0).copy(alpha = highlightedAlpha)
-        infoDia?.ausenciaPrincipal != null -> getAbsenceColor(infoDia.ausenciaPrincipal!!).copy(alpha = highlightedAlpha)
-        (date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY) && !highlightOnlySpecials -> 
+        infoDia?.ausenciaPrincipal != null -> getAbsenceColor(infoDia.ausenciaPrincipal!!).copy(
+            alpha = highlightedAlpha
+        )
+
+        (date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY) && !highlightOnlySpecials ->
             MaterialTheme.colorScheme.error.copy(alpha = if (finalMuted) 0.02f else 0.05f)
+
         else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (finalMuted) 0.1f else 0.3f)
     }
 
-    val borderColor = if (isToday && !finalMuted && !highlightOnlySpecials) MaterialTheme.colorScheme.primary else Color.Transparent
+    val borderColor =
+        if (isToday && !finalMuted && !highlightOnlySpecials) MaterialTheme.colorScheme.primary else Color.Transparent
 
     Box(
         modifier = Modifier
@@ -388,10 +397,10 @@ data class LegendItem(val label: String, val emoji: String, val color: Color)
 
 private fun getStatusColor(status: StatusDiaResumo): Color {
     return when (status) {
-        StatusDiaResumo.DESCANSO, StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)
+        StatusDiaResumo.DESCANSO, StatusDiaResumo.FOLGA -> Color(0xFF9C27B0)
         StatusDiaResumo.COMPLETO -> Success
         StatusDiaResumo.EM_ANDAMENTO -> Info
-        StatusDiaResumo.INCOMPLETO, StatusDiaResumo.FERIADO_TRABALHADO -> Warning
+        StatusDiaResumo.INCOMPLETO, StatusDiaResumo.DESCANSO_TRABALHADO -> Warning
         StatusDiaResumo.COM_PROBLEMAS -> Error
         else -> SidiaMediumGray
     }
@@ -399,9 +408,9 @@ private fun getStatusColor(status: StatusDiaResumo): Color {
 
 private fun getAbsenceColor(ausencia: Ausencia): Color {
     return when (ausencia.tipo) {
-        TipoAusencia.FERIAS -> Info
-        TipoAusencia.ATESTADO, TipoAusencia.FALTA_JUSTIFICADA, TipoAusencia.FOLGA -> Warning
-        TipoAusencia.FALTA_INJUSTIFICADA -> Error
+        TipoAusencia.Ferias -> Info
+        TipoAusencia.Atestado, TipoAusencia.Falta.Justificada, TipoAusencia.DayOff -> Warning
+        TipoAusencia.Falta.Injustificada -> Error
         else -> Color.Gray
     }
 }

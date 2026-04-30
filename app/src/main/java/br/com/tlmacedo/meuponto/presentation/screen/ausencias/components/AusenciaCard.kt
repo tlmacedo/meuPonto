@@ -132,12 +132,13 @@ fun AusenciaCard(
                     Text(
                         text = stringResource(
                             when (ausencia.tipo) {
-                                TipoAusencia.FERIAS -> R.string.tipo_ausencia_ferias
-                                TipoAusencia.ATESTADO -> R.string.tipo_ausencia_atestado
-                                TipoAusencia.DECLARACAO -> R.string.tipo_ausencia_declaracao
-                                TipoAusencia.FALTA_JUSTIFICADA -> R.string.tipo_ausencia_falta_justificada
-                                TipoAusencia.FOLGA -> R.string.tipo_ausencia_folga
-                                TipoAusencia.FALTA_INJUSTIFICADA -> R.string.tipo_ausencia_falta_injustificada
+                                TipoAusencia.Ferias -> R.string.tipo_ausencia_ferias
+                                TipoAusencia.Atestado -> R.string.tipo_ausencia_atestado
+                                TipoAusencia.Declaracao -> R.string.tipo_ausencia_declaracao
+                                TipoAusencia.Falta.Justificada -> R.string.tipo_ausencia_falta_justificada
+                                TipoAusencia.DayOff -> R.string.tipo_ausencia_folga
+                                TipoAusencia.Falta.Injustificada -> R.string.tipo_ausencia_falta_injustificada
+                                else -> R.string.tipo_ausencia_declaracao // Fallback
                             }
                         ),
                         style = MaterialTheme.typography.titleMedium,
@@ -155,7 +156,7 @@ fun AusenciaCard(
 
                     // Detalhes específicos por tipo
                     when (ausencia.tipo) {
-                        TipoAusencia.FERIAS -> {
+                        TipoAusencia.Ferias -> {
                             // Mostrar período aquisitivo se houver
                             if (ausencia.dataInicioPeriodoAquisitivo != null && ausencia.dataFimPeriodoAquisitivo != null) {
                                 val inicioStr = ausencia.dataInicioPeriodoAquisitivo.format(
@@ -216,7 +217,7 @@ fun AusenciaCard(
                             }
                         }
 
-                        TipoAusencia.DECLARACAO -> {
+                        TipoAusencia.Declaracao -> {
                             ausencia.horaInicio?.let { horaInicio ->
                                 val horaStr = horaInicio.toString().substring(0, 5)
                                 val duracaoStr =
@@ -386,10 +387,11 @@ private fun formatarMinutosString(minutos: Int): String {
  */
 private val TipoAusencia.cor: Color
     get() = when (this) {
-        TipoAusencia.FERIAS -> Color(0xFF1976D2)            // Azul
-        TipoAusencia.ATESTADO -> Color(0xFFD32F2F)          // Vermelho
-        TipoAusencia.DECLARACAO -> Color(0xFF7B1FA2)        // Roxo
-        TipoAusencia.FALTA_JUSTIFICADA -> Color(0xFFFFA000) // Âmbar
-        TipoAusencia.FOLGA -> Color(0xFF388E3C)             // Verde
-        TipoAusencia.FALTA_INJUSTIFICADA -> Color(0xFF616161) // Cinza
+        TipoAusencia.Ferias -> Color(0xFF1976D2)            // Azul
+        TipoAusencia.Atestado -> Color(0xFFD32F2F)          // Vermelho
+        TipoAusencia.Declaracao -> Color(0xFF7B1FA2)        // Roxo
+        TipoAusencia.Falta.Justificada -> Color(0xFFFFA000) // Âmbar
+        TipoAusencia.DayOff -> Color(0xFF388E3C)             // Verde
+        TipoAusencia.Falta.Injustificada -> Color(0xFF616161) // Cinza
+        else -> Color.Gray
     }

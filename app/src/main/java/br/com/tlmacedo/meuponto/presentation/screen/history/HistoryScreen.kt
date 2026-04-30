@@ -1,7 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/history/HistoryScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.history
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
@@ -21,7 +20,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -121,7 +119,6 @@ import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
 import br.com.tlmacedo.meuponto.presentation.components.HistoryShimmerItem
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
-import br.com.tlmacedo.meuponto.presentation.screen.history.TipoProgresso
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.Info
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
@@ -136,7 +133,6 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.Float
 
 @Composable
 fun HistoryScreen(
@@ -1403,6 +1399,7 @@ fun ProgressoMeta(
         }
     }
 }
+
 @Composable
 private fun ResumoSecundarioItem(
     label: String,
@@ -1745,19 +1742,19 @@ private fun FeriadoInfoSection(feriado: Feriado) {
 @Composable
 private fun AusenciaInfoSection(ausencia: Ausencia) {
     val corFundo = when (ausencia.tipo) {
-        TipoAusencia.FERIAS -> Color(0xFF00BCD4).copy(alpha = 0.1f)
-        TipoAusencia.ATESTADO -> Color(0xFFE91E63).copy(alpha = 0.1f)
-        TipoAusencia.FALTA_JUSTIFICADA -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-        TipoAusencia.FOLGA -> Color(0xFFFF9800).copy(alpha = 0.1f)
-        TipoAusencia.FALTA_INJUSTIFICADA -> Color(0xFFF44336).copy(alpha = 0.1f)
+        TipoAusencia.Ferias -> Color(0xFF00BCD4).copy(alpha = 0.1f)
+        TipoAusencia.Atestado -> Color(0xFFE91E63).copy(alpha = 0.1f)
+        TipoAusencia.Falta.Justificada -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+        TipoAusencia.DayOff -> Color(0xFFFF9800).copy(alpha = 0.1f)
+        TipoAusencia.Falta.Injustificada -> Color(0xFFF44336).copy(alpha = 0.1f)
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val emoji = when (ausencia.tipo) {
-        TipoAusencia.FERIAS -> "🏖️"
-        TipoAusencia.ATESTADO -> "🏥"
-        TipoAusencia.FALTA_JUSTIFICADA -> "📝"
-        TipoAusencia.FOLGA -> if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
-        TipoAusencia.FALTA_INJUSTIFICADA -> "❌"
+        TipoAusencia.Ferias -> "🏖️"
+        TipoAusencia.Atestado -> "🏥"
+        TipoAusencia.Falta.Justificada -> "📝"
+        TipoAusencia.DayOff -> if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
+        TipoAusencia.Falta.Injustificada -> "❌"
         else -> "📄"
     }
     Surface(
@@ -1972,10 +1969,10 @@ private fun SaldosSection(
 }
 
 private fun getStatusColor(status: StatusDiaResumo): Color = when (status) {
-    StatusDiaResumo.DESCANSO, StatusDiaResumo.FERIADO -> Color(0xFF9C27B0)
+    StatusDiaResumo.DESCANSO, StatusDiaResumo.FOLGA -> Color(0xFF9C27B0)
     StatusDiaResumo.COMPLETO -> Success
     StatusDiaResumo.EM_ANDAMENTO -> Info
-    StatusDiaResumo.INCOMPLETO, StatusDiaResumo.FERIADO_TRABALHADO -> Warning
+    StatusDiaResumo.INCOMPLETO, StatusDiaResumo.DESCANSO_TRABALHADO -> Warning
     StatusDiaResumo.COM_PROBLEMAS -> Error
     else -> SidiaMediumGray
 }

@@ -19,7 +19,6 @@ import br.com.tlmacedo.meuponto.domain.model.Usuario
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
-import br.com.tlmacedo.meuponto.domain.model.toTipoJornadaDia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
@@ -1554,33 +1553,12 @@ class HomeViewModel @Inject constructor(
                         isLoading = false
                     )
                 }
-                
+
                 // Sincronizar com Wear OS sempre que os pontos do dia mudarem
                 if (data == LocalDate.now()) {
                     syncPontoStatusWithWearUseCase()
                 }
             }
-        }
-    }
-
-    private fun determinarTipoDiaEspecial(
-        feriados: List<Feriado>,
-        ausencia: Ausencia? = null
-    ): TipoDiaEspecial {
-        if (ausencia != null) {
-            return ausencia.tipo.toTipoDiaEspecial(ausencia.tipoFolga)
-        }
-
-        if (feriados.isEmpty()) return TipoDiaEspecial.NORMAL
-
-        val temFeriadoFolga = feriados.any { feriado ->
-            feriado.tipo in TipoFeriado.tiposFolga()
-        }
-
-        return if (temFeriadoFolga) {
-            TipoDiaEspecial.FERIADO
-        } else {
-            TipoDiaEspecial.NORMAL
         }
     }
 

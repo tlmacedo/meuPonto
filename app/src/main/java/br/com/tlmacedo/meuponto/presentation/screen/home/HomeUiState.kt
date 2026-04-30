@@ -307,24 +307,24 @@ data class HomeUiState(
         get() = ausenciaDoDia != null
 
     val isDescanso: Boolean
-        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.DESCANSO
+        get() = resumoDia.tipoDiaEspecial.isDescanso
     val isFerias: Boolean
-        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FERIAS
+        get() = resumoDia.tipoDiaEspecial.isFerias
 
     val isFolga: Boolean
-        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FOLGA
+        get() = resumoDia.tipoDiaEspecial.isFolga || resumoDia.tipoDiaEspecial.isDayOff
 
     val isFalta: Boolean
-        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FALTA_INJUSTIFICADA
+        get() = resumoDia.tipoDiaEspecial.isFaltaInjustificada
 
     val isAtestado: Boolean
-        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.ATESTADO
+        get() = resumoDia.tipoDiaEspecial.isAtestado
 
     val isLicenca: Boolean
-        get() = resumoDia.tipoDiaEspecial == TipoDiaEspecial.FALTA_JUSTIFICADA
+        get() = resumoDia.tipoDiaEspecial.isFaltaJustificada
 
     val isDiaEspecial: Boolean
-        get() = resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL
+        get() = resumoDia.tipoDiaEspecial != TipoDiaEspecial.Normal
 
     val descricaoAusencia: String?
         get() = ausenciaDoDia?.descricao ?: ausenciaDoDia?.tipoDescricao

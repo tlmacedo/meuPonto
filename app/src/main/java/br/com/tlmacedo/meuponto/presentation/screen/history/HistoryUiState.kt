@@ -174,7 +174,7 @@ data class InfoDiaHistorico(
 
     /** É dia de falta (justificada ou injustificada) */
     val isFalta: Boolean
-        get() = ausencias.any { it.tipo == TipoAusencia.FALTA_JUSTIFICADA || it.tipo == TipoAusencia.FALTA_INJUSTIFICADA }
+        get() = ausencias.any { it.tipo == TipoAusencia.Falta.Justificada || it.tipo == TipoAusencia.Falta.Injustificada }
 
     /** É dia de descanso (fim de semana sem jornada) */
     val isDescanso: Boolean
@@ -194,15 +194,16 @@ data class InfoDiaHistorico(
 
     /** Declarações do dia */
     val declaracoes: List<Ausencia>
-        get() = ausencias.filter { it.tipo == TipoAusencia.DECLARACAO }
+        get() = ausencias.filter { it.tipo == TipoAusencia.Declaracao }
 
     /** Atestados do dia */
     val atestados: List<Ausencia>
-        get() = ausencias.filter { it.tipo == TipoAusencia.ATESTADO }
+        get() = ausencias.filter { it.tipo == TipoAusencia.Atestado }
 
     /** Ausência principal (que não é declaração, a menos que só existam declarações) */
     val ausenciaPrincipal: Ausencia?
-        get() = ausencias.firstOrNull { it.tipo != TipoAusencia.DECLARACAO } ?: ausencias.firstOrNull()
+        get() = ausencias.firstOrNull { it.tipo != TipoAusencia.Declaracao }
+            ?: ausencias.firstOrNull()
 
     /** Total de minutos abonados por declarações */
     val totalMinutosDeclaracoes: Int
@@ -224,12 +225,13 @@ data class InfoDiaHistorico(
 
     private fun getEmojiAusencia(ausencia: Ausencia): String {
         return when (ausencia.tipo) {
-            TipoAusencia.FERIAS -> "🏖️"
-            TipoAusencia.ATESTADO -> "🏥"
-            TipoAusencia.DECLARACAO -> "📄"
-            TipoAusencia.FALTA_JUSTIFICADA -> "📝"
-            TipoAusencia.FOLGA -> if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
-            TipoAusencia.FALTA_INJUSTIFICADA -> "❌"
+            TipoAusencia.Ferias -> "🏖️"
+            TipoAusencia.Atestado -> "🏥"
+            TipoAusencia.Declaracao -> "📄"
+            TipoAusencia.Falta.Justificada -> "📝"
+            TipoAusencia.DayOff -> if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
+            TipoAusencia.Falta.Injustificada -> "❌"
+            else -> "📄"
         }
     }
 
@@ -306,7 +308,7 @@ data class ResumoPeriodo(
     val ausenciasDescricao: String
         get() = buildString {
             val parts = mutableListOf<String>()
-            if (quantidadeFaltas > 0)  parts.add("$quantidadeFaltas Faltas")
+            if (quantidadeFaltas > 0) parts.add("$quantidadeFaltas Faltas")
             if (quantidadeAtestados > 0) parts.add("$quantidadeAtestados Atestados")
             append(parts.joinToString("/ "))
         }
@@ -323,7 +325,8 @@ data class ResumoPeriodo(
     /** Progresso da meta do período em porcentagem */
     val progressoMeta: Float
         get() = if (totalHorasUteisMinutos > 0) {
-            val numerador = totalMinutosTrabalhados + (totalMinutosAusenciaAbonada - totalMinutosAusenciaNaoAbonada)
+            val numerador =
+                totalMinutosTrabalhados + (totalMinutosAusenciaAbonada - totalMinutosAusenciaNaoAbonada)
             (numerador.toFloat() / totalHorasUteisMinutos.toFloat()).coerceIn(0f, 1f)
         } else 0f
 
@@ -407,12 +410,12 @@ data class HistoryUiState(
                         FiltroHistorico.INCOMPLETOS -> dia.isIncompleto
                         FiltroHistorico.COM_PROBLEMAS -> dia.temProblemas
                         FiltroHistorico.FUTUROS -> dia.resumoDia.isFuturo
-                        FiltroHistorico.DESCANSO -> dia.isDescanso && !dia.temFeriado && !(dia.ausencias.any { it.tipo == TipoAusencia.FERIAS }) && !dia.isFalta
-                        FiltroHistorico.FERIADOS -> dia.temFeriado && !(dia.ausencias.any { it.tipo == TipoAusencia.FERIAS }) && !dia.isFalta
-                        FiltroHistorico.FERIAS -> dia.ausencias.any { it.tipo == TipoAusencia.FERIAS } && !dia.isFalta
-                        FiltroHistorico.FOLGAS -> dia.ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga != TipoFolga.DAY_OFF }
-                        FiltroHistorico.DAY_OFF -> dia.ausencias.any { it.tipo == TipoAusencia.FOLGA && it.tipoFolga == TipoFolga.DAY_OFF }
-                        FiltroHistorico.ATESTADOS -> dia.ausencias.any { it.tipo == TipoAusencia.ATESTADO }
+                        FiltroHistorico.DESCANSO -> dia.isDescanso && !dia.temFeriado && !(dia.ausencias.any { it.tipo == TipoAusencia.Ferias }) && !dia.isFalta
+                        FiltroHistorico.FERIADOS -> dia.temFeriado && !(dia.ausencias.any { it.tipo == TipoAusencia.Ferias }) && !dia.isFalta
+                        FiltroHistorico.FERIAS -> dia.ausencias.any { it.tipo == TipoAusencia.Ferias } && !dia.isFalta
+                        FiltroHistorico.FOLGAS -> dia.ausencias.any { it.tipo == TipoAusencia.DayOff && it.tipoFolga != TipoFolga.DAY_OFF }
+                        FiltroHistorico.DAY_OFF -> dia.ausencias.any { it.tipo == TipoAusencia.DayOff && it.tipoFolga == TipoFolga.DAY_OFF }
+                        FiltroHistorico.ATESTADOS -> dia.ausencias.any { it.tipo == TipoAusencia.Atestado }
                         FiltroHistorico.DECLARACOES -> dia.declaracoes.isNotEmpty()
                         FiltroHistorico.FALTAS -> dia.isFalta
                     }
@@ -463,5 +466,6 @@ data class HistoryUiState(
     val saldoDiaMaisRecente: Int
         get() = dataMaisRecente?.let { saldosAcumuladosPorDia[it] } ?: saldoAcumuladoTotal
 
-    fun saldoAcumuladoAte(data: LocalDate): Int = saldosAcumuladosPorDia[data] ?: saldoInicialPeriodo
+    fun saldoAcumuladoAte(data: LocalDate): Int =
+        saldosAcumuladosPorDia[data] ?: saldoInicialPeriodo
 }

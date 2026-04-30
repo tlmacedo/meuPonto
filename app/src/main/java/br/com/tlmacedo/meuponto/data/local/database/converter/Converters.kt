@@ -113,12 +113,38 @@ class Converters {
     @TypeConverter
     fun toAcaoAuditoria(value: String?): AcaoAuditoria? = value?.let { AcaoAuditoria.valueOf(it) }
 
-    // TipoAusencia Enum Converters
+    // TipoAusencia Sealed Class Converters
     @TypeConverter
-    fun fromTipoAusencia(value: TipoAusencia): String = value.name
+    fun fromTipoAusencia(tipo: TipoAusencia?): String? = when (tipo) {
+        TipoAusencia.Folga -> "FOLGA"
+        TipoAusencia.Ferias -> "FERIAS"
+        TipoAusencia.Feriado -> "FERIADO"
+        TipoAusencia.DiaPonte -> "DIA_PONTE"
+        TipoAusencia.Facultativo -> "FACULTATIVO"
+        TipoAusencia.Atestado -> "ATESTADO"
+        TipoAusencia.DayOff -> "DAY_OFF"
+        TipoAusencia.DiminuirBanco -> "DIMINUIR_BANCO"
+        TipoAusencia.Declaracao -> "DECLARACAO"
+        TipoAusencia.Falta.Justificada -> "FALTA_JUSTIFICADA"
+        TipoAusencia.Falta.Injustificada -> "FALTA_INJUSTIFICADA"
+        null -> null
+    }
 
     @TypeConverter
-    fun toTipoAusencia(value: String): TipoAusencia = TipoAusencia.valueOf(value)
+    fun toTipoAusencia(value: String?): TipoAusencia? = when (value) {
+        "FOLGA" -> TipoAusencia.Folga
+        "FERIAS" -> TipoAusencia.Ferias
+        "FERIADO" -> TipoAusencia.Feriado
+        "DIA_PONTE" -> TipoAusencia.DiaPonte
+        "FACULTATIVO" -> TipoAusencia.Facultativo
+        "ATESTADO" -> TipoAusencia.Atestado
+        "DAY_OFF" -> TipoAusencia.DayOff
+        "DIMINUIR_BANCO" -> TipoAusencia.DiminuirBanco
+        "DECLARACAO" -> TipoAusencia.Declaracao
+        "FALTA_JUSTIFICADA" -> TipoAusencia.Falta.Justificada
+        "FALTA_INJUSTIFICADA" -> TipoAusencia.Falta.Injustificada
+        else -> null
+    }
 
     @TypeConverter
     fun fromTipoFolga(value: TipoFolga?): String? = value?.name

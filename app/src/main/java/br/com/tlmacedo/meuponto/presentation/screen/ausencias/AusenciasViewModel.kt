@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.YearMonth
 import javax.inject.Inject
 
 /**
@@ -143,7 +142,7 @@ class AusenciasViewModel @Inject constructor(
     private fun atualizarDiasCalendario() {
         val state = _uiState.value
         val ausencias = state.ausencias.filter { it.ativo }
-        
+
         // Carregamos o ano inteiro
         val ano = state.filtroAno ?: LocalDate.now().year
         val dataInicioAno = LocalDate.of(ano, 1, 1)
@@ -152,21 +151,34 @@ class AusenciasViewModel @Inject constructor(
         val diasList = mutableListOf<InfoDiaHistorico>()
         var dataAtual = dataInicioAno
         while (dataAtual <= dataFimAno) {
-            val ausenciasDoDia = ausencias.filter { it.dataInicio <= dataAtual && it.dataFim >= dataAtual }
-            
+            val ausenciasDoDia =
+                ausencias.filter { it.dataInicio <= dataAtual && it.dataFim >= dataAtual }
+
             val tipoEspecial = when {
-                ausenciasDoDia.any { it.tipo == TipoAusencia.FERIAS } -> TipoDiaEspecial.FERIAS
-                ausenciasDoDia.any { it.tipo == TipoAusencia.ATESTADO } -> TipoDiaEspecial.ATESTADO
-                ausenciasDoDia.any { it.tipo == TipoAusencia.FALTA_JUSTIFICADA } -> TipoDiaEspecial.FALTA_JUSTIFICADA
-                ausenciasDoDia.any { it.tipo == TipoAusencia.FOLGA } -> TipoDiaEspecial.FOLGA
-                ausenciasDoDia.any { it.tipo == TipoAusencia.FALTA_INJUSTIFICADA } -> TipoDiaEspecial.FALTA_INJUSTIFICADA
-                else -> TipoDiaEspecial.NORMAL
+                ausenciasDoDia.any { it.tipo == TipoAusencia.Ferias } ->
+                    TipoDiaEspecial.Descanso.Ferias
+
+                ausenciasDoDia.any { it.tipo == TipoAusencia.Atestado } ->
+                    TipoDiaEspecial.Ausencia.Atestado
+
+                ausenciasDoDia.any { it.tipo == TipoAusencia.Falta.Justificada } ->
+                    TipoDiaEspecial.Ausencia.Falta.Justificada
+
+                ausenciasDoDia.any { it.tipo == TipoAusencia.Folga } ->
+                    TipoDiaEspecial.Folga
+
+                ausenciasDoDia.any { it.tipo == TipoAusencia.Falta.Injustificada } ->
+                    TipoDiaEspecial.Ausencia.Falta.Injustificada
+
+                else -> TipoDiaEspecial.Normal
             }
 
-            diasList.add(InfoDiaHistorico(
-                resumoDia = ResumoDia(data = dataAtual, tipoDiaEspecial = tipoEspecial),
-                ausencias = ausenciasDoDia
-            ))
+            diasList.add(
+                InfoDiaHistorico(
+                    resumoDia = ResumoDia(data = dataAtual, tipoDiaEspecial = tipoEspecial),
+                    ausencias = ausenciasDoDia
+                )
+            )
             dataAtual = dataAtual.plusDays(1)
         }
 

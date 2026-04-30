@@ -17,10 +17,10 @@ class SyncPontoStatusWithWearUseCase @Inject constructor(
     suspend operator fun invoke() {
         val empregoId = preferenciasRepository.obterEmpregoAtivoId() ?: return
         val hoje = LocalDate.now()
-        
+
         val resumoDia = obterResumoDiaCompletoUseCase(empregoId, hoje)
         val bancoHoras = calcularBancoHorasUseCase(empregoId, hoje).first().bancoHoras
-        
+
         wearSyncService.syncPontoStatus(
             saldoAtual = bancoHoras.formatarSaldo(),
             ultimoPonto = resumoDia.resumoDia.ultimoPonto?.horaFormatada,

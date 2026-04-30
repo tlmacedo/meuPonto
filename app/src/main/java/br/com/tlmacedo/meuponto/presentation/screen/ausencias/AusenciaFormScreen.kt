@@ -192,7 +192,7 @@ fun AusenciaFormScreen(
 
                 // Feedback visual para Férias
                 AnimatedVisibility(
-                    visible = uiState.tipo == TipoAusencia.FERIAS && uiState.metadataFerias != null,
+                    visible = uiState.tipo == TipoAusencia.Ferias && uiState.metadataFerias != null,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
@@ -210,7 +210,7 @@ fun AusenciaFormScreen(
 
                 // Card informativo sobre o impacto do tipo selecionado
                 AnimatedVisibility(
-                    visible = uiState.tipo != TipoAusencia.FERIAS,
+                    visible = uiState.tipo != TipoAusencia.Ferias,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
@@ -575,7 +575,7 @@ fun AusenciaFormScreen(
                 // PERÍODO AQUISITIVO (para FERIAS)
                 // ============================================================
                 AnimatedVisibility(
-                    visible = uiState.tipo == TipoAusencia.FERIAS,
+                    visible = uiState.tipo == TipoAusencia.Ferias,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {

@@ -73,13 +73,13 @@ class AusenciaFormViewModel @Inject constructor(
                 } else {
                     val tipo = tipoInicial?.let {
                         runCatching { TipoAusencia.valueOf(it) }.getOrNull()
-                    } ?: TipoAusencia.FERIAS
+                    } ?: TipoAusencia.Ferias
 
                     val data = dataInicial?.let {
                         runCatching { LocalDate.parse(it) }.getOrNull()
                     } ?: LocalDate.now()
 
-                    val (paInicio, paFim) = if (tipo == TipoAusencia.FERIAS) {
+                    val (paInicio, paFim) = if (tipo == TipoAusencia.Ferias) {
                         val sugerido = sugerirCicloComSaldo(dataInicioTrabalho, emp.id)
                         sugerido?.first to sugerido?.second
                     } else {
@@ -102,7 +102,7 @@ class AusenciaFormViewModel @Inject constructor(
                             isLoading = false
                         )
                     }
-                    if (tipo == TipoAusencia.FERIAS) {
+                    if (tipo == TipoAusencia.Ferias) {
                         atualizarMetadataFerias(data)
                     }
                 }
@@ -177,7 +177,7 @@ class AusenciaFormViewModel @Inject constructor(
                         ciclosDisponiveisPA = ciclos
                     )
                 }
-                if (ausencia.tipo == TipoAusencia.FERIAS) {
+                if (ausencia.tipo == TipoAusencia.Ferias) {
                     atualizarMetadataFerias(ausencia.dataInicio)
                 }
             } else {
@@ -210,7 +210,7 @@ class AusenciaFormViewModel @Inject constructor(
             is AusenciaFormAction.AtualizarQuantidadeDias -> {
                 val dias = action.dias.coerceIn(1, 365)
                 _uiState.update { it.copy(quantidadeDias = dias) }
-                if (_uiState.value.tipo == TipoAusencia.FERIAS) {
+                if (_uiState.value.tipo == TipoAusencia.Ferias) {
                     atualizarMetadataFerias()
                 }
             }
@@ -434,15 +434,15 @@ class AusenciaFormViewModel @Inject constructor(
                 descricao = if (state.descricao.isBlank()) tipo.descricao else state.descricao,
                 showTipoSelector = false,
                 tipoFolga = state.tipoFolga,
-                horaInicio = if (tipo == TipoAusencia.DECLARACAO) LocalTime.of(
+                horaInicio = if (tipo == TipoAusencia.Declaracao) LocalTime.of(
                     8,
                     0
                 ) else state.horaInicio,
-                periodoAquisitivo = if (tipo == TipoAusencia.FERIAS) state.periodoAquisitivo else "",
+                periodoAquisitivo = if (tipo == TipoAusencia.Ferias) state.periodoAquisitivo else "",
                 imagemUri = if (tipo.permiteAnexo) state.imagemUri else null
             )
         }
-        if (tipo == TipoAusencia.FERIAS) {
+        if (tipo == TipoAusencia.Ferias) {
             atualizarMetadataFerias(_uiState.value.dataInicio)
         } else {
             _uiState.update { it.copy(metadataFerias = null) }
@@ -459,7 +459,7 @@ class AusenciaFormViewModel @Inject constructor(
                     showDatePickerInicio = false
                 )
             }
-            if (_uiState.value.tipo == TipoAusencia.FERIAS) {
+            if (_uiState.value.tipo == TipoAusencia.Ferias) {
                 atualizarMetadataFerias(_uiState.value.dataInicio)
             }
         }
@@ -473,7 +473,7 @@ class AusenciaFormViewModel @Inject constructor(
                 showDatePickerFim = false
             )
         }
-        if (_uiState.value.tipo == TipoAusencia.FERIAS) {
+        if (_uiState.value.tipo == TipoAusencia.Ferias) {
             atualizarMetadataFerias(_uiState.value.dataInicio)
         }
     }
@@ -533,7 +533,7 @@ class AusenciaFormViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSalvando = true, erro = null) }
 
-            if (state.tipo == TipoAusencia.FERIAS) {
+            if (state.tipo == TipoAusencia.Ferias) {
                 val erroNegocio = validarRegrasFerias(state)
                 if (erroNegocio != null) {
                     _uiState.update { it.copy(erro = erroNegocio, isSalvando = false) }

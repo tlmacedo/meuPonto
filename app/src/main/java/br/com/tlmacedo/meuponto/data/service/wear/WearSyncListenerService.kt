@@ -21,7 +21,7 @@ class WearSyncListenerService : WearableListenerService() {
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
         super.onMessageReceived(messageEvent)
-        
+
         if (messageEvent.path == WearSyncConstants.PATH_PONTO_COMMAND) {
             val command = String(messageEvent.data)
             if (command == WearSyncConstants.KEY_COMMAND_REGISTER) {

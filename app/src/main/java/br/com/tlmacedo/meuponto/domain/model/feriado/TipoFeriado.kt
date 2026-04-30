@@ -1,6 +1,8 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/feriado/TipoFeriado.kt
 package br.com.tlmacedo.meuponto.domain.model.feriado
 
+import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+
 /**
  * Tipos de feriado disponíveis no sistema.
  *
@@ -40,6 +42,18 @@ enum class TipoFeriado(
      * A carga horária é distribuída ao longo do ano.
      */
     PONTE("Ponte", "🌉");
+
+    /**
+     * Converte o tipo de feriado para o tipo de dia especial usado nos cálculos.
+     */
+    fun toTipoDiaEspecial(): TipoDiaEspecial = when (this) {
+        NACIONAL,
+        ESTADUAL,
+        MUNICIPAL -> TipoDiaEspecial.Descanso.Feriado.Oficial
+
+        PONTE -> TipoDiaEspecial.Descanso.Feriado.DiaPonte
+        FACULTATIVO -> TipoDiaEspecial.Descanso.Feriado.Facultativo
+    }
 
     companion object {
         /**

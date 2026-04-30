@@ -51,7 +51,7 @@ class CalcularResumoDiaUseCase @Inject constructor() {
         horarioDiaSemana: HorarioDiaSemana? = null,
         toleranciaIntervaloGlobal: Int? = null,
         acrescimoDiasPontes: Int = 0,
-        tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL,
+        tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.Normal,
         tempoAbonadoMinutos: Int = 0
     ): ResumoDia {
         // Valores padrão se não houver configuração
@@ -81,7 +81,7 @@ class CalcularResumoDiaUseCase @Inject constructor() {
         pontos: List<Ponto>,
         data: LocalDate,
         cargaHorariaDiariaMinutos: Int,
-        tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.NORMAL,
+        tipoDiaEspecial: TipoDiaEspecial = TipoDiaEspecial.Normal,
         tempoAbonadoMinutos: Int = 0
     ): ResumoDia {
         return ResumoDia(

@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.YearMonth
 import javax.inject.Inject
 
 /**
@@ -349,7 +348,10 @@ class FeriadosListViewModel @Inject constructor(
 
             diasList.add(
                 InfoDiaHistorico(
-                    resumoDia = ResumoDia(data = dataAtual, tipoDiaEspecial = if (feriadoDoDia != null) TipoDiaEspecial.FERIADO else TipoDiaEspecial.NORMAL),
+                    resumoDia = ResumoDia(
+                        data = dataAtual,
+                        tipoDiaEspecial = if (feriadoDoDia != null) TipoDiaEspecial.Descanso.Feriado.Oficial else TipoDiaEspecial.Normal
+                    ),
                     feriado = feriadoDoDia
                 )
             )

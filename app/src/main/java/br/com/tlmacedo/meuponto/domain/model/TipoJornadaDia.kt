@@ -9,59 +9,50 @@ package br.com.tlmacedo.meuponto.domain.model
  *
  * @author Thiago
  * @since 10.0.0
+ * @updated 12.0.0 - Centralizada lógica de descrição e emojis
  */
-enum class TipoJornadaDia {
+enum class TipoJornadaDia(
+    val descricao: String,
+    val emoji: String
+) {
     /**
      * Dia útil com jornada normal de trabalho.
      */
-    NORMAL,
+    NORMAL("Normal", "📅"),
 
     /**
      * Feriado nacional, estadual ou municipal.
      */
-    FERIADO,
+    FERIADO("Feriado", "🎉"),
 
     /**
      * Dia de folga configurado (ex: sábado, domingo).
      */
-    FOLGA,
+    FOLGA("Folga", "😴"),
 
     /**
      * Dia de compensação de horas.
      */
-    COMPENSACAO,
+    COMPENSACAO("Compensação", "⚖️"),
 
     /**
      * Dia dentro de período de férias.
      */
-    FERIAS,
+    FERIAS("Férias", "🏖️"),
 
     /**
      * Dia de licença (médica, maternidade, etc).
      */
-    LICENCA,
+    LICENCA("Licença", "🏥"),
 
     /**
      * Ponto facultativo.
      */
-    PONTO_FACULTATIVO
-}
+    PONTO_FACULTATIVO("Ponto Facultativo", "📌");
 
-/**
- * Converte TipoDiaEspecial (usado nos cálculos) para TipoJornadaDia (usado na auditoria).
- */
-fun TipoDiaEspecial.toTipoJornadaDia(): TipoJornadaDia = when (this) {
-    TipoDiaEspecial.NORMAL,
-    TipoDiaEspecial.FALTA_INJUSTIFICADA -> TipoJornadaDia.NORMAL
-
-    TipoDiaEspecial.FERIADO,
-    TipoDiaEspecial.PONTE -> TipoJornadaDia.FERIADO
-
-    TipoDiaEspecial.FACULTATIVO -> TipoJornadaDia.PONTO_FACULTATIVO
-    TipoDiaEspecial.FERIAS -> TipoJornadaDia.FERIAS
-    TipoDiaEspecial.ATESTADO,
-    TipoDiaEspecial.FALTA_JUSTIFICADA -> TipoJornadaDia.LICENCA
-
-    TipoDiaEspecial.DESCANSO,
-    TipoDiaEspecial.FOLGA -> TipoJornadaDia.FOLGA
+    /**
+     * Retorna a descrição formatada com emoji.
+     */
+    val descricaoCompleta: String
+        get() = "$emoji $descricao"
 }

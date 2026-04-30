@@ -51,6 +51,7 @@ import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusenciaCor
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.Info
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaBlue
@@ -135,7 +136,7 @@ fun ResumoCard(
                         ) {
                             Box(modifier = Modifier.weight(1f)) {
                                 when {
-                                    resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL -> {
+                                    resumoDia.tipoDiaEspecial != TipoDiaEspecial.Normal -> {
                                         DiaEspecialJornadaInfo(
                                             tipoDiaEspecial = resumoDia.tipoDiaEspecial,
                                             corTexto = textoTerciario
@@ -175,7 +176,7 @@ fun ResumoCard(
 //                            icone = Icons.Default.Star,
 //                            corIcone = Success
 //                        )
-//                        resumoDia.tipoDiaEspecial != TipoDiaEspecial.NORMAL -> StatusBadgeCompact(
+//                        resumoDia.tipoDiaEspecial != TipoDiaEspecial.Normal -> StatusBadgeCompact(
 //                            texto = resumoDia.tipoDiaEspecial.descricaoCurta,
 //                            icone = resumoDia.tipoDiaEspecial.getIcon(),
 //                            corIcone = resumoDia.tipoDiaEspecial.getCor()
@@ -380,20 +381,11 @@ private fun ResumoItemPrincipal(
     corTitulo: Color,
     modifier: Modifier = Modifier
 ) {
-    val (titulo, icone, corIconeEspecial) = when (tipoDiaEspecial) {
-        TipoDiaEspecial.DESCANSO -> Triple("Descanso", Icons.Default.EventBusy, Info)
-        TipoDiaEspecial.FERIAS -> Triple("Férias", Icons.Default.BeachAccess, SidiaBlue)
-        TipoDiaEspecial.ATESTADO -> Triple("Atestado", Icons.Default.LocalHospital, Error)
-        TipoDiaEspecial.FOLGA -> Triple("Folga", Icons.Default.Home, Success)
-        TipoDiaEspecial.FALTA_JUSTIFICADA -> Triple("Falta Just.", Icons.Default.EventBusy, Info)
-        TipoDiaEspecial.FALTA_INJUSTIFICADA -> Triple("Falta", Icons.Default.EventBusy, Error)
-        TipoDiaEspecial.FERIADO -> Triple("Feriado", Icons.Outlined.WorkOff, Success)
-        TipoDiaEspecial.PONTE -> Triple("Ponte", Icons.Outlined.WorkOff, Success)
-        TipoDiaEspecial.FACULTATIVO -> Triple("Facultativo", Icons.Outlined.WorkOff, Success)
-        TipoDiaEspecial.NORMAL -> Triple("Trabalhado no dia", Icons.Default.AccessTime, null)
-    }
+    val titulo = if (tipoDiaEspecial.isNormal) "Trabalhado no dia" else tipoDiaEspecial.descricao
+    val icone = tipoDiaEspecial.getIcon()
+    val corIconeEspecial = tipoDiaEspecial.getCor()
 
-    val isDiaEspecialNaoTrabalhado = tipoDiaEspecial != TipoDiaEspecial.NORMAL
+    val isDiaEspecialNaoTrabalhado = !tipoDiaEspecial.isNormal
     val atingiuJornada = minutosTrabalhados >= minutosJornada
     val temTrabalho = minutosTrabalhados > 0
 
@@ -403,9 +395,9 @@ private fun ResumoItemPrincipal(
 
     when {
         isDiaEspecialNaoTrabalhado -> {
-            corValor = corIconeEspecial ?: Color.White
-            corIcone = corIconeEspecial ?: Color.White.copy(alpha = 0.8f)
-            corFundoIcone = (corIconeEspecial ?: Color.White).copy(alpha = 0.15f)
+            corValor = corIconeEspecial
+            corIcone = corIconeEspecial.copy(alpha = 0.8f)
+            corFundoIcone = corIconeEspecial.copy(alpha = 0.15f)
         }
 
         isFeriado && temTrabalho -> {
@@ -654,45 +646,20 @@ private fun ResumoItemBanco(
 }
 
 // Extensões
-private fun TipoDiaEspecial.getIcon(): ImageVector = when (this) {
-    TipoDiaEspecial.DESCANSO -> Icons.Default.EventBusy
-    TipoDiaEspecial.FERIAS -> Icons.Default.BeachAccess
-    TipoDiaEspecial.ATESTADO -> Icons.Default.LocalHospital
-    TipoDiaEspecial.FOLGA -> Icons.Default.Home
-    TipoDiaEspecial.FALTA_JUSTIFICADA -> Icons.Default.EventBusy
-    TipoDiaEspecial.FALTA_INJUSTIFICADA -> Icons.Default.EventBusy
-    TipoDiaEspecial.FERIADO -> Icons.Outlined.WorkOff
-    TipoDiaEspecial.PONTE -> Icons.Outlined.WorkOff
-    TipoDiaEspecial.FACULTATIVO -> Icons.Outlined.WorkOff
-    TipoDiaEspecial.NORMAL -> Icons.Default.AccessTime
+private fun TipoDiaEspecial.getIcon(): ImageVector = when {
+    isNormal -> Icons.Default.AccessTime
+    isFerias -> Icons.Default.BeachAccess
+    isAtestado -> Icons.Default.LocalHospital
+    isFolga || isDayOff -> Icons.Default.Home
+    isFeriado -> Icons.Outlined.WorkOff
+    else -> Icons.Default.EventBusy
 }
 
-private fun TipoDiaEspecial.getCor(): Color = when (this) {
-    TipoDiaEspecial.DESCANSO -> Info
-    TipoDiaEspecial.FERIAS -> SidiaBlue
-    TipoDiaEspecial.ATESTADO -> Error
-    TipoDiaEspecial.FOLGA -> Success
-    TipoDiaEspecial.FALTA_JUSTIFICADA -> Info
-    TipoDiaEspecial.FALTA_INJUSTIFICADA -> Error
-    TipoDiaEspecial.FERIADO -> Success
-    TipoDiaEspecial.PONTE -> Success
-    TipoDiaEspecial.FACULTATIVO -> Success
-    TipoDiaEspecial.NORMAL -> Color.White
+private fun TipoDiaEspecial.getCor(): Color = when (corIndicativa) {
+    TipoAusenciaCor.VERDE -> Success
+    TipoAusenciaCor.AZUL -> if (isFerias) SidiaBlue else Info
+    TipoAusenciaCor.VERMELHO -> Error
 }
-
-private val TipoDiaEspecial.descricaoCurta: String
-    get() = when (this) {
-        TipoDiaEspecial.DESCANSO -> "Descanso"
-        TipoDiaEspecial.FERIAS -> "Férias"
-        TipoDiaEspecial.ATESTADO -> "Atestado"
-        TipoDiaEspecial.FOLGA -> "Folga"
-        TipoDiaEspecial.FALTA_JUSTIFICADA -> "Falta Just."
-        TipoDiaEspecial.FALTA_INJUSTIFICADA -> "Falta"
-        TipoDiaEspecial.FERIADO -> "Feriado"
-        TipoDiaEspecial.PONTE -> "Ponte"
-        TipoDiaEspecial.FACULTATIVO -> "Facultativo"
-        TipoDiaEspecial.NORMAL -> ""
-    }
 
 private fun formatarDuracaoCompacta(minutos: Int): String {
     val minutosAbs = abs(minutos)

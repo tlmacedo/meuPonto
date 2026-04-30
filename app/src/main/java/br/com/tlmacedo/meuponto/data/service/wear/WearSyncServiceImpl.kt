@@ -28,7 +28,7 @@ class WearSyncServiceImpl @Inject constructor(
                 // Força o trigger do onDataChanged no relógio adicionando um timestamp
                 dataMap.putLong("timestamp", System.currentTimeMillis())
             }
-            
+
             dataClient.putDataItem(request.asPutDataRequest()).await()
             Timber.d("Status do ponto sincronizado com o Wear OS: $saldoAtual, exped: $emExpediente")
         } catch (e: Exception) {

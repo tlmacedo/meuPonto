@@ -30,19 +30,19 @@ val MIGRATION_43_44 = object : Migration(43, 44) {
         // 2. Adicionar colunas faltantes na tabela 'chamados'
         // SQLite não suporta IF NOT EXISTS em ALTER TABLE ADD COLUMN diretamente em todas as versões,
         // mas o Room usa uma versão que geralmente suporta ou podemos usar try-catch.
-        
+
         try {
             db.execSQL("ALTER TABLE `chamados` ADD COLUMN `passosParaReproduzir` TEXT")
         } catch (e: Exception) {
             // Coluna já existe
         }
-        
+
         try {
             db.execSQL("ALTER TABLE `chamados` ADD COLUMN `deviceInfo` TEXT")
         } catch (e: Exception) {
             // Coluna já existe
         }
-        
+
         try {
             db.execSQL("ALTER TABLE `chamados` ADD COLUMN `usuarioId` INTEGER")
         } catch (e: Exception) {

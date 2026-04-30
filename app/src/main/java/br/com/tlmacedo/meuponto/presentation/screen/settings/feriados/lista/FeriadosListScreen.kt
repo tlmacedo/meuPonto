@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -221,8 +220,20 @@ fun FeriadosListContent(
             if (uiState.visualizacaoCalendario) {
                 YearNavigator(
                     ano = uiState.filtroAno ?: java.time.LocalDate.now().year,
-                    onAnoAnterior = { onEvent(FeriadosListEvent.OnFiltroAnoChange((uiState.filtroAno ?: java.time.LocalDate.now().year) - 1)) },
-                    onProximoAno = { onEvent(FeriadosListEvent.OnFiltroAnoChange((uiState.filtroAno ?: java.time.LocalDate.now().year) + 1)) }
+                    onAnoAnterior = {
+                        onEvent(
+                            FeriadosListEvent.OnFiltroAnoChange(
+                                (uiState.filtroAno ?: java.time.LocalDate.now().year) - 1
+                            )
+                        )
+                    },
+                    onProximoAno = {
+                        onEvent(
+                            FeriadosListEvent.OnFiltroAnoChange(
+                                (uiState.filtroAno ?: java.time.LocalDate.now().year) + 1
+                            )
+                        )
+                    }
                 )
             } else {
                 // SearchBar
@@ -327,7 +338,8 @@ fun FeriadosListContent(
                         itemsIndexed(months) { _, month ->
                             val locale = Locale.forLanguageTag("pt-BR")
                             val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
-                            val title = month.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
+                            val title =
+                                month.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
 
                             Text(
                                 text = title,

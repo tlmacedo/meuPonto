@@ -85,7 +85,7 @@ fun ChamadoListItem(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     StatusChip(status = chamado.status, color = statusColor)
                 }
 

@@ -10,7 +10,6 @@ import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
-import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.repository.AjusteSaldoRepository
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
@@ -33,10 +32,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.time.DayOfWeek
 import java.time.LocalDate
 import javax.inject.Inject
-import kotlin.math.abs
 
 /**
  * ViewModel da tela de Histórico.
@@ -127,7 +124,7 @@ class HistoryViewModel @Inject constructor(
                     val versaoVigente = versaoJornadaRepository.buscarVigente(empregoId)
 
                     val diaInicio = versaoVigente?.diaInicioFechamentoRH ?: 1
-                    
+
                     val periodosDisponiveis = gerarPeriodosDisponiveis(diaInicio)
 
                     val periodoIncial = if (_uiState.value.nomeEmprego == null) {
@@ -161,7 +158,7 @@ class HistoryViewModel @Inject constructor(
     private fun gerarPeriodosDisponiveis(diaInicio: Int): List<PeriodoHistorico> {
         val hoje = LocalDate.now()
         val periodos = mutableListOf<PeriodoHistorico>()
-        
+
         var ref = hoje.plusMonths(1)
         repeat(14) {
             periodos.add(PeriodoHistorico.fromPeriodoRH(ref, diaInicio))
@@ -185,7 +182,8 @@ class HistoryViewModel @Inject constructor(
 
                 // Para garantir que o calendário mostre os meses inteiros, carregamos do primeiro ao último dia de todos os meses envolvidos
                 val dataInicioTotal = periodos.minOf { it.dataInicio }.withDayOfMonth(1)
-                val dataFimTotal = periodos.maxOf { it.dataFim }.let { it.withDayOfMonth(it.lengthOfMonth()) }
+                val dataFimTotal =
+                    periodos.maxOf { it.dataFim }.let { it.withDayOfMonth(it.lengthOfMonth()) }
                 val hoje = LocalDate.now()
 
                 val saldoInicialPeriodo = if (dataInicioTotal.isAfter(hoje)) {
@@ -200,7 +198,11 @@ class HistoryViewModel @Inject constructor(
                 }
 
                 combine(
-                    pontoRepository.observarPorEmpregoEPeriodo(empregoId, dataInicioTotal, dataFimTotal),
+                    pontoRepository.observarPorEmpregoEPeriodo(
+                        empregoId,
+                        dataInicioTotal,
+                        dataFimTotal
+                    ),
                     ausenciaRepository.observarAtivasPorEmprego(empregoId),
                     feriadoRepository.observarTodosAtivos(),
                     ajusteSaldoRepository.observarPorEmprego(empregoId)
@@ -279,7 +281,8 @@ class HistoryViewModel @Inject constructor(
         val versaoCache = mutableMapOf<Long, VersaoCache>()
         val horarioSemVersaoCache = mutableMapOf<DiaSemana, HorarioDiaSemana?>()
 
-        val resumosDiaCompletoParaAgregacao = mutableListOf<br.com.tlmacedo.meuponto.domain.usecase.ponto.ResumoDiaCompleto>()
+        val resumosDiaCompletoParaAgregacao =
+            mutableListOf<br.com.tlmacedo.meuponto.domain.usecase.ponto.ResumoDiaCompleto>()
         val diasHistorico = mutableListOf<InfoDiaHistorico>()
         val saldosAcumulados = mutableMapOf<LocalDate, Int>()
         var saldoAcumulado = saldoInicialPeriodo
@@ -287,9 +290,11 @@ class HistoryViewModel @Inject constructor(
         var dataAtual = dataInicio
         while (dataAtual <= dataFim) {
             val isFuturo = dataAtual.isAfter(hoje)
-            val isInAnySelectedPeriod = periodosSelecionados.any { dataAtual >= it.dataInicio && dataAtual <= it.dataFim }
-            
-            val pontosNoDia = if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
+            val isInAnySelectedPeriod =
+                periodosSelecionados.any { dataAtual >= it.dataInicio && dataAtual <= it.dataFim }
+
+            val pontosNoDia =
+                if (isFuturo) emptyList() else (pontosPorDia[dataAtual] ?: emptyList())
             val ausenciasDoDia = ausenciasPorData[dataAtual] ?: emptyList()
             val feriadoDoDia = feriadosPorData[dataAtual]
 
@@ -338,6 +343,7 @@ class HistoryViewModel @Inject constructor(
                         ausencia.observacao?.let { append(" - $it") }
                     }
                 }
+
                 else -> null
             }
 
@@ -452,7 +458,7 @@ class HistoryViewModel @Inject constructor(
                 (state.periodosSelecionados + periodo).sortedBy { it.dataInicio }
             }
             state.copy(
-                periodosSelecionados = novosPeriodos, 
+                periodosSelecionados = novosPeriodos,
                 periodoSelecionado = novosPeriodos.last(),
                 diasExpandidos = emptyList()
             )

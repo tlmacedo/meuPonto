@@ -71,7 +71,7 @@ data class FeriadoNacionalDto(
             "national" -> TipoFeriado.NACIONAL
             "state" -> TipoFeriado.ESTADUAL
             "municipal" -> TipoFeriado.MUNICIPAL
-            else -> TipoFeriado.FACULTATIVO
+            else -> TipoFeriado.PONTE
         }
     }
 

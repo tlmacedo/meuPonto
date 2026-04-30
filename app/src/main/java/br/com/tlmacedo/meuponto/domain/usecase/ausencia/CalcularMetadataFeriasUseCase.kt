@@ -29,7 +29,7 @@ class CalcularMetadataFeriasUseCase @Inject constructor(
         ausencia: Ausencia,
         referencia: LocalDate? = null
     ): MetadataFerias? {
-        if (ausencia.tipo != TipoAusencia.FERIAS) return null
+        if (ausencia.tipo != TipoAusencia.Ferias) return null
         val inicioAquisitivo = ausencia.dataInicioPeriodoAquisitivo ?: return null
         val fimAquisitivo = ausencia.dataFimPeriodoAquisitivo ?: return null
         val dataRef = referencia ?: LocalDate.now()
