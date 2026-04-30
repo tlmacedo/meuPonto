@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
+import br.com.tlmacedo.meuponto.presentation.theme.AppTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -100,16 +101,13 @@ class AparenciaViewModel @Inject constructor(
 
     private fun selecionarTema(tema: String) {
         viewModelScope.launch {
-            preferenciasRepository.definirTema(tema)
-            val nomeTema = when (tema) {
-                "light" -> "Claro"
-                "dark" -> "Escuro"
-                "sidia" -> "Sidia"
-                "sidia_dark" -> "Sidia Dark"
-                "sidia_premium_dark" -> "Sidia Premium Dark"
-                else -> "Sistema"
-            }
-            _eventos.emit(AparenciaEvent.MostrarMensagem("Tema alterado para $nomeTema"))
+            val appTheme = AppTheme.fromKey(tema)
+
+            preferenciasRepository.definirTema(appTheme.key)
+
+            _eventos.emit(
+                AparenciaEvent.MostrarMensagem("Tema alterado para ${appTheme.titulo}")
+            )
         }
     }
 }

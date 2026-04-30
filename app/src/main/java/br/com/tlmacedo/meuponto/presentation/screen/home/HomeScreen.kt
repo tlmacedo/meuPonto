@@ -1,6 +1,8 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
+import androidx.compose.ui.graphics.Color
+import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedBackground
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
@@ -197,46 +199,54 @@ fun HomeScreen(
             docScanner = docScanner
         )
 
-        Scaffold(
-            topBar = {
-                MeuPontoTopBar(
-                    title = "Meu Ponto",
-                    subtitle = uiState.empregoAtivo?.apelido?.uppercase(),
-                    logo = uiState.empregoAtivo?.logo,
-                    showTodayButton = !uiState.isHoje,
-                    showHistoryButton = true,
-                    showSettingsButton = true,
-                    onTodayClick = { viewModel.onAction(HomeAction.IrParaHoje) },
-                    onHistoryClick = { viewModel.onAction(HomeAction.NavegarParaHistorico) },
-                    onSettingsClick = { viewModel.onAction(HomeAction.NavegarParaConfiguracoes) }
-                )
-            },
-            snackbarHost = { SnackbarHost(snackbarHostState) }
-        ) { paddingValues ->
-            if (uiState.isLoading && uiState.pontosHoje.isEmpty()) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                ) {
-                    CircularProgressIndicator()
+        ThemedBackground(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onBackground,
+                topBar = {
+                    MeuPontoTopBar(
+                        title = "Meu Ponto",
+                        subtitle = uiState.empregoAtivo?.apelido?.uppercase(),
+                        logo = uiState.empregoAtivo?.logo,
+                        showTodayButton = !uiState.isHoje,
+                        showHistoryButton = true,
+                        showSettingsButton = true,
+                        onTodayClick = { viewModel.onAction(HomeAction.IrParaHoje) },
+                        onHistoryClick = { viewModel.onAction(HomeAction.NavegarParaHistorico) },
+                        onSettingsClick = { viewModel.onAction(HomeAction.NavegarParaConfiguracoes) }
+                    )
+                },
+                snackbarHost = { SnackbarHost(snackbarHostState) }
+            ) { paddingValues ->
+                if (uiState.isLoading && uiState.pontosHoje.isEmpty()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    HomeContent(
+                        uiState = uiState,
+                        onAction = viewModel::onAction,
+                        onNavigateToFotoVisualizacao = onNavigateToFotoVisualizacao,
+                        modifier = Modifier.padding(paddingValues),
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        verificarDiaEspecialUseCase = viewModel.verificarDiaEspecialUseCase,
+                        ausenciaRepository = viewModel.ausenciaRepository
+                    )
                 }
-            } else {
-                HomeContent(
-                    uiState = uiState,
-                    onAction = viewModel::onAction,
-                    onNavigateToFotoVisualizacao = onNavigateToFotoVisualizacao,
-                    modifier = Modifier.padding(paddingValues),
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    verificarDiaEspecialUseCase = viewModel.verificarDiaEspecialUseCase,
-                    ausenciaRepository = viewModel.ausenciaRepository
-                )
             }
         }
     }
 }
+
 
 /**
  * Componente interno para gerenciar todos os diálogos e modais da Home.
@@ -405,7 +415,9 @@ internal fun HomeContent(
     verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase?,
     ausenciaRepository: AusenciaRepository?,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
         CicloBanner(
             uiState.estadoCiclo,
             { onAction(HomeAction.AbrirDialogFechamentoCiclo) },

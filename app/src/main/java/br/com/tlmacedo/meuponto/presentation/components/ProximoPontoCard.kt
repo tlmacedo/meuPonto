@@ -1,6 +1,10 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/components/ProximoPontoCard.kt
 package br.com.tlmacedo.meuponto.presentation.components
 
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
+import br.com.tlmacedo.meuponto.presentation.theme.LocalAppThemeController
+import br.com.tlmacedo.meuponto.presentation.theme.LocalPremiumTokens
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -68,6 +72,9 @@ fun ProximoPontoCard(
 ) {
     val isEntrada = proximo.isEntrada
     val corPrincipal = if (isEntrada) EntradaColor else SaidaColor
+    val theme = LocalAppThemeController.current
+    val premium = LocalPremiumTokens.current
+    val shape = RoundedCornerShape(if (theme.isPremium) 28.dp else 16.dp)
     val icone = if (isEntrada) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
     val formatadorHora = DateTimeFormatter.ofPattern("HH:mm:ss")
 
@@ -82,22 +89,70 @@ fun ProximoPontoCard(
         label = "scale"
     )
 
-    val gradientBrush = Brush.linearGradient(
-        colors = if (habilitado) {
-            listOf(corPrincipal, corPrincipal.copy(alpha = 0.8f))
-        } else {
-            listOf(Color(0xFFBDBDBD), Color(0xFF9E9E9E))
-        }
-    )
+    val gradientBrush = when {
+        !habilitado -> Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceVariant,
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+            )
+        )
+
+        theme.isPremium -> Brush.linearGradient(
+            colors = listOf(
+                corPrincipal.copy(alpha = 0.98f),
+                corPrincipal.copy(alpha = 0.72f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.52f)
+            )
+        )
+
+        theme.isDarkula -> Brush.linearGradient(
+            colors = listOf(
+                corPrincipal.copy(alpha = 0.78f),
+                MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
+
+        else -> Brush.linearGradient(
+            colors = listOf(
+                corPrincipal,
+                corPrincipal.copy(alpha = 0.82f)
+            )
+        )
+    }
+
+    val borderColor = when {
+        !habilitado -> MaterialTheme.colorScheme.outlineVariant
+        theme.isPremium -> corPrincipal.copy(alpha = 0.62f)
+        theme.isDarkula -> MaterialTheme.colorScheme.outline
+        else -> Color.Transparent
+    }
+
+    val shadowElevation = when {
+        !habilitado -> 0.dp
+        theme.isPremium -> 18.dp
+        theme.isDarkula -> 4.dp
+        else -> 4.dp
+    }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (habilitado) 4.dp else 0.dp),
+        shape = shape,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
-            .clip(RoundedCornerShape(16.dp))
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                ambientColor = if (theme.isPremium) premium.primaryGlow.copy(alpha = 0.25f) else Color.Transparent,
+                spotColor = if (theme.isPremium) corPrincipal.copy(alpha = 0.35f) else Color.Transparent
+            )
+            .clip(shape)
+            .border(
+                width = if (theme.isPremium || theme.isDarkula || !habilitado) 1.dp else 0.dp,
+                color = borderColor,
+                shape = shape
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -109,7 +164,7 @@ fun ProximoPontoCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(gradientBrush)
-                .padding(14.dp)
+                .padding(if (theme.isPremium) 18.dp else 14.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -127,12 +182,12 @@ fun ProximoPontoCard(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f))
+                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                     ) {
                         Icon(
                             imageVector = icone,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -141,7 +196,7 @@ fun ProximoPontoCard(
                         text = "Registrar ${proximo.descricao}",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
 
@@ -152,7 +207,7 @@ fun ProximoPontoCard(
                     text = horaAtual.format(formatadorHora),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     letterSpacing = 1.sp
                 )
 
@@ -160,7 +215,7 @@ fun ProximoPontoCard(
                     Text(
                         text = "Indisponível",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }

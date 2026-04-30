@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
@@ -93,76 +94,64 @@ fun AparenciaScreen(
                 .padding(padding)
         ) {
             // ══════════════════════════════════════════════════════════════
-            // IDENTIDADE VISUAL (Sidia)
+            // IDENTIDADE VISUAL e CORES DO SISTEMA
             // ══════════════════════════════════════════════════════════════
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SectionHeader(
-                        title = "Identidade Sidia",
+                        title = "Tema do aplicativo",
                         icon = Icons.Outlined.Palette
                     )
-                    Text(
-                        text = "Aplique as cores da marca Sidia ao seu aplicativo",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    TemaOption(
-                        title = "Sidia",
-                        subtitle = "Azul, Navy e Ciano",
-                        icon = Icons.Outlined.Palette,
-                        isSelected = uiState.temaSelecionado == "sidia",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("sidia")) }
-                    )
-                    TemaOption(
-                        title = "Sidia Dark",
-                        subtitle = "Identidade no escuro",
-                        icon = Icons.Outlined.DarkMode,
-                        isSelected = uiState.temaSelecionado == "sidia_dark",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("sidia_dark")) }
-                    )
-                    TemaOption(
-                        title = "Sidia Premium Dark",
-                        subtitle = "Visual moderno e profundo",
-                        icon = Icons.Outlined.Contrast,
-                        isSelected = uiState.temaSelecionado == "sidia_premium_dark",
-                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("sidia_premium_dark")) }
-                    )
-                }
-            }
 
-            // ══════════════════════════════════════════════════════════════
-            // CORES DO SISTEMA
-            // ══════════════════════════════════════════════════════════════
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionHeader(
-                        title = "Padrão Android",
-                        icon = Icons.Outlined.PhoneAndroid
-                    )
                     TemaOption(
                         title = "Claro",
-                        subtitle = "Tema padrão claro",
+                        subtitle = "Tema claro padrão",
                         icon = Icons.Outlined.LightMode,
                         isSelected = uiState.temaSelecionado == "light",
                         onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("light")) }
                     )
+
                     TemaOption(
                         title = "Escuro",
-                        subtitle = "Tema padrão escuro",
+                        subtitle = "Tema escuro padrão",
                         icon = Icons.Outlined.DarkMode,
                         isSelected = uiState.temaSelecionado == "dark",
                         onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("dark")) }
                     )
+
+                    TemaOption(
+                        title = "Claro Premium",
+                        subtitle = "Visual claro refinado e elegante",
+                        icon = Icons.Outlined.Palette,
+                        isSelected = uiState.temaSelecionado == "light_premium",
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("light_premium")) }
+                    )
+
+                    TemaOption(
+                        title = "Escuro Premium",
+                        subtitle = "Visual escuro profundo e moderno",
+                        icon = Icons.Outlined.Contrast,
+                        isSelected = uiState.temaSelecionado == "dark_premium",
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("dark_premium")) }
+                    )
+
+                    TemaOption(
+                        title = "Darkula",
+                        subtitle = "Tema escuro inspirado em IDEs",
+                        icon = Icons.Outlined.Code,
+                        isSelected = uiState.temaSelecionado == "darkula",
+                        onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("darkula")) }
+                    )
+
                     TemaOption(
                         title = "Seguir Sistema",
-                        subtitle = "Sincronizar com as configurações do seu dispositivo",
+                        subtitle = "Sincronizar com o tema do Android",
                         icon = Icons.Outlined.PhoneAndroid,
                         isSelected = uiState.temaSelecionado == "system",
                         onClick = { viewModel.onAction(AparenciaAction.SelecionarTema("system")) }
                     )
                 }
             }
-
             // ══════════════════════════════════════════════════════════════
             // ACESSIBILIDADE
             // ══════════════════════════════════════════════════════════════

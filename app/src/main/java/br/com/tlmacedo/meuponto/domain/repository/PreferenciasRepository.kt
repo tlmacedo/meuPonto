@@ -277,4 +277,5 @@ interface PreferenciasRepository {
      * Limpa todas as preferências (reset do app).
      */
     suspend fun limparTudo()
+
 }

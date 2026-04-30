@@ -31,8 +31,6 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +48,7 @@ import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.TipoPausa
 import br.com.tlmacedo.meuponto.presentation.components.swipe.SwipeablePontoRow
+import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedCard
 import br.com.tlmacedo.meuponto.presentation.theme.EntradaBg
 import br.com.tlmacedo.meuponto.presentation.theme.EntradaColor
 import br.com.tlmacedo.meuponto.presentation.theme.SaidaBg
@@ -107,12 +106,7 @@ fun IntervaloCard(
         }
 
         // Card principal
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(16.dp),
+        ThemedCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(

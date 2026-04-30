@@ -30,8 +30,6 @@ import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.WorkOff
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,7 +37,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -52,18 +49,14 @@ import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusenciaCor
+import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedCard
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.Info
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaBlue
-import br.com.tlmacedo.meuponto.presentation.theme.SidiaNavy
 import br.com.tlmacedo.meuponto.presentation.theme.Success
 import java.time.LocalDateTime
 import java.time.LocalTime
 import kotlin.math.abs
-
-// Cores do gradiente moderno
-private val GradientStart = SidiaNavy
-private val GradientEnd = Color(0xFF1A1D21)
 
 /**
  * Card compacto de resumo do dia.
@@ -83,90 +76,82 @@ fun ResumoCard(
     onEditarJornada: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val textoPrincipal = Color.White
-    val textoTerciario = Color.White.copy(alpha = 0.7f)
+    val textoPrincipal = MaterialTheme.colorScheme.onSurface
+    val textoTerciario = MaterialTheme.colorScheme.onSurfaceVariant
 
     val minutosTrabalhados = resumoDia.horasTrabalhadasComAndamentoMinutos(horaAtual)
     val saldoDiaMinutos = resumoDia.saldoDiaComAndamentoMinutos(horaAtual)
     val bancoTotalMinutos =
         bancoHoras.saldoTotalMinutos + saldoDiaMinutos - resumoDia.saldoDiaMinutos
 
-    val gradientBrush = Brush.linearGradient(
-        colors = listOf(GradientStart, GradientEnd)
-    )
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+    ThemedCard(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (onEditarJornada != null) Modifier.clickable { onEditarJornada() }
-                else Modifier
+                if (onEditarJornada != null) {
+                    Modifier.clickable { onEditarJornada() }
+                } else {
+                    Modifier
+                }
             )
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(gradientBrush)
+                .padding(14.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp)
+            // Cabeçalho compacto
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Cabeçalho compacto
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column {
-                        Text(
-                            text = "Resumo do Dia",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = textoPrincipal
-                        )
-                        // Info jornada
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                when {
-                                    resumoDia.tipoDiaEspecial != TipoDiaEspecial.Normal -> {
-                                        DiaEspecialJornadaInfo(
-                                            tipoDiaEspecial = resumoDia.tipoDiaEspecial,
-                                            corTexto = textoTerciario
-                                        )
-                                    }
+                Column {
+                    Text(
+                        text = "Resumo do Dia",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = textoPrincipal
+                    )
+                    // Info jornada
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            when {
+                                resumoDia.tipoDiaEspecial != TipoDiaEspecial.Normal -> {
+                                    DiaEspecialJornadaInfo(
+                                        tipoDiaEspecial = resumoDia.tipoDiaEspecial,
+                                        corTexto = textoTerciario
+                                    )
+                                }
 
-                                    resumoDia.isFeriado -> {
-                                        FeriadoJornadaInfo(corTexto = textoTerciario)
-                                    }
+                                resumoDia.isFeriado -> {
+                                    FeriadoJornadaInfo(corTexto = textoTerciario)
+                                }
 
-                                    else -> {
-                                        JornadaVersaoInfoCompact(
-                                            cargaHorariaFormatada = resumoDia.cargaHorariaDiariaFormatada,
-                                            versaoJornada = versaoJornada,
-                                            corTexto = textoTerciario
-                                        )
-                                    }
+                                else -> {
+                                    JornadaVersaoInfoCompact(
+                                        cargaHorariaFormatada = resumoDia.cargaHorariaDiariaFormatada,
+                                        versaoJornada = versaoJornada,
+                                        corTexto = textoTerciario
+                                    )
                                 }
                             }
+                        }
 
-                            if (onEditarJornada != null) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Editar jornada",
-                                    tint = textoTerciario,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
+                        if (onEditarJornada != null) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editar jornada",
+                                tint = textoTerciario,
+                                modifier = Modifier.size(14.dp)
+                            )
                         }
                     }
+                }
 
 //                    // Badge de status
 //                    when {
@@ -182,52 +167,52 @@ fun ResumoCard(
 //                            corIcone = resumoDia.tipoDiaEspecial.getCor()
 //                        )
 //                    }
-                }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                // Divisor
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(Color.White.copy(alpha = 0.1f))
+            // Divisor
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color.White.copy(alpha = 0.1f))
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Resumo em três colunas (compacto)
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                ResumoItemPrincipal(
+                    tipoDiaEspecial = resumoDia.tipoDiaEspecial,
+                    minutosTrabalhados = minutosTrabalhados,
+                    minutosJornada = resumoDia.cargaHorariaEfetivaMinutos,
+                    isFeriado = resumoDia.isFeriado,
+                    emAndamento = resumoDia.temTurnoAberto,
+                    corTitulo = textoTerciario,
+                    modifier = Modifier.weight(1f)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                ResumoItemSaldo(
+                    titulo = "Saldo do dia",
+                    saldoMinutos = saldoDiaMinutos,
+                    isFeriado = resumoDia.isFeriado,
+                    corTitulo = textoTerciario,
+                    modifier = Modifier.weight(1f)
+                )
 
-                // Resumo em três colunas (compacto)
-                Row(
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ResumoItemPrincipal(
-                        tipoDiaEspecial = resumoDia.tipoDiaEspecial,
-                        minutosTrabalhados = minutosTrabalhados,
-                        minutosJornada = resumoDia.cargaHorariaEfetivaMinutos,
-                        isFeriado = resumoDia.isFeriado,
-                        emAndamento = resumoDia.temTurnoAberto,
-                        corTitulo = textoTerciario,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    ResumoItemSaldo(
-                        titulo = "Saldo do dia",
-                        saldoMinutos = saldoDiaMinutos,
-                        isFeriado = resumoDia.isFeriado,
-                        corTitulo = textoTerciario,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    ResumoItemBanco(
-                        titulo = "Banco de horas",
-                        saldoMinutos = bancoTotalMinutos,
-                        corTitulo = textoTerciario,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                ResumoItemBanco(
+                    titulo = "Banco de horas",
+                    saldoMinutos = bancoTotalMinutos,
+                    corTitulo = textoTerciario,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
+
     }
 }
 
@@ -414,7 +399,7 @@ private fun ResumoItemPrincipal(
 
         else -> {
             corValor = Color.White
-            corIcone = Color.White.copy(alpha = 0.8f)
+            corIcone = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
             corFundoIcone = Color.White.copy(alpha = 0.1f)
         }
     }
@@ -496,7 +481,7 @@ private fun ResumoItemSaldo(
     val corIcone = when {
         isPositivo -> Success
         isNegativo -> Error
-        else -> Color.White.copy(alpha = 0.8f)
+        else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
     }
 
     val corFundoIcone = when {
@@ -577,7 +562,7 @@ private fun ResumoItemBanco(
     val corIcone = when {
         isPositivo -> Success
         isNegativo -> Error
-        else -> Color.White.copy(alpha = 0.8f)
+        else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
     }
 
     val corFundoIcone = when {
