@@ -1,6 +1,9 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/history/HistoryScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.history
 
+import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
+import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.model.StatusResumoDia
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
@@ -107,9 +110,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
-import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.StatusDiaResumo
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
@@ -1538,7 +1538,7 @@ private fun DiaCard(
     modifier: Modifier = Modifier
 ) {
     val resumo = infoDia.resumoDia
-    val statusColor = getStatusColor(resumo.statusDia)
+    val statusColor = getStatusColor(resumo.status)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -1570,7 +1570,9 @@ private fun DiaCard(
                                         TextStyle.FULL,
                                         Locale.forLanguageTag("pt-BR")
                                     ).replaceFirstChar { it.uppercase() })
-                                if (infoDia.pontos.isNotEmpty()) append(" (${resumo.cargaHorariaDiariaFormatada})")
+                                if (infoDia.pontos.isNotEmpty()) {
+                                    append(" (${resumo.jornadaPrevistaMinutos.minutosParaDuracaoCompacta()})")
+                                }
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1588,7 +1590,7 @@ private fun DiaCard(
 
                 Row(verticalAlignment = Alignment.Top) {
                     Column(horizontalAlignment = Alignment.End) {
-                        if (resumo.pontos.isNotEmpty()) {
+                        if (infoDia.pontos.isNotEmpty()) {
                             Text(
                                 resumo.horasTrabalhadasFormatadas,
                                 style = MaterialTheme.typography.titleMedium,
@@ -1639,11 +1641,12 @@ private fun DiaCard(
                     if (infoDia.declaracoes.isNotEmpty()) {
                         DeclaracoesSection(infoDia.declaracoes); Spacer(Modifier.height(8.dp))
                     }
-                    if (resumo.intervalos.isNotEmpty()) TurnosSection(resumo.intervalos)
-                    if (resumo.temIntervalo) {
-                        Spacer(Modifier.height(8.dp)); IntervaloSection(resumo)
+                    if (infoDia.intervalos.isNotEmpty()) TurnosSection(infoDia.intervalos)
+                    if (infoDia.temIntervalo) {
+                        Spacer(Modifier.height(8.dp))
+                        IntervaloSection(resumo)
                     }
-                    if (resumo.jornadaCompleta || resumo.isJornadaZerada || infoDia.isSemJornada) {
+                    if (infoDia.jornadaCompleta || resumo.isJornadaZerada || infoDia.isSemJornada) {
                         Spacer(Modifier.height(8.dp)); SaldosSection(
                             resumo,
                             saldoBancoAcumulado
@@ -1901,24 +1904,42 @@ private fun IntervaloSection(resumo: ResumoDia) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Intervalo Real", style = MaterialTheme.typography.bodySmall)
+                Text("Intervalo real", style = MaterialTheme.typography.bodySmall)
                 Text(
                     resumo.minutosIntervaloReal.minutosParaDuracaoCompacta(),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold
                 )
             }
-            if (resumo.minutosIntervaloReal != resumo.minutosIntervaloTotal) {
+
+            if (resumo.minutosIntervaloReal != resumo.minutosIntervaloConsiderado) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Intervalo Considerado", style = MaterialTheme.typography.bodySmall)
+                    Text("Intervalo considerado", style = MaterialTheme.typography.bodySmall)
                     Text(
-                        resumo.minutosIntervaloTotal.minutosParaDuracaoCompacta(),
+                        resumo.minutosIntervaloConsiderado.minutosParaDuracaoCompacta(),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (resumo.temToleranciaIntervaloAplicada) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Tolerância aplicada", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        (resumo.minutosIntervaloReal - resumo.minutosIntervaloConsiderado)
+                            .coerceAtLeast(0)
+                            .minutosParaDuracaoCompacta(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Warning
                     )
                 }
             }
@@ -1968,13 +1989,23 @@ private fun SaldosSection(
     }
 }
 
-private fun getStatusColor(status: StatusDiaResumo): Color = when (status) {
-    StatusDiaResumo.DESCANSO, StatusDiaResumo.FOLGA -> Color(0xFF9C27B0)
-    StatusDiaResumo.COMPLETO -> Success
-    StatusDiaResumo.EM_ANDAMENTO -> Info
-    StatusDiaResumo.INCOMPLETO, StatusDiaResumo.DESCANSO_TRABALHADO -> Warning
-    StatusDiaResumo.COM_PROBLEMAS -> Error
-    else -> SidiaMediumGray
+private fun getStatusColor(status: StatusResumoDia): Color {
+    return when (status) {
+        StatusResumoDia.SEM_REGISTRO -> SidiaMediumGray
+
+        StatusResumoDia.FOLGA,
+        StatusResumoDia.DESCANSO -> Color(0xFF9C27B0)
+
+        StatusResumoDia.ABONADO -> Info
+
+        StatusResumoDia.FALTA -> Error
+
+        StatusResumoDia.POSITIVO -> Success
+
+        StatusResumoDia.NEGATIVO -> Warning
+
+        StatusResumoDia.NEUTRO -> SidiaMediumGray
+    }
 }
 
 @Preview(showBackground = true)

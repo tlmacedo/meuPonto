@@ -1,5 +1,7 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/AusenciasUiEvent.kt
-package br.com.tlmacedo.meuponto.presentation.screen.ausencias
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/list/AusenciasUiEvent.kt
+package br.com.tlmacedo.meuponto.presentation.screen.ausencias.list
+
+import android.net.Uri
 
 /**
  * Eventos da tela de ausências.
@@ -25,6 +27,6 @@ sealed interface AusenciaFormUiEvent {
     data object SalvoComSucesso : AusenciaFormUiEvent
     data class MostrarMensagem(val mensagem: String) : AusenciaFormUiEvent
     data class MostrarErro(val mensagem: String) : AusenciaFormUiEvent
-    data class AbrirCamera(val uri: android.net.Uri) : AusenciaFormUiEvent
+    data class AbrirCamera(val uri: Uri) : AusenciaFormUiEvent
     data object AbrirGaleria : AusenciaFormUiEvent
 }

@@ -1,5 +1,9 @@
 package br.com.tlmacedo.meuponto.domain.usecase.foto
 
+import br.com.tlmacedo.meuponto.domain.extensions.toTipoJornadaDia
+import br.com.tlmacedo.meuponto.domain.model.TipoJornadaDia
+import br.com.tlmacedo.meuponto.domain.extensions.toTipoJornadaDia
+import br.com.tlmacedo.meuponto.domain.extensions.isAusenciaOrFalse
 import br.com.tlmacedo.meuponto.domain.model.FotoComprovante
 import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.repository.FotoComprovanteRepository
@@ -126,8 +130,9 @@ class ReconciliarFotosUseCase @Inject constructor(
             longitude = ponto.longitude,
             enderecoFormatado = ponto.endereco,
             versaoJornada = versao.id.toInt(),
-            tipoJornadaDia = resumo.tipoDiaEspecial.toTipoJornadaDia(),
+            tipoJornadaDia = resumo.tipoAusencia!!.toTipoJornadaDia(),
             horasTrabalhadasDiaMinutos = resumo.horasTrabalhadasMinutos.toLong(),
+
             saldoDiaMinutos = resumo.saldoDiaMinutos.toLong(),
             saldoBancoHorasMinutos = banco.saldoTotal.toMinutes(),
             fotoPath = relativePath,

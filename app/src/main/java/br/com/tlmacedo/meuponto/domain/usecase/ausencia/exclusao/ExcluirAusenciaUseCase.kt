@@ -1,5 +1,5 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ausencia/ExcluirAusenciaUseCase.kt
-package br.com.tlmacedo.meuponto.domain.usecase.ausencia
+package br.com.tlmacedo.meuponto.domain.usecase.ausencia.exclusao
 
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository

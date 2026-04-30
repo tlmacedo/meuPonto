@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import br.com.tlmacedo.meuponto.domain.extensions.isNormalOrTrue
 import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
@@ -63,12 +64,20 @@ fun ResumoCard(
 ) {
     val theme = LocalAppThemeController.current
 
-    val minutosTrabalhados = resumoDia.horasTrabalhadasComAndamentoMinutos(horaAtual)
-    val saldoDiaMinutos = resumoDia.saldoDiaComAndamentoMinutos(horaAtual)
+    /**
+     * Compatibilidade com o novo ResumoDia:
+     * por enquanto usamos os valores já calculados no domínio.
+     *
+     * Depois podemos recriar cálculo "em andamento" em um use case separado.
+     */
+    val minutosTrabalhados = resumoDia.horasTrabalhadasComAndamentoMinutos
+    val saldoDiaMinutos = resumoDia.saldoDiaComAndamentoMinutos
+
     val bancoTotalMinutos =
         bancoHoras.saldoTotalMinutos + saldoDiaMinutos - resumoDia.saldoDiaMinutos
 
     val jornadaMinutos = resumoDia.cargaHorariaEfetivaMinutos
+
     val progressoTrabalhado = if (jornadaMinutos > 0) {
         (minutosTrabalhados.toFloat() / jornadaMinutos.toFloat()).coerceIn(0f, 1.15f)
     } else {
@@ -117,7 +126,11 @@ fun ResumoCard(
                     },
                     icon = status.iconeTrabalhado,
                     color = status.corTrabalhado,
-                    progress = if (jornadaMinutos > 0) progressoTrabalhado.coerceIn(0f, 1f) else null
+                    progress = if (jornadaMinutos > 0) {
+                        progressoTrabalhado.coerceIn(0f, 1f)
+                    } else {
+                        null
+                    }
                 )
 
                 ResumoMetricItem(
@@ -216,10 +229,10 @@ private fun ResumoHeader(
                 Spacer(Modifier.width(4.dp))
 
                 Text(
-                    text = if (resumoDia.tipoDiaEspecial.isNormal) {
+                    text = if (resumoDia.tipoAusencia.isNormalOrTrue) {
                         "Jornada esperada • ${formatarMinutos(jornadaMinutos)}"
                     } else {
-                        "${resumoDia.tipoDiaEspecial.descricao} • Sem jornada obrigatória"
+                        "${resumoDia.descricaoTipoDia} • Sem jornada obrigatória"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = textSecondary,
@@ -394,7 +407,10 @@ private fun ResumoFooter(
         Spacer(Modifier.width(8.dp))
 
         Text(
-            text = "Jornada esperada",
+            text = when {
+                mostrarContador && dataHoraInicioContador != null -> "Expediente em andamento"
+                else -> "Jornada esperada"
+            },
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
@@ -422,8 +438,8 @@ private data class ResumoVisualStatus(
 
 private fun resumoDiaStatus(resumoDia: ResumoDia): ResumoVisualStatus {
     return when {
-        !resumoDia.tipoDiaEspecial.isNormal -> ResumoVisualStatus(
-            tituloTrabalhado = resumoDia.tipoDiaEspecial.descricao,
+        !resumoDia.tipoAusencia.isNormalOrTrue -> ResumoVisualStatus(
+            tituloTrabalhado = resumoDia.descricaoTipoDia,
             valorTrabalhado = "—",
             subtituloTrabalhado = "Sem meta",
             iconeTrabalhado = Icons.Default.CalendarMonth,

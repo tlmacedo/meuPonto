@@ -1,16 +1,15 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/AusenciasViewModel.kt
-package br.com.tlmacedo.meuponto.presentation.screen.ausencias
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/list/AusenciasViewModel.kt
+package br.com.tlmacedo.meuponto.presentation.screen.ausencias.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.AtualizarAusenciaUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ExcluirAusenciaUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ListarAusenciasUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ResultadoExcluirAusencia
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.consulta.ListarAusenciasUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.criacao.AtualizarAusenciaUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.exclusao.ExcluirAusenciaUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.exclusao.ResultadoExcluirAusencia
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.presentation.screen.history.InfoDiaHistorico
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -156,26 +155,26 @@ class AusenciasViewModel @Inject constructor(
 
             val tipoEspecial = when {
                 ausenciasDoDia.any { it.tipo == TipoAusencia.Ferias } ->
-                    TipoDiaEspecial.Descanso.Ferias
+                    TipoAusencia.Ferias
 
                 ausenciasDoDia.any { it.tipo == TipoAusencia.Atestado } ->
-                    TipoDiaEspecial.Ausencia.Atestado
+                    TipoAusencia.Atestado
 
                 ausenciasDoDia.any { it.tipo == TipoAusencia.Falta.Justificada } ->
-                    TipoDiaEspecial.Ausencia.Falta.Justificada
+                    TipoAusencia.Falta.Justificada
 
                 ausenciasDoDia.any { it.tipo == TipoAusencia.DayOff } ->
-                    TipoDiaEspecial.Ausencia.DayOff
+                    TipoAusencia.DayOff
 
                 ausenciasDoDia.any { it.tipo == TipoAusencia.Falta.Injustificada } ->
-                    TipoDiaEspecial.Ausencia.Falta.Injustificada
+                    TipoAusencia.Falta.Injustificada
 
-                else -> TipoDiaEspecial.Normal
+                else -> null
             }
 
             diasList.add(
                 InfoDiaHistorico(
-                    resumoDia = ResumoDia(data = dataAtual, tipoDiaEspecial = tipoEspecial),
+                    resumoDia = ResumoDia(data = dataAtual, tipoAusencia = tipoEspecial),
                     ausencias = ausenciasDoDia
                 )
             )

@@ -72,16 +72,18 @@ interface VersaoJornadaDao {
      */
     @Query(
         """
-        SELECT * FROM versoes_jornada 
-        WHERE empregoId = :empregoId 
-        AND dataInicio <= :data 
-        AND (dataFim IS NULL OR dataFim >= :data)
-        ORDER BY dataInicio DESC
-        LIMIT 1
+    SELECT * FROM versoes_jornada
+    WHERE empregoId = :empregoId
+      AND dataInicio <= :data
+      AND (dataFim IS NULL OR dataFim >= :data)
+    ORDER BY dataInicio DESC
+    LIMIT 1
     """
     )
-    suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): VersaoJornadaEntity?
-
+    suspend fun buscarPorEmpregoEData(
+        empregoId: Long,
+        data: LocalDate
+    ): VersaoJornadaEntity?
     @Query(
         """
         SELECT * FROM versoes_jornada 

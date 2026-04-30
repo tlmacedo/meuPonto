@@ -27,8 +27,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.auditoria.AuditoriaScreen
-import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciaFormScreen
-import br.com.tlmacedo.meuponto.presentation.screen.ausencias.AusenciasScreen
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.form.AusenciaFormScreen
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.AusenciasScreen
 import br.com.tlmacedo.meuponto.presentation.screen.chamado.create.ChamadoCreateScreen
 import br.com.tlmacedo.meuponto.presentation.screen.chamado.detail.ChamadoDetailScreen
 import br.com.tlmacedo.meuponto.presentation.screen.chamado.list.ChamadoListScreen

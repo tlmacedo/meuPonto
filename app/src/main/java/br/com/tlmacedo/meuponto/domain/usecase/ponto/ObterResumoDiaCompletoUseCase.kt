@@ -1,88 +1,155 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/ObterResumoDiaCompletoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
-import br.com.tlmacedo.meuponto.domain.model.DiaSemana
+import br.com.tlmacedo.meuponto.domain.extensions.isAtestadoOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isDayOffOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isDescansoOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isFaltaInjustificadaOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isFaltaJustificadaOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isFeriasOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isFolgaOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.prioridade
+import br.com.tlmacedo.meuponto.domain.extensions.zeraJornadaOrFalse
+import br.com.tlmacedo.meuponto.domain.mapper.toIntervalosPonto
+import br.com.tlmacedo.meuponto.domain.model.ContextoJornadaDia
 import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
+import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+import br.com.tlmacedo.meuponto.domain.model.StatusResumoDia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
+import br.com.tlmacedo.meuponto.domain.model.feriado.toTipoAusencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
-import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
-import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.CalcularMetadataFeriasUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.CalcularMetadataFeriasUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.MetadataFerias
+import br.com.tlmacedo.meuponto.domain.usecase.jornada.ObterContextoJornadaDiaUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.Duration
 import java.time.LocalDate
 import javax.inject.Inject
-import kotlin.math.abs
 
 data class ResumoDiaCompleto(
     val data: LocalDate,
     val resumoDia: ResumoDia,
+    val pontos: List<Ponto>,
     val ausencias: List<Ausencia>,
     val feriado: Feriado?,
     val feriadosDoDia: List<Feriado> = listOfNotNull(feriado),
     val horarioDiaSemana: HorarioDiaSemana?,
-    val tipoDiaEspecial: TipoDiaEspecial,
+    val tipoAusencia: TipoAusencia?,
     val descricaoDiaEspecial: String?,
+    val contextoJornadaDia: ContextoJornadaDia? = null,
     val metadataFerias: MetadataFerias? = null
 ) {
-    val pontos: List<Ponto> get() = resumoDia.pontos
-    val horasTrabalhadas: Duration get() = resumoDia.horasTrabalhadas
-    val horasTrabalhadasMinutos: Int get() = resumoDia.horasTrabalhadasMinutos
-    val tempoAbonadoMinutos: Int get() = resumoDia.tempoAbonadoMinutos
-    val cargaHorariaEfetiva: Duration get() = resumoDia.cargaHorariaEfetiva
-    val cargaHorariaEfetivaMinutos: Int get() = resumoDia.cargaHorariaEfetivaMinutos
-    val saldoDia: Duration get() = resumoDia.saldoDia
-    val saldoDiaMinutos: Int get() = resumoDia.saldoDiaMinutos
+    val intervalos: List<IntervaloPonto>
+        get() = pontos.toIntervalosPonto(
+            intervaloMinimoMinutos = resumoDia.intervaloPrevistoMinutos,
+            toleranciaVoltaIntervaloMinutos = resumoDia.toleranciaIntervaloMinutos,
+            saidaIntervaloIdeal = contextoJornadaDia?.saidaIntervaloIdeal
+                ?: horarioDiaSemana?.saidaIntervaloIdeal
+        )
 
-    @Suppress("unused")
-    val isDiaEspecial: Boolean get() = tipoDiaEspecial != TipoDiaEspecial.Normal
+    val temIntervalo: Boolean
+        get() = intervalos.any { it.temPausaAntes }
 
-    @Suppress("unused")
-    val zeraJornada: Boolean get() = tipoDiaEspecial.zeraJornada
+    val horasTrabalhadasMinutos: Int
+        get() = intervalos.sumOf { it.duracaoTurnoMinutos }
 
-    val temPontos: Boolean get() = pontos.isNotEmpty()
-    val jornadaCompleta: Boolean get() = resumoDia.jornadaCompleta
-    val temFeriado: Boolean get() = feriadosDoDia.isNotEmpty()
+    val horasTrabalhadas: Duration
+        get() = Duration.ofMinutes(horasTrabalhadasMinutos.toLong())
+
+    val tempoAbonadoMinutos: Int
+        get() = totalMinutosDeclaracoes
+
+    val cargaHorariaEfetivaMinutos: Int
+        get() = resumoDia.jornadaConsideradaMinutos
+
+    val cargaHorariaEfetiva: Duration
+        get() = Duration.ofMinutes(cargaHorariaEfetivaMinutos.toLong())
+
+    val saldoDiaMinutos: Int
+        get() = horasTrabalhadasMinutos + tempoAbonadoMinutos - cargaHorariaEfetivaMinutos
+
+    val saldoDia: Duration
+        get() = Duration.ofMinutes(saldoDiaMinutos.toLong())
+
+    val isDiaEspecial: Boolean
+        get() = tipoAusencia != null || temFeriado
+
+    val zeraJornada: Boolean
+        get() = tipoAusencia.zeraJornadaOrFalse
+
+    val temPontos: Boolean
+        get() = pontos.isNotEmpty()
+
+    val jornadaCompleta: Boolean
+        get() = pontos.size >= 4
+
+    val temFeriado: Boolean
+        get() = feriadosDoDia.isNotEmpty()
 
     val ausenciaPrincipal: Ausencia?
-        get() = ausencias.firstOrNull { it.tipo != TipoAusencia.Declaracao }
-            ?: ausencias.firstOrNull()
+        get() = ausencias
+            .filter { it.tipo != TipoAusencia.Declaracao }
+            .maxByOrNull { it.tipo.prioridade }
+            ?: ausencias.maxByOrNull { it.tipo.prioridade }
 
     val declaracoes: List<Ausencia>
         get() = ausencias.filter { it.tipo == TipoAusencia.Declaracao }
 
-    val isFuturo: Boolean get() = resumoDia.isFuturo
+    val totalMinutosDeclaracoes: Int
+        get() = declaracoes.sumOf { it.duracaoAbonoMinutos ?: 0 }
 
-    @Suppress("unused")
-    val isHoje: Boolean get() = resumoDia.isHoje
+    val isFuturo: Boolean
+        get() = data.isAfter(LocalDate.now())
 
-    val temProblemas: Boolean get() = resumoDia.temProblemas
-    val isDescanso: Boolean get() = tipoDiaEspecial.isDescanso
-    val isFerias: Boolean get() = tipoDiaEspecial.isFerias
-    val isAtestado: Boolean get() = tipoDiaEspecial.isAtestado
-    val isFolga: Boolean get() = tipoDiaEspecial.isFolga || tipoDiaEspecial.isDayOff
-    val isDayOff: Boolean get() = tipoDiaEspecial.isDayOff
-    val isFaltaJustificada: Boolean get() = tipoDiaEspecial.isFaltaJustificada
-    val isFaltaInjustificada: Boolean get() = tipoDiaEspecial.isFaltaInjustificada
-    val totalMinutosDeclaracoes: Int get() = declaracoes.sumOf { it.duracaoAbonoMinutos ?: 0 }
+    val isHoje: Boolean
+        get() = data == LocalDate.now()
+
+    val temProblemas: Boolean
+        get() = resumoDia.status in setOf(
+            StatusResumoDia.NEGATIVO,
+            StatusResumoDia.FALTA
+        )
+
+    val isDescanso: Boolean
+        get() = tipoAusencia.isDescansoOrFalse
+
+    val isFerias: Boolean
+        get() = tipoAusencia.isFeriasOrFalse
+
+    val isAtestado: Boolean
+        get() = tipoAusencia.isAtestadoOrFalse
+
+    val isFolga: Boolean
+        get() = tipoAusencia.isFolgaOrFalse || tipoAusencia.isDayOffOrFalse
+
+    val isDayOff: Boolean
+        get() = tipoAusencia.isDayOffOrFalse
+
+    val isFaltaJustificada: Boolean
+        get() = tipoAusencia.isFaltaJustificadaOrFalse
+
+    val isFaltaInjustificada: Boolean
+        get() = tipoAusencia.isFaltaInjustificadaOrFalse
 
     val temToleranciaIntervaloAplicada: Boolean
-        get() = resumoDia.temToleranciaIntervaloAplicada
+        get() = intervalos.any { it.toleranciaAplicada }
 
     val minutosToleranciaIntervalo: Int
-        get() = if (temToleranciaIntervaloAplicada) {
-            abs(resumoDia.minutosIntervaloReal - resumoDia.minutosIntervaloTotal)
-        } else {
-            0
+        get() = intervalos.sumOf { intervalo ->
+            if (intervalo.toleranciaAplicada) {
+                ((intervalo.pausaAntesMinutosReal ?: 0) -
+                        (intervalo.pausaAntesMinutosConsiderada ?: 0))
+                    .coerceAtLeast(0)
+            } else {
+                0
+            }
         }
 }
 
@@ -90,45 +157,36 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val ausenciaRepository: AusenciaRepository,
     private val feriadoRepository: FeriadoRepository,
-    private val horarioDiaSemanaRepository: HorarioDiaSemanaRepository,
-    private val versaoJornadaRepository: VersaoJornadaRepository,
-    private val calcularMetadataFeriasUseCase: CalcularMetadataFeriasUseCase
+    private val calcularMetadataFeriasUseCase: CalcularMetadataFeriasUseCase,
+    private val obterContextoJornadaDiaUseCase: ObterContextoJornadaDiaUseCase
 ) {
 
-    suspend operator fun invoke(empregoId: Long, data: LocalDate): ResumoDiaCompleto {
+    suspend operator fun invoke(
+        empregoId: Long,
+        data: LocalDate
+    ): ResumoDiaCompleto {
         val pontos = pontoRepository.buscarPorEmpregoEData(empregoId, data)
-        val ausencias = ausenciaRepository.buscarPorData(empregoId, data).filter { it.ativo }
+        val ausencias = ausenciaRepository
+            .buscarPorData(empregoId, data)
+            .filter { it.ativo }
+
         val feriados = feriadoRepository.buscarPorDataEEmprego(data, empregoId)
-        val feriado = feriados.firstOrNull()
 
-        val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
-        val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+        val contexto = obterContextoOuFalhar(
+            empregoId = empregoId,
+            data = data
+        )
 
-        val horarioDia = versaoJornada?.let { versao ->
-            horarioDiaSemanaRepository.buscarPorVersaoEDia(versao.id, diaSemana)
-        } ?: horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
-
-        val cargaBasePadrao = versaoJornada?.cargaHorariaDiariaMinutos ?: 480
-        val acrescimoPontes = versaoJornada?.acrescimoMinutosDiasPontes ?: 0
-        val toleranciaGlobal = versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0
-
-        val ausenciaPrincipal = ausencias.firstOrNull { it.tipo != TipoAusencia.Declaracao }
-            ?: ausencias.firstOrNull()
-
-        val metadataFerias = ausenciaPrincipal?.let { ausencia ->
-            calcularMetadataFeriasUseCase(ausencia, data)
-        }
+        val metadataFerias = ausencias
+            .firstOrNull { it.tipo == TipoAusencia.Ferias }
+            ?.let { calcularMetadataFeriasUseCase(it, data) }
 
         return invokeComDados(
             data = data,
             pontos = pontos,
             ausencias = ausencias,
-            feriado = feriado,
             feriados = feriados,
-            horarioDia = horarioDia,
-            cargaHorariaBasePadrao = cargaBasePadrao,
-            acrescimoPontes = acrescimoPontes,
-            toleranciaIntervaloGlobal = toleranciaGlobal,
+            contextoJornadaDia = contexto,
             metadataFerias = metadataFerias
         )
     }
@@ -137,119 +195,186 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         data: LocalDate,
         pontos: List<Ponto>,
         ausencias: List<Ausencia>,
-        feriado: Feriado?,
+        feriado: Feriado? = null,
         feriados: List<Feriado> = listOfNotNull(feriado),
-        horarioDia: HorarioDiaSemana?,
+
+        /**
+         * Compatibilidade temporária com chamadas antigas.
+         *
+         * CalcularBancoHorasUseCase e HistoryViewModel ainda chamam este método
+         * passando horário/jornada manualmente. Vamos manter por enquanto para
+         * destravar o build.
+         */
+        horarioDia: HorarioDiaSemana? = null,
         cargaHorariaBasePadrao: Int = 480,
         acrescimoPontes: Int = 0,
         toleranciaIntervaloGlobal: Int = 0,
+
+        /**
+         * Caminho novo e preferencial.
+         *
+         * Quando existir contextoJornadaDia, ele tem prioridade absoluta.
+         */
+        contextoJornadaDia: ContextoJornadaDia? = null,
+
         metadataFerias: MetadataFerias? = null
     ): ResumoDiaCompleto {
-        val resultadoDiaEspecial = determinarTipoDiaEspecial(ausencias, feriado)
-        val tipoDiaEspecial = resultadoDiaEspecial.tipo
-        val descricaoDiaEspecial = resultadoDiaEspecial.descricao
+        val pontosOrdenados = pontos.sortedBy { it.dataHora }
+        val ausenciasAtivas = ausencias.filter { it.ativo }
+        val feriadosDoDia = feriados.ifEmpty { listOfNotNull(feriado) }
 
-        val tempoAbonadoMinutos = ausencias
-            .filter { it.tipo == TipoAusencia.Declaracao }
-            .sumOf { it.duracaoAbonoMinutos ?: 0 }
+        val resultadoDia = determinarTipoDia(
+            ausencias = ausenciasAtivas,
+            feriados = feriadosDoDia
+        )
 
-        val cargaHorariaBase = horarioDia?.cargaHorariaMinutos ?: cargaHorariaBasePadrao
-        val cargaHorariaEfetiva = if (cargaHorariaBase > 0) {
-            cargaHorariaBase + acrescimoPontes
-        } else {
-            0
-        }
+        val jornadaDoDiaMinutos = contextoJornadaDia?.jornadaDoDiaMinutos
+            ?: run {
+                val cargaBase = horarioDia?.cargaHorariaMinutos ?: cargaHorariaBasePadrao
+
+                if (cargaBase > 0) {
+                    cargaBase + acrescimoPontes
+                } else {
+                    0
+                }
+            }
+
+        val intervaloMinimoMinutos = contextoJornadaDia?.intervaloMinimoMinutos
+            ?: horarioDia?.intervaloMinimoMinutos
+            ?: 60
+
+        val toleranciaVoltaIntervaloMinutos =
+            contextoJornadaDia?.toleranciaVoltaIntervaloMinutos
+                ?: toleranciaIntervaloGlobal
 
         val resumoDia = ResumoDia(
             data = data,
-            pontos = pontos.sortedBy { it.dataHora },
-            cargaHorariaDiaria = Duration.ofMinutes(cargaHorariaEfetiva.toLong()),
-            intervaloMinimoMinutos = horarioDia?.intervaloMinimoMinutos ?: 60,
-            toleranciaIntervaloMinutos = toleranciaIntervaloGlobal,
-            tipoDiaEspecial = tipoDiaEspecial,
-            saidaIntervaloIdeal = horarioDia?.saidaIntervaloIdeal,
-            tempoAbonadoMinutos = tempoAbonadoMinutos
+            entrada = pontosOrdenados.getOrNull(0)?.hora,
+            saidaAlmoco = pontosOrdenados.getOrNull(1)?.hora,
+            voltaAlmoco = pontosOrdenados.getOrNull(2)?.hora,
+            saida = pontosOrdenados.getOrNull(3)?.hora,
+            jornadaPrevistaMinutos = jornadaDoDiaMinutos,
+            intervaloPrevistoMinutos = intervaloMinimoMinutos,
+            toleranciaIntervaloMinutos = toleranciaVoltaIntervaloMinutos,
+            tipoAusencia = resultadoDia.tipoAusencia
         )
 
         return ResumoDiaCompleto(
             data = data,
             resumoDia = resumoDia,
-            ausencias = ausencias,
-            feriado = feriado,
-            feriadosDoDia = feriados,
-            horarioDiaSemana = horarioDia,
-            tipoDiaEspecial = tipoDiaEspecial,
-            descricaoDiaEspecial = descricaoDiaEspecial,
+            pontos = pontosOrdenados,
+            ausencias = ausenciasAtivas,
+            feriado = feriadosDoDia.firstOrNull(),
+            feriadosDoDia = feriadosDoDia,
+            horarioDiaSemana = contextoJornadaDia?.horarioDiaSemana ?: horarioDia,
+            tipoAusencia = resultadoDia.tipoAusencia,
+            descricaoDiaEspecial = resultadoDia.descricao,
+            contextoJornadaDia = contextoJornadaDia,
             metadataFerias = metadataFerias
         )
     }
-
-    fun observar(empregoId: Long, data: LocalDate): Flow<ResumoDiaCompleto> {
+    fun observar(
+        empregoId: Long,
+        data: LocalDate
+    ): Flow<ResumoDiaCompleto> {
         val pontosFlow = pontoRepository.observarPorEmpregoEData(empregoId, data)
         val ausenciasFlow = ausenciaRepository.observarPorData(empregoId, data)
         val feriadosFlow = feriadoRepository.observarPorDataEEmprego(data, empregoId)
 
-        return combine(pontosFlow, ausenciasFlow, feriadosFlow) { pontos, ausencias, feriados ->
+        return combine(
+            pontosFlow,
+            ausenciasFlow,
+            feriadosFlow
+        ) { pontos, ausencias, feriados ->
             val ausenciasAtivas = ausencias.filter { it.ativo }
-            val feriado = feriados.firstOrNull()
 
-            val diaSemana = DiaSemana.fromJavaDayOfWeek(data.dayOfWeek)
-            val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)
+            val contexto = obterContextoOuFalhar(
+                empregoId = empregoId,
+                data = data
+            )
 
-            val horarioDia = versaoJornada?.let { versao ->
-                horarioDiaSemanaRepository.buscarPorVersaoEDia(versao.id, diaSemana)
-            } ?: horarioDiaSemanaRepository.buscarPorEmpregoEDia(empregoId, diaSemana)
-
-            val ausenciaPrincipal =
-                ausenciasAtivas.firstOrNull { it.tipo != TipoAusencia.Declaracao }
-                    ?: ausenciasAtivas.firstOrNull()
-
-            val metadataFerias = ausenciaPrincipal?.let { ausencia ->
-                calcularMetadataFeriasUseCase(ausencia, data)
-            }
+            val metadataFerias = ausenciasAtivas
+                .firstOrNull { it.tipo == TipoAusencia.Ferias }
+                ?.let { calcularMetadataFeriasUseCase(it, data) }
 
             invokeComDados(
                 data = data,
                 pontos = pontos,
                 ausencias = ausenciasAtivas,
-                feriado = feriado,
                 feriados = feriados,
-                horarioDia = horarioDia,
-                cargaHorariaBasePadrao = versaoJornada?.cargaHorariaDiariaMinutos ?: 480,
-                acrescimoPontes = versaoJornada?.acrescimoMinutosDiasPontes ?: 0,
-                toleranciaIntervaloGlobal = versaoJornada?.toleranciaIntervaloMaisMinutos ?: 0,
+                contextoJornadaDia = contexto,
                 metadataFerias = metadataFerias
             )
         }
     }
 
-    private fun determinarTipoDiaEspecial(
-        ausencias: List<Ausencia>,
-        feriado: Feriado?
-    ): ResultadoDiaEspecial {
-        val ausenciaPrincipal = ausencias.firstOrNull { it.tipo != TipoAusencia.Declaracao }
+    private suspend fun obterContextoOuFalhar(
+        empregoId: Long,
+        data: LocalDate
+    ): ContextoJornadaDia {
+        return when (val resultado = obterContextoJornadaDiaUseCase(empregoId, data)) {
+            is ObterContextoJornadaDiaUseCase.Resultado.Sucesso -> {
+                resultado.contexto
+            }
 
-        if (ausenciaPrincipal != null) {
-            return ResultadoDiaEspecial(
-                tipo = ausenciaPrincipal.tipo.toTipoDiaEspecial(),
-                descricao = montarDescricaoAusencia(ausenciaPrincipal)
+            is ObterContextoJornadaDiaUseCase.Resultado.EmpregoNaoEncontrado -> {
+                throw IllegalStateException(
+                    "Emprego não encontrado para id=${resultado.empregoId}."
+                )
+            }
+
+            is ObterContextoJornadaDiaUseCase.Resultado.ConfiguracaoNaoEncontrada -> {
+                throw IllegalStateException(
+                    "Configuração não encontrada para empregoId=${resultado.empregoId}."
+                )
+            }
+
+            is ObterContextoJornadaDiaUseCase.Resultado.VersaoNaoEncontrada -> {
+                throw IllegalStateException(
+                    "Versão de jornada não encontrada para empregoId=${resultado.empregoId} em ${resultado.data}."
+                )
+            }
+
+            is ObterContextoJornadaDiaUseCase.Resultado.Erro -> {
+                throw IllegalStateException(resultado.mensagem)
+            }
+        }
+    }
+
+    private fun determinarTipoDia(
+        ausencias: List<Ausencia>,
+        feriados: List<Feriado>
+    ): ResultadoTipoDia {
+        val ausenciaPrioritaria = ausencias
+            .filter { it.tipo != TipoAusencia.Declaracao }
+            .maxByOrNull { it.tipo.prioridade }
+            ?: ausencias.maxByOrNull { it.tipo.prioridade }
+
+        if (ausenciaPrioritaria != null) {
+            return ResultadoTipoDia(
+                tipoAusencia = ausenciaPrioritaria.tipo,
+                descricao = montarDescricaoAusencia(ausenciaPrioritaria)
             )
         }
 
+        val feriado = feriados.firstOrNull()
+
         if (feriado != null) {
-            return ResultadoDiaEspecial(
-                tipo = feriado.tipo.toTipoDiaEspecial(),
+            return ResultadoTipoDia(
+                tipoAusencia = feriado.tipo.toTipoAusencia(),
                 descricao = feriado.nome
             )
         }
 
-        return ResultadoDiaEspecial(
-            tipo = TipoDiaEspecial.Normal,
+        return ResultadoTipoDia(
+            tipoAusencia = null,
             descricao = null
         )
     }
 
-    private fun montarDescricaoAusencia(ausencia: Ausencia): String {
+    private fun montarDescricaoAusencia(
+        ausencia: Ausencia
+    ): String {
         return buildString {
             append(ausencia.tipoDescricaoCompleta)
 
@@ -262,8 +387,8 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         }
     }
 
-    private data class ResultadoDiaEspecial(
-        val tipo: TipoDiaEspecial,
+    private data class ResultadoTipoDia(
+        val tipoAusencia: TipoAusencia?,
         val descricao: String?
     )
 }

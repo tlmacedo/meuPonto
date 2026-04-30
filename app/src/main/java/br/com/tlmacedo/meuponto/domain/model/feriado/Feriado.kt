@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/feriado/Feriado.kt
 package br.com.tlmacedo.meuponto.domain.model.feriado
 
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import java.time.LocalDate
 import java.time.MonthDay
 
@@ -115,7 +116,7 @@ data class Feriado(
      * Verifica se é um feriado que representa folga efetiva.
      */
     val isFolga: Boolean
-        get() = tipo in TipoFeriado.tiposFolga()
+        get() = tipo in TipoFeriado.tiposFeriados()
 
     /**
      * Verifica se é um feriado ponte (carga distribuída).
@@ -159,5 +160,13 @@ data class Feriado(
             empregoId = empregoId,
             observacao = observacao
         )
+
+        fun TipoFeriado.toTipoAusencia(): TipoAusencia {
+            return when (this) {
+                TipoFeriado.NACIONAL, TipoFeriado.ESTADUAL, TipoFeriado.MUNICIPAL -> TipoAusencia.Feriado.Oficial
+                TipoFeriado.PONTE -> TipoAusencia.Feriado.DiaPonte
+                TipoFeriado.FACULTATIVO -> TipoAusencia.Feriado.Facultativo
+            }
+        }
     }
 }

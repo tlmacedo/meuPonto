@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.domain.usecase.ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.CalcularMetadataFeriasUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking

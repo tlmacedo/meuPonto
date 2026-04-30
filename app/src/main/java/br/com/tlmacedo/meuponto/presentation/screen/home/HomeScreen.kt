@@ -544,17 +544,21 @@ internal fun HomeContent(
                     contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 80.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(uiState.resumoDia.intervalos, key = { it.entrada.id }) { intervalo ->
+                    items(
+                        items = uiState.intervalos,
+                        key = { intervalo -> intervalo.entrada.id }
+                    ) { intervalo ->
                         IntervaloCard(
                             intervalo = intervalo,
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = animatedVisibilityScope,
                             mostrarContadorTempoReal = uiState.isHoje,
                             mostrarNsr = uiState.nsrHabilitado,
-                            onEditar = { onAction(HomeAction.AbrirEdicaoModal(it)) },
-                            onExcluir = { onAction(HomeAction.AbrirExclusaoModal(it)) },
-                            onVerFoto = { onNavigateToFotoVisualizacao(it.id) },
-                            onVerLocalizacao = { onAction(HomeAction.AbrirLocalizacaoModal(it)) })
+                            onEditar = { ponto -> onAction(HomeAction.AbrirEdicaoModal(ponto)) },
+                            onExcluir = { ponto -> onAction(HomeAction.AbrirExclusaoModal(ponto)) },
+                            onVerFoto = { ponto -> onNavigateToFotoVisualizacao(ponto.id) },
+                            onVerLocalizacao = { ponto -> onAction(HomeAction.AbrirLocalizacaoModal(ponto)) }
+                        )
                     }
                 }
             }

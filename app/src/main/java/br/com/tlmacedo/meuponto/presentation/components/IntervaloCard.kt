@@ -57,26 +57,6 @@ import br.com.tlmacedo.meuponto.presentation.theme.Warning
 import br.com.tlmacedo.meuponto.presentation.theme.WarningLight
 import java.time.format.DateTimeFormatter
 
-/**
- * Card que exibe um intervalo de trabalho (entrada -> saída) com suporte a swipe.
- *
- * Cada registro de ponto (entrada e saída) possui swipe individual:
- * - Swipe para ESQUERDA: revela botão Excluir
- * - Swipe para DIREITA: revela Editar, Ver Foto, Ver Localização
- *
- * @param intervalo Intervalo a ser exibido
- * @param mostrarContadorTempoReal Se deve exibir contador em tempo real
- * @param mostrarNsr Se deve exibir o NSR (quando habilitado no emprego)
- * @param onEditar Callback para editar um ponto
- * @param onExcluir Callback para excluir um ponto
- * @param onVerFoto Callback para ver foto de um ponto
- * @param onVerLocalizacao Callback para ver localização de um ponto
- * @param modifier Modificador opcional
- *
- * @author Thiago
- * @since 1.0.0
- * @updated 7.2.0 - Swipe individual para cada registro de ponto
- */
 @Composable
 fun IntervaloCard(
     intervalo: IntervaloPonto,
@@ -93,19 +73,13 @@ fun IntervaloCard(
     val formatadorHora = DateTimeFormatter.ofPattern("HH:mm")
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Pausa antes do turno (se houver)
         if (intervalo.temPausaAntes) {
-            PausaEntreIntervalos(
-                textoReal = intervalo.formatarPausaAntesCompacta() ?: "",
-                textoConsiderado = if (intervalo.toleranciaAplicada) {
-                    intervalo.formatarPausaConsideradaCompacta()
-                } else null,
-                tipoPausa = intervalo.tipoPausa ?: TipoPausa.CAFE
+            PausaEntreTurnos(
+                intervalo = intervalo
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // Card principal
         ThemedCard(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -116,9 +90,6 @@ fun IntervaloCard(
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // ══════════════════════════════════════════════════════════
-                // COLUNA ESQUERDA - ENTRADA (com swipe)
-                // ══════════════════════════════════════════════════════════
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.CenterStart
@@ -136,84 +107,22 @@ fun IntervaloCard(
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = animatedVisibilityScope,
                             horaReal = intervalo.entrada.hora.format(formatadorHora),
-                            horaConsiderada = if (intervalo.temHoraEntradaConsiderada) {
-                                intervalo.horaEntradaConsiderada!!.toLocalTime()
-                                    .format(formatadorHora)
-                            } else if (intervalo.entrada.temAjusteTolerancia) {
-                                intervalo.entrada.horaConsiderada.format(formatadorHora)
-                            } else null,
+                            horaConsiderada = if (intervalo.temHoraEntradaConsideradaDiferenteDaReal) {
+                                intervalo.formatarHoraEntradaConsiderada()
+                            } else {
+                                null
+                            },
                             nsr = if (mostrarNsr) intervalo.entrada.nsr else null,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
                         )
                     }
                 }
 
-                // ══════════════════════════════════════════════════════════
-                // COLUNA CENTRAL - DURAÇÃO DO TURNO
-                // ══════════════════════════════════════════════════════════
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(horizontal = 4.dp)
-                ) {
-                    // Linha vertical superior
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .weight(1f)
-                            .background(MaterialTheme.colorScheme.outlineVariant)
-                    )
+                DuracaoTurnoCentral(
+                    intervalo = intervalo,
+                    mostrarContadorTempoReal = mostrarContadorTempoReal
+                )
 
-                    // Badge de duração
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .background(
-                                color = if (intervalo.aberto) WarningLight else MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Timer,
-                                contentDescription = null,
-                                tint = if (intervalo.aberto) Warning else MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(12.dp)
-                            )
-
-                            if (intervalo.aberto && mostrarContadorTempoReal) {
-                                LiveCounterCompact(
-                                    dataHoraInicio = intervalo.entrada.dataHoraEfetiva
-                                )
-                            } else {
-                                Text(
-                                    text = intervalo.formatarDuracaoCompacta(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (intervalo.aberto) Warning else MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    }
-
-                    // Linha vertical inferior
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .weight(1f)
-                            .background(MaterialTheme.colorScheme.outlineVariant)
-                    )
-                }
-
-                // ══════════════════════════════════════════════════════════
-                // COLUNA DIREITA - SAÍDA (com swipe)
-                // ══════════════════════════════════════════════════════════
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.CenterEnd
@@ -232,13 +141,12 @@ fun IntervaloCard(
                                 sharedTransitionScope = sharedTransitionScope,
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 horaReal = intervalo.saida.hora.format(formatadorHora),
-                                horaConsiderada = null, // Saída não tem tolerância
+                                horaConsiderada = null,
                                 nsr = if (mostrarNsr) intervalo.saida.nsr else null,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
                             )
                         }
                     } else {
-                        // Aguardando saída (sem swipe)
                         PontoAguardando(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
                         )
@@ -249,11 +157,84 @@ fun IntervaloCard(
     }
 }
 
-/**
- * Tipo de registro de ponto.
- */
 private enum class TipoRegistro {
-    ENTRADA, SAIDA
+    ENTRADA,
+    SAIDA
+}
+
+@Composable
+private fun DuracaoTurnoCentral(
+    intervalo: IntervaloPonto,
+    mostrarContadorTempoReal: Boolean
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(horizontal = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .weight(1f)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
+
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .background(
+                    color = if (intervalo.aberto) {
+                        WarningLight
+                    } else {
+                        MaterialTheme.colorScheme.primaryContainer
+                    },
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Timer,
+                    contentDescription = null,
+                    tint = if (intervalo.aberto) {
+                        Warning
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    },
+                    modifier = Modifier.size(12.dp)
+                )
+
+                if (intervalo.aberto && mostrarContadorTempoReal) {
+                    LiveCounterCompact(
+                        dataHoraInicio = intervalo.entradaParaCalculo
+                    )
+                } else {
+                    Text(
+                        text = intervalo.formatarDuracaoCompacta(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (intervalo.aberto) {
+                            Warning
+                        } else {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        }
+                    )
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .weight(1f)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
+    }
 }
 
 @Composable
@@ -270,18 +251,20 @@ private fun PontoContent(
     val isEntrada = tipo == TipoRegistro.ENTRADA
     val corPrimaria = if (isEntrada) EntradaColor else SaidaColor
     val corFundo = if (isEntrada) EntradaBg else SaidaBg
-    val icone = if (isEntrada) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
+    val icone = if (isEntrada) {
+        Icons.AutoMirrored.Filled.Login
+    } else {
+        Icons.AutoMirrored.Filled.Logout
+    }
     val label = if (isEntrada) "Entrada" else "Saída"
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
     ) {
-        // Ícone
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(36.dp)
+            modifier = Modifier.size(36.dp)
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -298,7 +281,6 @@ private fun PontoContent(
                 )
             }
 
-            // Identificador de foto (se houver)
             if (ponto.temFotoComprovante) {
                 val iconeFoto = when (ponto.fotoOrigem) {
                     FotoOrigem.CAMERA -> Icons.Default.CameraAlt
@@ -357,56 +339,55 @@ private fun PontoContent(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                color = corPrimaria
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = corPrimaria
+        )
 
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Hora (com tolerância se aplicável)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (horaConsiderada != null) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = horaReal,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        fontWeight = FontWeight.Medium,
-                        textDecoration = TextDecoration.LineThrough
-                    )
-                    Text(
-                        text = horaConsiderada,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black,
-                        color = corPrimaria
-                    )
-                }
-            } else {
+        if (horaConsiderada != null && horaConsiderada != horaReal) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = horaReal,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.LineThrough
+                )
+
+                Text(
+                    text = horaConsiderada,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
-                    color = if (ponto.temAjusteTolerancia) corPrimaria else MaterialTheme.colorScheme.onSurface
+                    color = corPrimaria
                 )
             }
-
-            if (ponto.horaAutoFilled) {
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "Extraído do comprovante",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+        } else {
+            Text(
+                text = horaReal,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = if (ponto.temAjusteTolerancia) {
+                    corPrimaria
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            )
         }
 
-        // NSR (se disponível)
+        if (ponto.horaAutoFilled) {
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = "Extraído do comprovante",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
         if (!nsr.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -416,6 +397,7 @@ private fun PontoContent(
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
+
                 if (ponto.nsrAutoFilled) {
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
@@ -430,9 +412,6 @@ private fun PontoContent(
     }
 }
 
-/**
- * Placeholder visual para saída ainda não registrada.
- */
 @Composable
 private fun PontoAguardando(
     modifier: Modifier = Modifier
@@ -485,21 +464,21 @@ private fun PontoAguardando(
     }
 }
 
-/**
- * Componente que exibe o tempo de pausa/intervalo entre turnos.
- */
 @Composable
-private fun PausaEntreIntervalos(
-    textoReal: String,
-    textoConsiderado: String? = null,
-    tipoPausa: TipoPausa,
+private fun PausaEntreTurnos(
+    intervalo: IntervaloPonto,
     modifier: Modifier = Modifier
 ) {
+    val tipoPausa = intervalo.tipoPausa ?: TipoPausa.CAFE
+
     val icone: ImageVector = when (tipoPausa) {
         TipoPausa.CAFE -> Icons.Default.Coffee
         TipoPausa.SAIDA_RAPIDA -> Icons.AutoMirrored.Filled.DirectionsWalk
         TipoPausa.ALMOCO -> Icons.Default.Restaurant
     }
+
+    val textoReal = intervalo.formatarPausaAntesCompacta().orEmpty()
+    val textoConsiderado = intervalo.formatarPausaConsideradaCompacta()
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -523,8 +502,11 @@ private fun PausaEntreIntervalos(
                 )
                 .padding(horizontal = 20.dp, vertical = 6.dp)
         ) {
-            // Tempo Real (Tachado) - Aparece apenas se houver tolerância aplicada
-            if (textoConsiderado != null) {
+            if (
+                intervalo.temPausaConsideradaDiferenteDaReal &&
+                textoConsiderado != null &&
+                textoConsiderado != textoReal
+            ) {
                 Text(
                     text = textoReal,
                     style = MaterialTheme.typography.labelSmall,
@@ -534,7 +516,6 @@ private fun PausaEntreIntervalos(
                 )
             }
 
-            // Linha Principal: Ícone + Descrição + Tempo Considerado
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -545,6 +526,7 @@ private fun PausaEntreIntervalos(
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     modifier = Modifier.size(20.dp)
                 )
+
                 Text(
                     text = buildString {
                         append(tipoPausa.descricao)
@@ -562,51 +544,5 @@ private fun PausaEntreIntervalos(
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
         )
-    }
-}
-
-@androidx.compose.ui.tooling.preview.Preview(
-    showBackground = true,
-    name = "Intervalo com Tolerância Aplicada"
-)
-@Composable
-private fun IntervaloComToleranciaPreview() {
-    val hoje = java.time.LocalDate.now()
-    val empregoId = 1L
-
-    // Simula uma pausa de 68 minutos (mínimo 60, tolerância 15)
-    // A tolerância deve "puxar" para 60min e marcar a entrada seguinte como considerada
-    val ponto1 = Ponto.criar(empregoId, hoje.atTime(8, 0))
-        .copy(id = 1L)
-    val ponto2 = Ponto.criar(empregoId, hoje.atTime(12, 0))
-        .copy(id = 2L)
-    val ponto3 = Ponto.criar(empregoId, hoje.atTime(13, 8))
-        .copy(id = 3L) // 68min de pausa
-    val ponto4 = Ponto.criar(empregoId, hoje.atTime(17, 0))
-        .copy(id = 4L)
-
-    val resumo = br.com.tlmacedo.meuponto.domain.model.ResumoDia(
-        data = hoje,
-        pontos = listOf(ponto1, ponto2, ponto3, ponto4),
-        intervaloMinimoMinutos = 60,
-        toleranciaIntervaloMinutos = 15,
-        saidaIntervaloIdeal = null // Força a lógica de proximidade (global)
-    )
-
-    br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                "Exemplo de Tolerância Global (Sábado/Sem Horário Fixo)",
-                style = MaterialTheme.typography.titleSmall
-            )
-            // Exibimos o segundo intervalo, que contém a pausa de almoço antes dele
-            IntervaloCard(
-                intervalo = resumo.intervalos[1],
-                mostrarNsr = true
-            )
-        }
     }
 }

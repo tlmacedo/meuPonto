@@ -16,7 +16,7 @@ REPLACEMENTS = {
     "TipoAusencia.FALTA_JUSTIFICADA": "TipoAusencia.Justificada",
     "TipoAusencia.FALTA_INJUSTIFICADA": "TipoAusencia.Injustificada",
 
-    "TipoDiaEspecial.NORMAL": "TipoDiaEspecial.Normal",
+    "TipoDiaEspecial.NORMAL": "null",
     "TipoDiaEspecial.DESCANSO": "TipoDiaEspecial.Descanso",
     "TipoDiaEspecial.FERIAS": "TipoDiaEspecial.Ferias",
     "TipoDiaEspecial.ATESTADO": "TipoDiaEspecial.Atestado",
@@ -117,21 +117,21 @@ def create_extension_file():
 
     content = """package br.com.tlmacedo.meuponto.domain.model.extensions
 
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 
-fun TipoAusencia.toTipoDiaEspecial(): TipoDiaEspecial {
+fun TipoAusencia.toTipoDiaEspecial(): TipoAusencia? {
     return when (this) {
-        TipoAusencia.Ferias -> TipoDiaEspecial.Ferias
-        TipoAusencia.Atestado -> TipoDiaEspecial.Atestado
-        TipoAusencia.Declaracao -> TipoDiaEspecial.Declaracao
-        TipoAusencia.DayOff -> TipoDiaEspecial.Folga
-        TipoAusencia.Justificada -> TipoDiaEspecial.FaltaJustificada
-        TipoAusencia.Injustificada -> TipoDiaEspecial.FaltaInjustificada
-        TipoAusencia.DiaPonte -> TipoDiaEspecial.Ponte
-        TipoAusencia.Facultativo -> TipoDiaEspecial.Facultativo
-        TipoAusencia.CompensacaoBanco -> TipoDiaEspecial.Folga
-        TipoAusencia.DiminuirBanco -> TipoDiaEspecial.Folga
+        TipoAusencia.Ferias -> TipoAusencia?.Ferias
+        TipoAusencia.Atestado -> TipoAusencia?.Atestado
+        TipoAusencia.Declaracao -> TipoAusencia?.Declaracao
+        TipoAusencia.DayOff -> TipoAusencia?.Folga
+        TipoAusencia.Justificada -> TipoAusencia?.FaltaJustificada
+        TipoAusencia.Injustificada -> TipoAusencia?.FaltaInjustificada
+        TipoAusencia.DiaPonte -> TipoAusencia?.Ponte
+        TipoAusencia.Facultativo -> TipoAusencia?.Facultativo
+        TipoAusencia.CompensacaoBanco -> TipoAusencia?.Folga
+        TipoAusencia.DiminuirBanco -> TipoAusencia?.Folga
     }
 }
 """

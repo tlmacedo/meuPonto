@@ -1,9 +1,11 @@
-package br.com.tlmacedo.meuponto.domain.usecase.ausencia
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ausencia/ferias/CalcularMetadataFeriasUseCase.kt
+package br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias
 
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 data class MetadataFerias(
@@ -58,7 +60,7 @@ class CalcularMetadataFeriasUseCase @Inject constructor(
             when {
                 dataRef.isAfter(f.dataFim) -> f.quantidadeDias
                 dataRef.isBefore(f.dataInicio) -> 0
-                else -> java.time.temporal.ChronoUnit.DAYS.between(f.dataInicio, dataRef)
+                else -> ChronoUnit.DAYS.between(f.dataInicio, dataRef)
                     .toInt() + 1
             }
         }

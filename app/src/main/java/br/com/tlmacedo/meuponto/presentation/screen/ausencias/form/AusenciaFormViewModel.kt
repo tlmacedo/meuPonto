@@ -1,17 +1,20 @@
-package br.com.tlmacedo.meuponto.presentation.screen.ausencias
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/form/AusenciaFormViewModel.kt
+package br.com.tlmacedo.meuponto.presentation.screen.ausencias.form
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.AtualizarAusenciaUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.CalcularMetadataFeriasUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.CriarAusenciaUseCase
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ResultadoAtualizarAusencia
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ResultadoCriarAusencia
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.criacao.AtualizarAusenciaUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.CalcularMetadataFeriasUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.criacao.CriarAusenciaUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.criacao.ResultadoAtualizarAusencia
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.criacao.ResultadoCriarAusencia
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.AusenciaFormUiEvent
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.AusenciaFormUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -171,7 +174,7 @@ class AusenciaFormViewModel @Inject constructor(
 
             if (ausencia != null) {
                 _uiState.update {
-                    AusenciaFormUiState.fromAusencia(ausencia).copy(
+                    AusenciaFormUiState.Companion.fromAusencia(ausencia).copy(
                         isLoading = false,
                         dataInicioTrabalho = dataInicioTrabalho,
                         ciclosDisponiveisPA = ciclos

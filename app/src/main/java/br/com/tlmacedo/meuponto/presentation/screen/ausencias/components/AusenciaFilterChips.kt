@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
-import br.com.tlmacedo.meuponto.presentation.screen.ausencias.OrdemData
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.OrdemData
 
 @Composable
 fun AusenciaFilterChips(

@@ -1,11 +1,11 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/AusenciasUiState.kt
-package br.com.tlmacedo.meuponto.presentation.screen.ausencias
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/list/AusenciasUiState.kt
+package br.com.tlmacedo.meuponto.presentation.screen.ausencias.list
 
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.MetadataFerias
 import br.com.tlmacedo.meuponto.presentation.screen.history.InfoDiaHistorico
 import java.time.LocalDate
 import java.time.LocalTime

@@ -9,16 +9,13 @@ import br.com.tlmacedo.meuponto.data.local.database.dao.FotoComprovanteDao
 import br.com.tlmacedo.meuponto.data.local.database.entity.FotoComprovanteEntity
 import br.com.tlmacedo.meuponto.data.service.LocationService
 import br.com.tlmacedo.meuponto.data.service.OcrService
+import br.com.tlmacedo.meuponto.domain.extensions.toTipoJornadaDia
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.DiaSemana
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.Usuario
-import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
-import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
-import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
@@ -26,7 +23,7 @@ import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.BuscarAusenciaPorDataUseCase
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.consulta.BuscarAusenciaPorDataUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.FecharCicloUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.InicializarCiclosRetroativosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.banco.ReverterFechamentoIncorretoUseCase
@@ -700,7 +697,7 @@ class HomeViewModel @Inject constructor(
                 ),
                 data = dataHora.toLocalDate(),
                 horarioDiaSemana = horarioDiaSemana,
-                tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
+                tipoAusencia = _uiState.value.resumoDia.tipoAusencia
             )
 
             val config = _uiState.value.configuracaoEmprego
@@ -1031,7 +1028,7 @@ class HomeViewModel @Inject constructor(
                 ),
                 data = novaDataHora.toLocalDate(),
                 horarioDiaSemana = horarioDiaSemana,
-                tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
+                tipoAusencia = _uiState.value.resumoDia.tipoAusencia
             )
 
             val config = _uiState.value.configuracaoEmprego
@@ -1164,7 +1161,7 @@ class HomeViewModel @Inject constructor(
                 ),
                 data = modalState.dataHora.toLocalDate(),
                 horarioDiaSemana = horarioDiaSemana,
-                tipoDiaEspecial = _uiState.value.resumoDia.tipoDiaEspecial
+                tipoAusencia = _uiState.value.resumoDia.tipoAusencia
             )
 
             val comentarioObrigatorio = config?.comentarioObrigatorioHoraExtra == true &&
@@ -1809,7 +1806,7 @@ class HomeViewModel @Inject constructor(
                 indicePontoDia = if (indice > 0) indice else 0,
                 nsr = ponto.nsr,
                 versaoJornada = versao?.numeroVersao ?: 0,
-                tipoJornadaDia = resumo.tipoDiaEspecial.toTipoJornadaDia(),
+                tipoJornadaDia = resumo.tipoAusencia!!.toTipoJornadaDia(),
                 horasTrabalhadasDiaMinutos = resumo.horasTrabalhadasMinutos.toLong(),
                 saldoDiaMinutos = resumo.saldoDiaMinutos.toLong(),
                 saldoBancoHorasMinutos = saldoBanco.toLong(),

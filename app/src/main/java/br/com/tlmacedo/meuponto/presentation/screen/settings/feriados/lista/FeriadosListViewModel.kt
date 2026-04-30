@@ -4,7 +4,8 @@ package br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.lista
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
@@ -350,7 +351,7 @@ class FeriadosListViewModel @Inject constructor(
                 InfoDiaHistorico(
                     resumoDia = ResumoDia(
                         data = dataAtual,
-                        tipoDiaEspecial = if (feriadoDoDia != null) TipoDiaEspecial.Descanso.Feriado.Oficial else TipoDiaEspecial.Normal
+                        tipoAusencia = if (feriadoDoDia != null) TipoAusencia.Feriado.Oficial else null
                     ),
                     feriado = feriadoDoDia
                 )

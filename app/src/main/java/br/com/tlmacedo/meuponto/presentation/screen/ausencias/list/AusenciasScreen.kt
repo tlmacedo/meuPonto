@@ -1,5 +1,5 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/AusenciasScreen.kt
-package br.com.tlmacedo.meuponto.presentation.screen.ausencias
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/list/AusenciasScreen.kt
+package br.com.tlmacedo.meuponto.presentation.screen.ausencias.list
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +64,7 @@ import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedBackground
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaCard
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaFilterChips
 import kotlinx.coroutines.flow.collectLatest
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -200,18 +201,18 @@ fun AusenciasScreen(
                 } else {
                     // Seletor de Ano no Calendário
                     YearNavigator(
-                        ano = uiState.filtroAno ?: java.time.LocalDate.now().year,
+                        ano = uiState.filtroAno ?: LocalDate.now().year,
                         onAnoAnterior = {
                             viewModel.onAction(
                                 AusenciasAction.FiltroAnoChange(
-                                    (uiState.filtroAno ?: java.time.LocalDate.now().year) - 1
+                                    (uiState.filtroAno ?: LocalDate.now().year) - 1
                                 )
                             )
                         },
                         onProximoAno = {
                             viewModel.onAction(
                                 AusenciasAction.FiltroAnoChange(
-                                    (uiState.filtroAno ?: java.time.LocalDate.now().year) + 1
+                                    (uiState.filtroAno ?: LocalDate.now().year) + 1
                                 )
                             )
                         }
@@ -239,7 +240,7 @@ fun AusenciasScreen(
 
                     uiState.visualizacaoCalendario -> {
                         val listState = rememberLazyListState()
-                        val ano = uiState.filtroAno ?: java.time.LocalDate.now().year
+                        val ano = uiState.filtroAno ?: LocalDate.now().year
                         val months = remember(ano) { (1..12).map { YearMonth.of(ano, it) } }
 
                         // Scroll para o mês atual

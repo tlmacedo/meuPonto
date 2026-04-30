@@ -118,9 +118,9 @@ class Converters {
     fun fromTipoAusencia(tipo: TipoAusencia?): String? = when (tipo) {
         TipoAusencia.Folga -> "FOLGA"
         TipoAusencia.Ferias -> "FERIAS"
-        TipoAusencia.Feriado -> "FERIADO"
-        TipoAusencia.DiaPonte -> "DIA_PONTE"
-        TipoAusencia.Facultativo -> "FACULTATIVO"
+        TipoAusencia.Feriado.Oficial -> "FERIADO"
+        TipoAusencia.Feriado.DiaPonte -> "DIA_PONTE"
+        TipoAusencia.Feriado.Facultativo -> "FACULTATIVO"
         TipoAusencia.Atestado -> "ATESTADO"
         TipoAusencia.DayOff -> "DAY_OFF"
         TipoAusencia.DiminuirBanco -> "DIMINUIR_BANCO"
@@ -134,9 +134,9 @@ class Converters {
     fun toTipoAusencia(value: String?): TipoAusencia? = when (value) {
         "FOLGA" -> TipoAusencia.Folga
         "FERIAS" -> TipoAusencia.Ferias
-        "FERIADO" -> TipoAusencia.Feriado
-        "DIA_PONTE" -> TipoAusencia.DiaPonte
-        "FACULTATIVO" -> TipoAusencia.Facultativo
+        "FERIADO" -> TipoAusencia.Feriado.Oficial
+        "DIA_PONTE" -> TipoAusencia.Feriado.DiaPonte
+        "FACULTATIVO" -> TipoAusencia.Feriado.Facultativo
         "ATESTADO" -> TipoAusencia.Atestado
         "DAY_OFF" -> TipoAusencia.DayOff
         "DIMINUIR_BANCO" -> TipoAusencia.DiminuirBanco

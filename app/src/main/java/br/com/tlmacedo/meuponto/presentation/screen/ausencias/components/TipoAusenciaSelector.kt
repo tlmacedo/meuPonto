@@ -1,5 +1,5 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/TipoAusenciaSelector.kt
-package br.com.tlmacedo.meuponto.presentation.screen.ausencias
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/components/TipoAusenciaSelector.kt
+package br.com.tlmacedo.meuponto.presentation.screen.ausencias.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -44,7 +45,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
-import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusenciaCor
+import br.com.tlmacedo.meuponto.presentation.mapper.toTipoAusenciaCor
+import br.com.tlmacedo.meuponto.presentation.model.TipoAusenciaCor
 
 /**
  * Bottom sheet para seleção do tipo de ausência com explicações detalhadas.
@@ -122,7 +124,7 @@ fun TipoAusenciaSelector(
 
 @Composable
 private fun LegendaItem(
-    cor: androidx.compose.ui.graphics.Color,
+    cor: Color,
     texto: String
 ) {
     Row(
@@ -152,7 +154,7 @@ private fun TipoAusenciaItem(
     if (tipo == null) return
     val containerColor = when {
         isSelected -> {
-            if (tipo.corIndicativa == TipoAusenciaCor.VERDE) {
+            if (tipo.toTipoAusenciaCor() == TipoAusenciaCor.VERDE) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
                 MaterialTheme.colorScheme.tertiaryContainer
@@ -164,7 +166,7 @@ private fun TipoAusenciaItem(
 
     val borderColor = when {
         isSelected -> MaterialTheme.colorScheme.primary
-        tipo.corIndicativa == TipoAusenciaCor.VERDE -> MaterialTheme.colorScheme.primaryContainer
+        tipo.toTipoAusenciaCor() == TipoAusenciaCor.VERDE -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.tertiaryContainer
     }
 

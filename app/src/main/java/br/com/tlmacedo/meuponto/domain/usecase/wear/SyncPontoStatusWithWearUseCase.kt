@@ -1,11 +1,13 @@
 package br.com.tlmacedo.meuponto.domain.usecase.wear
 
+import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.PreferenciasRepository
 import br.com.tlmacedo.meuponto.domain.service.wear.WearSyncService
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterResumoDiaCompletoUseCase
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 class SyncPontoStatusWithWearUseCase @Inject constructor(
@@ -18,13 +20,21 @@ class SyncPontoStatusWithWearUseCase @Inject constructor(
         val empregoId = preferenciasRepository.obterEmpregoAtivoId() ?: return
         val hoje = LocalDate.now()
 
-        val resumoDia = obterResumoDiaCompletoUseCase(empregoId, hoje)
+        val resumoDiaCompleto = obterResumoDiaCompletoUseCase(empregoId, hoje)
         val bancoHoras = calcularBancoHorasUseCase(empregoId, hoje).first().bancoHoras
+
+        val pontosOrdenados = resumoDiaCompleto.pontos.sortedBy { it.dataHora }
+        val ultimoPonto = pontosOrdenados.lastOrNull()
+        val emExpediente = pontosOrdenados.size % 2 == 1
 
         wearSyncService.syncPontoStatus(
             saldoAtual = bancoHoras.formatarSaldo(),
-            ultimoPonto = resumoDia.resumoDia.ultimoPonto?.horaFormatada,
-            emExpediente = resumoDia.resumoDia.temTurnoAberto
+            ultimoPonto = ultimoPonto?.horaFormatadaCompat(),
+            emExpediente = emExpediente
         )
     }
+}
+
+private fun Ponto.horaFormatadaCompat(): String {
+    return dataHora.format(DateTimeFormatter.ofPattern("HH:mm"))
 }

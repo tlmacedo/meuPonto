@@ -44,9 +44,10 @@ import androidx.compose.ui.unit.sp
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
-import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusenciaCor
+import br.com.tlmacedo.meuponto.presentation.mapper.toTipoAusenciaCor
+import br.com.tlmacedo.meuponto.presentation.model.TipoAusenciaCor
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.MetadataFerias
 import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.ErrorLight
@@ -617,7 +618,7 @@ private fun formatarMinutos(minutos: Int): String {
 /**
  * Retorna a cor de fundo apropriada para cada tipo de ausência.
  */
-private fun TipoAusencia.getBackgroundColor(): Color = when (this.corIndicativa) {
+private fun TipoAusencia.getBackgroundColor(): Color = when (this.toTipoAusenciaCor()) {
     TipoAusenciaCor.VERDE -> SidiaSoftGreen
     TipoAusenciaCor.AZUL -> InfoLight
     TipoAusenciaCor.VERMELHO -> ErrorLight
@@ -626,7 +627,7 @@ private fun TipoAusencia.getBackgroundColor(): Color = when (this.corIndicativa)
 /**
  * Retorna a cor de conteúdo apropriada para cada tipo de ausência.
  */
-private fun TipoAusencia.getContentColor(): Color = when (this.corIndicativa) {
+private fun TipoAusencia.getContentColor(): Color = when (this.toTipoAusenciaCor()) {
     TipoAusenciaCor.VERDE -> SidiaDarkGreen
     TipoAusenciaCor.AZUL -> Info
     TipoAusenciaCor.VERMELHO -> Error
@@ -639,6 +640,13 @@ private fun TipoAusencia.getIcon(): ImageVector = when (this) {
     TipoAusencia.Ferias -> Icons.Default.BeachAccess
     TipoAusencia.Atestado -> Icons.Default.LocalHospital
     TipoAusencia.Declaracao -> Icons.Default.Receipt
-    TipoAusencia.DayOff, TipoAusencia.Folga -> Icons.Default.Home
-    else -> Icons.Default.EventBusy
+    TipoAusencia.DayOff,
+    TipoAusencia.Folga -> Icons.Default.Home
+
+    TipoAusencia.Feriado.Oficial,
+    TipoAusencia.Feriado.DiaPonte,
+    TipoAusencia.Feriado.Facultativo,
+    TipoAusencia.DiminuirBanco,
+    TipoAusencia.Falta.Justificada,
+    TipoAusencia.Falta.Injustificada -> Icons.Default.EventBusy
 }

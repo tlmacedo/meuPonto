@@ -58,7 +58,7 @@ interface EmpregoRepository {
      * @param id Identificador único do emprego
      * @return Emprego encontrado ou null
      */
-    suspend fun buscarPorId(id: Long): Emprego?
+    suspend fun buscarPorId(empregoId: Long): Emprego?
 
     /**
      * Busca todos os empregos ativos e não arquivados.

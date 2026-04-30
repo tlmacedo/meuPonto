@@ -1,5 +1,5 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ausencia/ValidarSobreposicaoAusenciaUseCase.kt
-package br.com.tlmacedo.meuponto.domain.usecase.ausencia
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ausencia/validacao/ValidarSobreposicaoAusenciaUseCase.kt
+package br.com.tlmacedo.meuponto.domain.usecase.ausencia.validacao
 
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import java.time.LocalDate

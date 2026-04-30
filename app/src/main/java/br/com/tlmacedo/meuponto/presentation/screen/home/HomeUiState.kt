@@ -1,23 +1,33 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeUiState.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
+import br.com.tlmacedo.meuponto.domain.extensions.isFeriadoOrFalse
+import br.com.tlmacedo.meuponto.domain.mapper.toIntervalosPonto
 import android.net.Uri
+import br.com.tlmacedo.meuponto.domain.extensions.isAtestadoOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isDayOffOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isDescansoOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isFaltaInjustificadaOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isFaltaJustificadaOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isFeriasOrFalse
+import br.com.tlmacedo.meuponto.domain.extensions.isFolgaOrFalse
 import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoEmprego
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
+import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
+
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
-import br.com.tlmacedo.meuponto.domain.usecase.ausencia.MetadataFerias
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.MetadataFerias
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -307,30 +317,32 @@ data class HomeUiState(
         get() = ausenciaDoDia != null
 
     val isDescanso: Boolean
-        get() = resumoDia.tipoDiaEspecial.isDescanso
+        get() = resumoDia.tipoAusencia.isDescansoOrFalse
     val isFerias: Boolean
-        get() = resumoDia.tipoDiaEspecial.isFerias
+        get() = resumoDia.tipoAusencia.isFeriasOrFalse
 
     val isFolga: Boolean
-        get() = resumoDia.tipoDiaEspecial.isFolga || resumoDia.tipoDiaEspecial.isDayOff
+        get() = resumoDia.tipoAusencia.isFolgaOrFalse || resumoDia.tipoAusencia.isDayOffOrFalse
 
     val isFalta: Boolean
-        get() = resumoDia.tipoDiaEspecial.isFaltaInjustificada
+        get() = resumoDia.tipoAusencia.isFaltaInjustificadaOrFalse
 
     val isAtestado: Boolean
-        get() = resumoDia.tipoDiaEspecial.isAtestado
+        get() = resumoDia.tipoAusencia.isAtestadoOrFalse
 
     val isLicenca: Boolean
-        get() = resumoDia.tipoDiaEspecial.isFaltaJustificada
+        get() = resumoDia.tipoAusencia.isFaltaJustificadaOrFalse
 
     val isDiaEspecial: Boolean
-        get() = resumoDia.tipoDiaEspecial != TipoDiaEspecial.Normal
+        get() = resumoDia.tipoAusencia != null
 
     val descricaoAusencia: String?
         get() = ausenciaDoDia?.descricao ?: ausenciaDoDia?.tipoDescricao
 
     val emojiDiaEspecial: String
-        get() = resumoDia.tipoDiaEspecial.emoji
+        get() = resumoDia.tipoAusencia?.emoji
+            ?: feriadoPrincipal?.let { "🎉" }
+            ?: "📅"
 
     // ========================================================================
     // CICLO DE BANCO DE HORAS - PROPRIEDADES COMPUTADAS
@@ -456,11 +468,22 @@ data class HomeUiState(
     val podeNavegarProximo: Boolean
         get() = dataSelecionada.isBefore(LocalDate.now().plusMonths(1))
 
+    val horarioDiaSemanaAtual: HorarioDiaSemana? = null
+
+    val intervalos: List<IntervaloPonto>
+        get() = pontosHoje
+            .sortedBy { it.dataHora }
+            .toIntervalosPonto(
+                intervaloMinimoMinutos = resumoDia.intervaloPrevistoMinutos,
+                toleranciaVoltaIntervaloMinutos = resumoDia.toleranciaIntervaloMinutos,
+                saidaIntervaloIdeal = horarioDiaSemanaAtual?.saidaIntervaloIdeal
+            )
+
     val temIntervaloAberto: Boolean
-        get() = isHoje && resumoDia.intervalos.any { it.aberto }
+        get() = isHoje && intervalos.any { it.aberto }
 
     val intervaloAberto: IntervaloPonto?
-        get() = if (isHoje) resumoDia.intervalos.find { it.aberto } else null
+        get() = if (isHoje) intervalos.find { it.aberto } else null
 
     val dataHoraInicioContador: LocalDateTime?
         get() = intervaloAberto?.entrada?.dataHora
@@ -469,7 +492,7 @@ data class HomeUiState(
         get() = isHoje && temIntervaloAberto && dataHoraInicioContador != null
 
     val jornadaEmAndamento: Boolean
-        get() = temPontos && !resumoDia.jornadaCompleta && isHoje
+        get() = temPontos && !resumoDia.possuiPontoCompleto && isHoje
 
     val ultimoPonto: Ponto?
         get() = pontosHoje.maxByOrNull { it.dataHora }
@@ -479,22 +502,19 @@ data class HomeUiState(
             temAusencia -> ausenciaDoDia?.tipoDescricao ?: "Ausência"
             !temPontos -> "Aguardando entrada"
             jornadaEmAndamento -> "Jornada em andamento"
-            resumoDia.jornadaCompleta -> "Jornada finalizada"
+            resumoDia.possuiPontoCompleto -> "Jornada finalizada"
             else -> "Status indefinido"
         }
 
-    // ========================================================================
-    // DIAS ESPECIAIS - CONSOLIDADO
-    // ========================================================================
+// ========================================================================
+// DIAS ESPECIAIS - CONSOLIDADO
+// ========================================================================
 
     val isFeriadoEfetivo: Boolean
-        get() = resumoDia.isFeriado
+        get() = feriadosDoDia.isNotEmpty() || resumoDia.tipoAusencia.isFeriadoOrFalse
 
     val isFeriadoTrabalhado: Boolean
-        get() = resumoDia.isFeriado && resumoDia.pontos.isNotEmpty()
-
-//    val isDescanso: Boolean
-//        get() = resumoDia.isDescanso
+        get() = isFeriadoEfetivo && pontosHoje.isNotEmpty()
 
     val mensagemTipoDia: String?
         get() = when {
@@ -504,10 +524,11 @@ data class HomeUiState(
             isLicenca -> "Licença - sem jornada obrigatória"
             isFolga -> {
                 val tipoFolgaDescricao = ausenciaDoDia?.tipoDescricaoCompleta ?: "Folga"
-                val complemento = if (ausenciaDoDia?.zeraJornadaEfetiva == true)
+                val complemento = if (ausenciaDoDia?.zeraJornadaEfetiva == true) {
                     "sem jornada obrigatória"
-                else
+                } else {
                     "desconta do banco"
+                }
                 "$tipoFolgaDescricao - $complemento"
             }
 

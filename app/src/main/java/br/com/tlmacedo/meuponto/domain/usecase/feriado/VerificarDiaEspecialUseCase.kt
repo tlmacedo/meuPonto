@@ -81,7 +81,7 @@ class VerificarDiaEspecialUseCase @Inject constructor(
         // 6. Determinar se permite registro de ponto
         val permiteRegistro = when {
             // Feriado oficial não permite (a menos que seja facultativo)
-            feriado != null && feriado.tipo in TipoFeriado.tiposFolga() -> false
+            feriado != null && feriado.tipo in TipoFeriado.tiposFeriados() -> false
             // Ponte não permite
             isPonte -> false
             // Fim de semana sem jornada configurada não permite

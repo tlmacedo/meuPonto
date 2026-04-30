@@ -1,8 +1,9 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/AusenciaFormAction.kt
-package br.com.tlmacedo.meuponto.presentation.screen.ausencias
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/form/AusenciaFormAction.kt
+package br.com.tlmacedo.meuponto.presentation.screen.ausencias.form
 
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.ModoPeriodo
 import java.time.LocalDate
 import java.time.LocalTime
 

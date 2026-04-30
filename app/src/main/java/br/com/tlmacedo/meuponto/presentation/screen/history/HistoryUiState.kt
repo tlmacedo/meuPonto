@@ -1,6 +1,9 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/history/HistoryUiState.kt
 package br.com.tlmacedo.meuponto.presentation.screen.history
 
+import br.com.tlmacedo.meuponto.domain.extensions.isFeriadoOrFalse
+import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
+import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
@@ -154,62 +157,120 @@ data class InfoDiaHistorico(
     val ausencias: List<Ausencia> = emptyList(),
     val feriado: Feriado? = null,
     val descricaoDiaEspecial: String? = null,
-    val isSemJornada: Boolean = false
+    val isSemJornada: Boolean = false,
+
+    /**
+     * Depois da refatoração, ResumoDia não deve mais ser fonte de pontos reais.
+     * Quem tiver List<Ponto> deve passar aqui.
+     */
+    val pontosDoDia: List<Ponto> = emptyList(),
+
+    /**
+     * Intervalos reais derivados dos pontos.
+     * Devem vir de ResumoDiaCompleto.intervalos quando disponível.
+     */
+    val intervalosDoDia: List<IntervaloPonto> = emptyList()
 ) {
-    // Delegações para ResumoDia
-    val data: LocalDate get() = resumoDia.data
-    val pontos get() = resumoDia.pontos
-    val jornadaCompleta get() = resumoDia.jornadaCompleta
-    val horasTrabalhadasMinutos get() = resumoDia.horasTrabalhadasMinutos
-    val saldoDiaMinutos get() = resumoDia.saldoDiaMinutos
-    val tipoDiaEspecial get() = resumoDia.tipoDiaEspecial
-    val statusDia get() = resumoDia.statusDia
-    val temProblemas get() = resumoDia.temProblemas
-    val intervalos get() = resumoDia.intervalos
-    val temIntervalo get() = resumoDia.temIntervalo
+    // =========================================================================
+    // Delegações básicas
+    // =========================================================================
 
+    val data: LocalDate
+        get() = resumoDia.data
+
+    val pontos: List<Ponto>
+        get() = pontosDoDia
+
+    val jornadaCompleta: Boolean
+        get() = pontos.size >= 4 || resumoDia.possuiPontoCompleto
+
+    val horasTrabalhadasMinutos: Int
+        get() = resumoDia.horasTrabalhadasMinutos
+
+    val saldoDiaMinutos: Int
+        get() = resumoDia.saldoDiaMinutos
+
+    val tipoAusencia: TipoAusencia?
+        get() = resumoDia.tipoAusencia
+
+    val statusDia
+        get() = resumoDia.statusDia
+
+    val temProblemas: Boolean
+        get() = resumoDia.temProblemas
+
+    val intervalos: List<IntervaloPonto>
+        get() = intervalosDoDia
+
+    val temIntervalo: Boolean
+        get() = intervalos.isNotEmpty() || resumoDia.temIntervalo
+
+    // =========================================================================
     // Propriedades calculadas
-    val temFeriado: Boolean get() = feriado != null
-    val temAusencia: Boolean get() = ausencias.isNotEmpty()
+    // =========================================================================
 
-    /** É dia de falta (justificada ou injustificada) */
+    val temFeriado: Boolean
+        get() = feriado != null || resumoDia.tipoAusencia.isFeriadoOrFalse
+
+    val temAusencia: Boolean
+        get() = ausencias.isNotEmpty()
+
+    /**
+     * É dia de falta, justificada ou injustificada.
+     */
     val isFalta: Boolean
-        get() = ausencias.any { it.tipo == TipoAusencia.Falta.Justificada || it.tipo == TipoAusencia.Falta.Injustificada }
+        get() = ausencias.any {
+            it.tipo == TipoAusencia.Falta.Justificada ||
+                    it.tipo == TipoAusencia.Falta.Injustificada
+        }
 
-    /** É dia de descanso (fim de semana sem jornada) */
+    /**
+     * É dia de descanso sem jornada.
+     */
     val isDescanso: Boolean
-        get() = isSemJornada && pontos.isEmpty() && feriado == null && ausencias.isEmpty()
+        get() = isSemJornada &&
+                pontos.isEmpty() &&
+                !temFeriado &&
+                ausencias.isEmpty()
 
-    /** É dia útil (tem jornada programada e não é feriado nem ponte) */
+    /**
+     * É dia útil: tem jornada programada e não é feriado/descanso/férias/falta/atestado.
+     */
     val isDiaUtil: Boolean
-        get() = !isSemJornada && !resumoDia.isFeriado
+        get() = !isSemJornada &&
+                !temFeriado &&
+                tipoAusencia != TipoAusencia.Ferias &&
+                !isFalta &&
+                atestados.isEmpty()
 
-    /** É dia completo (2 turnos ou >= 4h trabalhadas) */
+    /**
+     * É dia completo: 2 turnos ou pelo menos 4h trabalhadas.
+     */
     val isCompleto: Boolean
         get() = pontos.size >= 4 || horasTrabalhadasMinutos >= 240
 
-    /** É dia incompleto (dia útil e (sem registro ou < 4h trabalhadas)) */
+    /**
+     * É dia incompleto: útil e sem registro ou com menos de 4h trabalhadas.
+     */
     val isIncompleto: Boolean
         get() = isDiaUtil && (pontos.isEmpty() || horasTrabalhadasMinutos < 240)
 
-    /** Declarações do dia */
     val declaracoes: List<Ausencia>
         get() = ausencias.filter { it.tipo == TipoAusencia.Declaracao }
 
-    /** Atestados do dia */
     val atestados: List<Ausencia>
         get() = ausencias.filter { it.tipo == TipoAusencia.Atestado }
 
-    /** Ausência principal (que não é declaração, a menos que só existam declarações) */
     val ausenciaPrincipal: Ausencia?
         get() = ausencias.firstOrNull { it.tipo != TipoAusencia.Declaracao }
             ?: ausencias.firstOrNull()
 
-    /** Total de minutos abonados por declarações */
     val totalMinutosDeclaracoes: Int
         get() = declaracoes.sumOf { it.duracaoAbonoMinutos ?: 0 }
 
-    /** Emoji do dia baseado no tipo */
+    /**
+     * Emoji do dia baseado na prioridade visual.
+     */
     val emoji: String
         get() = when {
             temFeriado && pontos.isNotEmpty() -> "⭐"
@@ -218,27 +279,38 @@ data class InfoDiaHistorico(
             isSemJornada -> "🛋️"
             resumoDia.isFuturo -> "🔮"
             jornadaCompleta -> "✅"
-            pontos.isNotEmpty() && !jornadaCompleta -> if (resumoDia.isHoje) "🔄" else "⚠️"
+            pontos.isNotEmpty() && !jornadaCompleta -> {
+                if (resumoDia.isHoje) "🔄" else "⚠️"
+            }
             pontos.isEmpty() && !isSemJornada -> "⬜"
             else -> "📅"
         }
 
     private fun getEmojiAusencia(ausencia: Ausencia): String {
         return when (ausencia.tipo) {
+            TipoAusencia.Folga -> "😴"
             TipoAusencia.Ferias -> "🏖️"
+
+            TipoAusencia.Feriado.Oficial -> "🎉"
+            TipoAusencia.Feriado.DiaPonte -> "🌉"
+            TipoAusencia.Feriado.Facultativo -> "📌"
+
             TipoAusencia.Atestado -> "🏥"
             TipoAusencia.Declaracao -> "📄"
+
+            TipoAusencia.DayOff -> {
+                if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
+            }
+
+            TipoAusencia.DiminuirBanco -> "⏳"
             TipoAusencia.Falta.Justificada -> "📝"
-            TipoAusencia.DayOff -> if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
             TipoAusencia.Falta.Injustificada -> "❌"
-            else -> "📄"
         }
     }
 
-    /** Descrição curta para exibição */
     val descricaoCurta: String?
         get() = when {
-            temFeriado -> feriado?.nome
+            temFeriado -> feriado?.nome ?: descricaoDiaEspecial ?: "Feriado"
             ausenciaPrincipal != null -> ausenciaPrincipal?.tipoDescricaoCompleta
             isSemJornada -> "Descanso"
             else -> null

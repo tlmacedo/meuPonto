@@ -33,7 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import br.com.tlmacedo.meuponto.domain.model.StatusDiaResumo
+import br.com.tlmacedo.meuponto.domain.model.StatusResumoDia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
@@ -64,18 +64,22 @@ fun CalendarView(
     onDateClick: (LocalDate) -> Unit = {}
 ) {
     val firstDayOfMonth = yearMonth.atDay(1)
-    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7 // 0=Sun, 1=Mon...
+    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
 
     val locale = Locale.forLanguageTag("pt-BR")
     val daysOfWeek = remember {
         listOf(
-            DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY,
-            DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY
+            DayOfWeek.SUNDAY,
+            DayOfWeek.MONDAY,
+            DayOfWeek.TUESDAY,
+            DayOfWeek.WEDNESDAY,
+            DayOfWeek.THURSDAY,
+            DayOfWeek.FRIDAY,
+            DayOfWeek.SATURDAY
         )
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Cabeçalho dos dias da semana
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -93,35 +97,35 @@ fun CalendarView(
             }
         }
 
-        // Grid de dias (dinâmico: 4, 5 ou 6 semanas)
         val calendarDays = remember(yearMonth, diasHistorico) {
             val list = mutableListOf<CalendarDayData>()
 
-            // Dias do mês anterior (apenas para preencher o início da primeira semana)
             val prevMonth = yearMonth.minusMonths(1)
             val daysInPrevMonth = prevMonth.lengthOfMonth()
+
             for (i in firstDayOfWeek - 1 downTo 0) {
                 val date = prevMonth.atDay(daysInPrevMonth - i)
                 val info = diasHistorico.find { it.data == date }
                 list.add(CalendarDayData.OtherMonth(date, info))
             }
 
-            // Dias do mês atual
             val daysInMonth = yearMonth.lengthOfMonth()
+
             for (day in 1..daysInMonth) {
                 val date = yearMonth.atDay(day)
                 val info = diasHistorico.find { it.data == date }
                 list.add(CalendarDayData.CurrentMonth(date, info))
             }
 
-            // Completa até o final da última semana (múltiplo de 7)
             val remaining = (7 - (list.size % 7)) % 7
             val nextMonth = yearMonth.plusMonths(1)
+
             for (day in 1..remaining) {
                 val date = nextMonth.atDay(day)
                 val info = diasHistorico.find { it.data == date }
                 list.add(CalendarDayData.OtherMonth(date, info))
             }
+
             list
         }
 
@@ -139,11 +143,16 @@ fun CalendarView(
                         ) {
                             val info = dayData.info
 
-                            val matchesFilter = if (filtrosAtivos.isEmpty()) true else {
+                            val matchesFilter = if (filtrosAtivos.isEmpty()) {
+                                true
+                            } else {
                                 info?.let { dia ->
                                     filtrosAtivos.any { filtro ->
                                         when (filtro) {
-                                            FiltroHistorico.TODOS, FiltroHistorico.CALENDARIO, FiltroHistorico.LISTA -> true
+                                            FiltroHistorico.TODOS,
+                                            FiltroHistorico.CALENDARIO,
+                                            FiltroHistorico.LISTA -> true
+
                                             FiltroHistorico.UTEIS -> dia.isDiaUtil
                                             FiltroHistorico.COMPLETOS -> dia.isCompleto
                                             FiltroHistorico.INCOMPLETOS -> dia.isIncompleto
@@ -151,19 +160,43 @@ fun CalendarView(
                                             FiltroHistorico.FUTUROS -> dia.resumoDia.isFuturo
                                             FiltroHistorico.DESCANSO -> dia.isDescanso
                                             FiltroHistorico.FERIADOS -> dia.temFeriado
-                                            FiltroHistorico.FERIAS -> dia.ausencias.any { it.tipo == TipoAusencia.Ferias }
-                                            FiltroHistorico.FOLGAS -> dia.ausencias.any { it.tipo == TipoAusencia.DayOff && it.tipoFolga != TipoFolga.DAY_OFF }
-                                            FiltroHistorico.DAY_OFF -> dia.ausencias.any { it.tipo == TipoAusencia.DayOff && it.tipoFolga == TipoFolga.DAY_OFF }
-                                            FiltroHistorico.ATESTADOS -> dia.ausencias.any { it.tipo == TipoAusencia.Atestado }
-                                            FiltroHistorico.DECLARACOES -> dia.declaracoes.isNotEmpty()
-                                            FiltroHistorico.FALTAS -> dia.ausencias.any { it.tipo == TipoAusencia.Falta.Justificada || it.tipo == TipoAusencia.Falta.Injustificada }
+                                            FiltroHistorico.FERIAS ->
+                                                dia.ausencias.any { it.tipo == TipoAusencia.Ferias }
+
+                                            FiltroHistorico.FOLGAS ->
+                                                dia.ausencias.any {
+                                                    it.tipo == TipoAusencia.DayOff &&
+                                                            it.tipoFolga != TipoFolga.DAY_OFF
+                                                }
+
+                                            FiltroHistorico.DAY_OFF ->
+                                                dia.ausencias.any {
+                                                    it.tipo == TipoAusencia.DayOff &&
+                                                            it.tipoFolga == TipoFolga.DAY_OFF
+                                                }
+
+                                            FiltroHistorico.ATESTADOS ->
+                                                dia.ausencias.any { it.tipo == TipoAusencia.Atestado }
+
+                                            FiltroHistorico.DECLARACOES ->
+                                                dia.declaracoes.isNotEmpty()
+
+                                            FiltroHistorico.FALTAS ->
+                                                dia.ausencias.any {
+                                                    it.tipo == TipoAusencia.Falta.Justificada ||
+                                                            it.tipo == TipoAusencia.Falta.Injustificada
+                                                }
                                         }
                                     }
                                 } ?: false
                             }
 
-                            val isInSelectedPeriod = if (periodosAtivos.isEmpty()) true else {
-                                periodosAtivos.any { it.dataInicio <= dayData.date && it.dataFim >= dayData.date }
+                            val isInSelectedPeriod = if (periodosAtivos.isEmpty()) {
+                                true
+                            } else {
+                                periodosAtivos.any {
+                                    it.dataInicio <= dayData.date && it.dataFim >= dayData.date
+                                }
                             }
 
                             val shouldHighlight =
@@ -195,11 +228,15 @@ sealed class CalendarDayData {
     abstract val date: LocalDate
     abstract val info: InfoDiaHistorico?
 
-    data class CurrentMonth(override val date: LocalDate, override val info: InfoDiaHistorico?) :
-        CalendarDayData()
+    data class CurrentMonth(
+        override val date: LocalDate,
+        override val info: InfoDiaHistorico?
+    ) : CalendarDayData()
 
-    data class OtherMonth(override val date: LocalDate, override val info: InfoDiaHistorico?) :
-        CalendarDayData()
+    data class OtherMonth(
+        override val date: LocalDate,
+        override val info: InfoDiaHistorico?
+    ) : CalendarDayData()
 }
 
 @Composable
@@ -213,28 +250,39 @@ private fun CalendarDay(
     onClick: () -> Unit
 ) {
     val isToday = date == LocalDate.now()
-    val finalMuted = if (!isCurrentMonth) true else (if (highlightOnlySpecials) false else isMuted)
-    val contentAlpha = if (!isCurrentMonth) 0.15f else (if (finalMuted) 0.3f else 1f)
+    val finalMuted = if (!isCurrentMonth) true else if (highlightOnlySpecials) false else isMuted
+    val contentAlpha = if (!isCurrentMonth) 0.15f else if (finalMuted) 0.3f else 1f
 
     val baseAlpha = if (finalMuted) 0.05f else 0.15f
     val highlightedAlpha = if (isSpecial) 0.25f else baseAlpha
 
     val backgroundColor = when {
         !isCurrentMonth -> Color.Transparent
-        isToday && !highlightOnlySpecials -> MaterialTheme.colorScheme.primary.copy(alpha = baseAlpha)
-        infoDia?.temFeriado == true -> Color(0xFF9C27B0).copy(alpha = highlightedAlpha)
-        infoDia?.ausenciaPrincipal != null -> getAbsenceColor(infoDia.ausenciaPrincipal!!).copy(
-            alpha = highlightedAlpha
-        )
 
-        (date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY) && !highlightOnlySpecials ->
+        isToday && !highlightOnlySpecials ->
+            MaterialTheme.colorScheme.primary.copy(alpha = baseAlpha)
+
+        infoDia?.temFeriado == true ->
+            Color(0xFF9C27B0).copy(alpha = highlightedAlpha)
+
+        infoDia?.ausenciaPrincipal != null ->
+            getAbsenceColor(infoDia.ausenciaPrincipal!!).copy(alpha = highlightedAlpha)
+
+        (date.dayOfWeek == DayOfWeek.SATURDAY ||
+                date.dayOfWeek == DayOfWeek.SUNDAY) &&
+                !highlightOnlySpecials ->
             MaterialTheme.colorScheme.error.copy(alpha = if (finalMuted) 0.02f else 0.05f)
 
-        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (finalMuted) 0.1f else 0.3f)
+        else ->
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (finalMuted) 0.1f else 0.3f)
     }
 
     val borderColor =
-        if (isToday && !finalMuted && !highlightOnlySpecials) MaterialTheme.colorScheme.primary else Color.Transparent
+        if (isToday && !finalMuted && !highlightOnlySpecials) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            Color.Transparent
+        }
 
     Box(
         modifier = Modifier
@@ -250,18 +298,19 @@ private fun CalendarDay(
             .padding(4.dp)
             .alpha(contentAlpha)
     ) {
-        // Número do dia
         Text(
             text = date.dayOfMonth.toString(),
             style = MaterialTheme.typography.labelSmall,
             fontSize = 11.sp,
             fontWeight = if (isToday && isCurrentMonth) FontWeight.ExtraBold else FontWeight.Normal,
-            color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            color = if (isCurrentMonth) {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            },
             modifier = Modifier.align(Alignment.TopStart)
         )
 
-        // Ícone de status (Utilizando o Emoji padrão do dia)
         if (isCurrentMonth) {
             infoDia?.let { info ->
                 if (!highlightOnlySpecials || isSpecial) {
@@ -274,13 +323,13 @@ private fun CalendarDay(
             }
         }
 
-        // Conteúdo central
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(12.dp))
+
             if (isCurrentMonth && infoDia != null) {
                 if (!highlightOnlySpecials || isSpecial) {
                     when {
@@ -292,6 +341,7 @@ private fun CalendarDay(
                                 fontWeight = FontWeight.Bold,
                                 color = getStatusColor(infoDia.statusDia)
                             )
+
                             if (infoDia.resumoDia.saldoDiaMinutos != 0) {
                                 Text(
                                     text = infoDia.resumoDia.saldoDiaFormatado,
@@ -304,6 +354,7 @@ private fun CalendarDay(
 
                         infoDia.ausenciaPrincipal != null -> {
                             val principal = infoDia.ausenciaPrincipal!!
+
                             Text(
                                 text = principal.tipo.descricao,
                                 style = MaterialTheme.typography.labelSmall,
@@ -315,6 +366,7 @@ private fun CalendarDay(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+
                             if (!principal.observacao.isNullOrBlank()) {
                                 Text(
                                     text = principal.observacao,
@@ -393,25 +445,43 @@ fun CalendarLegend() {
     }
 }
 
-data class LegendItem(val label: String, val emoji: String, val color: Color)
+data class LegendItem(
+    val label: String,
+    val emoji: String,
+    val color: Color
+)
 
-private fun getStatusColor(status: StatusDiaResumo): Color {
+private fun getStatusColor(status: StatusResumoDia): Color {
     return when (status) {
-        StatusDiaResumo.DESCANSO, StatusDiaResumo.FOLGA -> Color(0xFF9C27B0)
-        StatusDiaResumo.COMPLETO -> Success
-        StatusDiaResumo.EM_ANDAMENTO -> Info
-        StatusDiaResumo.INCOMPLETO, StatusDiaResumo.DESCANSO_TRABALHADO -> Warning
-        StatusDiaResumo.COM_PROBLEMAS -> Error
-        else -> SidiaMediumGray
+        StatusResumoDia.DESCANSO,
+        StatusResumoDia.FOLGA -> Color(0xFF9C27B0)
+
+        StatusResumoDia.POSITIVO -> Success
+        StatusResumoDia.NEUTRO -> Success
+        StatusResumoDia.ABONADO -> Info
+        StatusResumoDia.SEM_REGISTRO -> SidiaMediumGray
+        StatusResumoDia.NEGATIVO -> Warning
+        StatusResumoDia.FALTA -> Error
     }
 }
 
 private fun getAbsenceColor(ausencia: Ausencia): Color {
     return when (ausencia.tipo) {
         TipoAusencia.Ferias -> Info
-        TipoAusencia.Atestado, TipoAusencia.Falta.Justificada, TipoAusencia.DayOff -> Warning
+
+        TipoAusencia.Feriado.Oficial,
+        TipoAusencia.Feriado.DiaPonte,
+        TipoAusencia.Feriado.Facultativo -> Color(0xFF9C27B0)
+
+        TipoAusencia.Atestado,
+        TipoAusencia.Falta.Justificada,
+        TipoAusencia.DayOff -> Warning
+
         TipoAusencia.Falta.Injustificada -> Error
-        else -> Color.Gray
+
+        TipoAusencia.Declaracao,
+        TipoAusencia.DiminuirBanco,
+        TipoAusencia.Folga -> Color.Gray
     }
 }
 

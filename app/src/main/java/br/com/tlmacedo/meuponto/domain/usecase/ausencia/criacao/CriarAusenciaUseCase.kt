@@ -1,10 +1,12 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ausencia/CriarAusenciaUseCase.kt
-package br.com.tlmacedo.meuponto.domain.usecase.ausencia
+package br.com.tlmacedo.meuponto.domain.usecase.ausencia.criacao
 
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.validacao.ResultadoValidacaoSobreposicao
+import br.com.tlmacedo.meuponto.domain.usecase.ausencia.validacao.ValidarSobreposicaoAusenciaUseCase
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime

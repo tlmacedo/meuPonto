@@ -1,5 +1,5 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/AusenciaFormScreen.kt
-package br.com.tlmacedo.meuponto.presentation.screen.ausencias
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/ausencias/form/AusenciaFormScreen.kt
+package br.com.tlmacedo.meuponto.presentation.screen.ausencias.form
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -90,6 +90,10 @@ import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.DurationInputField
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.TipoAusenciaChip
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.TipoAusenciaSelector
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.AusenciaFormUiEvent
+import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.ModoPeriodo
 import br.com.tlmacedo.meuponto.util.toDatePickerMillis
 import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
 import coil.compose.AsyncImage

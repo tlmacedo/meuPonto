@@ -174,7 +174,10 @@ interface HorarioDiaSemanaRepository {
      * @param diaSemana Dia da semana
      * @return Horário encontrado ou null
      */
-    suspend fun buscarPorVersaoEDia(versaoJornadaId: Long, diaSemana: DiaSemana): HorarioDiaSemana?
+    suspend fun buscarPorVersaoEDia(
+        versaoId: Long,
+        diaSemana: DiaSemana
+    ): HorarioDiaSemana?
 
     /**
      * Observa os horários de uma versão de jornada de forma reativa.
