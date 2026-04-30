@@ -17,8 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -48,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
+import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedCard
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -74,12 +73,15 @@ fun AusenciaCard(
         label = "cardBackground"
     )
 
-    Card(
+    ThemedCard(
         modifier = modifier
             .fillMaxWidth()
-            .alpha(cardAlpha),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .alpha(if (ausencia.ativo) 1f else 0.55f)
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                contentDescription =
+                    "Ausência de ${ausencia.tipoDescricao} em ${ausencia.formatarPeriodo()}"
+            }
     ) {
         Row(
             modifier = Modifier

@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +60,7 @@ import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.presentation.components.CalendarLegend
 import br.com.tlmacedo.meuponto.presentation.components.CalendarView
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedBackground
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaCard
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.AusenciaFilterChips
 import kotlinx.coroutines.flow.collectLatest
@@ -142,221 +144,238 @@ fun AusenciasScreen(
         )
     }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            MeuPontoTopBar(
-                title = stringResource(R.string.ausencias_titulo),
-                subtitle = uiState.empregoAtivo?.apelido?.uppercase(),
-                logo = uiState.empregoAtivo?.logo,
-                showBackButton = true,
-                onBackClick = { viewModel.onAction(AusenciasAction.Voltar) },
-                actions = {
-                    IconButton(onClick = { viewModel.onAction(AusenciasAction.ToggleVisualizacao) }) {
-                        Icon(
-                            imageVector = if (uiState.visualizacaoCalendario) Icons.AutoMirrored.Filled.List else Icons.Default.ViewModule,
-                            contentDescription = if (uiState.visualizacaoCalendario) "Ver Lista" else "Ver Calendário"
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { viewModel.onAction(AusenciasAction.NovaAusencia) },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.ausencia_adicionar)) }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        Column(
+    ThemedBackground(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (!uiState.visualizacaoCalendario) {
-                // Filtros (Apenas na Lista)
-                AusenciaFilterChips(
-                    tiposSelecionados = uiState.filtroTipos,
-                    anoSelecionado = uiState.filtroAno,
-                    anosDisponiveis = uiState.anosDisponiveis,
-                    ordemData = uiState.ordemData,
-                    onToggleTipo = { viewModel.onAction(AusenciasAction.ToggleTipo(it)) },
-                    onAnoChange = { viewModel.onAction(AusenciasAction.FiltroAnoChange(it)) },
-                    onToggleOrdem = { viewModel.onAction(AusenciasAction.ToggleOrdem) },
-                    onLimparFiltros = { viewModel.onAction(AusenciasAction.LimparFiltros) }
-                )
-            } else {
-                // Seletor de Ano no Calendário
-                YearNavigator(
-                    ano = uiState.filtroAno ?: java.time.LocalDate.now().year,
-                    onAnoAnterior = {
-                        viewModel.onAction(
-                            AusenciasAction.FiltroAnoChange(
-                                (uiState.filtroAno ?: java.time.LocalDate.now().year) - 1
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onBackground,
+            topBar = {
+                MeuPontoTopBar(
+                    title = stringResource(R.string.ausencias_titulo),
+                    subtitle = uiState.empregoAtivo?.apelido?.uppercase(),
+                    logo = uiState.empregoAtivo?.logo,
+                    showBackButton = true,
+                    onBackClick = { viewModel.onAction(AusenciasAction.Voltar) },
+                    actions = {
+                        IconButton(onClick = { viewModel.onAction(AusenciasAction.ToggleVisualizacao) }) {
+                            Icon(
+                                imageVector = if (uiState.visualizacaoCalendario) Icons.AutoMirrored.Filled.List else Icons.Default.ViewModule,
+                                contentDescription = if (uiState.visualizacaoCalendario) "Ver Lista" else "Ver Calendário"
                             )
-                        )
+                        }
                     },
-                    onProximoAno = {
-                        viewModel.onAction(
-                            AusenciasAction.FiltroAnoChange(
-                                (uiState.filtroAno ?: java.time.LocalDate.now().year) + 1
-                            )
-                        )
-                    }
+                    scrollBehavior = scrollBehavior
                 )
-            }
-
-            // Conteúdo
-            when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-
-                !uiState.temEmpregoAtivo -> {
-                    EmptyState(
-                        emoji = "🏢",
-                        titulo = stringResource(R.string.ausencia_sem_emprego_titulo),
-                        mensagem = stringResource(R.string.ausencia_sem_emprego_desc)
-                    )
-                }
-
-                uiState.visualizacaoCalendario -> {
-                    val listState = rememberLazyListState()
-                    val ano = uiState.filtroAno ?: java.time.LocalDate.now().year
-                    val months = remember(ano) { (1..12).map { YearMonth.of(ano, it) } }
-
-                    // Scroll para o mês atual
-                    LaunchedEffect(ano) {
-                        val currentYearMonth = YearMonth.now()
-                        if (currentYearMonth.year == ano) {
-                            listState.scrollToItem(currentYearMonth.monthValue - 1)
-                        } else {
-                            listState.scrollToItem(0)
-                        }
-                    }
-
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 80.dp)
-                    ) {
-                        itemsIndexed(months) { _, month ->
-                            val locale = Locale.forLanguageTag("pt-BR")
-                            val formatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
-                            val title =
-                                month.atDay(1).format(formatter).replaceFirstChar { it.uppercase() }
-
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                            )
-
-                            CalendarView(
-                                yearMonth = month,
-                                diasHistorico = uiState.diasHistorico,
-                                highlightOnlySpecials = true,
-                                showLegend = false,
-                                onDateClick = { data -> onNovaAusenciaComData(data.toString()) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                            )
-
-                            Spacer(Modifier.height(24.dp))
-                        }
-
-                        item {
-                            Spacer(Modifier.height(16.dp))
-                            CalendarLegend()
-                        }
-                    }
-                }
-
-                uiState.ausenciasFiltradas.isEmpty() -> {
-                    EmptyState(
-                        emoji = "📅",
-                        titulo = if (uiState.temFiltrosAtivos) {
-                            stringResource(R.string.ausencia_vazia_filtros_titulo)
-                        } else {
-                            stringResource(R.string.ausencia_vazia_titulo)
-                        },
-                        mensagem = if (uiState.temFiltrosAtivos) {
-                            stringResource(R.string.ausencia_vazia_filtros_desc)
-                        } else {
-                            stringResource(R.string.ausencia_vazia_desc)
-                        },
-                        showLimparFiltros = uiState.temFiltrosAtivos,
+            },
+            floatingActionButton = {
+                ExtendedFloatingActionButton(
+                    onClick = { viewModel.onAction(AusenciasAction.NovaAusencia) },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.ausencia_adicionar)) }
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                if (!uiState.visualizacaoCalendario) {
+                    // Filtros (Apenas na Lista)
+                    AusenciaFilterChips(
+                        tiposSelecionados = uiState.filtroTipos,
+                        anoSelecionado = uiState.filtroAno,
+                        anosDisponiveis = uiState.anosDisponiveis,
+                        ordemData = uiState.ordemData,
+                        onToggleTipo = { viewModel.onAction(AusenciasAction.ToggleTipo(it)) },
+                        onAnoChange = { viewModel.onAction(AusenciasAction.FiltroAnoChange(it)) },
+                        onToggleOrdem = { viewModel.onAction(AusenciasAction.ToggleOrdem) },
                         onLimparFiltros = { viewModel.onAction(AusenciasAction.LimparFiltros) }
                     )
+                } else {
+                    // Seletor de Ano no Calendário
+                    YearNavigator(
+                        ano = uiState.filtroAno ?: java.time.LocalDate.now().year,
+                        onAnoAnterior = {
+                            viewModel.onAction(
+                                AusenciasAction.FiltroAnoChange(
+                                    (uiState.filtroAno ?: java.time.LocalDate.now().year) - 1
+                                )
+                            )
+                        },
+                        onProximoAno = {
+                            viewModel.onAction(
+                                AusenciasAction.FiltroAnoChange(
+                                    (uiState.filtroAno ?: java.time.LocalDate.now().year) + 1
+                                )
+                            )
+                        }
+                    )
                 }
 
-                else -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 8.dp,
-                            bottom = 88.dp // Espaço para o FAB
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Header com contagem e resumo
-                        item {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(
-                                        R.string.ausencia_total_resumo,
-                                        uiState.totalAusenciasFiltradas,
-                                        uiState.totalDiasAusencia
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                // Conteúdo
+                when {
+                    uiState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
 
-                                // Resumo por tipo
-                                if (uiState.totalDiasPorTipo.isNotEmpty()) {
-                                    Text(
-                                        text = uiState.totalDiasPorTipo.entries.joinToString(" • ") { (tipo, dias) ->
-                                            "${tipo.emoji} $dias"
-                                        },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                    !uiState.temEmpregoAtivo -> {
+                        EmptyState(
+                            emoji = "🏢",
+                            titulo = stringResource(R.string.ausencia_sem_emprego_titulo),
+                            mensagem = stringResource(R.string.ausencia_sem_emprego_desc)
+                        )
+                    }
+
+                    uiState.visualizacaoCalendario -> {
+                        val listState = rememberLazyListState()
+                        val ano = uiState.filtroAno ?: java.time.LocalDate.now().year
+                        val months = remember(ano) { (1..12).map { YearMonth.of(ano, it) } }
+
+                        // Scroll para o mês atual
+                        LaunchedEffect(ano) {
+                            val currentYearMonth = YearMonth.now()
+                            if (currentYearMonth.year == ano) {
+                                listState.scrollToItem(currentYearMonth.monthValue - 1)
+                            } else {
+                                listState.scrollToItem(0)
                             }
                         }
 
-                        items(
-                            items = uiState.ausenciasFiltradas,
-                            key = { it.id }
-                        ) { ausencia ->
-                            AusenciaCard(
-                                ausencia = ausencia,
-                                onEditar = {
-                                    viewModel.onAction(AusenciasAction.EditarAusencia(ausencia))
-                                },
-                                onExcluir = {
-                                    viewModel.onAction(AusenciasAction.SolicitarExclusao(ausencia))
-                                },
-                                onToggleAtivo = {
-                                    viewModel.onAction(AusenciasAction.ToggleAtivo(ausencia))
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 80.dp)
+                        ) {
+                            itemsIndexed(months) { _, month ->
+                                val locale = Locale.forLanguageTag("pt-BR")
+                                val formatter =
+                                    DateTimeFormatter.ofPattern("MMMM 'de' yyyy", locale)
+                                val title =
+                                    month.atDay(1).format(formatter)
+                                        .replaceFirstChar { it.uppercase() }
+
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(
+                                        horizontal = 16.dp,
+                                        vertical = 12.dp
+                                    )
+                                )
+
+                                CalendarView(
+                                    yearMonth = month,
+                                    diasHistorico = uiState.diasHistorico,
+                                    highlightOnlySpecials = true,
+                                    showLegend = false,
+                                    onDateClick = { data -> onNovaAusenciaComData(data.toString()) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                )
+
+                                Spacer(Modifier.height(24.dp))
+                            }
+
+                            item {
+                                Spacer(Modifier.height(16.dp))
+                                CalendarLegend()
+                            }
+                        }
+                    }
+
+                    uiState.ausenciasFiltradas.isEmpty() -> {
+                        EmptyState(
+                            emoji = "📅",
+                            titulo = if (uiState.temFiltrosAtivos) {
+                                stringResource(R.string.ausencia_vazia_filtros_titulo)
+                            } else {
+                                stringResource(R.string.ausencia_vazia_titulo)
+                            },
+                            mensagem = if (uiState.temFiltrosAtivos) {
+                                stringResource(R.string.ausencia_vazia_filtros_desc)
+                            } else {
+                                stringResource(R.string.ausencia_vazia_desc)
+                            },
+                            showLimparFiltros = uiState.temFiltrosAtivos,
+                            onLimparFiltros = { viewModel.onAction(AusenciasAction.LimparFiltros) }
+                        )
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 8.dp,
+                                bottom = 88.dp // Espaço para o FAB
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Header com contagem e resumo
+                            item {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(
+                                            R.string.ausencia_total_resumo,
+                                            uiState.totalAusenciasFiltradas,
+                                            uiState.totalDiasAusencia
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    // Resumo por tipo
+                                    if (uiState.totalDiasPorTipo.isNotEmpty()) {
+                                        Text(
+                                            text = uiState.totalDiasPorTipo.entries.joinToString(" • ") { (tipo, dias) ->
+                                                "${tipo.emoji} $dias"
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
                                 }
-                            )
+                            }
+
+                            items(
+                                items = uiState.ausenciasFiltradas,
+                                key = { it.id }
+                            ) { ausencia ->
+                                AusenciaCard(
+                                    ausencia = ausencia,
+                                    onEditar = {
+                                        viewModel.onAction(AusenciasAction.EditarAusencia(ausencia))
+                                    },
+                                    onExcluir = {
+                                        viewModel.onAction(
+                                            AusenciasAction.SolicitarExclusao(
+                                                ausencia
+                                            )
+                                        )
+                                    },
+                                    onToggleAtivo = {
+                                        viewModel.onAction(AusenciasAction.ToggleAtivo(ausencia))
+                                    }
+                                )
+                            }
                         }
                     }
                 }

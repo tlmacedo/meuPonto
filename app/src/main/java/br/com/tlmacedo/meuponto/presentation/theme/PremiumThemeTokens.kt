@@ -65,8 +65,9 @@ val LightPremiumTokens = PremiumThemeTokens(
     ),
     cardBrush = Brush.linearGradient(
         colors = listOf(
-            Color(0xF8FFFFFF),
-            Color(0xEAF2F7FF)
+            Color(0xFFFFFFFF),
+            Color(0xFFF4F8FF),
+            Color(0xFFE6F0FF)
         )
     ),
     elevatedCardBrush = Brush.linearGradient(
@@ -81,7 +82,7 @@ val LightPremiumTokens = PremiumThemeTokens(
             Color(0x11FFFFFF)
         )
     ),
-    cardBorder = Color(0x667EA7E8),
+    cardBorder = Color(0x558FB4FF),
     primaryGlow = Color(0xFF2563EB),
     successGlow = Color(0xFF16A34A),
     dangerGlow = Color(0xFFE11D48),

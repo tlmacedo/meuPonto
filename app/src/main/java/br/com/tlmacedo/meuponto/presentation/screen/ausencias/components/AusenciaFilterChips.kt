@@ -23,17 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.OrdemData
 
-/**
- * Chips de filtro para tipos de ausência com suporte a múltipla seleção.
- *
- * @author Thiago
- * @since 5.6.0
- */
 @Composable
 fun AusenciaFilterChips(
     tiposSelecionados: Set<TipoAusencia>,
@@ -50,17 +45,15 @@ fun AusenciaFilterChips(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Linha 1: Ordenação e tipos de ausência
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Chip de ordenação
             AssistChip(
                 onClick = onToggleOrdem,
                 label = {
@@ -69,7 +62,8 @@ fun AusenciaFilterChips(
                             OrdemData.CRESCENTE -> stringResource(R.string.historico_ordenacao_mais_recentes)
                             OrdemData.DECRESCENTE -> stringResource(R.string.historico_ordenacao_mais_antigas)
                         },
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
                 },
                 leadingIcon = {
@@ -88,28 +82,29 @@ fun AusenciaFilterChips(
                 )
             )
 
-            // Separador visual
             Text(
                 text = "|",
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
-            // Chips de tipo (múltipla seleção)
-            TipoAusencia.todos.forEach { tipo ->
-                FilterChip(
-                    selected = tipo in tiposSelecionados,
-                    onClick = { onToggleTipo(tipo) },
-                    label = { Text("${tipo.emoji} ${tipo.descricao}") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+            TipoAusencia.todos
+                .filterNotNull()
+                .forEach { tipo ->
+                    FilterChip(
+                        selected = tipo in tiposSelecionados,
+                        onClick = { onToggleTipo(tipo) },
+                        label = {
+                            Text("${tipo.emoji} ${tipo.descricao}")
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     )
-                )
-            }
+                }
         }
 
-        // Linha 2: Anos e limpar filtros
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
@@ -117,12 +112,17 @@ fun AusenciaFilterChips(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Chip para limpar filtros
             if (temFiltrosAtivos) {
                 FilterChip(
                     selected = false,
                     onClick = onLimparFiltros,
-                    label = { Text(stringResource(R.string.ausencia_filtros_limpar)) },
+                    label = {
+                        Text(
+                            text = stringResource(R.string.ausencia_filtros_limpar),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Clear,
@@ -131,41 +131,57 @@ fun AusenciaFilterChips(
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.72f),
                         labelColor = MaterialTheme.colorScheme.onErrorContainer
                     )
                 )
 
-                // Separador visual
                 Text(
                     text = "|",
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
 
-            // Chips de ano
             anosDisponiveis.forEach { ano ->
                 FilterChip(
                     selected = anoSelecionado == ano,
                     onClick = {
                         onAnoChange(if (anoSelecionado == ano) null else ano)
                     },
-                    label = { Text(ano.toString()) },
+                    label = {
+                        Text(
+                            text = ano.toString(),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (anoSelecionado == ano) {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Medium
+                            }
+                        )
+                    },
                     colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = anoSelecionado == ano,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant,
+                        selectedBorderColor = MaterialTheme.colorScheme.tertiary
                     )
                 )
             }
         }
 
-        // Indicador de filtros ativos
         if (tiposSelecionados.isNotEmpty()) {
             Text(
                 text = "${tiposSelecionados.size} tipo(s) selecionado(s)",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
         }

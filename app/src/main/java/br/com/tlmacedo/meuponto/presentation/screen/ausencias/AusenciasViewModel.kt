@@ -164,8 +164,8 @@ class AusenciasViewModel @Inject constructor(
                 ausenciasDoDia.any { it.tipo == TipoAusencia.Falta.Justificada } ->
                     TipoDiaEspecial.Ausencia.Falta.Justificada
 
-                ausenciasDoDia.any { it.tipo == TipoAusencia.Folga } ->
-                    TipoDiaEspecial.Folga
+                ausenciasDoDia.any { it.tipo == TipoAusencia.DayOff } ->
+                    TipoDiaEspecial.Ausencia.DayOff
 
                 ausenciasDoDia.any { it.tipo == TipoAusencia.Falta.Injustificada } ->
                     TipoDiaEspecial.Ausencia.Falta.Injustificada

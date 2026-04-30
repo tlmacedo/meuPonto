@@ -8,63 +8,48 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.BeachAccess
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EventBusy
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.outlined.WorkOff
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingFlat
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.TipoDiaEspecial
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
-import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusenciaCor
 import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedCard
-import br.com.tlmacedo.meuponto.presentation.theme.Error
-import br.com.tlmacedo.meuponto.presentation.theme.Info
-import br.com.tlmacedo.meuponto.presentation.theme.SidiaBlue
-import br.com.tlmacedo.meuponto.presentation.theme.Success
+import br.com.tlmacedo.meuponto.presentation.theme.LocalAppThemeController
+import br.com.tlmacedo.meuponto.presentation.theme.LocalPremiumTokens
 import java.time.LocalDateTime
 import java.time.LocalTime
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
-/**
- * Card compacto de resumo do dia.
- *
- * @author Thiago
- * @since 1.0.0
- * @updated 5.0.0 - Layout compactado
- */
 @Composable
 fun ResumoCard(
     resumoDia: ResumoDia,
@@ -76,14 +61,21 @@ fun ResumoCard(
     onEditarJornada: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val textoPrincipal = MaterialTheme.colorScheme.onSurface
-    val textoTerciario = MaterialTheme.colorScheme.onSurfaceVariant
+    val theme = LocalAppThemeController.current
 
     val minutosTrabalhados = resumoDia.horasTrabalhadasComAndamentoMinutos(horaAtual)
     val saldoDiaMinutos = resumoDia.saldoDiaComAndamentoMinutos(horaAtual)
     val bancoTotalMinutos =
         bancoHoras.saldoTotalMinutos + saldoDiaMinutos - resumoDia.saldoDiaMinutos
 
+    val jornadaMinutos = resumoDia.cargaHorariaEfetivaMinutos
+    val progressoTrabalhado = if (jornadaMinutos > 0) {
+        (minutosTrabalhados.toFloat() / jornadaMinutos.toFloat()).coerceIn(0f, 1.15f)
+    } else {
+        0f
+    }
+
+    val status = resumoDiaStatus(resumoDia)
 
     ThemedCard(
         modifier = modifier
@@ -99,568 +91,388 @@ fun ResumoCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(if (theme.isPremium) 18.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // Cabeçalho compacto
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column {
-                    Text(
-                        text = "Resumo do Dia",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = textoPrincipal
-                    )
-                    // Info jornada
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            when {
-                                resumoDia.tipoDiaEspecial != TipoDiaEspecial.Normal -> {
-                                    DiaEspecialJornadaInfo(
-                                        tipoDiaEspecial = resumoDia.tipoDiaEspecial,
-                                        corTexto = textoTerciario
-                                    )
-                                }
-
-                                resumoDia.isFeriado -> {
-                                    FeriadoJornadaInfo(corTexto = textoTerciario)
-                                }
-
-                                else -> {
-                                    JornadaVersaoInfoCompact(
-                                        cargaHorariaFormatada = resumoDia.cargaHorariaDiariaFormatada,
-                                        versaoJornada = versaoJornada,
-                                        corTexto = textoTerciario
-                                    )
-                                }
-                            }
-                        }
-
-                        if (onEditarJornada != null) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Editar jornada",
-                                tint = textoTerciario,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                    }
-                }
-
-//                    // Badge de status
-//                    when {
-//                        mostrarContador -> StatusBadgeCompact(texto = "Em andamento")
-//                        resumoDia.isFeriado && resumoDia.pontos.isNotEmpty() -> StatusBadgeCompact(
-//                            texto = "Hora extra",
-//                            icone = Icons.Default.Star,
-//                            corIcone = Success
-//                        )
-//                        resumoDia.tipoDiaEspecial != TipoDiaEspecial.Normal -> StatusBadgeCompact(
-//                            texto = resumoDia.tipoDiaEspecial.descricaoCurta,
-//                            icone = resumoDia.tipoDiaEspecial.getIcon(),
-//                            corIcone = resumoDia.tipoDiaEspecial.getCor()
-//                        )
-//                    }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Divisor
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.1f))
+            ResumoHeader(
+                resumoDia = resumoDia,
+                status = status,
+                jornadaMinutos = jornadaMinutos,
+                onEditarJornada = onEditarJornada
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Resumo em três colunas (compacto)
             Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                ResumoItemPrincipal(
-                    tipoDiaEspecial = resumoDia.tipoDiaEspecial,
-                    minutosTrabalhados = minutosTrabalhados,
-                    minutosJornada = resumoDia.cargaHorariaEfetivaMinutos,
-                    isFeriado = resumoDia.isFeriado,
-                    emAndamento = resumoDia.temTurnoAberto,
-                    corTitulo = textoTerciario,
-                    modifier = Modifier.weight(1f)
+                ResumoMetricItem(
+                    modifier = Modifier.weight(1f),
+                    title = status.tituloTrabalhado,
+                    value = status.valorTrabalhado ?: formatarMinutos(minutosTrabalhados),
+                    subtitle = if (jornadaMinutos > 0) {
+                        "${(progressoTrabalhado * 100f).roundToInt()}% da meta"
+                    } else {
+                        status.subtituloTrabalhado
+                    },
+                    icon = status.iconeTrabalhado,
+                    color = status.corTrabalhado,
+                    progress = if (jornadaMinutos > 0) progressoTrabalhado.coerceIn(0f, 1f) else null
                 )
 
-                ResumoItemSaldo(
-                    titulo = "Saldo do dia",
-                    saldoMinutos = saldoDiaMinutos,
-                    isFeriado = resumoDia.isFeriado,
-                    corTitulo = textoTerciario,
-                    modifier = Modifier.weight(1f)
+                ResumoMetricItem(
+                    modifier = Modifier.weight(1f),
+                    title = "Saldo do dia",
+                    value = formatarSaldo(saldoDiaMinutos),
+                    subtitle = when {
+                        saldoDiaMinutos > 0 -> "Positivo"
+                        saldoDiaMinutos < 0 -> "Negativo"
+                        else -> "Neutro"
+                    },
+                    icon = when {
+                        saldoDiaMinutos > 0 -> Icons.Default.TrendingUp
+                        saldoDiaMinutos < 0 -> Icons.Default.TrendingDown
+                        else -> Icons.Default.TrendingFlat
+                    },
+                    color = when {
+                        saldoDiaMinutos > 0 -> Color(0xFF22C55E)
+                        saldoDiaMinutos < 0 -> Color(0xFFFF4D67)
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    progress = saldoProgress(saldoDiaMinutos)
                 )
 
-                ResumoItemBanco(
-                    titulo = "Banco de horas",
-                    saldoMinutos = bancoTotalMinutos,
-                    corTitulo = textoTerciario,
-                    modifier = Modifier.weight(1f)
+                ResumoMetricItem(
+                    modifier = Modifier.weight(1f),
+                    title = "Banco de horas",
+                    value = formatarSaldo(bancoTotalMinutos),
+                    subtitle = "Acumulado",
+                    icon = Icons.Default.AccountBalance,
+                    color = when {
+                        bancoTotalMinutos > 0 -> Color(0xFFA855F7)
+                        bancoTotalMinutos < 0 -> Color(0xFFFF4D67)
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    progress = saldoProgress(bancoTotalMinutos)
+                )
+            }
+
+            if (mostrarContador || versaoJornada != null) {
+                ResumoFooter(
+                    jornadaMinutos = jornadaMinutos,
+                    mostrarContador = mostrarContador,
+                    dataHoraInicioContador = dataHoraInicioContador
                 )
             }
         }
-
     }
 }
 
 @Composable
-private fun JornadaVersaoInfoCompact(
-    cargaHorariaFormatada: String,
-    versaoJornada: VersaoJornada?,
-    corTexto: Color,
-    modifier: Modifier = Modifier
+private fun ResumoHeader(
+    resumoDia: ResumoDia,
+    status: ResumoVisualStatus,
+    jornadaMinutos: Int,
+    onEditarJornada: (() -> Unit)?
+) {
+    val textPrimary = MaterialTheme.colorScheme.onSurface
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PremiumGlowIcon(
+                    icon = Icons.Default.Timer,
+                    color = MaterialTheme.colorScheme.primary,
+                    size = 34,
+                    iconSize = 18
+                )
+
+                Spacer(Modifier.width(8.dp))
+
+                Text(
+                    text = "Resumo do Dia",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = textPrimary
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = status.iconeStatus,
+                    contentDescription = null,
+                    tint = status.corStatus,
+                    modifier = Modifier.size(16.dp)
+                )
+
+                Spacer(Modifier.width(4.dp))
+
+                Text(
+                    text = if (resumoDia.tipoDiaEspecial.isNormal) {
+                        "Jornada esperada • ${formatarMinutos(jornadaMinutos)}"
+                    } else {
+                        "${resumoDia.tipoDiaEspecial.descricao} • Sem jornada obrigatória"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = textSecondary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        if (onEditarJornada != null) {
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Editar jornada",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .size(22.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ResumoMetricItem(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String,
+    subtitle: String?,
+    icon: ImageVector,
+    color: Color,
+    progress: Float?
+) {
+    val theme = LocalAppThemeController.current
+
+    Column(
+        modifier = modifier.defaultMinSize(minHeight = if (theme.isPremium) 144.dp else 128.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        PremiumGlowIcon(
+            icon = icon,
+            color = color,
+            size = if (theme.isPremium) 62 else 54,
+            iconSize = if (theme.isPremium) 30 else 26
+        )
+
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            color = color,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1
+        )
+
+        if (progress != null) {
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth(0.78f)
+                    .height(5.dp),
+                color = color,
+                trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+            )
+        }
+
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumGlowIcon(
+    icon: ImageVector,
+    color: Color,
+    size: Int,
+    iconSize: Int
+) {
+    val theme = LocalAppThemeController.current
+    val tokens = LocalPremiumTokens.current
+
+    val backgroundBrush = when {
+        theme.isPremium -> Brush.radialGradient(
+            colors = listOf(
+                color.copy(alpha = 0.34f),
+                color.copy(alpha = 0.16f),
+                Color.Transparent
+            )
+        )
+
+        theme.isDarkula -> Brush.radialGradient(
+            colors = listOf(
+                color.copy(alpha = 0.26f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+            )
+        )
+
+        else -> Brush.radialGradient(
+            colors = listOf(
+                color.copy(alpha = 0.18f),
+                color.copy(alpha = 0.10f)
+            )
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .size(size.dp)
+            .then(
+                if (theme.isPremium) {
+                    Modifier.shadow(
+                        elevation = 12.dp,
+                        shape = CircleShape,
+                        ambientColor = color.copy(alpha = 0.18f),
+                        spotColor = tokens.primaryGlow.copy(alpha = 0.22f)
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .background(backgroundBrush, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(iconSize.dp)
+        )
+    }
+}
+
+@Composable
+private fun ResumoFooter(
+    jornadaMinutos: Int,
+    mostrarContador: Boolean,
+    dataHoraInicioContador: LocalDateTime?
 ) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
+                shape = MaterialTheme.shapes.large
+            )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "Jornada esperada:",
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
-            color = corTexto
-        )
-        Spacer(modifier = Modifier.width(3.dp))
         Icon(
             imageVector = Icons.Default.Schedule,
-            contentDescription = "Jornada esperada",
-            tint = corTexto,
-            modifier = Modifier.size(12.dp)
-        )
-        Spacer(modifier = Modifier.width(3.dp))
-        Text(
-            text = cargaHorariaFormatada,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
-            color = corTexto
-        )
-
-        versaoJornada?.let { versao ->
-            Text(
-                text = " • ",
-                style = MaterialTheme.typography.labelSmall,
-                fontSize = 11.sp,
-                color = corTexto.copy(alpha = 0.5f)
-            )
-            Icon(
-                imageVector = Icons.Default.DateRange,
-                contentDescription = "Período da jornada",
-                tint = corTexto,
-                modifier = Modifier.size(12.dp)
-            )
-            Spacer(modifier = Modifier.width(3.dp))
-            Text(
-                text = versao.periodoFormatado,
-                style = MaterialTheme.typography.labelSmall,
-                fontSize = 11.sp,
-                color = corTexto,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
-private fun FeriadoJornadaInfo(
-    corTexto: Color,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.WorkOff,
-            contentDescription = "Feriado",
-            tint = corTexto,
-            modifier = Modifier.size(12.dp)
-        )
-        Spacer(modifier = Modifier.width(3.dp))
-        Text(
-            text = "Feriado • Sem jornada obrigatória",
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
-            color = corTexto
-        )
-    }
-}
-
-@Composable
-private fun DiaEspecialJornadaInfo(
-    tipoDiaEspecial: TipoDiaEspecial,
-    corTexto: Color,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = tipoDiaEspecial.getIcon(),
-            contentDescription = tipoDiaEspecial.descricao,
-            tint = tipoDiaEspecial.getCor(),
-            modifier = Modifier.size(12.dp)
-        )
-        Spacer(modifier = Modifier.width(3.dp))
-        Text(
-            text = "${tipoDiaEspecial.descricao} • Sem jornada obrigatória",
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
-            color = corTexto
-        )
-    }
-}
-
-@Composable
-private fun StatusBadgeCompact(
-    texto: String,
-    icone: ImageVector = Icons.Default.PlayCircle,
-    corIcone: Color = Success,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color.White.copy(alpha = 0.1f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Icon(
-            imageVector = icone,
             contentDescription = null,
-            tint = corIcone,
-            modifier = Modifier.size(12.dp)
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp)
         )
-        Text(
-            text = texto,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White
-        )
-    }
-}
 
-@Composable
-private fun ResumoItemPrincipal(
-    tipoDiaEspecial: TipoDiaEspecial,
-    minutosTrabalhados: Int,
-    minutosJornada: Int,
-    isFeriado: Boolean = false,
-    emAndamento: Boolean = false,
-    corTitulo: Color,
-    modifier: Modifier = Modifier
-) {
-    val titulo = if (tipoDiaEspecial.isNormal) "Trabalhado no dia" else tipoDiaEspecial.descricao
-    val icone = tipoDiaEspecial.getIcon()
-    val corIconeEspecial = tipoDiaEspecial.getCor()
-
-    val isDiaEspecialNaoTrabalhado = !tipoDiaEspecial.isNormal
-    val atingiuJornada = minutosTrabalhados >= minutosJornada
-    val temTrabalho = minutosTrabalhados > 0
-
-    val corValor: Color
-    val corIcone: Color
-    val corFundoIcone: Color
-
-    when {
-        isDiaEspecialNaoTrabalhado -> {
-            corValor = corIconeEspecial
-            corIcone = corIconeEspecial.copy(alpha = 0.8f)
-            corFundoIcone = corIconeEspecial.copy(alpha = 0.15f)
-        }
-
-        isFeriado && temTrabalho -> {
-            corValor = Success
-            corIcone = Success
-            corFundoIcone = Success.copy(alpha = 0.15f)
-        }
-
-        atingiuJornada -> {
-            corValor = Success
-            corIcone = Success
-            corFundoIcone = Success.copy(alpha = 0.15f)
-        }
-
-        else -> {
-            corValor = Color.White
-            corIcone = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
-            corFundoIcone = Color.White.copy(alpha = 0.1f)
-        }
-    }
-
-    val valorFormatado = if (isDiaEspecialNaoTrabalhado && minutosTrabalhados == 0) {
-        "—"
-    } else {
-        formatarDuracaoCompacta(minutosTrabalhados)
-    }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.padding(horizontal = 2.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(corFundoIcone)
-        ) {
-            Icon(
-                imageVector = icone,
-                contentDescription = titulo,
-                tint = corIcone,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(Modifier.width(8.dp))
 
         Text(
-            text = titulo,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = corTitulo,
-            textAlign = TextAlign.Center
+            text = "Jornada esperada",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
         )
-
-        Spacer(modifier = Modifier.height(2.dp))
-
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(Color.White.copy(alpha = 0.08f))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = valorFormatado,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = corValor,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun ResumoItemSaldo(
-    titulo: String,
-    saldoMinutos: Int,
-    isFeriado: Boolean = false,
-    corTitulo: Color,
-    modifier: Modifier = Modifier
-) {
-    val isPositivo = saldoMinutos > 0
-    val isNegativo = saldoMinutos < 0
-
-    val icone = when {
-        isPositivo -> Icons.AutoMirrored.Filled.TrendingUp
-        isNegativo -> Icons.AutoMirrored.Filled.TrendingDown
-        else -> Icons.Default.Remove
-    }
-
-    val corIcone = when {
-        isPositivo -> Success
-        isNegativo -> Error
-        else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
-    }
-
-    val corFundoIcone = when {
-        isPositivo -> Success.copy(alpha = 0.15f)
-        isNegativo -> Error.copy(alpha = 0.15f)
-        else -> Color.White.copy(alpha = 0.1f)
-    }
-
-    val corValor = when {
-        isPositivo -> Success
-        isNegativo -> Error
-        else -> Color.White
-    }
-
-    val valorFormatado = formatarSaldoCompacto(saldoMinutos)
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.padding(horizontal = 2.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(corFundoIcone)
-        ) {
-            Icon(
-                imageVector = icone,
-                contentDescription = titulo,
-                tint = corIcone,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = titulo,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = corTitulo,
-            textAlign = TextAlign.Center
+            text = formatarMinutos(jornadaMinutos),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Stable
+private data class ResumoVisualStatus(
+    val tituloTrabalhado: String,
+    val valorTrabalhado: String?,
+    val subtituloTrabalhado: String?,
+    val iconeTrabalhado: ImageVector,
+    val corTrabalhado: Color,
+    val iconeStatus: ImageVector,
+    val corStatus: Color
+)
+
+private fun resumoDiaStatus(resumoDia: ResumoDia): ResumoVisualStatus {
+    return when {
+        !resumoDia.tipoDiaEspecial.isNormal -> ResumoVisualStatus(
+            tituloTrabalhado = resumoDia.tipoDiaEspecial.descricao,
+            valorTrabalhado = "—",
+            subtituloTrabalhado = "Sem meta",
+            iconeTrabalhado = Icons.Default.CalendarMonth,
+            corTrabalhado = Color(0xFF22C55E),
+            iconeStatus = Icons.Default.CalendarMonth,
+            corStatus = Color(0xFF22C55E)
         )
 
-        Spacer(modifier = Modifier.height(2.dp))
-
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(Color.White.copy(alpha = 0.08f))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = valorFormatado,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = corValor,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun ResumoItemBanco(
-    titulo: String,
-    saldoMinutos: Int,
-    corTitulo: Color,
-    modifier: Modifier = Modifier
-) {
-    val isPositivo = saldoMinutos > 0
-    val isNegativo = saldoMinutos < 0
-
-    val corIcone = when {
-        isPositivo -> Success
-        isNegativo -> Error
-        else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
-    }
-
-    val corFundoIcone = when {
-        isPositivo -> Success.copy(alpha = 0.15f)
-        isNegativo -> Error.copy(alpha = 0.15f)
-        else -> Color.White.copy(alpha = 0.1f)
-    }
-
-    val corValor = when {
-        isPositivo -> Success
-        isNegativo -> Error
-        else -> Color.White
-    }
-
-    val valorFormatado = formatarSaldoCompacto(saldoMinutos)
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.padding(horizontal = 2.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(corFundoIcone)
-        ) {
-            Icon(
-                imageVector = Icons.Default.AccountBalance,
-                contentDescription = titulo,
-                tint = corIcone,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = titulo,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = corTitulo,
-            textAlign = TextAlign.Center
+        resumoDia.temProblemas -> ResumoVisualStatus(
+            tituloTrabalhado = "Trabalhado",
+            valorTrabalhado = null,
+            subtituloTrabalhado = "Atenção",
+            iconeTrabalhado = Icons.Default.Timer,
+            corTrabalhado = Color(0xFFF59E0B),
+            iconeStatus = Icons.Default.TrendingDown,
+            corStatus = Color(0xFFF59E0B)
         )
 
-        Spacer(modifier = Modifier.height(2.dp))
-
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(Color.White.copy(alpha = 0.08f))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = valorFormatado,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = corValor,
-                textAlign = TextAlign.Center
-            )
-        }
+        else -> ResumoVisualStatus(
+            tituloTrabalhado = "Trabalhado no dia",
+            valorTrabalhado = null,
+            subtituloTrabalhado = null,
+            iconeTrabalhado = Icons.Default.Schedule,
+            corTrabalhado = Color(0xFF3B82F6),
+            iconeStatus = Icons.Default.Timer,
+            corStatus = Color(0xFF3B82F6)
+        )
     }
 }
 
-// Extensões
-private fun TipoDiaEspecial.getIcon(): ImageVector = when {
-    isNormal -> Icons.Default.AccessTime
-    isFerias -> Icons.Default.BeachAccess
-    isAtestado -> Icons.Default.LocalHospital
-    isFolga || isDayOff -> Icons.Default.Home
-    isFeriado -> Icons.Outlined.WorkOff
-    else -> Icons.Default.EventBusy
+private fun saldoProgress(minutos: Int): Float {
+    if (minutos == 0) return 0f
+    return (abs(minutos).coerceAtMost(480).toFloat() / 480f).coerceIn(0f, 1f)
 }
 
-private fun TipoDiaEspecial.getCor(): Color = when (corIndicativa) {
-    TipoAusenciaCor.VERDE -> Success
-    TipoAusenciaCor.AZUL -> if (isFerias) SidiaBlue else Info
-    TipoAusenciaCor.VERMELHO -> Error
+private fun formatarSaldo(minutos: Int): String {
+    val sinal = when {
+        minutos > 0 -> "+"
+        minutos < 0 -> "-"
+        else -> ""
+    }
+
+    return "$sinal${formatarMinutos(abs(minutos))}"
 }
 
-private fun formatarDuracaoCompacta(minutos: Int): String {
-    val minutosAbs = abs(minutos)
-    val horas = minutosAbs / 60
-    val mins = minutosAbs % 60
-    return if (horas > 0) "%02dh %02dmin".format(horas, mins) else "%02dmin".format(mins)
-}
+private fun formatarMinutos(totalMinutos: Int): String {
+    val minutosPositivos = totalMinutos.coerceAtLeast(0)
+    val horas = minutosPositivos / 60
+    val minutos = minutosPositivos % 60
 
-private fun formatarSaldoCompacto(minutos: Int): String {
-    if (minutos == 0) return "00min"
-    val minutosAbs = abs(minutos)
-    val horas = minutosAbs / 60
-    val mins = minutosAbs % 60
-    val sinal = if (minutos > 0) "+ " else "- "
-    return if (horas > 0) "$sinal%02dh %02dmin".format(
-        horas,
-        mins
-    ) else "$sinal%02dmin".format(mins)
+    return "${horas.toString().padStart(2, '0')}h ${minutos.toString().padStart(2, '0')}min"
 }
