@@ -104,7 +104,7 @@ fun TipoAusenciaSelector(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(TipoAusencia.todos) { tipo ->
+                items(TipoAusencia.todos.filterNotNull()) { tipo ->
                     TipoAusenciaItem(
                         tipo = tipo,
                         isSelected = tipo == tipoSelecionado,
@@ -145,10 +145,11 @@ private fun LegendaItem(
 
 @Composable
 private fun TipoAusenciaItem(
-    tipo: TipoAusencia,
+    tipo: TipoAusencia?,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    if (tipo == null) return
     val containerColor = when {
         isSelected -> {
             if (tipo.corIndicativa == TipoAusenciaCor.VERDE) {
