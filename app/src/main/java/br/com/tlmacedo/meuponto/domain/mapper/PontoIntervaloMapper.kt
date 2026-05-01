@@ -45,8 +45,6 @@ fun List<Ponto>.toIntervalosPonto(
             )
         }
 
-    if (turnosBase.isEmpty()) return emptyList()
-
     val pausas = calcularPausasEntreTurnos(
         turnos = turnosBase,
         intervaloMinimoMinutos = intervaloMinimoMinutos,
@@ -59,9 +57,10 @@ fun List<Ponto>.toIntervalosPonto(
     return turnosBase.mapIndexed { index, turno ->
         val pausaAntes = pausas[index]
 
-        val toleranciaAplicadaNesteTurno = index == indiceTurnoComTolerancia &&
-                pausaAntes != null &&
-                pausaAntes.elegivelParaTolerancia
+        val toleranciaAplicadaNesteTurno =
+            index == indiceTurnoComTolerancia &&
+                    pausaAntes != null &&
+                    pausaAntes.elegivelParaTolerancia
 
         val pausaConsiderada = when {
             pausaAntes == null -> null
@@ -131,13 +130,14 @@ private fun calcularPausasEntreTurnos(
         val minutosReais = Duration.between(
             saidaAnteriorDataHora,
             entradaAtualDataHora
-        ).toMinutes()
+        )
+            .toMinutes()
             .toInt()
             .coerceAtLeast(0)
 
         val limiteComTolerancia = intervaloMinimoMinutos + toleranciaVoltaIntervaloMinutos
 
-        val elegivel = minutosReais >= intervaloMinimoMinutos &&
+        val elegivel = minutosReais > intervaloMinimoMinutos &&
                 minutosReais <= limiteComTolerancia &&
                 toleranciaVoltaIntervaloMinutos > 0
 

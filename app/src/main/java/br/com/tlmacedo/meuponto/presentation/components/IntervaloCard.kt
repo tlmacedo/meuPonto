@@ -108,8 +108,11 @@ fun IntervaloCard(
                             ponto = intervalo.entrada,
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = animatedVisibilityScope,
-                            horaReal = intervalo.entrada.hora.format(formatadorHora),
-                            horaConsiderada = if (intervalo.temHoraEntradaConsideradaDiferenteDaReal) {
+                            horaReal = intervalo.formatarHoraEntradaReal(),
+                            horaConsiderada = if (
+                                intervalo.toleranciaAplicada &&
+                                intervalo.temHoraEntradaConsideradaDiferenteDaReal
+                            ) {
                                 intervalo.formatarHoraEntradaConsiderada()
                             } else {
                                 null

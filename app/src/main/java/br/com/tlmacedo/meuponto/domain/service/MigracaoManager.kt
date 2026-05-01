@@ -74,9 +74,10 @@ class MigracaoManager @Inject constructor(
 
             if (resultado.sucesso) {
                 Timber.i(
-                    "Migração v7.1 concluída: %d pontos processados, %d atualizados",
-                    resultado.totalProcessados,
-                    resultado.totalAtualizados
+                    "Migração v7.1 concluída: %d dias processados, %d pontos processados, %d atualizados",
+                    resultado.totalDiasProcessados,
+                    resultado.totalPontosProcessados,
+                    resultado.totalPontosAtualizados
                 )
 
                 // Marca a migração como executada

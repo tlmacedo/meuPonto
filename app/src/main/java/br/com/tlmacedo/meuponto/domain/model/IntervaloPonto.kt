@@ -23,81 +23,48 @@ import java.time.format.DateTimeFormatter
 data class IntervaloPonto(
     val entrada: Ponto,
     val saida: Ponto?,
-
     val pausaAntesMinutosReal: Int? = null,
     val pausaAntesMinutosConsiderada: Int? = null,
     val tipoPausa: TipoPausa? = null,
 
     /**
-     * Hora considerada para cálculo do início do turno.
-     *
-     * Ex:
-     * saída anterior: 12:35
-     * entrada real: 13:54
-     * intervalo mínimo: 60min
-     * tolerância aplicada: sim
-     *
-     * horaEntradaConsiderada = 13:35
+     * Hora considerada SOMENTE pela tolerância de volta de intervalo.
+     * Se for null, o cálculo usa a hora real do ponto.
      */
     val horaEntradaConsiderada: LocalDateTime? = null
 ) {
+    private val dataHoraEntradaReal: LocalDateTime
+        get() = LocalDateTime.of(entrada.data, entrada.hora)
+
+    private val dataHoraSaidaReal: LocalDateTime?
+        get() = saida?.let { LocalDateTime.of(it.data, it.hora) }
+
     val aberto: Boolean
         get() = saida == null
 
     val temPausaAntes: Boolean
         get() = pausaAntesMinutosReal != null && pausaAntesMinutosReal > 0
 
-    val toleranciaAplicada: Boolean
-        get() = temPausaConsideradaDiferenteDaReal
-
     val temPausaConsideradaDiferenteDaReal: Boolean
         get() = pausaAntesMinutosReal != null &&
                 pausaAntesMinutosConsiderada != null &&
                 pausaAntesMinutosReal != pausaAntesMinutosConsiderada
 
-    val temHoraEntradaConsiderada: Boolean
-        get() = horaEntradaConsiderada != null
-
-    fun formatarDuracaoCompacta(): String {
-        return formatarMinutosPadrao(duracaoTurnoMinutos)
-    }
-
-    fun formatarDuracaoTurnoReal(): String {
-        return formatarMinutosPadrao(duracaoTurnoRealMinutos)
-    }
-
-    fun formatarHoraEntradaParaCalculo(): String {
-        return entradaParaCalculo.toLocalTime().format(HORA_FORMATTER)
-    }
-
-    fun formatarPausaAntesCompacta(): String? {
-        return pausaAntesMinutosReal?.let(::formatarMinutosPadrao)
-    }
-
-    fun formatarPausaConsideradaCompacta(): String? {
-        return pausaAntesMinutosConsiderada?.let(::formatarMinutosPadrao)
-    }
-
-    private val dataHoraEntradaReal: LocalDateTime
-        get() = LocalDateTime.of(entrada.data, entrada.hora)
-
-    private val dataHoraEntradaConsideradaSalva: LocalDateTime
-        get() = LocalDateTime.of(entrada.data, entrada.horaConsiderada)
-
-    private val dataHoraSaidaReal: LocalDateTime?
-        get() = saida?.let { LocalDateTime.of(it.data, it.hora) }
+    val toleranciaAplicada: Boolean
+        get() = temPausaConsideradaDiferenteDaReal
 
     val entradaReal: LocalDateTime
         get() = dataHoraEntradaReal
 
     val entradaParaCalculo: LocalDateTime
-        get() = horaEntradaConsiderada ?: dataHoraEntradaConsideradaSalva
+        get() = horaEntradaConsiderada ?: dataHoraEntradaReal
 
     val saidaParaCalculo: LocalDateTime
         get() = dataHoraSaidaReal ?: LocalDateTime.now()
 
     val temHoraEntradaConsideradaDiferenteDaReal: Boolean
-        get() = entradaParaCalculo != dataHoraEntradaReal
+        get() = horaEntradaConsiderada != null &&
+                horaEntradaConsiderada != dataHoraEntradaReal
 
     val duracaoTurnoMinutos: Int
         get() = Duration.between(entradaParaCalculo, saidaParaCalculo)
@@ -116,8 +83,8 @@ data class IntervaloPonto(
     }
 
     fun formatarHoraEntradaConsiderada(): String? {
-        return entradaParaCalculo
-            .takeIf { it != dataHoraEntradaReal }
+        return horaEntradaConsiderada
+            ?.takeIf { it != dataHoraEntradaReal }
             ?.toLocalTime()
             ?.format(HORA_FORMATTER)
     }
@@ -128,14 +95,25 @@ data class IntervaloPonto(
             ?.format(HORA_FORMATTER)
     }
 
+    fun formatarDuracaoCompacta(): String {
+        return formatarMinutosPadrao(duracaoTurnoMinutos)
+    }
+
+    fun formatarPausaAntesCompacta(): String? {
+        return pausaAntesMinutosReal?.let(::formatarMinutosPadrao)
+    }
+
+    fun formatarPausaConsideradaCompacta(): String? {
+        return pausaAntesMinutosConsiderada?.let(::formatarMinutosPadrao)
+    }
+
     companion object {
-        private val HORA_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        private val HORA_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
 
         fun formatarMinutosPadrao(totalMinutos: Int): String {
             val minutosSeguros = totalMinutos.coerceAtLeast(0)
             val horas = minutosSeguros / 60
             val minutos = minutosSeguros % 60
-
             return "${horas.toString().padStart(2, '0')}h ${minutos.toString().padStart(2, '0')}min"
         }
     }

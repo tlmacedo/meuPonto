@@ -1,6 +1,10 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/ObterResumoDiaCompletoUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
+import br.com.tlmacedo.meuponto.domain.extensions.calcularDebitoIntegralMinutos
+import br.com.tlmacedo.meuponto.domain.extensions.calcularJornadaConsideradaMinutos
+import br.com.tlmacedo.meuponto.domain.extensions.calcularTempoAbonadoMinutos
+import br.com.tlmacedo.meuponto.domain.extensions.entraComoTipoPrincipalDoDia
 import br.com.tlmacedo.meuponto.domain.extensions.isAtestadoOrFalse
 import br.com.tlmacedo.meuponto.domain.extensions.isDayOffOrFalse
 import br.com.tlmacedo.meuponto.domain.extensions.isDescansoOrFalse
@@ -44,7 +48,19 @@ data class ResumoDiaCompleto(
     val tipoAusencia: TipoAusencia?,
     val descricaoDiaEspecial: String?,
     val contextoJornadaDia: ContextoJornadaDia? = null,
-    val metadataFerias: MetadataFerias? = null
+    val metadataFerias: MetadataFerias? = null,
+
+    /**
+     * Valores finais calculados pela regra de negócio de ausência.
+     *
+     * Importante:
+     * - horasTrabalhadasMinutos continua sendo só ponto/turnos.
+     * - tempoAbonadoMinutos é tempo computável, mas não trabalhado.
+     * - saldoDiaMinutos usa a política da ausência.
+     */
+    val jornadaConsideradaMinutosCalculada: Int? = null,
+    val tempoAbonadoMinutosCalculado: Int = 0,
+    val saldoDiaMinutosCalculado: Int? = null
 ) {
     val intervalos: List<IntervaloPonto>
         get() = pontos.toIntervalosPonto(
@@ -64,16 +80,21 @@ data class ResumoDiaCompleto(
         get() = Duration.ofMinutes(horasTrabalhadasMinutos.toLong())
 
     val tempoAbonadoMinutos: Int
-        get() = totalMinutosDeclaracoes
+        get() = tempoAbonadoMinutosCalculado
 
     val cargaHorariaEfetivaMinutos: Int
-        get() = resumoDia.jornadaConsideradaMinutos
+        get() = jornadaConsideradaMinutosCalculada
+            ?: resumoDia.jornadaConsideradaMinutos
+
+    val minutosComputaveisJornada: Int
+        get() = horasTrabalhadasMinutos + tempoAbonadoMinutos
+
+    val saldoDiaMinutos: Int
+        get() = saldoDiaMinutosCalculado
+            ?: (minutosComputaveisJornada - cargaHorariaEfetivaMinutos)
 
     val cargaHorariaEfetiva: Duration
         get() = Duration.ofMinutes(cargaHorariaEfetivaMinutos.toLong())
-
-    val saldoDiaMinutos: Int
-        get() = horasTrabalhadasMinutos + tempoAbonadoMinutos - cargaHorariaEfetivaMinutos
 
     val saldoDia: Duration
         get() = Duration.ofMinutes(saldoDiaMinutos.toLong())
@@ -95,9 +116,8 @@ data class ResumoDiaCompleto(
 
     val ausenciaPrincipal: Ausencia?
         get() = ausencias
-            .filter { it.tipo != TipoAusencia.Declaracao }
+            .filter { it.entraComoTipoPrincipalDoDia }
             .maxByOrNull { it.tipo.prioridade }
-            ?: ausencias.maxByOrNull { it.tipo.prioridade }
 
     val declaracoes: List<Ausencia>
         get() = ausencias.filter { it.tipo == TipoAusencia.Declaracao }
@@ -247,13 +267,29 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             contextoJornadaDia?.toleranciaVoltaIntervaloMinutos
                 ?: toleranciaIntervaloGlobal
 
+        val intervalosCalculados = pontosOrdenados.toIntervalosPonto(
+            intervaloMinimoMinutos = intervaloMinimoMinutos,
+            toleranciaVoltaIntervaloMinutos = toleranciaVoltaIntervaloMinutos,
+            saidaIntervaloIdeal = contextoJornadaDia?.saidaIntervaloIdeal
+                ?: horarioDia?.saidaIntervaloIdeal
+        )
+
+        val minutosTrabalhados = intervalosCalculados.sumOf { it.duracaoTurnoMinutos }
+
+        val calculoAusenciaDia = calcularResultadoAusenciaDia(
+            jornadaDoDiaMinutos = jornadaDoDiaMinutos,
+            minutosTrabalhados = minutosTrabalhados,
+            ausencias = ausenciasAtivas,
+            temFeriado = feriadosDoDia.isNotEmpty()
+        )
+
         val resumoDia = ResumoDia(
             data = data,
             entrada = pontosOrdenados.getOrNull(0)?.hora,
             saidaAlmoco = pontosOrdenados.getOrNull(1)?.hora,
             voltaAlmoco = pontosOrdenados.getOrNull(2)?.hora,
             saida = pontosOrdenados.getOrNull(3)?.hora,
-            jornadaPrevistaMinutos = jornadaDoDiaMinutos,
+            jornadaPrevistaMinutos = calculoAusenciaDia.jornadaConsideradaMinutos,
             intervaloPrevistoMinutos = intervaloMinimoMinutos,
             toleranciaIntervaloMinutos = toleranciaVoltaIntervaloMinutos,
             tipoAusencia = resultadoDia.tipoAusencia
@@ -270,9 +306,13 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
             tipoAusencia = resultadoDia.tipoAusencia,
             descricaoDiaEspecial = resultadoDia.descricao,
             contextoJornadaDia = contextoJornadaDia,
-            metadataFerias = metadataFerias
+            metadataFerias = metadataFerias,
+            jornadaConsideradaMinutosCalculada = calculoAusenciaDia.jornadaConsideradaMinutos,
+            tempoAbonadoMinutosCalculado = calculoAusenciaDia.tempoAbonadoMinutos,
+            saldoDiaMinutosCalculado = calculoAusenciaDia.saldoDiaMinutos
         )
     }
+
     fun observar(
         empregoId: Long,
         data: LocalDate
@@ -341,14 +381,97 @@ class ObterResumoDiaCompletoUseCase @Inject constructor(
         }
     }
 
+    private data class ResultadoCalculoAusenciaDia(
+        val jornadaConsideradaMinutos: Int,
+        val tempoAbonadoMinutos: Int,
+        val saldoDiaMinutos: Int
+    )
+
+    private fun calcularResultadoAusenciaDia(
+        jornadaDoDiaMinutos: Int,
+        minutosTrabalhados: Int,
+        ausencias: List<Ausencia>,
+        temFeriado: Boolean
+    ): ResultadoCalculoAusenciaDia {
+        val ausenciaPrincipal = ausencias
+            .filter { it.entraComoTipoPrincipalDoDia }
+            .maxByOrNull { it.tipo.prioridade }
+
+        /**
+         * Se não houver ausência principal, mas houver feriado/dia ponte/facultativo,
+         * a jornada considerada é zero. Se houver ponto, vira saldo positivo.
+         */
+        if (ausenciaPrincipal == null) {
+            val jornadaConsiderada = if (temFeriado) {
+                0
+            } else {
+                jornadaDoDiaMinutos
+            }
+
+            val tempoAbonado = ausencias
+                .filter { it.tipo == TipoAusencia.Declaracao }
+                .sumOf { ausencia ->
+                    ausencia.calcularTempoAbonadoMinutos(
+                        jornadaDoDiaMinutos = jornadaConsiderada,
+                        minutosTrabalhados = minutosTrabalhados
+                    )
+                }
+                .coerceAtMost((jornadaConsiderada - minutosTrabalhados).coerceAtLeast(0))
+
+            return ResultadoCalculoAusenciaDia(
+                jornadaConsideradaMinutos = jornadaConsiderada,
+                tempoAbonadoMinutos = tempoAbonado,
+                saldoDiaMinutos = minutosTrabalhados + tempoAbonado - jornadaConsiderada
+            )
+        }
+
+        val jornadaConsiderada = ausenciaPrincipal.calcularJornadaConsideradaMinutos(
+            jornadaDoDiaMinutos = jornadaDoDiaMinutos
+        )
+
+        val debitoIntegral = ausenciaPrincipal.calcularDebitoIntegralMinutos(
+            jornadaDoDiaMinutos = jornadaDoDiaMinutos
+        )
+
+        if (debitoIntegral < 0) {
+            return ResultadoCalculoAusenciaDia(
+                jornadaConsideradaMinutos = jornadaConsiderada,
+                tempoAbonadoMinutos = 0,
+                saldoDiaMinutos = debitoIntegral
+            )
+        }
+
+        /**
+         * Tempo abonado:
+         * - Declaração: abono parcial considerado.
+         * - Atestado: abona o restante da jornada.
+         *
+         * O total nunca deve ultrapassar o faltante para completar a jornada.
+         */
+        val tempoFaltanteParaJornada = (jornadaConsiderada - minutosTrabalhados)
+            .coerceAtLeast(0)
+
+        val tempoAbonado = ausencias.sumOf { ausencia ->
+            ausencia.calcularTempoAbonadoMinutos(
+                jornadaDoDiaMinutos = jornadaConsiderada,
+                minutosTrabalhados = minutosTrabalhados
+            )
+        }.coerceAtMost(tempoFaltanteParaJornada)
+
+        return ResultadoCalculoAusenciaDia(
+            jornadaConsideradaMinutos = jornadaConsiderada,
+            tempoAbonadoMinutos = tempoAbonado,
+            saldoDiaMinutos = minutosTrabalhados + tempoAbonado - jornadaConsiderada
+        )
+    }
+
     private fun determinarTipoDia(
         ausencias: List<Ausencia>,
         feriados: List<Feriado>
     ): ResultadoTipoDia {
         val ausenciaPrioritaria = ausencias
-            .filter { it.tipo != TipoAusencia.Declaracao }
+            .filter { it.entraComoTipoPrincipalDoDia }
             .maxByOrNull { it.tipo.prioridade }
-            ?: ausencias.maxByOrNull { it.tipo.prioridade }
 
         if (ausenciaPrioritaria != null) {
             return ResultadoTipoDia(

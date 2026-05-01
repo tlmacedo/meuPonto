@@ -1,4 +1,3 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/RecalcularToleranciasPontosUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
@@ -9,65 +8,75 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * Caso de uso para recalcular as tolerâncias de todos os pontos existentes.
+ * Recalcula a horaConsiderada dos pontos existentes usando a regra atual:
  *
- * Útil após correções na lógica de cálculo de tolerância ou quando
- * a configuração de tolerância é alterada.
+ * - horaConsiderada = hora por padrão
+ * - somente retorno de intervalo pode receber tolerância
+ * - no máximo uma tolerância por dia
+ * - se houver mais de um retorno elegível, vence o mais próximo da saída ideal
  *
- * @author Thiago
- * @since 7.1.0
+ * Esta classe é o recálculo em massa.
+ * O cálculo diário fica centralizado em RecalcularHoraConsideradaPontosDiaUseCase.
  */
 class RecalcularToleranciasPontosUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
     private val empregoRepository: EmpregoRepository,
-    private val calcularHoraConsideradaUseCase: CalcularHoraConsideradaUseCase
+    private val recalcularHoraConsideradaPontosDiaUseCase: RecalcularHoraConsideradaPontosDiaUseCase
 ) {
 
-    /**
-     * Resultado do recálculo.
-     */
     data class Resultado(
-        val totalProcessados: Int,
-        val totalAtualizados: Int,
+        val totalDiasProcessados: Int,
+        val totalPontosProcessados: Int,
+        val totalPontosAtualizados: Int,
         val erros: List<String>
     ) {
         val sucesso: Boolean get() = erros.isEmpty()
     }
 
-    /**
-     * Callback para acompanhar o progresso.
-     */
     fun interface ProgressCallback {
         fun onProgress(atual: Int, total: Int, mensagem: String)
     }
 
-    /**
-     * Recalcula as tolerâncias de todos os pontos de todos os empregos.
-     *
-     * @param progressCallback Callback opcional para acompanhar o progresso
-     * @return Resultado com estatísticas do processamento
-     */
-    suspend operator fun invoke(progressCallback: ProgressCallback? = null): Resultado {
+    suspend operator fun invoke(
+        progressCallback: ProgressCallback? = null
+    ): Resultado {
         val erros = mutableListOf<String>()
-        var totalProcessados = 0
-        var totalAtualizados = 0
 
-        try {
-            // Busca todos os empregos
+        var totalDiasProcessados = 0
+        var totalPontosProcessados = 0
+        var totalPontosAtualizados = 0
+
+        return try {
             val empregos = empregoRepository.observarTodos().first()
 
             if (empregos.isEmpty()) {
-                Timber.d("Nenhum emprego encontrado para recalcular")
-                return Resultado(0, 0, emptyList())
+                Timber.d("Nenhum emprego encontrado para recalcular tolerâncias.")
+                return Resultado(
+                    totalDiasProcessados = 0,
+                    totalPontosProcessados = 0,
+                    totalPontosAtualizados = 0,
+                    erros = emptyList()
+                )
             }
 
-            Timber.i("Iniciando recálculo de tolerâncias para ${empregos.size} emprego(s)")
+            Timber.i("Iniciando recálculo de tolerâncias para ${empregos.size} emprego(s).")
 
-            for (emprego in empregos) {
+            empregos.forEachIndexed { index, emprego ->
+                progressCallback?.onProgress(
+                    atual = index + 1,
+                    total = empregos.size,
+                    mensagem = "Recalculando ${emprego.nome}..."
+                )
+
                 try {
-                    val resultado = recalcularPorEmprego(emprego.id, progressCallback)
-                    totalProcessados += resultado.first
-                    totalAtualizados += resultado.second
+                    val resultadoEmprego = recalcularPorEmprego(
+                        empregoId = emprego.id,
+                        progressCallback = progressCallback
+                    )
+
+                    totalDiasProcessados += resultadoEmprego.totalDiasProcessados
+                    totalPontosProcessados += resultadoEmprego.totalPontosProcessados
+                    totalPontosAtualizados += resultadoEmprego.totalPontosAtualizados
                 } catch (e: Exception) {
                     val erro = "Erro no emprego ${emprego.id} (${emprego.nome}): ${e.message}"
                     Timber.e(e, erro)
@@ -76,105 +85,149 @@ class RecalcularToleranciasPontosUseCase @Inject constructor(
             }
 
             Timber.i(
-                "Recálculo finalizado: %d processados, %d atualizados, %d erros",
-                totalProcessados, totalAtualizados, erros.size
+                "Recálculo finalizado: dias=%d, pontos=%d, atualizados=%d, erros=%d",
+                totalDiasProcessados,
+                totalPontosProcessados,
+                totalPontosAtualizados,
+                erros.size
             )
 
+            Resultado(
+                totalDiasProcessados = totalDiasProcessados,
+                totalPontosProcessados = totalPontosProcessados,
+                totalPontosAtualizados = totalPontosAtualizados,
+                erros = erros
+            )
         } catch (e: Exception) {
-            val erro = "Erro geral no recálculo: ${e.message}"
+            val erro = "Erro geral no recálculo de tolerâncias: ${e.message}"
             Timber.e(e, erro)
-            erros.add(erro)
-        }
 
-        return Resultado(totalProcessados, totalAtualizados, erros)
+            Resultado(
+                totalDiasProcessados = totalDiasProcessados,
+                totalPontosProcessados = totalPontosProcessados,
+                totalPontosAtualizados = totalPontosAtualizados,
+                erros = erros + erro
+            )
+        }
     }
 
-    /**
-     * Recalcula as tolerâncias de todos os pontos de um emprego específico.
-     *
-     * @param empregoId ID do emprego
-     * @param progressCallback Callback opcional para progresso
-     * @return Par com (totalProcessados, totalAtualizados)
-     */
+    data class ResultadoEmprego(
+        val totalDiasProcessados: Int,
+        val totalPontosProcessados: Int,
+        val totalPontosAtualizados: Int
+    )
+
     suspend fun recalcularPorEmprego(
         empregoId: Long,
         progressCallback: ProgressCallback? = null
-    ): Pair<Int, Int> {
-        var totalProcessados = 0
-        var totalAtualizados = 0
-
-        // Busca a primeira data com registro
+    ): ResultadoEmprego {
         val primeiraData = pontoRepository.buscarPrimeiraData(empregoId)
-            ?: return Pair(0, 0)
+            ?: return ResultadoEmprego(
+                totalDiasProcessados = 0,
+                totalPontosProcessados = 0,
+                totalPontosAtualizados = 0
+            )
 
-        // Itera por cada dia desde a primeira data até hoje
+        var totalDiasProcessados = 0
+        var totalPontosProcessados = 0
+        var totalPontosAtualizados = 0
+
         var dataAtual = primeiraData
         val dataFim = LocalDate.now()
 
         while (!dataAtual.isAfter(dataFim)) {
-            val resultado = recalcularDia(empregoId, dataAtual)
-            totalProcessados += resultado.first
-            totalAtualizados += resultado.second
+            val resultadoDia = recalcularDia(
+                empregoId = empregoId,
+                data = dataAtual
+            )
+
+            totalDiasProcessados++
+            totalPontosProcessados += resultadoDia.totalPontos
+            totalPontosAtualizados += resultadoDia.pontosAtualizados
 
             progressCallback?.onProgress(
-                totalProcessados,
-                -1, // Total desconhecido
-                "Processando $dataAtual..."
+                atual = totalDiasProcessados,
+                total = -1,
+                mensagem = "Processando $dataAtual..."
             )
 
             dataAtual = dataAtual.plusDays(1)
         }
 
-        return Pair(totalProcessados, totalAtualizados)
+        return ResultadoEmprego(
+            totalDiasProcessados = totalDiasProcessados,
+            totalPontosProcessados = totalPontosProcessados,
+            totalPontosAtualizados = totalPontosAtualizados
+        )
     }
 
     /**
-     * Recalcula as tolerâncias de todos os pontos de um dia específico.
+     * Recalcula um dia inteiro.
      *
-     * IMPORTANTE: Os pontos devem ser processados em ordem cronológica,
-     * pois a tolerância da volta do intervalo depende da hora considerada
-     * da saída anterior.
-     *
-     * @param empregoId ID do emprego
-     * @param data Data a ser processada
-     * @return Par com (totalProcessados, totalAtualizados)
+     * Esta função não calcula ponto por ponto.
+     * Ela delega para o use case diário, que olha todos os pontos do dia
+     * e escolhe no máximo um retorno de intervalo para receber tolerância.
      */
-    private suspend fun recalcularDia(empregoId: Long, data: LocalDate): Pair<Int, Int> {
-        // Busca os pontos do dia ordenados cronologicamente
-        val pontosNoDia = pontoRepository.buscarPorEmpregoEData(empregoId, data)
-            .sortedBy { it.dataHora }
-
-        if (pontosNoDia.isEmpty()) {
-            return Pair(0, 0)
-        }
-
-        var totalAtualizados = 0
-
-        // Processa cada ponto em ordem
-        for ((index, ponto) in pontosNoDia.withIndex()) {
-            val novaHoraConsiderada = calcularHoraConsideradaUseCase(
+    suspend fun recalcularDia(
+        empregoId: Long,
+        data: LocalDate
+    ): RecalcularHoraConsideradaPontosDiaUseCase.Resultado.Sucesso {
+        return when (
+            val resultado = recalcularHoraConsideradaPontosDiaUseCase(
                 empregoId = empregoId,
-                dataHora = ponto.dataHora,
-                indicePonto = index
+                data = data
             )
+        ) {
+            is RecalcularHoraConsideradaPontosDiaUseCase.Resultado.Sucesso -> {
+                resultado
+            }
 
-            // Só atualiza se a hora considerada mudou
-            if (novaHoraConsiderada != ponto.horaConsiderada) {
-                val pontoAtualizado = ponto.comHoraConsiderada(novaHoraConsiderada)
-                pontoRepository.atualizar(pontoAtualizado)
+            is RecalcularHoraConsideradaPontosDiaUseCase.Resultado.SemPontos -> {
+                RecalcularHoraConsideradaPontosDiaUseCase.Resultado.Sucesso(
+                    empregoId = empregoId,
+                    data = data,
+                    totalPontos = 0,
+                    pontosAtualizados = 0,
+                    pontoComToleranciaId = null,
+                    detalhes = emptyList()
+                )
+            }
 
-                Timber.d(
-                    "Ponto %d atualizado: %s → horaConsiderada: %s → %s",
-                    ponto.id,
-                    ponto.horaFormatada,
-                    ponto.horaConsideradaFormatada,
-                    pontoAtualizado.horaConsideradaFormatada
+            is RecalcularHoraConsideradaPontosDiaUseCase.Resultado.ContextoNaoEncontrado -> {
+                Timber.w(
+                    "Contexto não encontrado ao recalcular tolerância: empregoId=%d, data=%s, motivo=%s",
+                    empregoId,
+                    data,
+                    resultado.motivo
                 )
 
-                totalAtualizados++
+                RecalcularHoraConsideradaPontosDiaUseCase.Resultado.Sucesso(
+                    empregoId = empregoId,
+                    data = data,
+                    totalPontos = 0,
+                    pontosAtualizados = 0,
+                    pontoComToleranciaId = null,
+                    detalhes = emptyList()
+                )
+            }
+
+            is RecalcularHoraConsideradaPontosDiaUseCase.Resultado.Erro -> {
+                Timber.e(
+                    "Erro ao recalcular tolerância: empregoId=%d, data=%s, erro=%s",
+                    empregoId,
+                    data,
+                    resultado.mensagem
+                )
+
+                RecalcularHoraConsideradaPontosDiaUseCase.Resultado.Sucesso(
+                    empregoId = empregoId,
+                    data = data,
+                    totalPontos = 0,
+                    pontosAtualizados = 0,
+                    pontoComToleranciaId = null,
+                    detalhes = emptyList()
+                )
             }
         }
-
-        return Pair(pontosNoDia.size, totalAtualizados)
     }
 }
