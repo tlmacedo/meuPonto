@@ -6,8 +6,8 @@ import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.HorarioDiaSemanaRepository
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
-import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
-import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
+import br.com.tlmacedo.meuponto.util.helper.minutosParaHoraMinuto
+import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate

@@ -69,6 +69,23 @@ data class ResumoDiaCompleto(
             saidaIntervaloIdeal = contextoJornadaDia?.saidaIntervaloIdeal
                 ?: horarioDiaSemana?.saidaIntervaloIdeal
         )
+    val declaracoesDoDia: List<Ausencia>
+        get() = ausencias.filter { it.tipo == TipoAusencia.Declaracao }
+
+    val temDeclaracao: Boolean
+        get() = declaracoesDoDia.isNotEmpty()
+
+    val totalComputadoMinutos: Int
+        get() = horasTrabalhadasMinutos + tempoAbonadoMinutos
+
+    val totalComputadoFormatado: String
+        get() = formatarMinutos(totalComputadoMinutos)
+
+    val tempoAbonadoFormatado: String
+        get() = formatarMinutos(tempoAbonadoMinutos)
+
+    val saldoDiaFormatado: String
+        get() = formatarSaldo(saldoDiaMinutos)
 
     val temIntervalo: Boolean
         get() = intervalos.any { it.temPausaAntes }
@@ -87,7 +104,7 @@ data class ResumoDiaCompleto(
             ?: resumoDia.jornadaConsideradaMinutos
 
     val minutosComputaveisJornada: Int
-        get() = horasTrabalhadasMinutos + tempoAbonadoMinutos
+        get() = (horasTrabalhadasMinutos + tempoAbonadoMinutos) - cargaHorariaEfetivaMinutos
 
     val saldoDiaMinutos: Int
         get() = saldoDiaMinutosCalculado
@@ -171,6 +188,19 @@ data class ResumoDiaCompleto(
                 0
             }
         }
+}
+private fun formatarMinutos(totalMinutos: Int): String {
+    val horas = totalMinutos / 60
+    val minutos = kotlin.math.abs(totalMinutos % 60)
+    return "%02dh %02dmin".format(horas, minutos)
+}
+
+private fun formatarSaldo(totalMinutos: Int): String {
+    val sinal = if (totalMinutos >= 0) "+" else "-"
+    val valorAbs = kotlin.math.abs(totalMinutos)
+    val horas = valorAbs / 60
+    val minutos = valorAbs % 60
+    return "$sinal%02dh %02dmin".format(horas, minutos)
 }
 
 class ObterResumoDiaCompletoUseCase @Inject constructor(

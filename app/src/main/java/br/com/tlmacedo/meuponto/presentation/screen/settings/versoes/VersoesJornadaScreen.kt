@@ -62,8 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.components.settings.StatusChip
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.helper.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.helper.toLocalDateFromDatePicker
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter

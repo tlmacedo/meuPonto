@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeAction.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
+import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import android.net.Uri
 import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
@@ -195,4 +196,56 @@ sealed interface HomeAction {
     data object FecharDialogFechamentoCiclo : HomeAction
     data class ConfirmarFechamentoCiclo(val saldoAnterior: Long, val motivo: String) : HomeAction
     data object NavegarParaHistoricoCiclos : HomeAction
+
+    // ══════════════════════════════════════════════════════════════════════
+    // AÇÕES DE AUSÊNCIA
+    // ══════════════════════════════════════════════════════════════════════
+
+    data object AdicionarAusencia : HomeAction
+    data object AdicionarFeriado : HomeAction
+
+    data object FecharVisualizacaoAnexoAusencia : HomeAction
+
+    data class SolicitarRemocaoImagemAusencia(
+        val ausencia: Ausencia
+    ) : HomeAction
+
+    data object CancelarRemocaoImagemAusencia : HomeAction
+
+    data class ConfirmarRemocaoImagemAusencia(
+        val ausencia: Ausencia
+    ) : HomeAction
+
+    data class SolicitarExcluirAusencia(
+        val ausencia: Ausencia
+    ) : HomeAction
+
+    data object CancelarExcluirAusencia : HomeAction
+
+    data class ConfirmarExcluirAusencia(
+        val ausencia: Ausencia
+    ) : HomeAction
+    data class AdicionarImagemAusenciaCamera(
+        val ausencia: Ausencia
+    ) : HomeAction
+
+    data class AdicionarImagemAusenciaGaleria(
+        val ausencia: Ausencia
+    ) : HomeAction
+
+    data class RemoverImagemAusencia(
+        val ausencia: Ausencia
+    ) : HomeAction
+
+    data class VerAnexoAusencia(
+        val ausencia: Ausencia
+    ) : HomeAction
+
+    data class AdicionarAnexoAusencia(
+        val ausencia: Ausencia
+    ) : HomeAction
+
+    data class ExcluirAusencia(
+        val ausencia: Ausencia
+    ) : HomeAction
 }

@@ -12,8 +12,8 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import br.com.tlmacedo.meuponto.domain.model.feriado.RecorrenciaFeriado
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.helper.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.helper.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.MonthDay
 

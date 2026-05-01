@@ -1,5 +1,11 @@
 package br.com.tlmacedo.meuponto.util
 
+import br.com.tlmacedo.meuponto.util.helper.formatarDuracao
+import br.com.tlmacedo.meuponto.util.helper.formatarSaldo
+import br.com.tlmacedo.meuponto.util.helper.horasParaMinutos
+import br.com.tlmacedo.meuponto.util.helper.minutosParaDescricao
+import br.com.tlmacedo.meuponto.util.helper.minutosParaHoraMinuto
+import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Duration

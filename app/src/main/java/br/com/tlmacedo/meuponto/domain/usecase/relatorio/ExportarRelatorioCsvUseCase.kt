@@ -1,8 +1,8 @@
 package br.com.tlmacedo.meuponto.domain.usecase.relatorio
 
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ResumoDiaCompleto
-import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
-import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
+import br.com.tlmacedo.meuponto.util.helper.minutosParaHoraMinuto
+import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 

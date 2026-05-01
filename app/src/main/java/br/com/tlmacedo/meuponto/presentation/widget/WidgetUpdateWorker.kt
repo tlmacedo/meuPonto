@@ -14,8 +14,8 @@ import androidx.work.WorkerParameters
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.saldo.CalcularSaldoDiaUseCase
-import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
-import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
+import br.com.tlmacedo.meuponto.util.helper.minutosParaHoraMinuto
+import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.firstOrNull

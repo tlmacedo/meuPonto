@@ -3,8 +3,8 @@ package br.com.tlmacedo.meuponto.domain.usecase.saldo
 
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
-import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
-import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
+import br.com.tlmacedo.meuponto.util.helper.minutosParaHoraMinuto
+import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject

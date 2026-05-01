@@ -16,6 +16,7 @@ import br.com.tlmacedo.meuponto.domain.model.Emprego
 import br.com.tlmacedo.meuponto.domain.model.MotivoEdicao
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.Usuario
+import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.repository.AuthRepository
 import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
@@ -275,6 +276,43 @@ class HomeViewModel @Inject constructor(
                     selecionarFotoComprovante(action.uri)
                 }
             }
+            // ══════════════════════════════════════════════════════════════════════
+            // AÇÕES DE AUSÊNCIA
+            // ══════════════════════════════════════════════════════════════════════
+
+            HomeAction.AdicionarAusencia -> {
+                viewModelScope.launch {
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Abrir cadastro de ausência."))
+                }
+            }
+
+            HomeAction.AdicionarFeriado -> {
+                viewModelScope.launch {
+                    _uiEvent.emit(HomeUiEvent.MostrarMensagem("Abrir cadastro de feriado."))
+                }
+            }
+
+            HomeAction.FecharVisualizacaoAnexoAusencia -> fecharVisualizacaoAnexoAusencia()
+
+            is HomeAction.SolicitarRemocaoImagemAusencia -> solicitarRemocaoImagemAusencia(action.ausencia)
+            HomeAction.CancelarRemocaoImagemAusencia -> cancelarRemocaoImagemAusencia()
+            is HomeAction.ConfirmarRemocaoImagemAusencia -> confirmarRemocaoImagemAusencia(action.ausencia)
+
+            is HomeAction.SolicitarExcluirAusencia -> solicitarExcluirAusencia(action.ausencia)
+            HomeAction.CancelarExcluirAusencia -> cancelarExcluirAusencia()
+            is HomeAction.ConfirmarExcluirAusencia -> confirmarExcluirAusencia(action.ausencia)
+
+            is HomeAction.AdicionarImagemAusenciaCamera -> adicionarImagemAusenciaCamera(action.ausencia)
+
+            is HomeAction.AdicionarImagemAusenciaGaleria -> adicionarImagemAusenciaGaleria(action.ausencia)
+
+            is HomeAction.RemoverImagemAusencia -> removerImagemAusencia(action.ausencia)
+
+            is HomeAction.VerAnexoAusencia -> verAnexoAusencia(action.ausencia)
+
+            is HomeAction.AdicionarAnexoAusencia -> adicionarAnexoAusencia(action.ausencia)
+
+            is HomeAction.ExcluirAusencia -> excluirAusencia(action.ausencia)
         }
     }
 
@@ -1542,7 +1580,9 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         pontosHoje = resumoCompleto.pontos,
                         resumoDia = resumoCompleto.resumoDia,
+                        resumoDiaCompleto = resumoCompleto,
                         feriadosDoDia = resumoCompleto.feriadosDoDia,
+                        ausenciasDoDia = resumoCompleto.ausencias,
                         ausenciaDoDia = resumoCompleto.ausenciaPrincipal,
                         metadataFerias = resumoCompleto.metadataFerias,
                         versaoJornadaAtual = null,
@@ -1952,5 +1992,123 @@ class HomeViewModel @Inject constructor(
                 .build()
         // O WorkManager usa o contexto da aplicação para agendar a tarefa de atualização do widget
         androidx.work.WorkManager.getInstance(comprovanteImageStorage.appContext).enqueue(request)
+    }
+    private fun adicionarImagemAusenciaCamera(ausencia: Ausencia) {
+        viewModelScope.launch {
+            _uiEvent.emit(
+                HomeUiEvent.MostrarMensagem("Adicionar imagem pela câmera para ausência ainda será implementado.")
+            )
+        }
+    }
+
+    private fun adicionarImagemAusenciaGaleria(ausencia: Ausencia) {
+        viewModelScope.launch {
+            _uiEvent.emit(
+                HomeUiEvent.MostrarMensagem("Adicionar imagem da galeria para ausência ainda será implementado.")
+            )
+        }
+    }
+
+    private fun removerImagemAusencia(ausencia: Ausencia) {
+        viewModelScope.launch {
+            _uiEvent.emit(
+                HomeUiEvent.MostrarMensagem("Remoção de imagem da ausência ainda será implementada.")
+            )
+        }
+    }
+    private fun verAnexoAusencia(ausencia: Ausencia) {
+        if (ausencia.imagemUri.isNullOrBlank()) {
+            viewModelScope.launch {
+                _uiEvent.emit(HomeUiEvent.MostrarMensagem("Esta ausência não possui comprovante."))
+            }
+            return
+        }
+
+        _uiState.update {
+            it.copy(ausenciaParaVisualizarAnexo = ausencia)
+        }
+    }
+
+    private fun solicitarRemocaoImagemAusencia(ausencia: Ausencia) {
+        _uiState.update {
+            it.copy(ausenciaParaRemoverImagem = ausencia)
+        }
+    }
+
+    private fun cancelarRemocaoImagemAusencia() {
+        _uiState.update {
+            it.copy(ausenciaParaRemoverImagem = null)
+        }
+    }
+
+    private fun confirmarRemocaoImagemAusencia(ausencia: Ausencia) {
+        viewModelScope.launch {
+            try {
+                val ausenciaAtualizada = ausencia.copy(
+                    imagemUri = null
+                )
+
+                ausenciaRepository.atualizar(ausenciaAtualizada)
+
+                _uiState.update {
+                    it.copy(ausenciaParaRemoverImagem = null)
+                }
+
+                _uiEvent.emit(HomeUiEvent.MostrarMensagem("Comprovante removido com sucesso."))
+                carregarPontosDoDia()
+            } catch (e: Exception) {
+                _uiEvent.emit(HomeUiEvent.MostrarMensagem("Erro ao remover comprovante."))
+            }
+        }
+    }
+
+    private fun solicitarExcluirAusencia(ausencia: Ausencia) {
+        _uiState.update {
+            it.copy(ausenciaParaExcluir = ausencia)
+        }
+    }
+
+    private fun cancelarExcluirAusencia() {
+        _uiState.update {
+            it.copy(ausenciaParaExcluir = null)
+        }
+    }
+
+    private fun confirmarExcluirAusencia(ausencia: Ausencia) {
+        viewModelScope.launch {
+            try {
+                ausenciaRepository.excluir(ausencia)
+
+                _uiState.update {
+                    it.copy(ausenciaParaExcluir = null)
+                }
+
+                _uiEvent.emit(HomeUiEvent.MostrarMensagem("Ausência excluída com sucesso."))
+                carregarPontosDoDia()
+            } catch (e: Exception) {
+                _uiEvent.emit(HomeUiEvent.MostrarMensagem("Erro ao excluir ausência."))
+            }
+        }
+    }
+
+    private fun fecharVisualizacaoAnexoAusencia() {
+        _uiState.update {
+            it.copy(ausenciaParaVisualizarAnexo = null)
+        }
+    }
+    private fun adicionarAnexoAusencia(
+        ausencia: br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+    ) {
+        viewModelScope.launch {
+            _uiEvent.emit(HomeUiEvent.MostrarMensagem("Adicionar comprovante de ausência ainda será implementado."))
+        }
+    }
+
+    private fun excluirAusencia(
+        ausencia: br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+    ) {
+        viewModelScope.launch {
+            _uiEvent.emit(HomeUiEvent.MostrarMensagem("Exclusão de ausência ainda será implementada."))
+        }
     }
 }

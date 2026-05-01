@@ -1,5 +1,5 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/util/MinutosExtensions.kt
-package br.com.tlmacedo.meuponto.util
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/util/helper/MinutosExtensions.kt
+package br.com.tlmacedo.meuponto.util.helper
 
 import java.time.Duration
 import kotlin.math.abs

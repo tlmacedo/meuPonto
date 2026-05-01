@@ -1,6 +1,7 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/util/DateTimeExtensions.kt
-package br.com.tlmacedo.meuponto.util
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/util/helper/DateTimeExtensions.kt
+package br.com.tlmacedo.meuponto.util.helper
 
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -198,7 +199,7 @@ fun LocalDateTime.toRelativeDateTime(): String {
  * @return [LocalDate] correspondente aos milissegundos em UTC
  */
 fun Long.toLocalDateFromDatePicker(): LocalDate {
-    return java.time.Instant.ofEpochMilli(this)
+    return Instant.ofEpochMilli(this)
         .atZone(ZoneOffset.UTC)
         .toLocalDate()
 }

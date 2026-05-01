@@ -63,8 +63,8 @@ import br.com.tlmacedo.meuponto.domain.model.feriado.TipoFeriado
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.settings.feriados.components.EmpregoSelectorDialog
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.helper.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.helper.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.Month
 import java.time.MonthDay

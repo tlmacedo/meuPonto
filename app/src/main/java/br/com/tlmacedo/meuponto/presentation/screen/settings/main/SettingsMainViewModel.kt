@@ -8,7 +8,7 @@ import br.com.tlmacedo.meuponto.domain.usecase.emprego.ListarEmpregosUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.TrocarEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.preferencias.ObterPreferenciasGlobaisUseCase
-import br.com.tlmacedo.meuponto.util.toRelativeDateTime
+import br.com.tlmacedo.meuponto.util.helper.toRelativeDateTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow

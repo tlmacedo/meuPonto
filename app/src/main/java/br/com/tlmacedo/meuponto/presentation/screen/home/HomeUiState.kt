@@ -21,14 +21,15 @@ import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-
 import br.com.tlmacedo.meuponto.domain.model.TipoNsr
 import br.com.tlmacedo.meuponto.domain.model.TipoPonto
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.MetadataFerias
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ProximoPonto
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.ResumoDiaCompleto
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -219,6 +220,12 @@ data class HomeUiState(
     // Ausências
     val ausenciaDoDia: Ausencia? = null,
     val metadataFerias: MetadataFerias? = null,
+    val resumoDiaCompleto: ResumoDiaCompleto? = null,
+    val ausenciasDoDia: List<Ausencia> = emptyList(),
+    val ausenciaParaVisualizarAnexo: Ausencia? = null,
+    val ausenciaParaRemoverImagem: Ausencia? = null,
+    val ausenciaParaExcluir: Ausencia? = null,
+
     // Loading e dialogs
     val isLoading: Boolean = false,
     val isLoadingEmpregos: Boolean = false,
@@ -313,8 +320,17 @@ data class HomeUiState(
     // AUSÊNCIAS
     // ========================================================================
 
+    val declaracoesDoDia: List<Ausencia>
+        get() = ausenciasDoDia.filter { it.tipo == TipoAusencia.Declaracao }
+
+    val totalMinutosDeclaracoes: Int
+        get() = declaracoesDoDia.sumOf { it.duracaoAbonoMinutos ?: 0 }
+
+    val temDeclaracao: Boolean
+        get() = declaracoesDoDia.isNotEmpty()
+
     val temAusencia: Boolean
-        get() = ausenciaDoDia != null
+        get() = ausenciasDoDia.isNotEmpty()
 
     val isDescanso: Boolean
         get() = resumoDia.tipoAusencia.isDescansoOrFalse

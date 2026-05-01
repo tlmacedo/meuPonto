@@ -21,8 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.helper.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.helper.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 

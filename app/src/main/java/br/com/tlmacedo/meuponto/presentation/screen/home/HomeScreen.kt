@@ -1,8 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/home/HomeScreen.kt
 package br.com.tlmacedo.meuponto.presentation.screen.home
 
-import androidx.compose.ui.graphics.Color
-import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedBackground
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
@@ -19,21 +17,31 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.NoteAdd
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,13 +55,19 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -62,6 +76,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
+import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
@@ -77,13 +92,15 @@ import br.com.tlmacedo.meuponto.presentation.components.ProximoPontoCard
 import br.com.tlmacedo.meuponto.presentation.components.RegistrarPontoModal
 import br.com.tlmacedo.meuponto.presentation.components.ResumoCard
 import br.com.tlmacedo.meuponto.presentation.components.foto.ComprovanteImagePicker
+import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedBackground
 import br.com.tlmacedo.meuponto.presentation.screen.camera.CameraCaptureScreen
 import br.com.tlmacedo.meuponto.presentation.screen.home.components.FechamentoCicloDialog
 import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.util.findActivity
 import br.com.tlmacedo.meuponto.util.foto.DocumentScannerWrapper
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.helper.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.helper.toLocalDateFromDatePicker
+import coil.compose.AsyncImage
 import java.time.LocalDate
 
 /**
@@ -109,6 +126,7 @@ fun HomeScreen(
     onNavigateToHistoricoCiclos: () -> Unit = {},
     onNavigateToFotoVisualizacao: (Long) -> Unit = {}
 ) {
+    var fabMenuExpandido by rememberSaveable { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -203,6 +221,51 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             Scaffold(
+                floatingActionButton = {
+                    Box {
+                        FloatingActionButton(
+                            onClick = { fabMenuExpandido = true }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Adicionar"
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = fabMenuExpandido,
+                            onDismissRequest = { fabMenuExpandido = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Lançar ausência") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.NoteAdd,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    fabMenuExpandido = false
+                                    viewModel.onAction(HomeAction.AdicionarAusencia)
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Lançar feriado") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Event,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    fabMenuExpandido = false
+                                    viewModel.onAction(HomeAction.AdicionarFeriado)
+                                }
+                            )
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxSize(),
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onBackground,
@@ -415,14 +478,123 @@ internal fun HomeContent(
     verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase?,
     ausenciaRepository: AusenciaRepository?,
 ) {
+    // Diálogos ficam fora da lista para não dependerem do scroll
+    uiState.ausenciaParaVisualizarAnexo?.let { ausencia ->
+        Dialog(
+            onDismissRequest = {
+                onAction(HomeAction.FecharVisualizacaoAnexoAusencia)
+            }
+        ) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Comprovante da ausência",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    AsyncImage(
+                        model = ausencia.imagemUri,
+                        contentDescription = "Comprovante da ausência",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 240.dp, max = 520.dp),
+                        contentScale = ContentScale.Fit
+                    )
+
+                    TextButton(
+                        onClick = {
+                            onAction(HomeAction.FecharVisualizacaoAnexoAusencia)
+                        },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Fechar")
+                    }
+                }
+            }
+        }
+    }
+
+    uiState.ausenciaParaRemoverImagem?.let { ausencia ->
+        AlertDialog(
+            onDismissRequest = {
+                onAction(HomeAction.CancelarRemocaoImagemAusencia)
+            },
+            title = {
+                Text("Remover comprovante")
+            },
+            text = {
+                Text("Deseja remover a imagem anexada desta ausência?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onAction(HomeAction.ConfirmarRemocaoImagemAusencia(ausencia))
+                    }
+                ) {
+                    Text("Remover")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        onAction(HomeAction.CancelarRemocaoImagemAusencia)
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    uiState.ausenciaParaExcluir?.let { ausencia ->
+        AlertDialog(
+            onDismissRequest = {
+                onAction(HomeAction.CancelarExcluirAusencia)
+            },
+            title = {
+                Text("Excluir ausência")
+            },
+            text = {
+                Text("Tem certeza que deseja excluir esta ausência? Esta ação não poderá ser desfeita.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onAction(HomeAction.ConfirmarExcluirAusencia(ausencia))
+                    }
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        onAction(HomeAction.CancelarExcluirAusencia)
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier.fillMaxSize()
     ) {
         CicloBanner(
             uiState.estadoCiclo,
             { onAction(HomeAction.AbrirDialogFechamentoCiclo) },
-            { onAction(HomeAction.NavegarParaHistoricoCiclos) })
+            { onAction(HomeAction.NavegarParaHistoricoCiclos) }
+        )
 
+        // Área fixa: data + resumo + próximo ponto
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
@@ -440,24 +612,29 @@ internal fun HomeContent(
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBackIos,
-                        "Anterior",
-                        Modifier.size(20.dp),
-                        if (uiState.podeNavegaAnterior) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(
-                            0.3f
-                        )
+                        contentDescription = "Anterior",
+                        modifier = Modifier.size(20.dp),
+                        tint = if (uiState.podeNavegaAnterior) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outline.copy(0.3f)
+                        }
                     )
                 }
+
                 TextButton(
                     onClick = { onAction(HomeAction.AbrirDatePicker) },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.CalendarToday, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
+
                     Text(
                         uiState.dataFormatada,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
+
                     if (uiState.pontosHoje.any { it.dataAutoFilled }) {
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
@@ -468,17 +645,20 @@ internal fun HomeContent(
                         )
                     }
                 }
+
                 IconButton(
                     onClick = { onAction(HomeAction.ProximoDia) },
                     enabled = uiState.podeNavegarProximo
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        "Próximo",
-                        Modifier.size(20.dp),
-                        if (uiState.podeNavegarProximo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(
-                            0.3f
-                        )
+                        contentDescription = "Próximo",
+                        modifier = Modifier.size(20.dp),
+                        tint = if (uiState.podeNavegarProximo) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outline.copy(0.3f)
+                        }
                     )
                 }
             }
@@ -489,8 +669,12 @@ internal fun HomeContent(
                 horaAtual = uiState.horaAtual,
                 versaoJornada = uiState.versaoJornadaAtual,
                 onEditarJornada = { onAction(HomeAction.NavegarParaEditarJornada) },
+                horasTrabalhadasCalculadasMinutos = uiState.resumoDiaCompleto?.horasTrabalhadasMinutos,
+                tempoAbonadoMinutos = uiState.resumoDiaCompleto?.tempoAbonadoMinutos ?: 0,
+                saldoDiaCalculadoMinutos = uiState.resumoDiaCompleto?.saldoDiaMinutos,
                 modifier = Modifier.fillMaxWidth()
             )
+
             ProximoPontoCard(
                 uiState.proximoTipo,
                 uiState.horaAtual,
@@ -498,69 +682,114 @@ internal fun HomeContent(
                 modifier = Modifier.fillMaxWidth(),
                 habilitado = !uiState.isFuturo && uiState.empregoAtivo != null
             )
-
-            FeriadoBanner(uiState.feriadosDoDia)
-            uiState.ausenciaDoDia?.let {
-                AusenciaBanner(
-                    ausencia = it,
-                    metadataFerias = uiState.metadataFerias,
-                    verificarDiaEspecialUseCase = verificarDiaEspecialUseCase,
-                    ausenciaRepository = ausenciaRepository
-                )
-            }
         }
 
         HorizontalDivider(
-            Modifier.padding(vertical = 8.dp),
-            0.5.dp,
-            MaterialTheme.colorScheme.outlineVariant
+            modifier = Modifier.padding(vertical = 8.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
         )
 
-        Box(modifier = Modifier.weight(1f)) {
-            if (uiState.pontosHoje.isEmpty() && !uiState.isLoading) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        Icons.Default.History,
-                        null,
-                        Modifier.size(64.dp),
-                        MaterialTheme.colorScheme.outline.copy(0.3f)
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        "Nenhum registro para esta data",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.outline
-                    )
+        // Área rolável: feriados, ausências e pontos
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                top = 8.dp,
+                end = 16.dp,
+                bottom = 96.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            if (uiState.feriadosDoDia.isNotEmpty()) {
+                item(key = "feriados") {
+                    FeriadoBanner(uiState.feriadosDoDia)
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 80.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(
-                        items = uiState.intervalos,
-                        key = { intervalo -> intervalo.entrada.id }
-                    ) { intervalo ->
-                        IntervaloCard(
-                            intervalo = intervalo,
-                            sharedTransitionScope = sharedTransitionScope,
-                            animatedVisibilityScope = animatedVisibilityScope,
-                            mostrarContadorTempoReal = uiState.isHoje,
-                            mostrarNsr = uiState.nsrHabilitado,
-                            onEditar = { ponto -> onAction(HomeAction.AbrirEdicaoModal(ponto)) },
-                            onExcluir = { ponto -> onAction(HomeAction.AbrirExclusaoModal(ponto)) },
-                            onVerFoto = { ponto -> onNavigateToFotoVisualizacao(ponto.id) },
-                            onVerLocalizacao = { ponto -> onAction(HomeAction.AbrirLocalizacaoModal(ponto)) }
+            }
+
+            items(
+                items = uiState.ausenciasDoDia,
+                key = { ausencia -> "ausencia-${ausencia.id}" }
+            ) { ausencia ->
+                AusenciaBanner(
+                    ausencia = ausencia,
+                    metadataFerias = if (ausencia.tipo == TipoAusencia.Ferias) {
+                        uiState.metadataFerias
+                    } else {
+                        null
+                    },
+                    verificarDiaEspecialUseCase = verificarDiaEspecialUseCase,
+                    ausenciaRepository = ausenciaRepository,
+                    modifier = Modifier.fillMaxWidth(),
+                    onVerAnexo = {
+                        onAction(HomeAction.VerAnexoAusencia(ausencia))
+                    },
+                    onAdicionarImagemCamera = {
+                        onAction(HomeAction.AdicionarImagemAusenciaCamera(ausencia))
+                    },
+                    onAdicionarImagemGaleria = {
+                        onAction(HomeAction.AdicionarImagemAusenciaGaleria(ausencia))
+                    },
+                    onRemoverImagem = {
+                        onAction(HomeAction.SolicitarRemocaoImagemAusencia(ausencia))
+                    },
+                    onExcluir = {
+                        onAction(HomeAction.SolicitarExcluirAusencia(ausencia))
+                    }
+                )
+            }
+
+            if (
+                uiState.pontosHoje.isEmpty() &&
+                uiState.ausenciasDoDia.isEmpty() &&
+                uiState.feriadosDoDia.isEmpty() &&
+                !uiState.isLoading
+            ) {
+                item(key = "empty") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.History,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.outline.copy(0.3f)
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Text(
+                            text = "Nenhum registro para esta data",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.outline
                         )
                     }
                 }
+            }
+
+            items(
+                items = uiState.intervalos,
+                key = { intervalo -> "intervalo-${intervalo.entrada.id}" }
+            ) { intervalo ->
+                IntervaloCard(
+                    intervalo = intervalo,
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    mostrarContadorTempoReal = uiState.isHoje,
+                    mostrarNsr = uiState.nsrHabilitado,
+                    onEditar = { ponto -> onAction(HomeAction.AbrirEdicaoModal(ponto)) },
+                    onExcluir = { ponto -> onAction(HomeAction.AbrirExclusaoModal(ponto)) },
+                    onVerFoto = { ponto -> onNavigateToFotoVisualizacao(ponto.id) },
+                    onVerLocalizacao = { ponto ->
+                        onAction(HomeAction.AbrirLocalizacaoModal(ponto))
+                    }
+                )
             }
         }
     }

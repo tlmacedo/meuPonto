@@ -7,7 +7,7 @@ import br.com.tlmacedo.meuponto.domain.model.InconsistenciaDetectada
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResultadoValidacao
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
-import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
+import br.com.tlmacedo.meuponto.util.helper.minutosParaHoraMinuto
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime

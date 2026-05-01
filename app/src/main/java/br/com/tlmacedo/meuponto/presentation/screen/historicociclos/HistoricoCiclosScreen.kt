@@ -54,7 +54,7 @@ import br.com.tlmacedo.meuponto.domain.model.CicloBancoHoras
 import br.com.tlmacedo.meuponto.presentation.components.EmptyState
 import br.com.tlmacedo.meuponto.presentation.components.LoadingIndicator
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
-import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
+import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit

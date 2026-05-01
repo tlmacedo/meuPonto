@@ -125,8 +125,8 @@ import br.com.tlmacedo.meuponto.presentation.theme.MeuPontoTheme
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaMediumGray
 import br.com.tlmacedo.meuponto.presentation.theme.Success
 import br.com.tlmacedo.meuponto.presentation.theme.Warning
-import br.com.tlmacedo.meuponto.util.minutosParaDuracaoCompacta
-import br.com.tlmacedo.meuponto.util.minutosParaSaldoFormatado
+import br.com.tlmacedo.meuponto.util.helper.minutosParaDuracaoCompacta
+import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
 import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth

@@ -1,7 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/BancoHoras.kt
 package br.com.tlmacedo.meuponto.domain.model
 
-import br.com.tlmacedo.meuponto.util.formatarSaldo
+import br.com.tlmacedo.meuponto.util.helper.formatarSaldo
 import java.time.Duration
 
 /**

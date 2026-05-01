@@ -25,10 +25,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import br.com.tlmacedo.meuponto.R
-import br.com.tlmacedo.meuponto.util.formatarCurto
-import br.com.tlmacedo.meuponto.util.formatarHora
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.helper.formatarCurto
+import br.com.tlmacedo.meuponto.util.helper.formatarHora
+import br.com.tlmacedo.meuponto.util.helper.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.helper.toLocalDateFromDatePicker
 import java.time.LocalDate
 import java.time.LocalTime
 

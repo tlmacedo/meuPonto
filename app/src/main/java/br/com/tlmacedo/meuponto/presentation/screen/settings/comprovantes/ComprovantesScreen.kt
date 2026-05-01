@@ -60,8 +60,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.FotoComprovante
 import br.com.tlmacedo.meuponto.presentation.components.LocalImage
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.helper.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.helper.toLocalDateFromDatePicker
 import java.io.File
 import java.time.LocalDate
 

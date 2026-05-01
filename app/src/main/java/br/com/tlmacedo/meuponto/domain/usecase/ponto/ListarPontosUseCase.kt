@@ -2,7 +2,7 @@ package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
-import br.com.tlmacedo.meuponto.util.minutosParaHoraMinuto
+import br.com.tlmacedo.meuponto.util.helper.minutosParaHoraMinuto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate

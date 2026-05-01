@@ -94,8 +94,8 @@ import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.TipoAus
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.components.TipoAusenciaSelector
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.AusenciaFormUiEvent
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.ModoPeriodo
-import br.com.tlmacedo.meuponto.util.toDatePickerMillis
-import br.com.tlmacedo.meuponto.util.toLocalDateFromDatePicker
+import br.com.tlmacedo.meuponto.util.helper.toDatePickerMillis
+import br.com.tlmacedo.meuponto.util.helper.toLocalDateFromDatePicker
 import coil.compose.AsyncImage
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate

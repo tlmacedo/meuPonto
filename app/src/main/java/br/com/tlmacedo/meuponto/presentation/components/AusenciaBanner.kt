@@ -4,6 +4,8 @@ package br.com.tlmacedo.meuponto.presentation.components
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,18 +17,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.BeachAccess
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,27 +51,25 @@ import androidx.compose.ui.unit.sp
 import br.com.tlmacedo.meuponto.R
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
-import br.com.tlmacedo.meuponto.presentation.mapper.toTipoAusenciaCor
-import br.com.tlmacedo.meuponto.presentation.model.TipoAusenciaCor
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ausencia.ferias.MetadataFerias
 import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
+import br.com.tlmacedo.meuponto.presentation.mapper.toTipoAusenciaCor
+import br.com.tlmacedo.meuponto.presentation.model.TipoAusenciaCor
 import br.com.tlmacedo.meuponto.presentation.theme.Error
 import br.com.tlmacedo.meuponto.presentation.theme.ErrorLight
 import br.com.tlmacedo.meuponto.presentation.theme.Info
 import br.com.tlmacedo.meuponto.presentation.theme.InfoLight
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaDarkGreen
 import br.com.tlmacedo.meuponto.presentation.theme.SidiaSoftGreen
+import br.com.tlmacedo.meuponto.util.helper.dateFormatterCompleto
+import br.com.tlmacedo.meuponto.util.helper.formatarAquisitivoFerias
+import br.com.tlmacedo.meuponto.util.helper.formatarComoDuracaoCurta
+import br.com.tlmacedo.meuponto.util.helper.formatarGozoFerias
+import br.com.tlmacedo.meuponto.util.helper.horaFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-private val horaFormatter = DateTimeFormatter.ofPattern("HH:mm")
-private val dateFormatterCompleto =
-    DateTimeFormatter.ofPattern("dd/MM/yyyy (EEE)", Locale.forLanguageTag("pt-BR"))
-private val dateFormatterSimples = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
 @Composable
 fun AusenciaBanner(
@@ -72,39 +77,90 @@ fun AusenciaBanner(
     metadataFerias: MetadataFerias? = null,
     verificarDiaEspecialUseCase: VerificarDiaEspecialUseCase? = null,
     ausenciaRepository: AusenciaRepository? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onVerAnexo: (() -> Unit)? = null,
+    onAdicionarImagemCamera: (() -> Unit)? = null,
+    onAdicionarImagemGaleria: (() -> Unit)? = null,
+    onRemoverImagem: (() -> Unit)? = null,
+    onExcluir: (() -> Unit)? = null
 ) {
     val backgroundColor = ausencia.tipo.getBackgroundColor()
     val contentColor = ausencia.tipo.getContentColor()
 
+    val isDeclaracao = ausencia.tipo == TipoAusencia.Declaracao
+    val possuiImagem = !ausencia.imagemUri.isNullOrBlank()
+
+    val titulo = when {
+        isDeclaracao -> "Declaração"
+        else -> ausencia.tipo.descricao
+    }
+
+    val subtituloPrincipal = when {
+        isDeclaracao -> {
+            val declarado = (ausencia.duracaoDeclaracaoMinutos ?: 0).formatarComoDuracaoCurta()
+            val abonado = (ausencia.duracaoAbonoMinutos ?: 0).formatarComoDuracaoCurta()
+            "Declarado $declarado • Abonado $abonado"
+        }
+
+        else -> null
+    }
+
+    val textoComprovante = when {
+        possuiImagem -> "Comprovante anexado"
+        isDeclaracao -> "Comprovante obrigatório pendente"
+        else -> "Sem comprovante"
+    }
+
     // Cálculo assíncrono do dia de retorno
-    val dataRetornoState = if (verificarDiaEspecialUseCase != null && ausenciaRepository != null) {
-        produceState<LocalDate?>(initialValue = null, ausencia.dataFim) {
-            value = withContext(Dispatchers.IO) {
-                var dataCandidata = ausencia.dataFim.plusDays(1)
-                var encontrado = false
-                // Busca nos próximos 30 dias para evitar loop infinito em caso de erro de dados
-                for (i in 0..30) {
-                    val diaEspecial = verificarDiaEspecialUseCase(
-                        data = dataCandidata,
-                        empregoId = ausencia.empregoId
-                    )
+    val deveMostrarRetorno = ausencia.tipo != TipoAusencia.Declaracao
 
-                    val temAusencia = ausenciaRepository.existeAusenciaEmData(
-                        empregoId = ausencia.empregoId,
-                        data = dataCandidata
-                    )
+    val dataRetornoState =
+        if (
+            deveMostrarRetorno &&
+            verificarDiaEspecialUseCase != null &&
+            ausenciaRepository != null
+        ) {
+            produceState<LocalDate?>(initialValue = null, ausencia.dataFim) {
+                value = withContext(Dispatchers.IO) {
+                    var dataCandidata = ausencia.dataFim.plusDays(1)
+                    var encontrado = false
 
-                    if (diaEspecial.isDiaUtil && !temAusencia) {
-                        encontrado = true
-                        break
+                    for (i in 0..30) {
+                        val diaEspecial = verificarDiaEspecialUseCase(
+                            data = dataCandidata,
+                            empregoId = ausencia.empregoId
+                        )
+
+                        val temAusencia = ausenciaRepository.existeAusenciaEmData(
+                            empregoId = ausencia.empregoId,
+                            data = dataCandidata
+                        )
+
+                        if (diaEspecial.isDiaUtil && !temAusencia) {
+                            encontrado = true
+                            break
+                        }
+
+                        dataCandidata = dataCandidata.plusDays(1)
                     }
-                    dataCandidata = dataCandidata.plusDays(1)
+
+                    if (encontrado) dataCandidata else null
                 }
-                if (encontrado) dataCandidata else null
+            }
+        } else {
+            null
+        }
+
+    val textoTipo = buildString {
+        append(titulo)
+
+        if (deveMostrarRetorno) {
+            dataRetornoState?.value?.let { retorno ->
+                append(" • retorno ")
+                append(retorno.format(dateFormatterCompleto))
             }
         }
-    } else null
+    }
 
     Card(
         modifier = modifier
@@ -121,65 +177,70 @@ fun AusenciaBanner(
         ) {
             // Header com ícone, tipo e badges
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
             ) {
-                // Ícone do tipo de ausência
-                Icon(
-                    imageVector = ausencia.tipo.getIcon(),
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(24.dp)
-                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = contentColor.copy(alpha = 0.14f)
+                ) {
+                    Icon(
+                        imageVector = ausencia.tipo.getIcon(),
+                        contentDescription = null,
+                        tint = contentColor,
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .size(24.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                // Tipo da ausência
-                val textoTipo = buildString {
-                    append(stringResource(R.string.banner_ausencia_hoje, ausencia.tipo.descricao))
-                    dataRetornoState?.value?.let { retorno ->
-                        append(", retorno é dia ")
-                        append(retorno.format(dateFormatterCompleto))
-                    }
-                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = textoTipo,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-                Text(
-                    text = textoTipo,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = contentColor,
-                    modifier = Modifier.weight(1f)
-                )
-
-
-                // Ícone de anexo (se houver imagem)
-                if (ausencia.imagemUri != null) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = contentColor.copy(alpha = 0.12f),
-                        modifier = Modifier.padding(end = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Anexo",
-                            tint = contentColor,
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .size(16.dp)
+                    if (isDeclaracao) {
+                        Text(
+                            text = "Ausência parcial com abono de jornada",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor.copy(alpha = 0.76f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.banner_ausencia_hoje, ausencia.tipo.descricao),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor.copy(alpha = 0.76f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-//                // Badge de status
-//                AusenciaStatusBadge(
-//                    isJustificada = ausencia.isJustificada,
-//                    contentColor = contentColor
-//                )
+                AusenciaBannerActions(
+                    possuiImagem = possuiImagem,
+                    contentColor = contentColor,
+                    onVerAnexo = onVerAnexo,
+                    onAdicionarImagemCamera = onAdicionarImagemCamera,
+                    onAdicionarImagemGaleria = onAdicionarImagemGaleria,
+                    onRemoverImagem = onRemoverImagem,
+                    onExcluir = onExcluir
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Conteúdo específico por tipo
             when (ausencia.tipo) {
                 TipoAusencia.Ferias -> FeriasContent(
                     ausencia = ausencia,
@@ -189,7 +250,8 @@ fun AusenciaBanner(
 
                 TipoAusencia.Declaracao -> DeclaracaoContent(
                     ausencia = ausencia,
-                    contentColor = contentColor
+                    contentColor = contentColor,
+                    possuiImagem = possuiImagem
                 )
 
                 else -> DefaultAusenciaContent(
@@ -199,21 +261,6 @@ fun AusenciaBanner(
             }
         }
     }
-}
-
-/**
- * Formata período de gozo de férias no formato completo.
- */
-private fun formatarGozoFerias(dataInicio: LocalDate, dataFim: LocalDate): String {
-    return "${dataInicio.format(dateFormatterCompleto)} ~ ${dataFim.format(dateFormatterCompleto)}"
-}
-
-/**
- * Formata período aquisitivo no formato simples.
- */
-private fun formatarAquisitivoFerias(inicio: LocalDate?, fim: LocalDate?): String? {
-    if (inicio == null || fim == null) return null
-    return "${inicio.format(dateFormatterSimples)} ~ ${fim.format(dateFormatterSimples)}"
 }
 
 /**
@@ -356,91 +403,227 @@ private fun SaldoItem(
 /**
  * Conteúdo específico para Declaração - layout compacto com todas as informações.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DeclaracaoContent(
     ausencia: Ausencia,
-    contentColor: Color
+    contentColor: Color,
+    possuiImagem: Boolean
 ) {
-    // Linha 1: Horário e Duração
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
+    val inicio = ausencia.horaInicio
+    val fim = ausencia.horaFimDeclaracao
+
+    val tempoDeclarado = ausencia.duracaoDeclaracaoMinutos ?: 0
+    val tempoAbonado = ausencia.duracaoAbonoMinutos ?: 0
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Chip: Horário (início - fim)
-        ausencia.horaInicio?.let { inicio ->
-            val horaFim = ausencia.horaFimDeclaracao
-            InfoChip(
-                icon = Icons.Default.Schedule,
-                text = if (horaFim != null) {
-                    "${inicio.format(horaFormatter)} - ${horaFim.format(horaFormatter)}"
-                } else {
-                    inicio.format(horaFormatter)
-                },
-                contentColor = contentColor
-            )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (inicio != null) {
+                InfoChip(
+                    icon = Icons.Default.Schedule,
+                    text = if (fim != null) {
+                        "${inicio.format(horaFormatter)} - ${fim.format(horaFormatter)}"
+                    } else {
+                        inicio.format(horaFormatter)
+                    },
+                    contentColor = contentColor
+                )
+            }
+
+            if (tempoDeclarado > 0) {
+                InfoChip(
+                    icon = Icons.Default.Timer,
+                    text = "Declarado ${tempoDeclarado.formatarComoDuracaoCurta()}",
+                    contentColor = contentColor
+                )
+            }
+
+            if (tempoAbonado > 0) {
+                DestaqueChip(
+                    icon = Icons.Default.AccessTime,
+                    text = "Abonado ${tempoAbonado.formatarComoDuracaoCurta()}",
+                    contentColor = contentColor
+                )
+            }
         }
 
-        // Chip: Duração total
-        ausencia.duracaoDeclaracaoMinutos?.let { duracao ->
-            InfoChip(
-                icon = Icons.Default.Timer,
-                text = formatarMinutos(duracao),
-                contentColor = contentColor
-            )
-        }
+        ausencia.observacao
+            ?.takeIf { it.isNotBlank() }
+            ?.let { observacao ->
+                Text(
+                    text = observacao,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.82f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp
+                )
+            }
 
-        // Chip: Tempo abonado (destaque)
-        ausencia.duracaoAbonoMinutos?.let { abono ->
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = contentColor.copy(alpha = 0.2f)
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = if (possuiImagem) {
+                contentColor.copy(alpha = 0.12f)
+            } else {
+                Error.copy(alpha = 0.10f)
+            }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccessTime,
-                        contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${formatarMinutos(abono)} abonado",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor
-                    )
-                }
+                Icon(
+                    imageVector = if (possuiImagem) {
+                        Icons.Outlined.CheckCircle
+                    } else {
+                        Icons.Outlined.Cancel
+                    },
+                    contentDescription = null,
+                    tint = if (possuiImagem) contentColor else Error,
+                    modifier = Modifier.size(13.dp)
+                )
+
+                Text(
+                    text = if (possuiImagem) {
+                        "Comprovante anexado"
+                    } else {
+                        "Comprovante obrigatório pendente"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (possuiImagem) contentColor else Error,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
+}
 
-//    // Linha 2: Motivo/Descrição (se houver)
-//    ausencia.descricao?.let { motivo ->
-//        Spacer(modifier = Modifier.height(6.dp))
-//        Text(
-//            text = motivo,
-//            style = MaterialTheme.typography.bodySmall,
-//            color = contentColor.copy(alpha = 0.85f),
-//            maxLines = 2,
-//            overflow = TextOverflow.Ellipsis,
-//            lineHeight = 16.sp
-//        )
-//    }
+@Composable
+private fun DestaqueChip(
+    text: String,
+    icon: ImageVector,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = contentColor.copy(alpha = 0.20f),
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(14.dp)
+            )
 
-    // Linha 3: Observação adicional (se houver e diferente do motivo)
-    ausencia.observacao?.takeIf { it != ausencia.descricao }?.let { obs ->
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = obs,
-            style = MaterialTheme.typography.labelSmall,
-            color = contentColor.copy(alpha = 0.6f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+            Spacer(modifier = Modifier.width(4.dp))
+
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = contentColor,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun AusenciaBannerActions(
+    possuiImagem: Boolean,
+    contentColor: Color,
+    onVerAnexo: (() -> Unit)?,
+    onAdicionarImagemCamera: (() -> Unit)?,
+    onAdicionarImagemGaleria: (() -> Unit)?,
+    onRemoverImagem: (() -> Unit)?,
+    onExcluir: (() -> Unit)?
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        if (possuiImagem) {
+            IconButton(
+                onClick = { onVerAnexo?.invoke() },
+                enabled = onVerAnexo != null,
+                modifier = Modifier.size(34.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Visibility,
+                    contentDescription = "Ver comprovante",
+                    tint = contentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            IconButton(
+                onClick = { onRemoverImagem?.invoke() },
+                enabled = onRemoverImagem != null,
+                modifier = Modifier.size(34.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.RemoveCircleOutline,
+                    contentDescription = "Remover comprovante",
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        } else {
+            IconButton(
+                onClick = { onAdicionarImagemCamera?.invoke() },
+                enabled = onAdicionarImagemCamera != null,
+                modifier = Modifier.size(34.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PhotoCamera,
+                    contentDescription = "Adicionar pela câmera",
+                    tint = contentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            IconButton(
+                onClick = { onAdicionarImagemGaleria?.invoke() },
+                enabled = onAdicionarImagemGaleria != null,
+                modifier = Modifier.size(34.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PhotoLibrary,
+                    contentDescription = "Adicionar da galeria",
+                    tint = contentColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        IconButton(
+            onClick = { onExcluir?.invoke() },
+            enabled = onExcluir != null,
+            modifier = Modifier.size(34.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.DeleteForever,
+                contentDescription = "Excluir ausência",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 
@@ -595,19 +778,6 @@ private fun AusenciaStatusBadge(
                 fontSize = 10.sp
             )
         }
-    }
-}
-
-/**
- * Formata minutos para exibição (ex: 90 -> "1h30")
- */
-private fun formatarMinutos(minutos: Int): String {
-    val horas = minutos / 60
-    val mins = minutos % 60
-    return when {
-        horas == 0 -> "${mins}min"
-        mins == 0 -> "${horas}h"
-        else -> "${horas}h${mins.toString().padStart(2, '0')}"
     }
 }
 
