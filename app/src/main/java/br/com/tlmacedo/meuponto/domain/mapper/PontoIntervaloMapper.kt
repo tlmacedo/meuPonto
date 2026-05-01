@@ -69,8 +69,8 @@ fun List<Ponto>.toIntervalosPonto(
             else -> pausaAntes.minutosReais
         }
 
-        val horaEntradaConsiderada = if (toleranciaAplicadaNesteTurno) {
-            pausaAntes?.saidaAnteriorDataHora?.plusMinutes(intervaloMinimoMinutos.toLong())
+        val horaEntradaConsiderada = if (toleranciaAplicadaNesteTurno && pausaAntes != null) {
+            pausaAntes.saidaAnteriorDataHora.plusMinutes(intervaloMinimoMinutos.toLong())
         } else {
             null
         }
@@ -118,8 +118,15 @@ private fun calcularPausasEntreTurnos(
         val saidaAnterior = turnoAnterior.saida ?: continue
         val entradaAtual = turnoAtual.entrada
 
-        val saidaAnteriorDataHora = saidaAnterior.dataHoraEfetiva
-        val entradaAtualDataHora = entradaAtual.dataHoraEfetiva
+        val saidaAnteriorDataHora = LocalDateTime.of(
+            saidaAnterior.data,
+            saidaAnterior.hora
+        )
+
+        val entradaAtualDataHora = LocalDateTime.of(
+            entradaAtual.data,
+            entradaAtual.hora
+        )
 
         val minutosReais = Duration.between(
             saidaAnteriorDataHora,

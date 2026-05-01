@@ -480,7 +480,7 @@ private fun getAbsenceColor(ausencia: Ausencia): Color {
         TipoAusencia.Falta.Injustificada -> Error
 
         TipoAusencia.Declaracao,
-        TipoAusencia.DiminuirBanco,
+        TipoAusencia.CompensacaoBanco,
         TipoAusencia.Folga -> Color.Gray
     }
 }

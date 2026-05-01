@@ -1,6 +1,7 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/IntervaloPonto.kt
 package br.com.tlmacedo.meuponto.domain.model
 
+
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -57,34 +58,6 @@ data class IntervaloPonto(
     val temHoraEntradaConsiderada: Boolean
         get() = horaEntradaConsiderada != null
 
-    val temHoraEntradaConsideradaDiferenteDaReal: Boolean
-        get() = horaEntradaConsiderada != null &&
-                horaEntradaConsiderada != entrada.dataHoraEfetiva
-
-    val entradaReal: LocalDateTime
-        get() = entrada.dataHoraEfetiva
-
-    /**
-     * Esta é a hora oficial para cálculo do turno.
-     */
-    val entradaParaCalculo: LocalDateTime
-        get() = horaEntradaConsiderada ?: entrada.dataHoraEfetiva
-
-    val saidaParaCalculo: LocalDateTime
-        get() = saida?.dataHoraEfetiva ?: LocalDateTime.now()
-
-    val duracaoTurnoMinutos: Int
-        get() = Duration.between(entradaParaCalculo, saidaParaCalculo)
-            .toMinutes()
-            .toInt()
-            .coerceAtLeast(0)
-
-    val duracaoTurnoRealMinutos: Int
-        get() = Duration.between(entrada.dataHoraEfetiva, saidaParaCalculo)
-            .toMinutes()
-            .toInt()
-            .coerceAtLeast(0)
-
     fun formatarDuracaoCompacta(): String {
         return formatarMinutosPadrao(duracaoTurnoMinutos)
     }
@@ -93,24 +66,8 @@ data class IntervaloPonto(
         return formatarMinutosPadrao(duracaoTurnoRealMinutos)
     }
 
-    fun formatarHoraEntradaReal(): String {
-        return entrada.dataHoraEfetiva.toLocalTime().format(HORA_FORMATTER)
-    }
-
-    fun formatarHoraEntradaConsiderada(): String? {
-        return horaEntradaConsiderada
-            ?.toLocalTime()
-            ?.format(HORA_FORMATTER)
-    }
-
     fun formatarHoraEntradaParaCalculo(): String {
         return entradaParaCalculo.toLocalTime().format(HORA_FORMATTER)
-    }
-
-    fun formatarHoraSaida(): String? {
-        return saida?.dataHoraEfetiva
-            ?.toLocalTime()
-            ?.format(HORA_FORMATTER)
     }
 
     fun formatarPausaAntesCompacta(): String? {
@@ -119,6 +76,56 @@ data class IntervaloPonto(
 
     fun formatarPausaConsideradaCompacta(): String? {
         return pausaAntesMinutosConsiderada?.let(::formatarMinutosPadrao)
+    }
+
+    private val dataHoraEntradaReal: LocalDateTime
+        get() = LocalDateTime.of(entrada.data, entrada.hora)
+
+    private val dataHoraEntradaConsideradaSalva: LocalDateTime
+        get() = LocalDateTime.of(entrada.data, entrada.horaConsiderada)
+
+    private val dataHoraSaidaReal: LocalDateTime?
+        get() = saida?.let { LocalDateTime.of(it.data, it.hora) }
+
+    val entradaReal: LocalDateTime
+        get() = dataHoraEntradaReal
+
+    val entradaParaCalculo: LocalDateTime
+        get() = horaEntradaConsiderada ?: dataHoraEntradaConsideradaSalva
+
+    val saidaParaCalculo: LocalDateTime
+        get() = dataHoraSaidaReal ?: LocalDateTime.now()
+
+    val temHoraEntradaConsideradaDiferenteDaReal: Boolean
+        get() = entradaParaCalculo != dataHoraEntradaReal
+
+    val duracaoTurnoMinutos: Int
+        get() = Duration.between(entradaParaCalculo, saidaParaCalculo)
+            .toMinutes()
+            .toInt()
+            .coerceAtLeast(0)
+
+    val duracaoTurnoRealMinutos: Int
+        get() = Duration.between(dataHoraEntradaReal, saidaParaCalculo)
+            .toMinutes()
+            .toInt()
+            .coerceAtLeast(0)
+
+    fun formatarHoraEntradaReal(): String {
+        return dataHoraEntradaReal.toLocalTime().format(HORA_FORMATTER)
+    }
+
+    fun formatarHoraEntradaConsiderada(): String? {
+        return entradaParaCalculo
+            .takeIf { it != dataHoraEntradaReal }
+            ?.toLocalTime()
+            ?.format(HORA_FORMATTER)
+    }
+
+    fun formatarHoraSaida(): String? {
+        return dataHoraSaidaReal
+            ?.toLocalTime()
+            ?.format(HORA_FORMATTER)
     }
 
     companion object {

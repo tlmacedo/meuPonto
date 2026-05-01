@@ -74,7 +74,7 @@ fun ProximoPontoCard(
     val corPrincipal = if (isEntrada) EntradaColor else SaidaColor
     val theme = LocalAppThemeController.current
     val premium = LocalPremiumTokens.current
-    val shape = RoundedCornerShape(if (theme.isPremium) 28.dp else 16.dp)
+    val shape = RoundedCornerShape(if (theme.isPremium) 24.dp else 14.dp)
     val icone = if (isEntrada) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
     val formatadorHora = DateTimeFormatter.ofPattern("HH:mm:ss")
 
@@ -164,7 +164,7 @@ fun ProximoPontoCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(gradientBrush)
-                .padding(if (theme.isPremium) 18.dp else 14.dp)
+                .padding(horizontal = 16.dp, vertical = if (theme.isPremium) 12.dp else 10.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -180,7 +180,7 @@ fun ProximoPontoCard(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(22.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                     ) {
@@ -188,7 +188,7 @@ fun ProximoPontoCard(
                             imageVector = icone,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(6.dp))
@@ -200,15 +200,15 @@ fun ProximoPontoCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Relógio
                 Text(
                     text = horaAtual.format(formatadorHora),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    letterSpacing = 1.sp
+                    letterSpacing = 0.5.sp
                 )
 
                 if (!habilitado) {

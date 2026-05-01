@@ -1,6 +1,8 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/components/IntervaloCard.kt
 package br.com.tlmacedo.meuponto.presentation.components
 
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
@@ -140,7 +142,7 @@ fun IntervaloCard(
                                 ponto = intervalo.saida,
                                 sharedTransitionScope = sharedTransitionScope,
                                 animatedVisibilityScope = animatedVisibilityScope,
-                                horaReal = intervalo.saida.hora.format(formatadorHora),
+                                horaReal = intervalo.formatarHoraSaida() ?: "--:--",
                                 horaConsiderada = null,
                                 nsr = if (mostrarNsr) intervalo.saida.nsr else null,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
@@ -478,7 +480,13 @@ private fun PausaEntreTurnos(
     }
 
     val textoReal = intervalo.formatarPausaAntesCompacta().orEmpty()
-    val textoConsiderado = intervalo.formatarPausaConsideradaCompacta()
+    val textoConsiderado = intervalo.formatarPausaConsideradaCompacta().orEmpty()
+
+    val deveMostrarAjuste =
+        intervalo.temPausaConsideradaDiferenteDaReal &&
+                textoReal.isNotBlank() &&
+                textoConsiderado.isNotBlank() &&
+                textoReal != textoConsiderado
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -489,60 +497,90 @@ private fun PausaEntreTurnos(
     ) {
         HorizontalDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
         )
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .padding(horizontal = 12.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(24.dp)
-                )
-                .padding(horizontal = 20.dp, vertical = 6.dp)
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f),
+            tonalElevation = 1.dp,
+            modifier = Modifier.padding(horizontal = 12.dp)
         ) {
-            if (
-                intervalo.temPausaConsideradaDiferenteDaReal &&
-                textoConsiderado != null &&
-                textoConsiderado != textoReal
-            ) {
-                Text(
-                    text = textoReal,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    textDecoration = TextDecoration.LineThrough
-                )
-            }
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Icon(
-                    imageVector = icone,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                    modifier = Modifier.size(20.dp)
-                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        )
+                ) {
+                    Icon(
+                        imageVector = icone,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
 
-                Text(
-                    text = buildString {
-                        append(tipoPausa.descricao)
-                        append(" ")
-                        append(textoConsiderado ?: textoReal)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    if (deveMostrarAjuste) {
+                        Text(
+                            text = textoReal,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
+                            textDecoration = TextDecoration.LineThrough,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = tipoPausa.descricao,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = if (deveMostrarAjuste) textoConsiderado else textoReal,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Black,
+                            color = if (deveMostrarAjuste) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                    }
+
+//                    if (deveMostrarAjuste) {
+//                        Text(
+//                            text = "considerado para cálculo",
+//                            style = MaterialTheme.typography.labelSmall,
+//                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+//                            textAlign = TextAlign.Center
+//                        )
+//                    }
+                }
             }
         }
 
         HorizontalDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
         )
     }
 }

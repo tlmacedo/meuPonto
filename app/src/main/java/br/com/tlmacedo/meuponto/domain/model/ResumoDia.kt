@@ -85,7 +85,7 @@ data class ResumoDia(
         get() = tipoAusencia == TipoAusencia.DayOff
 
     val isDiminuirBanco: Boolean
-        get() = tipoAusencia == TipoAusencia.DiminuirBanco
+        get() = tipoAusencia == TipoAusencia.CompensacaoBanco
 
     val isFaltaJustificada: Boolean
         get() = tipoAusencia == TipoAusencia.Falta.Justificada

@@ -9,15 +9,6 @@ import br.com.tlmacedo.meuponto.domain.model.dia.ClassificacaoDia
 // CLASSIFICAÇÃO MACRO
 // ============================================================================
 
-val TipoAusencia.isFolga: Boolean
-    get() = classificacaoDia == ClassificacaoDia.FOLGA
-
-val TipoAusencia.isDescanso: Boolean
-    get() = classificacaoDia == ClassificacaoDia.DESCANSO
-
-val TipoAusencia.isAusencia: Boolean
-    get() = classificacaoDia == ClassificacaoDia.AUSENCIA
-
 val TipoAusencia?.isNormalOrTrue: Boolean
     get() = this == null
 
@@ -59,7 +50,7 @@ val TipoAusencia.isDayOff: Boolean
     get() = this is TipoAusencia.DayOff
 
 val TipoAusencia.isDiminuirBanco: Boolean
-    get() = this is TipoAusencia.DiminuirBanco
+    get() = this is TipoAusencia.CompensacaoBanco
 
 val TipoAusencia.isFaltaJustificada: Boolean
     get() = this is TipoAusencia.Falta.Justificada
@@ -143,7 +134,7 @@ val TipoAusencia.prioridade: Int
         TipoAusencia.Atestado -> 80
         TipoAusencia.Declaracao -> 70
         TipoAusencia.DayOff -> 60
-        TipoAusencia.DiminuirBanco -> 50
+        TipoAusencia.CompensacaoBanco -> 50
         TipoAusencia.Ferias -> 40
         TipoAusencia.Feriado.Oficial -> 30
         TipoAusencia.Feriado.DiaPonte -> 20
@@ -173,6 +164,6 @@ fun TipoAusencia.toTipoJornadaDia(): TipoJornadaDia {
         TipoAusencia.Declaracao -> TipoJornadaDia.COMPENSACAO
 
         TipoAusencia.Falta.Injustificada,
-        TipoAusencia.DiminuirBanco -> TipoJornadaDia.NORMAL
+        TipoAusencia.CompensacaoBanco -> TipoJornadaDia.NORMAL
     }
 }

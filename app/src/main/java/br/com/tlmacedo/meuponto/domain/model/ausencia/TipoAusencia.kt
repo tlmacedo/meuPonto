@@ -153,8 +153,10 @@ sealed class TipoAusencia(
         descricao = "Day off",
         emoji = "🏝️",
         classificacaoDia = ClassificacaoDia.AUSENCIA,
+        requerDocumento = false,
+        permiteAnexo = true,
         isPlanejada = true,
-        explicacaoImpacto = "Dia abonado concedido pela empresa. Limitado a uma vez por ano e até 90 dias após o aniversário.",
+        explicacaoImpacto = "Dia abonado concedido pela empresa. Jornada zerada, ponto bloqueado e banco não altera.",
         exemploUso = "Day off de aniversário.",
         labelObservacao = "Motivo do day off",
         placeholderObservacao = "Ex: Day off de aniversário"
@@ -165,18 +167,21 @@ sealed class TipoAusencia(
         override val exigeRegraAniversario = true
     }
 
-    object DiminuirBanco : TipoAusencia(
+    object CompensacaoBanco : TipoAusencia(
         descricao = "Diminuir banco de horas",
         emoji = "⏳",
         classificacaoDia = ClassificacaoDia.AUSENCIA,
+        requerDocumento = false,
+        permiteAnexo = true,
         isPlanejada = true,
-        explicacaoImpacto = "Desconta o dia do banco de horas para aproximar o saldo de zero.",
+        explicacaoImpacto = "Compensação planejada que usa saldo positivo do banco de horas e abate a jornada do dia.",
         exemploUso = "Compensação usando saldo positivo do banco.",
         labelObservacao = "Observação",
         placeholderObservacao = "Ex: Compensação de banco"
     ) {
         override val regraCalculo = RegraDiaNormal
         override val descontaDoBanco = true
+        override val bloqueiaRegistroPonto = true
     }
 
     sealed class Falta(
@@ -205,30 +210,32 @@ sealed class TipoAusencia(
         object Justificada : Falta(
             descricao = "Falta justificada",
             emoji = "🩺",
-            requerDocumento = false,
+            requerDocumento = true,
             permiteAnexo = true,
             isPlanejada = true,
-            explicacaoImpacto = "Falta aceita/abonada. Não gera débito no banco.",
+            explicacaoImpacto = "Falta aceita mediante documento obrigatório. Jornada zerada e banco não altera.",
             exemploUso = "Casamento, doação de sangue, nascimento de filho ou justificativa aceita.",
             labelObservacao = "Motivo da falta",
             placeholderObservacao = "Ex: Casamento, doação de sangue"
         ) {
             override val regraCalculo = RegraJornadaZerada
+            override val bloqueiaRegistroPonto = true
         }
 
         object Injustificada : Falta(
             descricao = "Falta injustificada",
             emoji = "❌",
             requerDocumento = false,
-            permiteAnexo = false,
+            permiteAnexo = true,
             isPlanejada = false,
-            explicacaoImpacto = "Falta sem justificativa. Gera débito no banco de horas.",
+            explicacaoImpacto = "Falta sem justificativa. Mantém a jornada normal e gera débito integral no banco de horas.",
             exemploUso = "Falta sem aviso ou justificativa recusada.",
             labelObservacao = "Motivo",
             placeholderObservacao = "Informe o motivo, se desejar"
         ) {
             override val regraCalculo = RegraFaltaInjustificada
             override val descontaDoBanco = true
+            override val bloqueiaRegistroPonto = true
         }
     }
 
@@ -242,7 +249,7 @@ sealed class TipoAusencia(
             Atestado,
             Declaracao,
             DayOff,
-            DiminuirBanco,
+            CompensacaoBanco,
             Falta.Justificada,
             Falta.Injustificada
         )
@@ -258,7 +265,7 @@ sealed class TipoAusencia(
             Atestado,
             Declaracao,
             DayOff,
-            DiminuirBanco,
+            CompensacaoBanco,
             Falta.Justificada,
             Falta.Injustificada
         )

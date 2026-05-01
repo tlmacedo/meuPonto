@@ -59,7 +59,7 @@ class MontarCalendarioAusenciasUseCase @Inject constructor() {
             TipoAusencia.Atestado -> 80
             TipoAusencia.Declaracao -> 70
             TipoAusencia.DayOff -> 60
-            TipoAusencia.DiminuirBanco -> 50
+            TipoAusencia.CompensacaoBanco -> 50
             TipoAusencia.Ferias -> 40
             TipoAusencia.Feriado.Oficial -> 30
             TipoAusencia.Feriado.DiaPonte -> 20

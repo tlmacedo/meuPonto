@@ -131,7 +131,7 @@ fun TipoAusencia.toTipoDiaEspecial(): TipoAusencia? {
         TipoAusencia.DiaPonte -> TipoAusencia?.Ponte
         TipoAusencia.Facultativo -> TipoAusencia?.Facultativo
         TipoAusencia.CompensacaoBanco -> TipoAusencia?.Folga
-        TipoAusencia.DiminuirBanco -> TipoAusencia?.Folga
+        TipoAusencia.CompensacaoBanco -> TipoAusencia?.Folga
     }
 }
 """

@@ -646,7 +646,7 @@ private fun TipoAusencia.getIcon(): ImageVector = when (this) {
     TipoAusencia.Feriado.Oficial,
     TipoAusencia.Feriado.DiaPonte,
     TipoAusencia.Feriado.Facultativo,
-    TipoAusencia.DiminuirBanco,
+    TipoAusencia.CompensacaoBanco,
     TipoAusencia.Falta.Justificada,
     TipoAusencia.Falta.Injustificada -> Icons.Default.EventBusy
 }

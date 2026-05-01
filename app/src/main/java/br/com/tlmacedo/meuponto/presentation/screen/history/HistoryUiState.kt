@@ -302,7 +302,7 @@ data class InfoDiaHistorico(
                 if (ausencia.tipoFolga == TipoFolga.DAY_OFF) "🎁" else "😴"
             }
 
-            TipoAusencia.DiminuirBanco -> "⏳"
+            TipoAusencia.CompensacaoBanco -> "⏳"
             TipoAusencia.Falta.Justificada -> "📝"
             TipoAusencia.Falta.Injustificada -> "❌"
         }

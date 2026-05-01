@@ -123,7 +123,7 @@ class Converters {
         TipoAusencia.Feriado.Facultativo -> "FACULTATIVO"
         TipoAusencia.Atestado -> "ATESTADO"
         TipoAusencia.DayOff -> "DAY_OFF"
-        TipoAusencia.DiminuirBanco -> "DIMINUIR_BANCO"
+        TipoAusencia.CompensacaoBanco -> "DIMINUIR_BANCO"
         TipoAusencia.Declaracao -> "DECLARACAO"
         TipoAusencia.Falta.Justificada -> "FALTA_JUSTIFICADA"
         TipoAusencia.Falta.Injustificada -> "FALTA_INJUSTIFICADA"
@@ -139,7 +139,7 @@ class Converters {
         "FACULTATIVO" -> TipoAusencia.Feriado.Facultativo
         "ATESTADO" -> TipoAusencia.Atestado
         "DAY_OFF" -> TipoAusencia.DayOff
-        "DIMINUIR_BANCO" -> TipoAusencia.DiminuirBanco
+        "DIMINUIR_BANCO" -> TipoAusencia.CompensacaoBanco
         "DECLARACAO" -> TipoAusencia.Declaracao
         "FALTA_JUSTIFICADA" -> TipoAusencia.Falta.Justificada
         "FALTA_INJUSTIFICADA" -> TipoAusencia.Falta.Injustificada

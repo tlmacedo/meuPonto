@@ -25,7 +25,7 @@ fun TipoAusencia.toIcon(): ImageVector {
         TipoAusencia.Atestado -> Icons.Default.LocalHospital
         TipoAusencia.Declaracao -> Icons.Default.Receipt
         TipoAusencia.DayOff -> Icons.Default.WorkOff
-        TipoAusencia.DiminuirBanco -> Icons.Default.Timer
+        TipoAusencia.CompensacaoBanco -> Icons.Default.Timer
         TipoAusencia.Falta.Justificada -> Icons.Default.Schedule
         TipoAusencia.Falta.Injustificada -> Icons.Default.EventBusy
     }
@@ -41,7 +41,7 @@ fun TipoAusencia.toLabel(): String {
         TipoAusencia.Atestado -> "Atestado"
         TipoAusencia.Declaracao -> "Declaração"
         TipoAusencia.DayOff -> "Day off"
-        TipoAusencia.DiminuirBanco -> "Diminuir banco"
+        TipoAusencia.CompensacaoBanco -> "Diminuir banco"
         TipoAusencia.Falta.Justificada -> "Falta justificada"
         TipoAusencia.Falta.Injustificada -> "Falta injustificada"
     }
