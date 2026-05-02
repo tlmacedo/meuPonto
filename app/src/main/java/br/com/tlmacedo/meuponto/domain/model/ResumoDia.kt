@@ -8,6 +8,29 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 
+/**
+ * Modelo que consolida todas as informações de um dia de trabalho.
+ *
+ * O [ResumoDia] é o objeto central usado pela UI para exibir o estado de um dia
+ * no calendário, histórico ou tela principal. Ele contém os registros de ponto,
+ * configurações de jornada aplicadas e o saldo calculado.
+ *
+ * @property data Data do resumo
+ * @property entrada Primeiro registro do dia (Entrada)
+ * @property saidaAlmoco Segundo registro (Saída para intervalo)
+ * @property voltaAlmoco Terceiro registro (Retorno do intervalo)
+ * @property saida Quarto registro (Saída definitiva)
+ * @property jornadaPrevistaMinutos Carga horária contratual para este dia
+ * @property intervaloPrevistoMinutos Tempo de intervalo padrão configurado
+ * @property toleranciaIntervaloMinutos Tolerância permitida para o intervalo
+ * @property tipoAusencia Tipo de ausência registrado (folga, feriado, atestado, etc)
+ * @property saldoBancoMinutosAnterior Saldo acumulado do banco de horas até o dia anterior
+ * @property observacao Observação geral do dia
+ *
+ * @author Thiago
+ * @since 3.0.0
+ * @updated 12.0.0 - Adicionadas propriedades auxiliares e lógica de intervalo consolidada
+ */
 data class ResumoDia(
     val data: LocalDate,
 

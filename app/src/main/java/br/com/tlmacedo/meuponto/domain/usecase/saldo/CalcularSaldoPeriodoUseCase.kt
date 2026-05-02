@@ -10,9 +10,14 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 /**
+ * Caso de uso responsável pelo cálculo de saldo de banco de horas em um período.
+ *
+ * Consolida os saldos diários (calculados via [CalcularSaldoDiaUseCase]) e os
+ * ajustes manuais realizados no intervalo solicitado.
+ *
  * @author Thiago
  * @since 3.0.0
- * @updated 8.0.0 - Migrado para usar VersaoJornada
+ * @updated 8.0.0 - Migrado para usar VersaoJornada para cálculos retroativos precisos
  */
 class CalcularSaldoPeriodoUseCase @Inject constructor(
     private val ajusteSaldoRepository: AjusteSaldoRepository,

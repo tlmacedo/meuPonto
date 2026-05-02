@@ -8,7 +8,26 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
- * Entidade Room que representa um emprego/trabalho do usuário.
+ * Entidade Room que representa um emprego/trabalho do usuário no banco de dados.
+ *
+ * @property id Identificador único (autoincrement)
+ * @property nome Nome oficial ou principal do emprego
+ * @property razaoSocial Razão social da empresa
+ * @property cnpj CNPJ da empresa (apenas números)
+ * @property apelido Nome curto para exibição simplificada
+ * @property endereco Endereço físico do local de trabalho
+ * @property dataInicioTrabalho Data de admissão
+ * @property dataTerminoTrabalho Data de rescisão (null se ativo)
+ * @property descricao Notas adicionais do usuário
+ * @property ativo Flag de uso (false = desativado logicamente)
+ * @property arquivado Flag para ocultar da tela principal mantendo histórico
+ * @property ordem Posição na lista de exibição
+ * @property logo Path ou URI para a imagem da logo
+ * @property criadoEm Timestamp de criação do registro
+ * @property atualizadoEm Timestamp da última alteração
+ *
+ * @author Thiago
+ * @since 1.0.0
  */
 @Entity(
     tableName = "empregos",

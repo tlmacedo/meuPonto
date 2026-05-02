@@ -4,6 +4,24 @@ package br.com.tlmacedo.meuponto.domain.model
 import java.time.Duration
 import java.time.LocalTime
 
+/**
+ * Resultado do cálculo de um intervalo entre registros de ponto.
+ *
+ * Encapsula a lógica de aplicação de tolerância em retornos de intervalo,
+ * determinando se o tempo real deve ser mantido ou ajustado para o previsto.
+ *
+ * @property saida Hora real da saída para o intervalo
+ * @property retornoReal Hora real da batida de retorno
+ * @property retornoConsiderado Hora que será usada para cálculos de saldo
+ * @property minutosReais Duração real cronometrada em minutos
+ * @property minutosParaCalculo Duração que será considerada (com tolerância)
+ * @property minutosPrevistos Duração padrão configurada para o intervalo
+ * @property toleranciaMinutos Tolerância permitida para o retorno
+ * @property toleranciaAplicada Indica se o ajuste de tolerância foi ativado
+ *
+ * @author Thiago
+ * @since 3.0.0
+ */
 data class IntervaloCalculado(
     val saida: LocalTime,
     val retornoReal: LocalTime,

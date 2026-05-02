@@ -25,11 +25,15 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * Caso de uso para calcular o banco de horas acumulado.
+ * Caso de uso responsável pelo cálculo complexo do saldo do banco de horas.
+ *
+ * Consolida registros de ponto, fechamentos anteriores, ajustes manuais,
+ * ausências registradas e feriados para determinar o saldo acumulado exato
+ * em um determinado período ou até a data atual.
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 8.0.0 - Migrado para usar VersaoJornada
+ * @updated 8.0.0 - Integração total com VersaoJornada para cálculos retroativos precisos
  */
 class CalcularBancoHorasUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,
@@ -42,6 +46,9 @@ class CalcularBancoHorasUseCase @Inject constructor(
     private val obterResumoDiaCompletoUseCase: ObterResumoDiaCompletoUseCase
 ) {
 
+    /**
+     * Objeto que contém o resultado detalhado do cálculo do banco de horas.
+     */
     data class ResultadoBancoHoras(
         val saldoTotal: Duration,
         val trabalhadoTotal: Duration = Duration.ZERO,
@@ -61,11 +68,19 @@ class CalcularBancoHorasUseCase @Inject constructor(
         val negativo: Boolean get() = saldoTotal.isNegative
     }
 
+    /** Cache interno para evitar múltiplas consultas ao banco durante o loop de cálculo */
     private data class VersaoCache(
         val versao: VersaoJornada,
         val horariosPorDia: Map<DiaSemana, HorarioDiaSemana>
     )
 
+    /**
+     * Observa o saldo do banco de horas de forma reativa.
+     *
+     * @param empregoId ID do emprego
+     * @param ateData Data limite para o cálculo (inclusive)
+     * @return Flow que emite o resultado sempre que houver mudanças nos dados subjacentes
+     */
     operator fun invoke(
         empregoId: Long,
         ateData: LocalDate = LocalDate.now()
@@ -77,6 +92,7 @@ class CalcularBancoHorasUseCase @Inject constructor(
             ausenciaRepository.observarAtivasPorEmprego(empregoId),
             feriadoRepository.observarTodosAtivos()
         ) { pontos, fechamentos, ajustes, ausencias, feriados ->
+            // Busca o último fechamento manual ou automático para usar como base do saldo
             val fechamentoRelevante = fechamentos
                 .filter {
                     it.tipo in listOf(
@@ -99,6 +115,9 @@ class CalcularBancoHorasUseCase @Inject constructor(
         }
     }
 
+    /**
+     * Executa o cálculo de forma suspensa (não reativa).
+     */
     suspend fun calcular(
         empregoId: Long,
         ateData: LocalDate = LocalDate.now()
@@ -127,6 +146,9 @@ class CalcularBancoHorasUseCase @Inject constructor(
     suspend fun calcularAteData(empregoId: Long, ateData: LocalDate): ResultadoBancoHoras =
         calcular(empregoId, ateData)
 
+    /**
+     * Calcula o banco de horas para um período específico, ignorando fechamentos.
+     */
     suspend fun calcularParaPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
@@ -260,9 +282,6 @@ class CalcularBancoHorasUseCase @Inject constructor(
 
         val versaoCache = mutableMapOf<Long, VersaoCache>()
         val horarioSemVersaoCache = mutableMapOf<DiaSemana, HorarioDiaSemana?>()
-
-        // Buscar versão vigente para dados genéricos se necessário
-        versaoJornadaRepository.buscarVigente(empregoId)
 
         var saldoTotal = Duration.ZERO
         var trabalhadoTotal = Duration.ZERO

@@ -16,134 +16,98 @@ import javax.inject.Singleton
 /**
  * Implementação concreta do repositório de empregos.
  *
- * @property empregoDao DAO do Room para operações de banco de dados
- * @property auditService Serviço de auditoria para logging de operações
- *
  * @author Thiago
  * @since 2.0.0
  * @updated 11.0.0 - Integração com AuditService
+ * @updated 12.0.0 - Refatorado para usar AuditedRepositoryBase
  */
 @Singleton
 class EmpregoRepositoryImpl @Inject constructor(
     private val empregoDao: EmpregoDao,
-    private val auditService: AuditService
-) : EmpregoRepository {
+    auditService: AuditService
+) : AuditedRepositoryBase<Emprego>(auditService, ENTIDADE), EmpregoRepository {
 
     // ========================================================================
-    // Operações de Escrita (CRUD)
+    // PONTE COM O DAO
     // ========================================================================
 
-    override suspend fun inserir(emprego: Emprego): Long {
-        val id = empregoDao.inserir(emprego.toEntity())
+    override suspend fun daoInserir(domain: Emprego): Long = empregoDao.inserir(domain.toEntity())
+    override suspend fun daoBuscarPorId(id: Long): Emprego? = empregoDao.buscarPorId(id)?.toDomain()
+    override suspend fun daoAtualizar(domain: Emprego) = empregoDao.atualizar(domain.toEntity())
+    override suspend fun daoExcluir(domain: Emprego) = empregoDao.excluir(domain.toEntity())
+    override fun getEntityId(domain: Emprego): Long = domain.id
 
-        auditService.logCreate(
-            entidade = ENTIDADE,
-            entidadeId = id,
-            motivo = "Emprego criado: ${emprego.nome}",
-            novoValor = emprego,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
-
-        return id
-    }
-
-    override suspend fun atualizar(emprego: Emprego) {
-        val anterior = empregoDao.buscarPorId(emprego.id)?.toDomain()
-        empregoDao.atualizar(emprego.toEntity())
-
-        auditService.logUpdate(
-            entidade = ENTIDADE,
-            entidadeId = emprego.id,
-            motivo = "Emprego atualizado: ${emprego.nome}",
-            valorAntigo = anterior,
-            valorNovo = emprego,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
-    }
-
-    override suspend fun excluir(emprego: Emprego) {
-        auditService.logPermanentDelete(
-            entidade = ENTIDADE,
-            entidadeId = emprego.id,
-            motivo = "Emprego excluído permanentemente: ${emprego.nome}"
-        )
-
-        empregoDao.excluir(emprego.toEntity())
-    }
-
-    override suspend fun excluirPorId(id: Long) {
-        val emprego = empregoDao.buscarPorId(id)?.toDomain()
-
-        auditService.logPermanentDelete(
-            entidade = ENTIDADE,
-            entidadeId = id,
-            motivo = emprego?.let { "Emprego excluído permanentemente: ${it.nome}" }
-                ?: "Emprego excluído permanentemente"
-        )
-
-        empregoDao.excluirPorId(id)
-    }
+    override fun Emprego.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "nome" to nome,
+        "dataInicioTrabalho" to dataInicioTrabalho?.toString(),
+        "descricao" to descricao,
+        "ativo" to ativo,
+        "arquivado" to arquivado,
+        "ordem" to ordem
+    )
 
     // ========================================================================
-    // Operações de Leitura
+    // MOTIVOS DE AUDITORIA
     // ========================================================================
 
-    override suspend fun buscarPorId(id: Long): Emprego? {
-        return empregoDao.buscarPorId(id)?.toDomain()
-    }
-
-    override suspend fun buscarAtivos(): List<Emprego> {
-        return empregoDao.buscarAtivos().map { it.toDomain() }
-    }
-
-    override suspend fun contarAtivos(): Int {
-        return empregoDao.contarAtivos()
-    }
-
-    override suspend fun contarTodos(): Int {
-        return empregoDao.contarTodos()
-    }
-
-    override suspend fun existe(id: Long): Boolean {
-        return empregoDao.existe(id)
-    }
-
-    override suspend fun buscarPorCnpj(cnpj: String): Emprego? {
-        return empregoDao.buscarPorCnpj(cnpj)?.toDomain()
-    }
+    override fun motivoInserir(domain: Emprego): String = "Emprego criado: ${domain.nome}"
+    override fun motivoAtualizar(domain: Emprego): String = "Emprego atualizado: ${domain.nome}"
+    override fun motivoExcluir(domain: Emprego): String = "Emprego excluído permanentemente: ${domain.nome}"
 
     // ========================================================================
-    // Operações Reativas (Flows)
+    // CRUD
     // ========================================================================
 
-    override fun observarPorId(id: Long): Flow<Emprego?> {
-        return empregoDao.observarPorId(id).map { it?.toDomain() }
-    }
+    override suspend fun inserir(emprego: Emprego): Long = inserirComAuditoria(emprego)
 
-    override fun observarTodos(): Flow<List<Emprego>> {
-        return empregoDao.listarTodos().map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override suspend fun atualizar(emprego: Emprego) = atualizarComAuditoria(emprego)
 
-    override fun observarAtivos(): Flow<List<Emprego>> {
-        return empregoDao.listarAtivos().map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override suspend fun excluir(emprego: Emprego) = excluirComAuditoria(emprego)
 
-    override fun observarArquivados(): Flow<List<Emprego>> {
-        return empregoDao.listarArquivados().map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override suspend fun excluirPorId(id: Long) =
+        excluirPorIdComAuditoria(id) { empregoDao.excluirPorId(it) }
 
     // ========================================================================
-    // Operações de Status
+    // CONSULTAS
+    // ========================================================================
+
+    override suspend fun buscarPorId(id: Long): Emprego? = daoBuscarPorId(id)
+
+    override suspend fun buscarAtivos(): List<Emprego> =
+        empregoDao.buscarAtivos().map { it.toDomain() }
+
+    override suspend fun contarAtivos(): Int = empregoDao.contarAtivos()
+
+    override suspend fun contarTodos(): Int = empregoDao.contarTodos()
+
+    override suspend fun existe(id: Long): Boolean = empregoDao.existe(id)
+
+    override suspend fun buscarPorCnpj(cnpj: String): Emprego? =
+        empregoDao.buscarPorCnpj(cnpj)?.toDomain()
+
+    // ========================================================================
+    // FLOWS
+    // ========================================================================
+
+    override fun observarPorId(id: Long): Flow<Emprego?> =
+        empregoDao.observarPorId(id).map { it?.toDomain() }
+
+    override fun observarTodos(): Flow<List<Emprego>> =
+        empregoDao.listarTodos().map { entities -> entities.map { it.toDomain() } }
+
+    override fun observarAtivos(): Flow<List<Emprego>> =
+        empregoDao.listarAtivos().map { entities -> entities.map { it.toDomain() } }
+
+    override fun observarArquivados(): Flow<List<Emprego>> =
+        empregoDao.listarArquivados().map { entities -> entities.map { it.toDomain() } }
+
+    // ========================================================================
+    // STATUS E ORDEM
     // ========================================================================
 
     override suspend fun atualizarStatus(id: Long, ativo: Boolean) {
-        val emprego = empregoDao.buscarPorId(id)?.toDomain()
+        val emprego = daoBuscarPorId(id)
         empregoDao.atualizarStatus(id, ativo, LocalDateTime.now().toString())
 
         auditService.logUpdate(
@@ -157,7 +121,7 @@ class EmpregoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun arquivar(id: Long) {
-        val emprego = empregoDao.buscarPorId(id)?.toDomain()
+        val emprego = daoBuscarPorId(id)
         empregoDao.atualizarArquivado(id, true, LocalDateTime.now().toString())
 
         auditService.logUpdate(
@@ -171,7 +135,7 @@ class EmpregoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun desarquivar(id: Long) {
-        val emprego = empregoDao.buscarPorId(id)?.toDomain()
+        val emprego = daoBuscarPorId(id)
         empregoDao.atualizarArquivado(id, false, LocalDateTime.now().toString())
 
         auditService.logUpdate(
@@ -185,37 +149,20 @@ class EmpregoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun atualizarOrdem(id: Long, ordem: Int) {
-        val emprego = empregoDao.buscarPorId(id)?.toDomain()
-        val ordemAnterior = emprego?.ordem
+        val emprego = daoBuscarPorId(id)
         empregoDao.atualizarOrdem(id, ordem, LocalDateTime.now().toString())
 
         auditService.logUpdate(
             entidade = ENTIDADE,
             entidadeId = id,
             motivo = "Ordem alterada: ${emprego?.nome ?: "ID $id"}",
-            valorAntigo = ordemAnterior,
+            valorAntigo = emprego?.ordem,
             valorNovo = ordem,
             serializer = { "ordem=$it" }
         )
     }
 
-    override suspend fun buscarProximaOrdem(): Int {
-        return (empregoDao.buscarMaiorOrdem() ?: 0) + 1
-    }
-
-    // ========================================================================
-    // Helpers
-    // ========================================================================
-
-    private fun Emprego.toAuditMap(): Map<String, Any?> = mapOf(
-        "id" to id,
-        "nome" to nome,
-        "dataInicioTrabalho" to dataInicioTrabalho?.toString(),
-        "descricao" to descricao,
-        "ativo" to ativo,
-        "arquivado" to arquivado,
-        "ordem" to ordem
-    )
+    override suspend fun buscarProximaOrdem(): Int = (empregoDao.buscarMaiorOrdem() ?: 0) + 1
 
     companion object {
         private const val ENTIDADE = "Emprego"

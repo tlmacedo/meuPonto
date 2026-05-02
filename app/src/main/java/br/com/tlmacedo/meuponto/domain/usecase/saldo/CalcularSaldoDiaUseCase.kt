@@ -14,11 +14,18 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * Caso de uso para calcular saldo de um dia.
+ * Caso de uso responsável pelo cálculo de saldo de um dia específico.
+ *
+ * Esta classe é o motor de cálculo diário. Ela:
+ * 1. Identifica os registros de ponto do dia;
+ * 2. Determina a carga horária aplicável (considerando versionamento e dia da semana);
+ * 3. Calcula o tempo trabalhado real e considerado (pós-tolerância);
+ * 4. Calcula os intervalos reais e considerados;
+ * 5. Determina o saldo positivo ou negativo final do dia.
  *
  * @author Thiago
  * @since 1.0.0
- * @updated 11.0.0 - Usa VersaoJornada e HorarioDiaSemana para determinar carga horária
+ * @updated 11.0.0 - Integração total com VersaoJornada e HorarioDiaSemana
  */
 class CalcularSaldoDiaUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,

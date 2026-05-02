@@ -17,158 +17,122 @@ import javax.inject.Singleton
 /**
  * Implementação concreta do repositório de ajustes de saldo.
  *
- * @property ajusteSaldoDao DAO do Room para operações de banco de dados
- * @property auditService Serviço de auditoria para logging de operações
- *
  * @author Thiago
  * @since 2.0.0
  * @updated 11.0.0 - Integração com AuditService e suporte a TipoAjusteSaldo
+ * @updated 12.0.0 - Refatorado para usar AuditedRepositoryBase
  */
 @Singleton
 class AjusteSaldoRepositoryImpl @Inject constructor(
     private val ajusteSaldoDao: AjusteSaldoDao,
-    private val auditService: AuditService
-) : AjusteSaldoRepository {
+    auditService: AuditService
+) : AuditedRepositoryBase<AjusteSaldo>(auditService, ENTIDADE), AjusteSaldoRepository {
 
     // ========================================================================
-    // Operações de Escrita (CRUD)
+    // PONTE COM O DAO
     // ========================================================================
 
-    override suspend fun inserir(ajuste: AjusteSaldo): Long {
-        val id = ajusteSaldoDao.inserir(ajuste.toEntity())
+    override suspend fun daoInserir(domain: AjusteSaldo): Long = ajusteSaldoDao.inserir(domain.toEntity())
+    override suspend fun daoBuscarPorId(id: Long): AjusteSaldo? = ajusteSaldoDao.buscarPorId(id)?.toDomain()
+    override suspend fun daoAtualizar(domain: AjusteSaldo) = ajusteSaldoDao.atualizar(domain.toEntity())
+    override suspend fun daoExcluir(domain: AjusteSaldo) = ajusteSaldoDao.excluir(domain.toEntity())
+    override fun getEntityId(domain: AjusteSaldo): Long = domain.id
 
-        auditService.logCreate(
-            entidade = ENTIDADE,
-            entidadeId = id,
-            motivo = "Ajuste de saldo criado: ${ajuste.descricaoResumida} em ${ajuste.dataFormatada}",
-            novoValor = ajuste,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
+    override fun AjusteSaldo.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "data" to dataFormatada,
+        "minutos" to minutos,
+        "minutosFormatado" to minutosFormatadosExtenso,
+        "tipo" to tipo.name,
+        "tipoDescricao" to tipo.descricao,
+        "justificativa" to justificativa
+    )
 
-        return id
-    }
+    // ========================================================================
+    // MOTIVOS DE AUDITORIA
+    // ========================================================================
+
+    override fun motivoInserir(domain: AjusteSaldo): String =
+        "Ajuste de saldo criado: ${domain.descricaoResumida} em ${domain.dataFormatada}"
+
+    override fun motivoAtualizar(domain: AjusteSaldo): String =
+        "Ajuste de saldo atualizado: ${domain.descricaoResumida}"
+
+    override fun motivoExcluir(domain: AjusteSaldo): String =
+        "Ajuste de saldo excluído: ${domain.descricaoResumida} em ${domain.dataFormatada}"
+
+    // ========================================================================
+    // CRUD
+    // ========================================================================
+
+    override suspend fun inserir(ajuste: AjusteSaldo): Long = inserirComAuditoria(ajuste)
 
     override suspend fun atualizar(ajuste: AjusteSaldo) {
-        val anterior = ajusteSaldoDao.buscarPorId(ajuste.id)?.toDomain()
+        // Atualiza timestamp antes de persistir
         val ajusteAtualizado = ajuste.copy(atualizadoEm = LocalDateTime.now())
-
-        ajusteSaldoDao.atualizar(ajusteAtualizado.toEntity())
-
-        auditService.logUpdate(
-            entidade = ENTIDADE,
-            entidadeId = ajuste.id,
-            motivo = "Ajuste de saldo atualizado: ${ajusteAtualizado.descricaoResumida}",
-            valorAntigo = anterior,
-            valorNovo = ajusteAtualizado,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
+        atualizarComAuditoria(ajusteAtualizado)
     }
 
-    override suspend fun excluir(ajuste: AjusteSaldo) {
-        auditService.logPermanentDelete(
-            entidade = ENTIDADE,
-            entidadeId = ajuste.id,
-            motivo = "Ajuste de saldo excluído: ${ajuste.descricaoResumida} em ${ajuste.dataFormatada}"
-        )
+    override suspend fun excluir(ajuste: AjusteSaldo) = excluirComAuditoria(ajuste)
 
-        ajusteSaldoDao.excluir(ajuste.toEntity())
-    }
-
-    override suspend fun excluirPorId(id: Long) {
-        val ajuste = ajusteSaldoDao.buscarPorId(id)?.toDomain()
-
-        auditService.logPermanentDelete(
-            entidade = ENTIDADE,
-            entidadeId = id,
-            motivo = ajuste?.let {
-                "Ajuste de saldo excluído: ${it.descricaoResumida} em ${it.dataFormatada}"
-            } ?: "Ajuste de saldo excluído (id: $id)"
-        )
-
-        ajusteSaldoDao.excluirPorId(id)
-    }
+    override suspend fun excluirPorId(id: Long) =
+        excluirPorIdComAuditoria(id) { ajusteSaldoDao.excluirPorId(it) }
 
     // ========================================================================
-    // Operações de Leitura
+    // CONSULTAS
     // ========================================================================
 
-    override suspend fun buscarPorId(id: Long): AjusteSaldo? {
-        return ajusteSaldoDao.buscarPorId(id)?.toDomain()
-    }
+    override suspend fun buscarPorId(id: Long): AjusteSaldo? = daoBuscarPorId(id)
 
-    override suspend fun buscarPorEmprego(empregoId: Long): List<AjusteSaldo> {
-        return ajusteSaldoDao.buscarPorEmprego(empregoId).map { it.toDomain() }
-    }
+    override suspend fun buscarPorEmprego(empregoId: Long): List<AjusteSaldo> =
+        ajusteSaldoDao.buscarPorEmprego(empregoId).map { it.toDomain() }
 
-    override suspend fun buscarPorData(empregoId: Long, data: LocalDate): List<AjusteSaldo> {
-        return ajusteSaldoDao.buscarPorData(empregoId, data.toString()).map { it.toDomain() }
-    }
+    override suspend fun buscarPorData(empregoId: Long, data: LocalDate): List<AjusteSaldo> =
+        ajusteSaldoDao.buscarPorData(empregoId, data.toString()).map { it.toDomain() }
 
     override suspend fun buscarPorPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
-    ): List<AjusteSaldo> {
-        return ajusteSaldoDao.buscarPorPeriodo(
-            empregoId,
-            dataInicio.toString(),
-            dataFim.toString()
-        ).map { it.toDomain() }
-    }
+    ): List<AjusteSaldo> =
+        ajusteSaldoDao.buscarPorPeriodo(empregoId, dataInicio.toString(), dataFim.toString())
+            .map { it.toDomain() }
 
     // ========================================================================
-    // Cálculos
+    // CÁLCULOS
     // ========================================================================
 
-    override suspend fun somarTotalPorEmprego(empregoId: Long): Int {
-        return ajusteSaldoDao.somarTotalPorEmprego(empregoId)
-    }
+    override suspend fun somarTotalPorEmprego(empregoId: Long): Int =
+        ajusteSaldoDao.somarTotalPorEmprego(empregoId)
 
     override suspend fun somarPorPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
-    ): Int {
-        return ajusteSaldoDao.somarPorPeriodo(
-            empregoId,
-            dataInicio.toString(),
-            dataFim.toString()
-        )
-    }
+    ): Int = ajusteSaldoDao.somarPorPeriodo(empregoId, dataInicio.toString(), dataFim.toString())
 
-    override suspend fun contarPorEmprego(empregoId: Long): Int {
-        return ajusteSaldoDao.contarPorEmprego(empregoId)
-    }
+    override suspend fun contarPorEmprego(empregoId: Long): Int =
+        ajusteSaldoDao.contarPorEmprego(empregoId)
 
     // ========================================================================
-    // Operações Reativas (Flows)
+    // FLOWS
     // ========================================================================
 
-    override fun observarPorEmprego(empregoId: Long): Flow<List<AjusteSaldo>> {
-        return ajusteSaldoDao.listarPorEmprego(empregoId).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override fun observarPorEmprego(empregoId: Long): Flow<List<AjusteSaldo>> =
+        ajusteSaldoDao.listarPorEmprego(empregoId).map { entities -> entities.map { it.toDomain() } }
 
     override fun observarPorPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
-    ): Flow<List<AjusteSaldo>> {
-        return ajusteSaldoDao.listarPorPeriodo(
-            empregoId,
-            dataInicio.toString(),
-            dataFim.toString()
-        ).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    ): Flow<List<AjusteSaldo>> =
+        ajusteSaldoDao.listarPorPeriodo(empregoId, dataInicio.toString(), dataFim.toString())
+            .map { entities -> entities.map { it.toDomain() } }
 
-    override fun observarUltimos(empregoId: Long, limite: Int): Flow<List<AjusteSaldo>> {
-        return ajusteSaldoDao.listarUltimosPorEmprego(empregoId, limite).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override fun observarUltimos(empregoId: Long, limite: Int): Flow<List<AjusteSaldo>> =
+        ajusteSaldoDao.listarUltimosPorEmprego(empregoId, limite)
+            .map { entities -> entities.map { it.toDomain() } }
 
     companion object {
         private const val ENTIDADE = "AjusteSaldo"

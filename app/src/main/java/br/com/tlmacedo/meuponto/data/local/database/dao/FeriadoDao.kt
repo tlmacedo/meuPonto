@@ -161,9 +161,6 @@ interface FeriadoDao {
     )
     suspend fun buscarPorData(data: LocalDate, diaMes: String): List<FeriadoEntity>
 
-    // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/dao/FeriadoDao.kt
-// ADICIONAR esta nova query após buscarPorData:
-
     /**
      * Busca feriados que ocorrem em uma data específica para um emprego.
      * Já filtra por abrangência no banco para melhor performance.

@@ -1,21 +1,24 @@
-// File: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/Job.kt
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/Job.kt
 package br.com.tlmacedo.meuponto.domain.model
 
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
- * Domain model representing a user's job/work.
+ * Modelo de domínio que representa um emprego/trabalho do usuário.
  *
- * @property id Unique identifier for the job
- * @property name Job name
- * @property startDate Work start date (for vacations/benefits)
- * @property description Optional description
- * @property active Indicates if the job is active
- * @property archived Indicates if the job was archived
- * @property order Display order
- * @property createdAt Creation timestamp
- * @property updatedAt Last update timestamp
+ * @property id Identificador único do emprego
+ * @property name Nome do emprego
+ * @property startDate Data de início no trabalho (para férias/benefícios)
+ * @property description Descrição opcional
+ * @property active Indica se o emprego está ativo
+ * @property archived Indica se o emprego foi arquivado
+ * @property order Ordem de exibição
+ * @property createdAt Timestamp de criação
+ * @property updatedAt Timestamp da última atualização
+ *
+ * @author Thiago
+ * @since 1.0.0
  */
 data class Job(
     val id: Long = 0,
@@ -28,6 +31,9 @@ data class Job(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
+    /** Verifica se o emprego está visível na UI principal */
     val isVisible: Boolean get() = active && !archived
+
+    /** Verifica se é permitido registrar ponto para este emprego */
     val canRegisterClockIn: Boolean get() = active && !archived
 }

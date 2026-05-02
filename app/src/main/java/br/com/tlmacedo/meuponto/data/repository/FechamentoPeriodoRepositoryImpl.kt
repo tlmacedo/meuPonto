@@ -8,10 +8,10 @@ import br.com.tlmacedo.meuponto.domain.model.FechamentoPeriodo
 import br.com.tlmacedo.meuponto.domain.model.TipoFechamento
 import br.com.tlmacedo.meuponto.domain.repository.FechamentoPeriodoRepository
 import br.com.tlmacedo.meuponto.domain.service.AuditService
+import br.com.tlmacedo.meuponto.util.helper.dateFormatterSimples
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,69 +22,66 @@ import javax.inject.Singleton
  * @since 2.0.0
  * @updated 6.4.0 - Novo método para buscar fechamento até uma data específica
  * @updated 11.0.0 - Integração com AuditService
+ * @updated 12.0.0 - Refatorado para usar AuditedRepositoryBase
  */
 @Singleton
 class FechamentoPeriodoRepositoryImpl @Inject constructor(
     private val fechamentoDao: FechamentoPeriodoDao,
-    private val auditService: AuditService
-) : FechamentoPeriodoRepository {
+    auditService: AuditService
+) : AuditedRepositoryBase<FechamentoPeriodo>(auditService, ENTIDADE), FechamentoPeriodoRepository {
 
-    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    // ========================================================================
+    // PONTE COM O DAO
+    // ========================================================================
 
-    override suspend fun inserir(fechamento: FechamentoPeriodo): Long {
-        val id = fechamentoDao.insert(fechamento.toEntity())
+    override suspend fun daoInserir(domain: FechamentoPeriodo): Long = fechamentoDao.insert(domain.toEntity())
+    override suspend fun daoBuscarPorId(id: Long): FechamentoPeriodo? = fechamentoDao.getById(id)?.toDomain()
+    override suspend fun daoAtualizar(domain: FechamentoPeriodo) = fechamentoDao.update(domain.toEntity())
+    override suspend fun daoExcluir(domain: FechamentoPeriodo) = fechamentoDao.delete(domain.toEntity())
+    override fun getEntityId(domain: FechamentoPeriodo): Long = domain.id
 
-        auditService.logCreate(
-            entidade = ENTIDADE,
-            entidadeId = id,
-            motivo = "Fechamento ${fechamento.tipo.name} criado: ${
-                fechamento.dataInicioPeriodo.format(
-                    dateFormatter
-                )
-            } a ${fechamento.dataFimPeriodo.format(dateFormatter)}",
-            novoValor = fechamento,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
+    override fun FechamentoPeriodo.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "tipo" to tipo.name,
+        "dataFechamento" to dataFechamento.format(dateFormatterSimples),
+        "dataInicioPeriodo" to dataInicioPeriodo.format(dateFormatterSimples),
+        "dataFimPeriodo" to dataFimPeriodo.format(dateFormatterSimples),
+        "saldoAnteriorMinutos" to saldoAnteriorMinutos,
+        "observacao" to observacao
+    )
 
-        return id
-    }
+    // ========================================================================
+    // MOTIVOS DE AUDITORIA
+    // ========================================================================
 
-    override suspend fun atualizar(fechamento: FechamentoPeriodo) {
-        val anterior = fechamentoDao.getById(fechamento.id)?.toDomain()
-        fechamentoDao.update(fechamento.toEntity())
+    override fun motivoInserir(domain: FechamentoPeriodo): String =
+        "Fechamento ${domain.tipo.name} criado: ${domain.dataInicioPeriodo.format(dateFormatterSimples)} a ${domain.dataFimPeriodo.format(dateFormatterSimples)}"
 
-        auditService.logUpdate(
-            entidade = ENTIDADE,
-            entidadeId = fechamento.id,
-            motivo = "Fechamento ${fechamento.tipo.name} atualizado",
-            valorAntigo = anterior,
-            valorNovo = fechamento,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
-    }
+    override fun motivoAtualizar(domain: FechamentoPeriodo): String =
+        "Fechamento ${domain.tipo.name} atualizado"
 
-    override suspend fun excluir(fechamento: FechamentoPeriodo) {
-        auditService.logPermanentDelete(
-            entidade = ENTIDADE,
-            entidadeId = fechamento.id,
-            motivo = "Fechamento ${fechamento.tipo.name} excluído: ${
-                fechamento.dataInicioPeriodo.format(
-                    dateFormatter
-                )
-            } a ${fechamento.dataFimPeriodo.format(dateFormatter)}"
+    override fun motivoExcluir(domain: FechamentoPeriodo): String =
+        "Fechamento ${domain.tipo.name} excluído: ${domain.dataInicioPeriodo.format(dateFormatterSimples)} a ${domain.dataFimPeriodo.format(dateFormatterSimples)}"
 
-        )
+    // ========================================================================
+    // CRUD
+    // ========================================================================
 
-        fechamentoDao.delete(fechamento.toEntity())
-    }
+    override suspend fun inserir(fechamento: FechamentoPeriodo): Long = inserirComAuditoria(fechamento)
 
-    override suspend fun buscarPorId(id: Long): FechamentoPeriodo? =
-        fechamentoDao.getById(id)?.toDomain()
+    override suspend fun atualizar(fechamento: FechamentoPeriodo) = atualizarComAuditoria(fechamento)
+
+    override suspend fun excluir(fechamento: FechamentoPeriodo) = excluirComAuditoria(fechamento)
+
+    // ========================================================================
+    // CONSULTAS
+    // ========================================================================
+
+    override suspend fun buscarPorId(id: Long): FechamentoPeriodo? = daoBuscarPorId(id)
 
     override fun observarPorEmpregoId(empregoId: Long): Flow<List<FechamentoPeriodo>> =
-        fechamentoDao.observeByEmpregoId(empregoId).map { list ->
-            list.map { it.toDomain() }
-        }
+        fechamentoDao.observeByEmpregoId(empregoId).map { list -> list.map { it.toDomain() } }
 
     override suspend fun buscarPorEmpregoId(empregoId: Long): List<FechamentoPeriodo> =
         fechamentoDao.getByEmpregoId(empregoId).map { it.toDomain() }
@@ -99,9 +96,7 @@ class FechamentoPeriodoRepositoryImpl @Inject constructor(
         fechamentoDao.getFechamentosBancoHoras(empregoId).map { it.toDomain() }
 
     override fun observarFechamentosBancoHoras(empregoId: Long): Flow<List<FechamentoPeriodo>> =
-        fechamentoDao.observeFechamentosBancoHoras(empregoId).map { list ->
-            list.map { it.toDomain() }
-        }
+        fechamentoDao.observeFechamentosBancoHoras(empregoId).map { list -> list.map { it.toDomain() } }
 
     override suspend fun buscarPorData(empregoId: Long, data: LocalDate): FechamentoPeriodo? =
         fechamentoDao.buscarPorData(empregoId, data)?.toDomain()
@@ -131,27 +126,11 @@ class FechamentoPeriodoRepositoryImpl @Inject constructor(
             entidadeId = empregoId,
             motivo = "Todos os fechamentos do emprego $empregoId foram excluídos"
         )
-
         fechamentoDao.deleteByEmpregoId(empregoId)
     }
 
     override suspend fun contarPorEmpregoId(empregoId: Long): Int =
         fechamentoDao.countByEmpregoId(empregoId)
-
-    // ========================================================================
-    // Helpers
-    // ========================================================================
-
-    private fun FechamentoPeriodo.toAuditMap(): Map<String, Any?> = mapOf(
-        "id" to id,
-        "empregoId" to empregoId,
-        "tipo" to tipo.name,
-        "dataFechamento" to dataFechamento.format(dateFormatter),
-        "dataInicioPeriodo" to dataInicioPeriodo.format(dateFormatter),
-        "dataFimPeriodo" to dataFimPeriodo.format(dateFormatter),
-        "saldoAnteriorMinutos" to saldoAnteriorMinutos,
-        "observacao" to observacao
-    )
 
     companion object {
         private const val ENTIDADE = "FechamentoPeriodo"

@@ -22,80 +22,33 @@ import javax.inject.Singleton
  * @since 2.0.0
  * @updated 8.0.0 - Simplificado após migração de campos para VersaoJornada
  * @updated 11.0.0 - Integração com AuditService
+ * @updated 12.0.0 - Refatorado para usar AuditedRepositoryBase
  */
 @Singleton
 class ConfiguracaoEmpregoRepositoryImpl @Inject constructor(
     private val configuracaoEmpregoDao: ConfiguracaoEmpregoDao,
-    private val auditService: AuditService
-) : ConfiguracaoEmpregoRepository {
-
-    override suspend fun inserir(configuracao: ConfiguracaoEmprego): Long {
-        val id = configuracaoEmpregoDao.inserir(configuracao.toEntity())
-
-        auditService.logCreate(
-            entidade = ENTIDADE,
-            entidadeId = id,
-            motivo = "Configuração de emprego criada para empregoId=${configuracao.empregoId}",
-            novoValor = configuracao,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
-
-        return id
-    }
-
-    override suspend fun atualizar(configuracao: ConfiguracaoEmprego) {
-        val anterior = configuracaoEmpregoDao.buscarPorId(configuracao.id)?.toDomain()
-        configuracaoEmpregoDao.atualizar(configuracao.toEntity())
-
-        auditService.logUpdate(
-            entidade = ENTIDADE,
-            entidadeId = configuracao.id,
-            motivo = "Configuração de emprego atualizada para empregoId=${configuracao.empregoId}",
-            valorAntigo = anterior,
-            valorNovo = configuracao,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
-    }
-
-    override suspend fun excluir(configuracao: ConfiguracaoEmprego) {
-        auditService.logPermanentDelete(
-            entidade = ENTIDADE,
-            entidadeId = configuracao.id,
-            motivo = "Configuração de emprego excluída para empregoId=${configuracao.empregoId}"
-        )
-
-        configuracaoEmpregoDao.excluir(configuracao.toEntity())
-    }
-
-    override suspend fun buscarPorId(id: Long): ConfiguracaoEmprego? {
-        return configuracaoEmpregoDao.buscarPorId(id)?.toDomain()
-    }
-
-    override suspend fun buscarPorEmpregoId(empregoId: Long): ConfiguracaoEmprego? {
-        return configuracaoEmpregoDao.buscarPorEmpregoId(empregoId)?.toDomain()
-    }
-
-    override fun observarPorEmpregoId(empregoId: Long): Flow<ConfiguracaoEmprego?> {
-        return configuracaoEmpregoDao.observarPorEmpregoId(empregoId).map { it?.toDomain() }
-    }
-
-    override suspend fun listarTodas(): List<ConfiguracaoEmprego> {
-        return configuracaoEmpregoDao.listarTodas().map { it.toDomain() }
-    }
-
-    override fun observarTodas(): Flow<List<ConfiguracaoEmprego>> {
-        return configuracaoEmpregoDao.observarTodas().map { list -> list.map { it.toDomain() } }
-    }
-
-    override suspend fun existeParaEmprego(empregoId: Long): Boolean {
-        return configuracaoEmpregoDao.existeParaEmprego(empregoId)
-    }
+    auditService: AuditService
+) : AuditedRepositoryBase<ConfiguracaoEmprego>(auditService, ENTIDADE), ConfiguracaoEmpregoRepository {
 
     // ========================================================================
-    // Helpers
+    // PONTE COM O DAO
     // ========================================================================
 
-    private fun ConfiguracaoEmprego.toAuditMap(): Map<String, Any?> = mapOf(
+    override suspend fun daoInserir(domain: ConfiguracaoEmprego): Long =
+        configuracaoEmpregoDao.inserir(domain.toEntity())
+
+    override suspend fun daoBuscarPorId(id: Long): ConfiguracaoEmprego? =
+        configuracaoEmpregoDao.buscarPorId(id)?.toDomain()
+
+    override suspend fun daoAtualizar(domain: ConfiguracaoEmprego) =
+        configuracaoEmpregoDao.atualizar(domain.toEntity())
+
+    override suspend fun daoExcluir(domain: ConfiguracaoEmprego) =
+        configuracaoEmpregoDao.excluir(domain.toEntity())
+
+    override fun getEntityId(domain: ConfiguracaoEmprego): Long = domain.id
+
+    override fun ConfiguracaoEmprego.toAuditMap(): Map<String, Any?> = mapOf(
         "id" to id,
         "empregoId" to empregoId,
         "habilitarNsr" to habilitarNsr,
@@ -107,6 +60,53 @@ class ConfiguracaoEmpregoRepositoryImpl @Inject constructor(
         "exibirDuracaoTurno" to exibirDuracaoTurno,
         "exibirDuracaoIntervalo" to exibirDuracaoIntervalo
     )
+
+    // ========================================================================
+    // MOTIVOS DE AUDITORIA
+    // ========================================================================
+
+    override fun motivoInserir(domain: ConfiguracaoEmprego): String =
+        "Configuração de emprego criada para empregoId=${domain.empregoId}"
+
+    override fun motivoAtualizar(domain: ConfiguracaoEmprego): String =
+        "Configuração de emprego atualizada para empregoId=${domain.empregoId}"
+
+    override fun motivoExcluir(domain: ConfiguracaoEmprego): String =
+        "Configuração de emprego excluída para empregoId=${domain.empregoId}"
+
+    // ========================================================================
+    // CRUD
+    // ========================================================================
+
+    override suspend fun inserir(configuracao: ConfiguracaoEmprego): Long =
+        inserirComAuditoria(configuracao)
+
+    override suspend fun atualizar(configuracao: ConfiguracaoEmprego) =
+        atualizarComAuditoria(configuracao)
+
+    override suspend fun excluir(configuracao: ConfiguracaoEmprego) =
+        excluirComAuditoria(configuracao)
+
+    // ========================================================================
+    // CONSULTAS
+    // ========================================================================
+
+    override suspend fun buscarPorId(id: Long): ConfiguracaoEmprego? = daoBuscarPorId(id)
+
+    override suspend fun buscarPorEmpregoId(empregoId: Long): ConfiguracaoEmprego? =
+        configuracaoEmpregoDao.buscarPorEmpregoId(empregoId)?.toDomain()
+
+    override fun observarPorEmpregoId(empregoId: Long): Flow<ConfiguracaoEmprego?> =
+        configuracaoEmpregoDao.observarPorEmpregoId(empregoId).map { it?.toDomain() }
+
+    override suspend fun listarTodas(): List<ConfiguracaoEmprego> =
+        configuracaoEmpregoDao.listarTodas().map { it.toDomain() }
+
+    override fun observarTodas(): Flow<List<ConfiguracaoEmprego>> =
+        configuracaoEmpregoDao.observarTodas().map { list -> list.map { it.toDomain() } }
+
+    override suspend fun existeParaEmprego(empregoId: Long): Boolean =
+        configuracaoEmpregoDao.existeParaEmprego(empregoId)
 
     companion object {
         private const val ENTIDADE = "ConfiguracaoEmprego"

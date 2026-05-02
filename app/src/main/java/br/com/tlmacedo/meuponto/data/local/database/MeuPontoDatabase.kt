@@ -1,4 +1,4 @@
-// path: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/MeuPontoDatabase.kt
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/data/local/database/MeuPontoDatabase.kt
 package br.com.tlmacedo.meuponto.data.local.database
 
 import androidx.room.Database

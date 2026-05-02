@@ -11,15 +11,15 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * UseCase responsável por montar o contexto completo da jornada de um dia.
+ * Caso de uso responsável por consolidar todas as regras e configurações aplicáveis
+ * a um emprego em uma data específica.
  *
- * Este é o ponto único e oficial para buscar:
- * - emprego carregado
- * - configuração do emprego
- * - versão vigente da jornada
- * - horário do dia da semana dentro da versão
+ * Este UseCase é fundamental para garantir que cálculos retroativos usem as regras
+ * vigentes na época (via versionamento de jornada) e que as configurações de
+ * tolerância, carga horária e intervalos estejam corretas para o dia da semana.
  *
- * Isso impede misturar regras de empregos ou versões diferentes.
+ * @author Thiago
+ * @since 8.0.0
  */
 class ObterContextoJornadaDiaUseCase @Inject constructor(
     private val empregoRepository: EmpregoRepository,

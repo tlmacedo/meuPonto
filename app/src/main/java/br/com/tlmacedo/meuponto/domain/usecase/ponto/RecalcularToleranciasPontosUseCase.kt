@@ -1,3 +1,4 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/ponto/RecalcularToleranciasPontosUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.ponto
 
 import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
@@ -8,15 +9,19 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * Recalcula a horaConsiderada dos pontos existentes usando a regra atual:
+ * Caso de uso responsável pelo recálculo massivo da horaConsiderada dos pontos existentes.
  *
- * - horaConsiderada = hora por padrão
- * - somente retorno de intervalo pode receber tolerância
- * - no máximo uma tolerância por dia
- * - se houver mais de um retorno elegível, vence o mais próximo da saída ideal
+ * É acionado geralmente após atualizações do app que mudam a lógica de tolerância
+ * ou quando o usuário altera configurações críticas de jornada que retroagem.
  *
- * Esta classe é o recálculo em massa.
- * O cálculo diário fica centralizado em RecalcularHoraConsideradaPontosDiaUseCase.
+ * A lógica segue a regra:
+ * 1. horaConsiderada = hora real (reset padrão);
+ * 2. Identifica retornos de intervalo elegíveis para tolerância;
+ * 3. Aplica no máximo uma tolerância por dia;
+ * 4. Critério de desempate: proximidade com o horário de saída ideal.
+ *
+ * @author Thiago
+ * @since 7.1.0
  */
 class RecalcularToleranciasPontosUseCase @Inject constructor(
     private val pontoRepository: PontoRepository,

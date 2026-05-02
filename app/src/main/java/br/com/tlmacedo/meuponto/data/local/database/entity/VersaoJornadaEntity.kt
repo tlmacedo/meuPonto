@@ -13,12 +13,21 @@ import java.time.LocalDateTime
 /**
  * Entidade Room que representa uma versão de jornada de trabalho.
  *
- * Agora contém também configurações de banco de horas e período RH,
- * permitindo versionamento temporal completo.
+ * Esta entidade armazena o "snapshot" das regras de um emprego em um determinado período.
+ * Isso permite que alterações no contrato de trabalho (mudança de carga horária,
+ * ativação de banco de horas, etc) não afetem o cálculo de registros passados.
+ *
+ * @property id Identificador único
+ * @property empregoId FK para o emprego dono desta versão
+ * @property dataInicio Data a partir da qual estas regras valem
+ * @property dataFim Data limite de vigência (null se for a versão atual)
+ * @property descricao Nome amigável para a versão (ex: "Contrato 2024")
+ * @property numeroVersao Sequencial para controle de histórico
+ * @property vigente Flag indicando se é a configuração ativa no momento
  *
  * @author Thiago
  * @since 2.7.0
- * @updated 8.0.0 - Migração de campos de ConfiguracaoEmprego para versionamento
+ * @updated 8.0.0 - Unificação de regras de banco, jornada e RH em uma única entidade temporal
  */
 @Entity(
     tableName = "versoes_jornada",

@@ -8,8 +8,28 @@ import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import java.time.LocalDate
 import javax.inject.Inject
 
+/**
+ * Caso de uso responsável por transformar uma lista de registros de ponto e configurações
+ * em um objeto [ResumoDia] consolidado.
+ *
+ * @author Thiago
+ * @since 3.0.0
+ * @updated 12.0.0 - Suporte a múltiplos horários e acréscimos de dias pontes
+ */
 class CalcularResumoDiaUseCase @Inject constructor() {
 
+    /**
+     * Calcula o resumo do dia com base em configurações detalhadas de horário.
+     *
+     * @param pontos Lista de pontos registrados no dia
+     * @param data Data de referência
+     * @param horarioDiaSemana Configurações de horário para este dia da semana
+     * @param toleranciaIntervaloGlobal Tolerância configurada para o intervalo
+     * @param acrescimoDiasPontes Minutos extras a serem somados na jornada (compensação)
+     * @param tipoAusencia Tipo de ausência registrado para o dia (opcional)
+     * @param tempoAbonadoMinutos Minutos abonados por justificativa (opcional)
+     * @return Objeto [ResumoDia] com os cálculos consolidados
+     */
     operator fun invoke(
         pontos: List<Ponto>,
         data: LocalDate = LocalDate.now(),
@@ -36,6 +56,16 @@ class CalcularResumoDiaUseCase @Inject constructor() {
         )
     }
 
+    /**
+     * Versão simplificada do cálculo de resumo.
+     *
+     * @param pontos Lista de pontos registrados
+     * @param data Data de referência
+     * @param cargaHorariaDiariaMinutos Carga horária total prevista para o dia
+     * @param tipoAusencia Tipo de ausência (opcional)
+     * @param tempoAbonadoMinutos Minutos abonados (opcional)
+     * @return Objeto [ResumoDia] consolidado
+     */
     operator fun invoke(
         pontos: List<Ponto>,
         data: LocalDate,

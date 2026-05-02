@@ -1,4 +1,4 @@
-// Arquivo: TipoPonto.kt
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/TipoPonto.kt
 package br.com.tlmacedo.meuponto.domain.model
 
 /**

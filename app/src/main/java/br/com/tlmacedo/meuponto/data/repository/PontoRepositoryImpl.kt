@@ -4,13 +4,15 @@ package br.com.tlmacedo.meuponto.data.repository
 import br.com.tlmacedo.meuponto.data.local.database.dao.PontoDao
 import br.com.tlmacedo.meuponto.data.local.database.entity.toDomain
 import br.com.tlmacedo.meuponto.data.local.database.entity.toEntity
+import br.com.tlmacedo.meuponto.domain.model.FotoOrigem
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.service.AuditService
+import br.com.tlmacedo.meuponto.util.helper.dateFormatterSimples
+import br.com.tlmacedo.meuponto.util.helper.horaFormatter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,173 +22,148 @@ import javax.inject.Singleton
  * @author Thiago
  * @since 1.0.0
  * @updated 11.0.0 - Adicionado suporte completo a soft delete, lixeira e auditoria
+ * @updated 12.0.0 - Refatorado para usar AuditedRepositoryBase
  */
 @Singleton
 class PontoRepositoryImpl @Inject constructor(
     private val pontoDao: PontoDao,
-    private val auditService: AuditService
-) : PontoRepository {
+    auditService: AuditService
+) : AuditedRepositoryBase<Ponto>(auditService, ENTIDADE), PontoRepository {
 
-    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    // ========================================================================
+    // PONTE COM O DAO
+    // ========================================================================
 
-    // === Operações básicas ===
+    override suspend fun daoInserir(domain: Ponto): Long = pontoDao.inserir(domain.toEntity())
+    override suspend fun daoBuscarPorId(id: Long): Ponto? = pontoDao.buscarPorId(id)?.toDomain()
+    override suspend fun daoAtualizar(domain: Ponto) = pontoDao.atualizar(domain.toEntity())
+    override suspend fun daoExcluir(domain: Ponto) = pontoDao.excluir(domain.toEntity())
+    override fun getEntityId(domain: Ponto): Long = domain.id
 
-    override suspend fun inserir(ponto: Ponto): Long {
-        val id = pontoDao.inserir(ponto.toEntity())
+    override fun Ponto.toAuditMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "empregoId" to empregoId,
+        "data" to data.format(dateFormatterSimples),
+        "horaReal" to horaFormatada,
+        "horaConsiderada" to horaConsideradaFormatada,
+        "nsr" to nsr,
+        "observacao" to observacao,
+        "fotoComprovantePath" to fotoComprovantePath,
+        "isEditadoManualmente" to isEditadoManualmente,
+        "isDeleted" to isDeleted
+    )
 
-        auditService.logCreate(
-            entidade = ENTIDADE,
-            entidadeId = id,
-            motivo = "Ponto registrado em ${ponto.data.format(dateFormatter)} às ${
-                ponto.hora.format(
-                    timeFormatter
-                )
-            }",
-            novoValor = ponto,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
+    // ========================================================================
+    // MOTIVOS DE AUDITORIA
+    // ========================================================================
 
-        return id
-    }
+    override fun motivoInserir(domain: Ponto): String =
+        "Ponto registrado em ${domain.data.format(dateFormatterSimples)} às ${domain.hora.format(horaFormatter)}"
 
-    override suspend fun atualizar(ponto: Ponto) {
-        val anterior = pontoDao.buscarPorId(ponto.id)?.toDomain()
-        pontoDao.atualizar(ponto.toEntity())
+    override fun motivoAtualizar(domain: Ponto): String =
+        "Ponto atualizado em ${domain.data.format(dateFormatterSimples)}"
 
-        auditService.logUpdate(
-            entidade = ENTIDADE,
-            entidadeId = ponto.id,
-            motivo = "Ponto atualizado em ${ponto.data.format(dateFormatter)}",
-            valorAntigo = anterior,
-            valorNovo = ponto,
-            serializer = { auditService.toJson(it.toAuditMap()) }
-        )
-    }
+    override fun motivoExcluir(domain: Ponto): String =
+        "Ponto excluído permanentemente: ${domain.data.format(dateFormatterSimples)} às ${domain.hora.format(horaFormatter)}"
 
-    override suspend fun excluir(ponto: Ponto) {
-        auditService.logPermanentDelete(
-            entidade = ENTIDADE,
-            entidadeId = ponto.id,
-            motivo = "Ponto excluído permanentemente: ${ponto.data.format(dateFormatter)} às ${
-                ponto.hora.format(
-                    timeFormatter
-                )
-            }"
-        )
+    // ========================================================================
+    // CRUD
+    // ========================================================================
 
-        pontoDao.excluir(ponto.toEntity())
-    }
+    override suspend fun inserir(ponto: Ponto): Long = inserirComAuditoria(ponto)
 
-    // === Consultas por ID ===
+    override suspend fun atualizar(ponto: Ponto) = atualizarComAuditoria(ponto)
 
-    override suspend fun buscarPorId(id: Long): Ponto? {
-        return pontoDao.buscarPorId(id)?.toDomain()
-    }
+    override suspend fun excluir(ponto: Ponto) = excluirComAuditoria(ponto)
 
-    override fun observarPorId(id: Long): Flow<Ponto?> {
-        return pontoDao.observarPorId(id).map { it?.toDomain() }
-    }
+    // ========================================================================
+    // CONSULTAS POR ID
+    // ========================================================================
 
-    // === Consultas gerais ===
+    override suspend fun buscarPorId(id: Long): Ponto? = daoBuscarPorId(id)
 
-    override fun listarTodos(): Flow<List<Ponto>> {
-        return pontoDao.listarTodos().map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override fun observarPorId(id: Long): Flow<Ponto?> =
+        pontoDao.observarPorId(id).map { it?.toDomain() }
 
-    override fun observarTodos(): Flow<List<Ponto>> {
-        return pontoDao.observarTodos().map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    // ========================================================================
+    // CONSULTAS GERAIS
+    // ========================================================================
 
-    // === Consultas por Emprego ===
+    override fun listarTodos(): Flow<List<Ponto>> =
+        pontoDao.listarTodos().map { entities -> entities.map { it.toDomain() } }
 
-    override fun listarPorEmprego(empregoId: Long): Flow<List<Ponto>> {
-        return pontoDao.listarPorEmprego(empregoId).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override fun observarTodos(): Flow<List<Ponto>> =
+        pontoDao.observarTodos().map { entities -> entities.map { it.toDomain() } }
 
-    override fun observarPorEmprego(empregoId: Long): Flow<List<Ponto>> {
-        return pontoDao.observarPorEmprego(empregoId).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    // ========================================================================
+    // CONSULTAS POR EMPREGO
+    // ========================================================================
 
-    override suspend fun contarPorEmprego(empregoId: Long): Int {
-        return pontoDao.contarPorEmprego(empregoId)
-    }
+    override fun listarPorEmprego(empregoId: Long): Flow<List<Ponto>> =
+        pontoDao.listarPorEmprego(empregoId).map { entities -> entities.map { it.toDomain() } }
 
-    override suspend fun buscarPrimeiraData(empregoId: Long): LocalDate? {
-        return pontoDao.buscarPrimeiraData(empregoId)
-    }
+    override fun observarPorEmprego(empregoId: Long): Flow<List<Ponto>> =
+        pontoDao.observarPorEmprego(empregoId).map { entities -> entities.map { it.toDomain() } }
 
-    // === Consultas por Data ===
+    override suspend fun contarPorEmprego(empregoId: Long): Int =
+        pontoDao.contarPorEmprego(empregoId)
 
-    override fun listarPorData(data: LocalDate): Flow<List<Ponto>> {
-        return pontoDao.listarPorData(data).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override suspend fun buscarPrimeiraData(empregoId: Long): LocalDate? =
+        pontoDao.buscarPrimeiraData(empregoId)
 
-    override suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): List<Ponto> {
-        return pontoDao.buscarPorEmpregoEData(empregoId, data).map { it.toDomain() }
-    }
+    // ========================================================================
+    // CONSULTAS POR DATA
+    // ========================================================================
 
-    override fun observarPorEmpregoEData(empregoId: Long, data: LocalDate): Flow<List<Ponto>> {
-        return pontoDao.observarPorEmpregoEData(empregoId, data).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override fun listarPorData(data: LocalDate): Flow<List<Ponto>> =
+        pontoDao.listarPorData(data).map { entities -> entities.map { it.toDomain() } }
 
-    // === Consultas por Período ===
+    override suspend fun buscarPorEmpregoEData(empregoId: Long, data: LocalDate): List<Ponto> =
+        pontoDao.buscarPorEmpregoEData(empregoId, data).map { it.toDomain() }
 
-    override fun listarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): Flow<List<Ponto>> {
-        return pontoDao.listarPorPeriodo(dataInicio, dataFim).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override fun observarPorEmpregoEData(empregoId: Long, data: LocalDate): Flow<List<Ponto>> =
+        pontoDao.observarPorEmpregoEData(empregoId, data).map { entities -> entities.map { it.toDomain() } }
+
+    // ========================================================================
+    // CONSULTAS POR PERÍODO
+    // ========================================================================
+
+    override fun listarPorPeriodo(dataInicio: LocalDate, dataFim: LocalDate): Flow<List<Ponto>> =
+        pontoDao.listarPorPeriodo(dataInicio, dataFim).map { entities -> entities.map { it.toDomain() } }
 
     override fun listarPorEmpregoEPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
-    ): Flow<List<Ponto>> {
-        return pontoDao.listarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    ): Flow<List<Ponto>> =
+        pontoDao.listarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
+            .map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun buscarPorEmpregoEPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
-    ): List<Ponto> {
-        return pontoDao.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
-            .map { it.toDomain() }
-    }
+    ): List<Ponto> =
+        pontoDao.buscarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim).map { it.toDomain() }
 
     override fun observarPorEmpregoEPeriodo(
         empregoId: Long,
         dataInicio: LocalDate,
         dataFim: LocalDate
-    ): Flow<List<Ponto>> {
-        return pontoDao.observarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    ): Flow<List<Ponto>> =
+        pontoDao.observarPorEmpregoEPeriodo(empregoId, dataInicio, dataFim)
+            .map { entities -> entities.map { it.toDomain() } }
 
-    // === Atualização de foto ===
+    // ========================================================================
+    // ATUALIZAÇÃO DE FOTO
+    // ========================================================================
 
     override suspend fun atualizarFotoComprovante(
         pontoId: Long,
         fotoPath: String?,
-        fotoOrigem: br.com.tlmacedo.meuponto.domain.model.FotoOrigem
+        fotoOrigem: FotoOrigem
     ) {
-        val anterior = pontoDao.buscarPorId(pontoId)?.toDomain()
+        val anterior = daoBuscarPorId(pontoId)
         pontoDao.atualizarFotoComprovante(pontoId, fotoPath, fotoOrigem.id)
 
         auditService.logUpdate(
@@ -199,35 +176,28 @@ class PontoRepositoryImpl @Inject constructor(
         )
     }
 
-    // === Soft Delete e Lixeira ===
+    // ========================================================================
+    // SOFT DELETE E LIXEIRA
+    // ========================================================================
 
-    override suspend fun buscarPorIdIncluindoDeletados(id: Long): Ponto? {
-        return pontoDao.buscarPorIdIncluindoDeletados(id)?.toDomain()
-    }
+    override suspend fun buscarPorIdIncluindoDeletados(id: Long): Ponto? =
+        pontoDao.buscarPorIdIncluindoDeletados(id)?.toDomain()
 
-    override suspend fun listarDeletados(): List<Ponto> {
-        return pontoDao.listarDeletados().map { it.toDomain() }
-    }
+    override suspend fun listarDeletados(): List<Ponto> =
+        pontoDao.listarDeletados().map { it.toDomain() }
 
-    override fun observarDeletados(): Flow<List<Ponto>> {
-        return pontoDao.observarDeletados().map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
+    override fun observarDeletados(): Flow<List<Ponto>> =
+        pontoDao.observarDeletados().map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun softDelete(pontoId: Long) {
-        val ponto = pontoDao.buscarPorId(pontoId)?.toDomain()
+        val ponto = daoBuscarPorId(pontoId)
         pontoDao.softDelete(pontoId, System.currentTimeMillis())
 
         auditService.logDelete(
             entidade = ENTIDADE,
             entidadeId = pontoId,
             motivo = ponto?.let {
-                "Ponto movido para lixeira: ${it.data.format(dateFormatter)} às ${
-                    it.hora.format(
-                        timeFormatter
-                    )
-                }"
+                "Ponto movido para lixeira: ${it.data.format(dateFormatterSimples)} às ${it.hora.format(horaFormatter)}"
             } ?: "Ponto movido para lixeira",
             dadosAnteriores = ponto?.let { auditService.toJson(it.toAuditMap()) }
         )
@@ -240,20 +210,14 @@ class PontoRepositoryImpl @Inject constructor(
             entidade = ENTIDADE,
             entidadeId = pontoId,
             motivo = ponto?.let {
-                "Ponto excluído permanentemente: ${it.data.format(dateFormatter)} às ${
-                    it.hora.format(
-                        timeFormatter
-                    )
-                }"
+                "Ponto excluído permanentemente: ${it.data.format(dateFormatterSimples)} às ${it.hora.format(horaFormatter)}"
             } ?: "Ponto excluído permanentemente"
         )
 
         pontoDao.excluirPermanente(pontoId)
     }
 
-    override suspend fun contarDeletados(): Int {
-        return pontoDao.contarDeletados()
-    }
+    override suspend fun contarDeletados(): Int = pontoDao.contarDeletados()
 
     override suspend fun restaurar(pontoId: Long) {
         val ponto = pontoDao.buscarPorIdIncluindoDeletados(pontoId)?.toDomain()
@@ -263,16 +227,14 @@ class PontoRepositoryImpl @Inject constructor(
             entidade = ENTIDADE,
             entidadeId = pontoId,
             motivo = ponto?.let {
-                "Ponto restaurado: ${it.data.format(dateFormatter)} às ${
-                    it.hora.format(
-                        timeFormatter
-                    )
-                }"
+                "Ponto restaurado: ${it.data.format(dateFormatterSimples)} às ${it.hora.format(horaFormatter)}"
             } ?: "Ponto restaurado da lixeira"
         )
     }
 
-    // === Manutenção ===
+    // ========================================================================
+    // MANUTENÇÃO
+    // ========================================================================
 
     override suspend fun excluirPontosAnterioresA(data: LocalDate): Int {
         val count = pontoDao.excluirPontosAnterioresA(data)
@@ -280,30 +242,11 @@ class PontoRepositoryImpl @Inject constructor(
             auditService.logPermanentDelete(
                 entidade = ENTIDADE,
                 entidadeId = 0L,
-                motivo = "Exclusão em massa de $count pontos anteriores a ${
-                    data.format(
-                        dateFormatter
-                    )
-                }"
+                motivo = "Exclusão em massa de $count pontos anteriores a ${data.format(dateFormatterSimples)}"
             )
         }
         return count
     }
-
-    // === Helpers ===
-
-    private fun Ponto.toAuditMapLocal(): Map<String, Any?> = mapOf(
-        "id" to id,
-        "empregoId" to empregoId,
-        "data" to data.format(dateFormatter),
-        "horaReal" to horaFormatada,
-        "horaConsiderada" to horaConsideradaFormatada,
-        "nsr" to nsr,
-        "observacao" to observacao,
-        "fotoComprovantePath" to fotoComprovantePath,
-        "isEditadoManualmente" to isEditadoManualmente,
-        "isDeleted" to isDeleted
-    )
 
     companion object {
         private const val ENTIDADE = "Ponto"

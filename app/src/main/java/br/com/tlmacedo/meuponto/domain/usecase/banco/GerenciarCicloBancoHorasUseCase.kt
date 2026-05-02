@@ -13,11 +13,18 @@ import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
- * UseCase responsável pelo gerenciamento automático dos ciclos do banco de horas.
+ * Caso de uso responsável pelo gerenciamento automático dos ciclos do banco de horas.
+ *
+ * Esta classe automatiza a transição entre ciclos de banco de horas (ex: semestral, anual).
+ * Quando a data atual ultrapassa o fim do ciclo vigente, o UseCase:
+ * 1. Calcula o saldo final do ciclo expirado;
+ * 2. Cria um registro de [FechamentoPeriodo] para auditoria;
+ * 3. Atualiza a [VersaoJornada] com a nova data de início do ciclo;
+ * 4. Repete o processo se múltiplos ciclos tiverem expirado (ex: app aberto após meses).
  *
  * @author Thiago
  * @since 3.0.0
- * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository
+ * @updated 8.0.0 - Migrado para usar VersaoJornadaRepository para suporte a histórico temporal
  */
 class GerenciarCicloBancoHorasUseCase @Inject constructor(
     private val versaoJornadaRepository: VersaoJornadaRepository,

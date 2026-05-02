@@ -1,3 +1,4 @@
+// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/screen/settings/horarios/HorariosViewModel.kt
 package br.com.tlmacedo.meuponto.presentation.screen.settings.horarios
 
 import androidx.lifecycle.SavedStateHandle
