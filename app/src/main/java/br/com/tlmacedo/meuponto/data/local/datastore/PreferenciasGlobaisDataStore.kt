@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import br.com.tlmacedo.meuponto.domain.model.ConfiguracaoJornada
 import br.com.tlmacedo.meuponto.domain.model.PreferenciasGlobais
 import br.com.tlmacedo.meuponto.domain.model.PreferenciasGlobais.FormatoData
 import br.com.tlmacedo.meuponto.domain.model.PreferenciasGlobais.FormatoHora
@@ -58,6 +59,17 @@ class PreferenciasGlobaisDataStore @Inject constructor(
         val FORMATO_DATA = intPreferencesKey("formato_data")
         val FORMATO_HORA = intPreferencesKey("formato_hora")
         val PRIMEIRO_DIA_SEMANA = intPreferencesKey("primeiro_dia_semana")
+        // ConfiguracaoJornada (migrado de PreferencesDataStore)
+        val CARGA_HORARIA_DIARIA = intPreferencesKey("jornada_carga_horaria_diaria")
+        val CARGA_HORARIA_SEMANAL = intPreferencesKey("jornada_carga_horaria_semanal")
+        val INTERVALO_MINIMO = intPreferencesKey("jornada_intervalo_minimo")
+        val TOLERANCIA = intPreferencesKey("jornada_tolerancia")
+        val JORNADA_MAXIMA = intPreferencesKey("jornada_maxima_diaria")
+        val HORA_ENTRADA_PADRAO = intPreferencesKey("jornada_hora_entrada")
+        val MINUTO_ENTRADA_PADRAO = intPreferencesKey("jornada_minuto_entrada")
+        val HORA_SAIDA_PADRAO = intPreferencesKey("jornada_hora_saida")
+        val MINUTO_SAIDA_PADRAO = intPreferencesKey("jornada_minuto_saida")
+        val PRIMEIRO_ACESSO = booleanPreferencesKey("primeiro_acesso")
     }
 
     val preferenciasGlobais: Flow<PreferenciasGlobais> =
@@ -191,6 +203,61 @@ class PreferenciasGlobaisDataStore @Inject constructor(
             } else {
                 prefs[Keys.ULTIMO_BACKUP_LOCAL] = now
             }
+        }
+    }
+
+    // ── ConfiguracaoJornada ──────────────────────────────────────────────────
+
+    val configuracaoJornada: Flow<ConfiguracaoJornada> =
+        context.prefsGlobaisDataStore.data.map { prefs ->
+            ConfiguracaoJornada(
+                cargaHorariaDiariaMinutos = prefs[Keys.CARGA_HORARIA_DIARIA]
+                    ?: ConfiguracaoJornada.DEFAULT_CARGA_HORARIA_DIARIA,
+                cargaHorariaSemanalMinutos = prefs[Keys.CARGA_HORARIA_SEMANAL]
+                    ?: ConfiguracaoJornada.DEFAULT_CARGA_HORARIA_SEMANAL,
+                intervaloMinimoMinutos = prefs[Keys.INTERVALO_MINIMO]
+                    ?: ConfiguracaoJornada.DEFAULT_INTERVALO_MINIMO,
+                toleranciaMinutos = prefs[Keys.TOLERANCIA]
+                    ?: ConfiguracaoJornada.DEFAULT_TOLERANCIA,
+                jornadaMaximaDiariaMinutos = prefs[Keys.JORNADA_MAXIMA]
+                    ?: ConfiguracaoJornada.DEFAULT_JORNADA_MAXIMA,
+                horaEntradaPadrao = prefs[Keys.HORA_ENTRADA_PADRAO]
+                    ?: ConfiguracaoJornada.DEFAULT_HORA_ENTRADA,
+                minutoEntradaPadrao = prefs[Keys.MINUTO_ENTRADA_PADRAO]
+                    ?: ConfiguracaoJornada.DEFAULT_MINUTO_ENTRADA,
+                horaSaidaPadrao = prefs[Keys.HORA_SAIDA_PADRAO]
+                    ?: ConfiguracaoJornada.DEFAULT_HORA_SAIDA,
+                minutoSaidaPadrao = prefs[Keys.MINUTO_SAIDA_PADRAO]
+                    ?: ConfiguracaoJornada.DEFAULT_MINUTO_SAIDA
+            )
+        }
+
+    suspend fun salvarConfiguracaoJornada(configuracao: ConfiguracaoJornada) {
+        Timber.d("Salvando configuração de jornada: $configuracao")
+        context.prefsGlobaisDataStore.edit { prefs ->
+            prefs[Keys.CARGA_HORARIA_DIARIA] = configuracao.cargaHorariaDiariaMinutos
+            prefs[Keys.CARGA_HORARIA_SEMANAL] = configuracao.cargaHorariaSemanalMinutos
+            prefs[Keys.INTERVALO_MINIMO] = configuracao.intervaloMinimoMinutos
+            prefs[Keys.TOLERANCIA] = configuracao.toleranciaMinutos
+            prefs[Keys.JORNADA_MAXIMA] = configuracao.jornadaMaximaDiariaMinutos
+            prefs[Keys.HORA_ENTRADA_PADRAO] = configuracao.horaEntradaPadrao
+            prefs[Keys.MINUTO_ENTRADA_PADRAO] = configuracao.minutoEntradaPadrao
+            prefs[Keys.HORA_SAIDA_PADRAO] = configuracao.horaSaidaPadrao
+            prefs[Keys.MINUTO_SAIDA_PADRAO] = configuracao.minutoSaidaPadrao
+        }
+    }
+
+    // ── Primeiro Acesso ──────────────────────────────────────────────────────
+
+    val isPrimeiroAcesso: Flow<Boolean> =
+        context.prefsGlobaisDataStore.data.map { prefs ->
+            prefs[Keys.PRIMEIRO_ACESSO] ?: true
+        }
+
+    suspend fun marcarPrimeiroAcessoConcluido() {
+        Timber.d("Marcando primeiro acesso como concluído")
+        context.prefsGlobaisDataStore.edit { prefs ->
+            prefs[Keys.PRIMEIRO_ACESSO] = false
         }
     }
 }

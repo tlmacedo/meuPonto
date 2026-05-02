@@ -43,6 +43,7 @@ import br.com.tlmacedo.meuponto.domain.usecase.ponto.RegistrarPontoUseCase
 import br.com.tlmacedo.meuponto.util.ComprovanteImageStorage
 import br.com.tlmacedo.meuponto.util.foto.ImageHashCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import timber.log.Timber
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -328,10 +329,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val configuracao = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
             _uiState.update { it.copy(configuracaoEmprego = configuracao) }
-            android.util.Log.d(
-                "HomeViewModel",
-                "Configuração recarregada: fotoObrigatoria=${configuracao?.fotoObrigatoria}"
-            )
+            Timber.d("Configuração recarregada: fotoObrigatoria=${configuracao?.fotoObrigatoria}")
         }
     }
 
@@ -541,7 +539,7 @@ class HomeViewModel @Inject constructor(
                 atualizarWidget()
 
             } catch (e: Exception) {
-                android.util.Log.e("HomeViewModel", "Erro ao salvar edição: ${e.message}")
+                Timber.e(e, "Erro ao salvar edição")
                 _uiState.update { state ->
                     state.copy(
                         edicaoModal = state.edicaoModal?.copy(isSaving = false)
@@ -711,7 +709,7 @@ class HomeViewModel @Inject constructor(
                 _uiEvent.emit(HomeUiEvent.MostrarMensagem("Foto editada e salva com sucesso"))
                 carregarPontosDoDia()
             } catch (e: Exception) {
-                android.util.Log.e("HomeViewModel", "Erro ao atualizar foto editada: ${e.message}")
+                Timber.e(e, "Erro ao atualizar foto editada")
                 _uiEvent.emit(HomeUiEvent.MostrarErro("Erro ao salvar edição da foto"))
             }
         }
@@ -1353,24 +1351,24 @@ class HomeViewModel @Inject constructor(
     private fun verificarCicloBancoHoras() {
         viewModelScope.launch {
             val empregoId = _uiState.value.empregoAtivo?.id
-            android.util.Log.d("CICLO_DEBUG", "verificarCicloBancoHoras - empregoId: $empregoId")
+            Timber.d("verificarCicloBancoHoras - empregoId: $empregoId")
 
             if (empregoId == null) {
-                android.util.Log.d("CICLO_DEBUG", "empregoId é null, retornando")
+                Timber.d("empregoId é null, retornando")
                 return@launch
             }
 
             // Inicializar ciclos retroativos
             val resultadoInit = inicializarCiclosRetroativosUseCase(empregoId)
-            android.util.Log.d("CICLO_DEBUG", "inicializarCiclos resultado: $resultadoInit")
+            Timber.d("inicializarCiclos resultado: $resultadoInit")
 
             // Verificar estado do ciclo atual
             val resultado = verificarCicloPendenteUseCase(empregoId)
-            android.util.Log.d("CICLO_DEBUG", "verificarCicloPendente resultado: $resultado")
+            Timber.d("verificarCicloPendente resultado: $resultado")
 
             when (resultado) {
                 is VerificarCicloPendenteUseCase.Resultado.CicloPendente -> {
-                    android.util.Log.d("CICLO_DEBUG", "CICLO PENDENTE detectado!")
+                    Timber.d("CICLO PENDENTE detectado!")
                     _uiState.update {
                         it.copy(
                             estadoCiclo = EstadoCiclo.Pendente(
@@ -1790,7 +1788,7 @@ class HomeViewModel @Inject constructor(
                 tempFile
             )
         } catch (e: Exception) {
-            android.util.Log.e("HomeViewModel", "Erro ao criar URI da câmera: ${e.message}")
+            Timber.e(e, "Erro ao criar URI da câmera")
             null
         }
     }
@@ -1814,10 +1812,7 @@ class HomeViewModel @Inject constructor(
             else File(baseDir, relativePath)
 
             if (!file.exists()) {
-                android.util.Log.e(
-                    "HomeViewModel",
-                    "Arquivo não encontrado para snapshot: ${file.absolutePath}"
-                )
+                Timber.e("Arquivo não encontrado para snapshot: ${file.absolutePath}")
                 return
             }
 
@@ -1862,7 +1857,7 @@ class HomeViewModel @Inject constructor(
 
             fotoComprovanteDao.inserir(entity)
         } catch (e: Exception) {
-            android.util.Log.e("HomeViewModel", "Erro ao registrar snapshot: ${e.message}")
+            Timber.e(e, "Erro ao registrar snapshot")
         }
     }
 
@@ -1888,12 +1883,12 @@ class HomeViewModel @Inject constructor(
                 // 2. Criar Snapshot completo na FotoComprovanteEntity para Auditoria
                 registrarSnapshotFotoComprovante(pontoId, relativePath, fotoOrigem)
 
-                android.util.Log.d("HomeViewModel", "Foto salva e snapshot criado: $relativePath")
+                Timber.d("Foto salva e snapshot criado: $relativePath")
             } else {
-                android.util.Log.w("HomeViewModel", "Falha ao salvar foto")
+                Timber.w("Falha ao salvar foto")
             }
         } catch (e: Exception) {
-            android.util.Log.e("HomeViewModel", "Erro ao salvar foto comprovante: ${e.message}")
+            Timber.e(e, "Erro ao salvar foto comprovante")
         }
     }
 

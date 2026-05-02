@@ -21,16 +21,14 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 )
 
 /**
- * Gerenciador de preferências do aplicativo usando DataStore.
- *
- * Responsável por persistir e recuperar as configurações do usuário
- * de forma assíncrona e type-safe utilizando Jetpack DataStore.
- *
- * @property context Contexto da aplicação para acesso ao DataStore
- *
- * @author Thiago
- * @since 1.0.0
+ * @deprecated Migrado para [PreferenciasGlobaisDataStore] (13.0.0).
+ * Esta classe permanece apenas para preservar o arquivo DataStore "meuponto_preferences"
+ * em produção. Não adicionar novos consumidores. Remover após confirmar migração completa.
  */
+@Deprecated(
+    message = "Use PreferenciasGlobaisDataStore como única fonte de verdade.",
+    replaceWith = ReplaceWith("PreferenciasGlobaisDataStore")
+)
 @Singleton
 class PreferencesDataStore @Inject constructor(
     @ApplicationContext private val context: Context

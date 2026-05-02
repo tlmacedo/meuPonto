@@ -34,7 +34,7 @@ sealed class BottomNavItem(
      * Item de navegação para a tela inicial.
      */
     data object Home : BottomNavItem(
-        route = Route.Home.route,
+        route = MeuPontoDestinations.HOME_BASE,
         label = "Início",
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home
@@ -44,7 +44,7 @@ sealed class BottomNavItem(
      * Item de navegação para a tela de histórico.
      */
     data object History : BottomNavItem(
-        route = Route.History.route,
+        route = MeuPontoDestinations.HISTORY_BASE,
         label = "Histórico",
         selectedIcon = Icons.Filled.DateRange,
         unselectedIcon = Icons.Outlined.DateRange
@@ -54,7 +54,7 @@ sealed class BottomNavItem(
      * Item de navegação para a tela de configurações.
      */
     data object Settings : BottomNavItem(
-        route = Route.Settings.route,
+        route = MeuPontoDestinations.SETTINGS,
         label = "Configurações",
         selectedIcon = Icons.Filled.Settings,
         unselectedIcon = Icons.Outlined.Settings
