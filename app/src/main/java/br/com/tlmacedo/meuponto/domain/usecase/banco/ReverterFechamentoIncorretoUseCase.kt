@@ -7,6 +7,7 @@ import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
+import timber.log.Timber
 
 /**
  * UseCase para reverter fechamentos de ciclo incorretos.
@@ -36,11 +37,11 @@ class ReverterFechamentoIncorretoUseCase @Inject constructor(
         dataInicioCicloCorreta: LocalDate
     ): Resultado {
         return try {
-            android.util.Log.d("REVERTER_DEBUG", "Iniciando reversão para emprego $empregoId")
+            Timber.d("Iniciando reversão para emprego $empregoId")
 
             // 1. Buscar todos os fechamentos de banco de horas
             val fechamentos = fechamentoRepository.buscarFechamentosBancoHoras(empregoId)
-            android.util.Log.d("REVERTER_DEBUG", "Fechamentos encontrados: ${fechamentos.size}")
+            Timber.d("Fechamentos encontrados: ${fechamentos.size}")
 
             // 2. Buscar todos os ajustes de zeramento (justificativa contém "Zeramento de ciclo")
             val todosAjustes = ajusteSaldoRepository.buscarPorEmprego(empregoId)
@@ -48,26 +49,17 @@ class ReverterFechamentoIncorretoUseCase @Inject constructor(
                 it.justificativa.contains("Zeramento de ciclo", ignoreCase = true) ||
                         it.justificativa.contains("Saldo transferido", ignoreCase = true)
             }
-            android.util.Log.d(
-                "REVERTER_DEBUG",
-                "Ajustes de zeramento encontrados: ${ajustesZeramento.size}"
-            )
+            Timber.d("Ajustes de zeramento encontrados: ${ajustesZeramento.size}")
 
             // 3. Excluir ajustes de zeramento
             ajustesZeramento.forEach { ajuste ->
-                android.util.Log.d(
-                    "REVERTER_DEBUG",
-                    "Excluindo ajuste: ${ajuste.id} - ${ajuste.justificativa}"
-                )
+                Timber.d("Excluindo ajuste: ${ajuste.id} - ${ajuste.justificativa}")
                 ajusteSaldoRepository.excluir(ajuste)
             }
 
             // 4. Excluir fechamentos de banco de horas
             fechamentos.forEach { fechamento ->
-                android.util.Log.d(
-                    "REVERTER_DEBUG",
-                    "Excluindo fechamento: ${fechamento.id} - ${fechamento.dataInicioPeriodo} ~ ${fechamento.dataFimPeriodo}"
-                )
+                Timber.d("Excluindo fechamento: ${fechamento.id} - ${fechamento.dataInicioPeriodo} ~ ${fechamento.dataFimPeriodo}")
                 fechamentoRepository.excluir(fechamento)
             }
 
@@ -79,10 +71,7 @@ class ReverterFechamentoIncorretoUseCase @Inject constructor(
                     atualizadoEm = LocalDateTime.now()
                 )
                 versaoJornadaRepository.atualizar(novaVersaoJornada)
-                android.util.Log.d(
-                    "REVERTER_DEBUG",
-                    "VersaoJornada atualizada: dataInicioCiclo = $dataInicioCicloCorreta"
-                )
+                Timber.d("VersaoJornada atualizada: dataInicioCiclo = $dataInicioCicloCorreta")
             }
 
             Resultado.Sucesso(
@@ -90,7 +79,7 @@ class ReverterFechamentoIncorretoUseCase @Inject constructor(
                 ajustesRemovidos = ajustesZeramento.size
             )
         } catch (e: Exception) {
-            android.util.Log.e("REVERTER_DEBUG", "Erro ao reverter: ${e.message}", e)
+            Timber.e(e, "Erro ao reverter fechamento")
             Resultado.Erro(e.message ?: "Erro desconhecido")
         }
     }

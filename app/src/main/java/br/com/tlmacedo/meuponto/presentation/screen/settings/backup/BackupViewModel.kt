@@ -21,7 +21,7 @@ import br.com.tlmacedo.meuponto.domain.repository.LocalBackupFile
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.preferencias.SalvarPreferenciasGlobaisUseCase
-import br.com.tlmacedo.meuponto.util.FileUtils
+import br.com.tlmacedo.meuponto.util.formatarTamanho
 import br.com.tlmacedo.meuponto.worker.CloudBackupWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -373,9 +373,9 @@ class BackupViewModel @Inject constructor(
 
                 val tamanhoTotalBytes = tamanhoBancoBytes + tamanhoFotosBytes
 
-                val tamanhoBanco = formatarTamanho(tamanhoBancoBytes)
-                val tamanhoImagens = formatarTamanho(tamanhoFotosBytes)
-                val tamanhoEstimado = formatarTamanho(tamanhoTotalBytes)
+                val tamanhoBanco = tamanhoBancoBytes.formatarTamanho()
+                val tamanhoImagens = tamanhoFotosBytes.formatarTamanho()
+                val tamanhoEstimado = tamanhoTotalBytes.formatarTamanho()
 
                 _uiState.update {
                     it.copy(
@@ -398,9 +398,6 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    private fun formatarTamanho(bytes: Long): String {
-        return FileUtils.formatarTamanho(bytes)
-    }
 
     private fun exportarBackup(outputStream: OutputStream) {
         viewModelScope.launch {
