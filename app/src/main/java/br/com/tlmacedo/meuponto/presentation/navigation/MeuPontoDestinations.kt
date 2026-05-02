@@ -111,6 +111,9 @@ object MeuPontoDestinations {
     // Auditoria
     const val AUDITORIA = "auditoria"
 
+    // Pendências
+    const val PENDENCIAS = "pendencias"
+
     // Configurações globais
     const val CONFIGURACOES_GLOBAIS = "configuracoes_globais"
 
