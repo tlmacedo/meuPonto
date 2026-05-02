@@ -12,12 +12,12 @@ val MIGRATION_25_26 = Migration(25, 26) { database ->
         """.trimIndent()
     )
 
-    // Corrigir valores vazios de 'tipo' com valor padrão 'CREDITO'
+    // Corrigir valores vazios de 'tipo' com valor padrão 'MANUAL' (alinhado com TipoAjusteSaldo.MANUAL)
     database.execSQL(
         """
-        UPDATE ajustes_saldo 
-        SET tipo = 'CREDITO' 
-        WHERE tipo = '' OR tipo IS NULL
+        UPDATE ajustes_saldo
+        SET tipo = 'MANUAL'
+        WHERE tipo = '' OR tipo IS NULL OR tipo = 'CREDITO'
         """.trimIndent()
     )
 }
