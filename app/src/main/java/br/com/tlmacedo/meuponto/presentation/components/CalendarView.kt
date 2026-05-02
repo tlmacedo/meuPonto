@@ -33,7 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import br.com.tlmacedo.meuponto.domain.model.StatusResumoDia
+import br.com.tlmacedo.meuponto.domain.model.inconsistencia.StatusDiaResumo
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoFolga
@@ -451,17 +451,26 @@ data class LegendItem(
     val color: Color
 )
 
-private fun getStatusColor(status: StatusResumoDia): Color {
+private fun getStatusColor(status: StatusDiaResumo): Color {
     return when (status) {
-        StatusResumoDia.DESCANSO,
-        StatusResumoDia.FOLGA -> Color(0xFF9C27B0)
+        StatusDiaResumo.DESCANSO,
+        StatusDiaResumo.FOLGA -> Color(0xFF9C27B0)
 
-        StatusResumoDia.POSITIVO -> Success
-        StatusResumoDia.NEUTRO -> Success
-        StatusResumoDia.ABONADO -> Info
-        StatusResumoDia.SEM_REGISTRO -> SidiaMediumGray
-        StatusResumoDia.NEGATIVO -> Warning
-        StatusResumoDia.FALTA -> Error
+        StatusDiaResumo.POSITIVO -> Success
+        StatusDiaResumo.NEUTRO -> Success
+        StatusDiaResumo.ABONADO -> Info
+        StatusDiaResumo.SEM_REGISTRO -> SidiaMediumGray
+        StatusDiaResumo.NEGATIVO -> Warning
+        StatusDiaResumo.FALTA -> Error
+
+        StatusDiaResumo.COMPLETO,
+        StatusDiaResumo.INCOMPLETO,
+        StatusDiaResumo.EM_ANDAMENTO,
+        StatusDiaResumo.FUTURO,
+        StatusDiaResumo.COM_INFORMACOES,
+        StatusDiaResumo.PENDENTE_JUSTIFICATIVA,
+        StatusDiaResumo.BLOQUEADO,
+        StatusDiaResumo.DESCANSO_TRABALHADO -> SidiaMediumGray
     }
 }
 

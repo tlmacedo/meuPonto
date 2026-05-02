@@ -3,7 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.history
 
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.StatusResumoDia
+import br.com.tlmacedo.meuponto.domain.model.inconsistencia.StatusDiaResumo
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
@@ -1989,22 +1989,31 @@ private fun SaldosSection(
     }
 }
 
-private fun getStatusColor(status: StatusResumoDia): Color {
+private fun getStatusColor(status: StatusDiaResumo): Color {
     return when (status) {
-        StatusResumoDia.SEM_REGISTRO -> SidiaMediumGray
+        StatusDiaResumo.SEM_REGISTRO -> SidiaMediumGray
 
-        StatusResumoDia.FOLGA,
-        StatusResumoDia.DESCANSO -> Color(0xFF9C27B0)
+        StatusDiaResumo.FOLGA,
+        StatusDiaResumo.DESCANSO -> Color(0xFF9C27B0)
 
-        StatusResumoDia.ABONADO -> Info
+        StatusDiaResumo.ABONADO -> Info
 
-        StatusResumoDia.FALTA -> Error
+        StatusDiaResumo.FALTA -> Error
 
-        StatusResumoDia.POSITIVO -> Success
+        StatusDiaResumo.POSITIVO -> Success
 
-        StatusResumoDia.NEGATIVO -> Warning
+        StatusDiaResumo.NEGATIVO -> Warning
 
-        StatusResumoDia.NEUTRO -> SidiaMediumGray
+        StatusDiaResumo.NEUTRO -> SidiaMediumGray
+
+        StatusDiaResumo.COMPLETO,
+        StatusDiaResumo.INCOMPLETO,
+        StatusDiaResumo.EM_ANDAMENTO,
+        StatusDiaResumo.FUTURO,
+        StatusDiaResumo.COM_INFORMACOES,
+        StatusDiaResumo.PENDENTE_JUSTIFICATIVA,
+        StatusDiaResumo.BLOQUEADO,
+        StatusDiaResumo.DESCANSO_TRABALHADO -> SidiaMediumGray
     }
 }
 

@@ -3,13 +3,31 @@ package br.com.tlmacedo.meuponto.presentation.navigation
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Construction
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.auditoria.AuditoriaScreen
+import br.com.tlmacedo.meuponto.presentation.screen.pendencias.PendenciasScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.form.AusenciaFormScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.AusenciasScreen
 import br.com.tlmacedo.meuponto.presentation.screen.chamado.create.ChamadoCreateScreen
@@ -291,6 +309,9 @@ fun NavGraphBuilder.meuPontoNavGraph(
             },
             onNavigateToAuditoria = {
                 navController.navigate(MeuPontoDestinations.AUDITORIA)
+            },
+            onNavigateToPendencias = {
+                navController.navigate(MeuPontoDestinations.PENDENCIAS)
             },
             onNavigateToComprovantes = {
                 navController.navigate(MeuPontoDestinations.COMPROVANTES_MANAGER)
@@ -628,14 +649,14 @@ fun NavGraphBuilder.meuPontoNavGraph(
         )
     ) {
         PlaceholderScreen(
-            title = "Ajustes de Saldo",
+            titulo = "Ajustes de Saldo",
             onNavigateBack = { navController.popBackStack() }
         )
     }
 
     composable(MeuPontoDestinations.AJUSTES_BANCO_HORAS) {
         PlaceholderScreen(
-            title = "Ajustes de Saldo",
+            titulo = "Ajustes de Saldo",
             onNavigateBack = { navController.popBackStack() }
         )
     }
@@ -724,14 +745,14 @@ fun NavGraphBuilder.meuPontoNavGraph(
 
     composable(MeuPontoDestinations.HORARIOS_TRABALHO) {
         PlaceholderScreen(
-            title = "Horários por Dia",
+            titulo = "Horários por Dia",
             onNavigateBack = { navController.popBackStack() }
         )
     }
 
     composable(MeuPontoDestinations.MARCADORES) {
         PlaceholderScreen(
-            title = "Marcadores",
+            titulo = "Marcadores",
             onNavigateBack = { navController.popBackStack() }
         )
     }
@@ -760,6 +781,15 @@ fun NavGraphBuilder.meuPontoNavGraph(
         )
     }
 
+    composable(MeuPontoDestinations.PENDENCIAS) {
+        PendenciasScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToDia = { data: java.time.LocalDate ->
+                navController.navigate(MeuPontoDestinations.homeComData(data.toString()))
+            }
+        )
+    }
+
     composable(MeuPontoDestinations.COMPROVANTES_MANAGER) {
         ComprovantesScreen(
             onNavigateBack = { navController.popBackStack() }
@@ -767,3 +797,40 @@ fun NavGraphBuilder.meuPontoNavGraph(
     }
 }
 
+@Composable
+private fun PlaceholderScreen(
+    titulo: String,
+    onNavigateBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            MeuPontoTopBar(
+                title = titulo,
+                showBackButton = true,
+                onBackClick = onNavigateBack
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.Construction,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Em desenvolvimento",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+        }
+    }
+}

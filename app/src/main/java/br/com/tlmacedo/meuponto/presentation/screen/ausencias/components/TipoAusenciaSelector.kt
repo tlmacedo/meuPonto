@@ -106,7 +106,7 @@ fun TipoAusenciaSelector(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(TipoAusencia.todos.filterNotNull()) { tipo ->
+                items(TipoAusencia.todos) { tipo ->
                     TipoAusenciaItem(
                         tipo = tipo,
                         isSelected = tipo == tipoSelecionado,

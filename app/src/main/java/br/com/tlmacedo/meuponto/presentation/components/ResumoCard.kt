@@ -1,8 +1,6 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/presentation/components/ResumoCard.kt
 package br.com.tlmacedo.meuponto.presentation.components
 
-import br.com.tlmacedo.meuponto.util.helper.formatarComoHoraMinuto
-import br.com.tlmacedo.meuponto.util.helper.formatarComoSaldoHoraMinuto
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,14 +39,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import br.com.tlmacedo.meuponto.domain.extensions.isNormalOrTrue
 import br.com.tlmacedo.meuponto.domain.model.BancoHoras
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.VersaoJornada
 import br.com.tlmacedo.meuponto.presentation.components.theme.ThemedCard
 import br.com.tlmacedo.meuponto.presentation.theme.LocalAppThemeController
 import br.com.tlmacedo.meuponto.presentation.theme.LocalPremiumTokens
-import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
 import java.time.LocalDateTime
 import java.time.LocalTime
 import kotlin.math.abs
@@ -63,56 +59,21 @@ fun ResumoCard(
     dataHoraInicioContador: LocalDateTime? = null,
     mostrarContador: Boolean = false,
     onEditarJornada: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-
-    /**
-     * Valores vindos do ResumoDiaCompleto.
-     *
-     * Usados principalmente quando existe declaração/abono.
-     */
     horasTrabalhadasCalculadasMinutos: Int? = null,
     tempoAbonadoMinutos: Int = 0,
-    saldoDiaCalculadoMinutos: Int? = null
+    saldoDiaCalculadoMinutos: Int? = null,
+    modifier: Modifier = Modifier
 ) {
-
     val theme = LocalAppThemeController.current
 
-    /**
-     * Compatibilidade com o novo ResumoDia:
-     * por enquanto usamos os valores já calculados no domínio.
-     *
-     * Depois podemos recriar cálculo "em andamento" em um use case separado.
-     */
-
-    val minutosTrabalhados = horasTrabalhadasCalculadasMinutos
-        ?: resumoDia.horasTrabalhadasComAndamentoMinutos
-
-    val temAbono = tempoAbonadoMinutos > 0
-    val minutosComputados = minutosTrabalhados + tempoAbonadoMinutos
-
-    val minutosTempoPrincipal = if (temAbono) {
-        minutosComputados
-    } else {
-        minutosTrabalhados
-    }
-
-    val saldoDiaMinutos = saldoDiaCalculadoMinutos
-        ?: resumoDia.saldoDiaComAndamentoMinutos
-
-    /**
-     * Se veio saldo calculado do ResumoDiaCompleto, o banco já deve estar correto.
-     * Mantemos o comportamento antigo apenas quando não houver saldo calculado externo.
-     */
-    val bancoTotalMinutos = if (saldoDiaCalculadoMinutos != null) {
-        bancoHoras.saldoTotalMinutos
-    } else {
+    val minutosTrabalhados = horasTrabalhadasCalculadasMinutos ?: resumoDia.horasTrabalhadasComAndamentoMinutos
+    val saldoDiaMinutos = saldoDiaCalculadoMinutos ?: resumoDia.saldoDiaComAndamentoMinutos
+    val bancoTotalMinutos =
         bancoHoras.saldoTotalMinutos + saldoDiaMinutos - resumoDia.saldoDiaMinutos
-    }
 
     val jornadaMinutos = resumoDia.cargaHorariaEfetivaMinutos
-
     val progressoTrabalhado = if (jornadaMinutos > 0) {
-        (minutosTempoPrincipal.toFloat() / jornadaMinutos.toFloat()).coerceIn(0f, 1.15f)
+        (minutosTrabalhados.toFloat() / jornadaMinutos.toFloat()).coerceIn(0f, 1.15f)
     } else {
         0f
     }
@@ -150,36 +111,22 @@ fun ResumoCard(
             ) {
                 ResumoMetricItem(
                     modifier = Modifier.weight(1f),
-                    title = if (temAbono) {
-                        "Computado no dia"
-                    } else {
-                        status.tituloTrabalhado
-                    },
-                    value = if (temAbono) {
-                        minutosTempoPrincipal.formatarComoHoraMinuto()
-                    } else {
-                        status.valorTrabalhado ?: minutosTrabalhados.formatarComoHoraMinuto()
-                    },
-                    subtitle = if (temAbono) {
-                        "${minutosTrabalhados.formatarComoHoraMinuto()} trabalhado + ${tempoAbonadoMinutos.formatarComoHoraMinuto()} abonado"
-                    } else if (jornadaMinutos > 0) {
+                    title = status.tituloTrabalhado,
+                    value = status.valorTrabalhado ?: formatarMinutos(minutosTrabalhados),
+                    subtitle = if (jornadaMinutos > 0) {
                         "${(progressoTrabalhado * 100f).roundToInt()}% da meta"
                     } else {
                         status.subtituloTrabalhado
                     },
                     icon = status.iconeTrabalhado,
                     color = status.corTrabalhado,
-                    progress = if (jornadaMinutos > 0) {
-                        progressoTrabalhado.coerceIn(0f, 1f)
-                    } else {
-                        null
-                    }
+                    progress = if (jornadaMinutos > 0) progressoTrabalhado.coerceIn(0f, 1f) else null
                 )
 
                 ResumoMetricItem(
                     modifier = Modifier.weight(1f),
                     title = "Saldo do dia",
-                    value = saldoDiaMinutos.formatarComoSaldoHoraMinuto(),
+                    value = formatarSaldo(saldoDiaMinutos),
                     subtitle = when {
                         saldoDiaMinutos > 0 -> "Positivo"
                         saldoDiaMinutos < 0 -> "Negativo"
@@ -201,7 +148,7 @@ fun ResumoCard(
                 ResumoMetricItem(
                     modifier = Modifier.weight(1f),
                     title = "Banco de horas",
-                    value = bancoTotalMinutos.formatarComoSaldoHoraMinuto(),
+                    value = formatarSaldo(bancoTotalMinutos),
                     subtitle = "Acumulado",
                     icon = Icons.Default.AccountBalance,
                     color = when {
@@ -244,14 +191,14 @@ private fun ResumoHeader(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-//                PremiumGlowIcon(
-//                    icon = Icons.Default.Timer,
-//                    color = MaterialTheme.colorScheme.primary,
-//                    size = 34,
-//                    iconSize = 18
-//                )
-//
-//                Spacer(Modifier.width(8.dp))
+                PremiumGlowIcon(
+                    icon = Icons.Default.Timer,
+                    color = MaterialTheme.colorScheme.primary,
+                    size = 34,
+                    iconSize = 18
+                )
+
+                Spacer(Modifier.width(8.dp))
 
                 Text(
                     text = "Resumo do Dia",
@@ -272,10 +219,10 @@ private fun ResumoHeader(
                 Spacer(Modifier.width(4.dp))
 
                 Text(
-                    text = if (resumoDia.tipoAusencia.isNormalOrTrue) {
-                        "Jornada esperada • ${jornadaMinutos.formatarComoHoraMinuto()}"
+                    text = if (resumoDia.isNormal) {
+                        "Jornada esperada • ${formatarMinutos(jornadaMinutos)}"
                     } else {
-                        "${resumoDia.descricaoTipoDia} • Sem jornada obrigatória"
+                        "${resumoDia.tipoAusencia?.descricao} • Sem jornada obrigatória"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = textSecondary,
@@ -450,17 +397,14 @@ private fun ResumoFooter(
         Spacer(Modifier.width(8.dp))
 
         Text(
-            text = when {
-                mostrarContador && dataHoraInicioContador != null -> "Expediente em andamento"
-                else -> "Jornada esperada"
-            },
+            text = "Jornada esperada",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
         )
 
         Text(
-            text = jornadaMinutos.formatarComoHoraMinuto(),
+            text = formatarMinutos(jornadaMinutos),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold
@@ -481,8 +425,8 @@ private data class ResumoVisualStatus(
 
 private fun resumoDiaStatus(resumoDia: ResumoDia): ResumoVisualStatus {
     return when {
-        !resumoDia.tipoAusencia.isNormalOrTrue -> ResumoVisualStatus(
-            tituloTrabalhado = resumoDia.descricaoTipoDia,
+        !resumoDia.isNormal -> ResumoVisualStatus(
+            tituloTrabalhado = resumoDia.tipoAusencia?.descricao ?: "",
             valorTrabalhado = "—",
             subtituloTrabalhado = "Sem meta",
             iconeTrabalhado = Icons.Default.CalendarMonth,
@@ -516,4 +460,22 @@ private fun resumoDiaStatus(resumoDia: ResumoDia): ResumoVisualStatus {
 private fun saldoProgress(minutos: Int): Float {
     if (minutos == 0) return 0f
     return (abs(minutos).coerceAtMost(480).toFloat() / 480f).coerceIn(0f, 1f)
+}
+
+private fun formatarSaldo(minutos: Int): String {
+    val sinal = when {
+        minutos > 0 -> "+"
+        minutos < 0 -> "-"
+        else -> ""
+    }
+
+    return "$sinal${formatarMinutos(abs(minutos))}"
+}
+
+private fun formatarMinutos(totalMinutos: Int): String {
+    val minutosPositivos = totalMinutos.coerceAtLeast(0)
+    val horas = minutosPositivos / 60
+    val minutos = minutosPositivos % 60
+
+    return "${horas.toString().padStart(2, '0')}h ${minutos.toString().padStart(2, '0')}min"
 }

@@ -88,21 +88,35 @@ fun AusenciaFilterChips(
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
-            TipoAusencia.todos
-                .filterNotNull()
-                .forEach { tipo ->
-                    FilterChip(
-                        selected = tipo in tiposSelecionados,
-                        onClick = { onToggleTipo(tipo) },
-                        label = {
-                            Text("${tipo.emoji} ${tipo.descricao}")
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+            TipoAusencia.todos.forEach { tipo ->
+                FilterChip(
+                    selected = tipo in tiposSelecionados,
+                    onClick = { onToggleTipo(tipo) },
+                    label = {
+                        Text(
+                            text = "${tipo.emoji} ${tipo.descricao}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (tipo in tiposSelecionados) {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Medium
+                            }
                         )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = tipo in tiposSelecionados,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant,
+                        selectedBorderColor = MaterialTheme.colorScheme.primary
                     )
-                }
+                )
+            }
         }
 
         Row(

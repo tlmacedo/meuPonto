@@ -20,7 +20,7 @@ import br.com.tlmacedo.meuponto.domain.model.HorarioDiaSemana
 import br.com.tlmacedo.meuponto.domain.model.IntervaloPonto
 import br.com.tlmacedo.meuponto.domain.model.Ponto
 import br.com.tlmacedo.meuponto.domain.model.ResumoDia
-import br.com.tlmacedo.meuponto.domain.model.StatusResumoDia
+import br.com.tlmacedo.meuponto.domain.model.inconsistencia.StatusDiaResumo
 import br.com.tlmacedo.meuponto.domain.model.ausencia.Ausencia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.feriado.Feriado
@@ -150,8 +150,8 @@ data class ResumoDiaCompleto(
 
     val temProblemas: Boolean
         get() = resumoDia.status in setOf(
-            StatusResumoDia.NEGATIVO,
-            StatusResumoDia.FALTA
+            StatusDiaResumo.NEGATIVO,
+            StatusDiaResumo.FALTA
         )
 
     val isDescanso: Boolean

@@ -91,20 +91,6 @@ import br.com.tlmacedo.meuponto.presentation.theme.SidiaDarkBlue
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-/**
- * Tela principal de configurações do app.
- *
- * Apresenta as configurações organizadas em seções:
- * - Empregos (gerenciamento + troca rápida)
- * - Calendário (feriados)
- * - Design (aparência, notificações, privacidade)
- * - Backup e Dados
- * - Sobre
- *
- * @author Thiago
- * @since 9.0.0
- * @updated 9.2.2 - Correção de imports, cores e layout premium
- */
 @Composable
 fun SettingsMainScreen(
     onNavigateBack: () -> Unit,
@@ -122,16 +108,17 @@ fun SettingsMainScreen(
     onNavigateToAjuda: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
+    onNavigateToPendencias: () -> Unit,
     onNavigateToComprovantes: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
     onNavigateToJornada: () -> Unit,
     onNavigateToChamados: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: SettingsMainViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Coleta eventos do ViewModel
     LaunchedEffect(Unit) {
         viewModel.eventos.collectLatest { evento ->
             when (evento) {
@@ -169,13 +156,11 @@ fun SettingsMainScreen(
         onNavigateToChamados = onNavigateToChamados,
         onTrocarEmprego = { viewModel.onAction(SettingsMainAction.TrocarEmprego(it)) },
         onAlternarSecao = { viewModel.onAction(SettingsMainAction.AlternarExpansaoSecao(it)) },
-        snackbarHostState = snackbarHostState
+        snackbarHostState = snackbarHostState,
+        modifier = modifier
     )
 }
 
-/**
- * Conteúdo da tela principal de configurações, desacoplado do ViewModel.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsMainContent(
@@ -206,11 +191,9 @@ fun SettingsMainContent(
 ) {
     val scope = rememberCoroutineScope()
 
-    // Estado do BottomSheet
     var showTrocarEmpregoSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // BottomSheet de troca de emprego
     if (showTrocarEmpregoSheet) {
         TrocarEmpregoBottomSheet(
             empregos = uiState.empregosDisponiveis,
@@ -250,9 +233,6 @@ fun SettingsMainContent(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: EMPREGO ATIVO E JORNADA (DESTAQUE)
-            // ══════════════════════════════════════════════════════════════
             uiState.empregoAtual?.let { emprego ->
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -273,9 +253,6 @@ fun SettingsMainContent(
                 }
             }
 
-            // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: EMPREGOS
-            // ══════════════════════════════════════════════════════════════
             item {
                 CollapsibleSettingsSection(
                     title = "Gestão de Empregos",
@@ -291,7 +268,6 @@ fun SettingsMainContent(
                             onClick = onNavigateToGerenciarEmpregos
                         )
 
-                        // Trocar Emprego Ativo (apenas se houver mais de um emprego)
                         if (uiState.empregosDisponiveis.size > 1) {
                             SettingsNavigationItem(
                                 title = "Trocar Emprego Ativo",
@@ -304,9 +280,6 @@ fun SettingsMainContent(
                 }
             }
 
-            // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: CALENDÁRIO
-            // ══════════════════════════════════════════════════════════════
             item {
                 CollapsibleSettingsSection(
                     title = "Calendário",
@@ -341,9 +314,6 @@ fun SettingsMainContent(
                 }
             }
 
-            // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: CONFIGURAÇÕES GERAIS
-            // ══════════════════════════════════════════════════════════════
             item {
                 CollapsibleSettingsSection(
                     title = "Configurações Gerais",
@@ -380,9 +350,6 @@ fun SettingsMainContent(
                 }
             }
 
-            // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: BACKUP E DADOS
-            // ══════════════════════════════════════════════════════════════
             item {
                 CollapsibleSettingsSection(
                     title = "Backups e Dados",
@@ -419,9 +386,6 @@ fun SettingsMainContent(
                 }
             }
 
-            // ══════════════════════════════════════════════════════════════
-            // SEÇÃO: SOBRE
-            // ══════════════════════════════════════════════════════════════
             item {
                 CollapsibleSettingsSection(
                     title = "Sobre",
@@ -452,7 +416,6 @@ fun SettingsMainContent(
                 }
             }
 
-            // Espaçamento final
             item {
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -486,7 +449,6 @@ private fun SystemStatusCard(
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
     ) {
-        // Card de Saldo
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -539,7 +501,6 @@ private fun SystemStatusCard(
             }
         }
 
-        // Card de Backup
         Card(
             onClick = onBackupClick,
             colors = CardDefaults.cardColors(
@@ -630,7 +591,6 @@ private fun ActiveEmploymentCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Logo da Empresa
                 Surface(
                     modifier = Modifier
                         .size(72.dp)
@@ -705,9 +665,6 @@ private fun ActiveEmploymentCard(
     }
 }
 
-/**
- * Componente para seções colapsáveis nas configurações.
- */
 @Composable
 private fun CollapsibleSettingsSection(
     title: String,
@@ -776,9 +733,6 @@ private fun CollapsibleSettingsSection(
     }
 }
 
-/**
- * Item de navegação para configurações.
- */
 @Composable
 private fun SettingsNavigationItem(
     title: String,

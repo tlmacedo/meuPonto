@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.domain.model
 
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.model.dia.ClassificacaoDia
+import br.com.tlmacedo.meuponto.domain.model.inconsistencia.StatusDiaResumo
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
@@ -179,19 +180,19 @@ data class ResumoDia(
     val saldoBancoMinutosAtual: Int
         get() = saldoBancoMinutosAnterior + saldoDiaMinutos
 
-    val status: StatusResumoDia
+    val status: StatusDiaResumo
         get() {
             return when {
-                isNormal && !possuiAlgumPonto -> StatusResumoDia.SEM_REGISTRO
-                isFolga && !possuiAlgumPonto -> StatusResumoDia.FOLGA
-                isDescanso && !possuiAlgumPonto -> StatusResumoDia.DESCANSO
-                isDayOff -> StatusResumoDia.ABONADO
-                isFaltaJustificada -> StatusResumoDia.ABONADO
-                isAtestado -> StatusResumoDia.ABONADO
-                isFaltaInjustificada -> StatusResumoDia.FALTA
-                saldoDiaMinutos > 0 -> StatusResumoDia.POSITIVO
-                saldoDiaMinutos < 0 -> StatusResumoDia.NEGATIVO
-                else -> StatusResumoDia.NEUTRO
+                isNormal && !possuiAlgumPonto -> StatusDiaResumo.SEM_REGISTRO
+                isFolga && !possuiAlgumPonto -> StatusDiaResumo.FOLGA
+                isDescanso && !possuiAlgumPonto -> StatusDiaResumo.DESCANSO
+                isDayOff -> StatusDiaResumo.ABONADO
+                isFaltaJustificada -> StatusDiaResumo.ABONADO
+                isAtestado -> StatusDiaResumo.ABONADO
+                isFaltaInjustificada -> StatusDiaResumo.FALTA
+                saldoDiaMinutos > 0 -> StatusDiaResumo.POSITIVO
+                saldoDiaMinutos < 0 -> StatusDiaResumo.NEGATIVO
+                else -> StatusDiaResumo.NEUTRO
             }
         }
 
@@ -255,10 +256,10 @@ data class ResumoDia(
         get() = jornadaConsideradaMinutos == 0
 
     val temProblemas: Boolean
-        get() = status == StatusResumoDia.NEGATIVO ||
-                status == StatusResumoDia.FALTA
+        get() = status == StatusDiaResumo.NEGATIVO ||
+                status == StatusDiaResumo.FALTA
 
-    val statusDia: StatusResumoDia
+    val statusDia: StatusDiaResumo
         get() = status
 
     val horasTrabalhadasFormatadas: String
@@ -314,13 +315,3 @@ private fun formatarMinutosComoHora(totalMinutos: Int): String {
     return "${horas}h${minutos.toString().padStart(2, '0')}"
 }
 
-enum class StatusResumoDia {
-    SEM_REGISTRO,
-    FOLGA,
-    DESCANSO,
-    ABONADO,
-    FALTA,
-    POSITIVO,
-    NEGATIVO,
-    NEUTRO
-}

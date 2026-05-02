@@ -240,35 +240,41 @@ sealed class TipoAusencia(
     }
 
     companion object {
-        val todos: List<TipoAusencia> = listOf(
-            Folga,
-            Ferias,
-            Feriado.Oficial,
-            Feriado.DiaPonte,
-            Feriado.Facultativo,
-            Atestado,
-            Declaracao,
-            DayOff,
-            CompensacaoBanco,
-            Falta.Justificada,
-            Falta.Injustificada
-        )
+        val todos: List<TipoAusencia> by lazy {
+            listOf(
+                Folga,
+                Ferias,
+                Feriado.Oficial,
+                Feriado.DiaPonte,
+                Feriado.Facultativo,
+                Atestado,
+                Declaracao,
+                DayOff,
+                CompensacaoBanco,
+                Falta.Justificada,
+                Falta.Injustificada
+            )
+        }
 
-        val descansos: List<TipoAusencia> = listOf(
-            Ferias,
-            Feriado.Oficial,
-            Feriado.DiaPonte,
-            Feriado.Facultativo
-        )
+        val descansos: List<TipoAusencia> by lazy {
+            listOf(
+                Ferias,
+                Feriado.Oficial,
+                Feriado.DiaPonte,
+                Feriado.Facultativo
+            )
+        }
 
-        val ausencias: List<TipoAusencia> = listOf(
-            Atestado,
-            Declaracao,
-            DayOff,
-            CompensacaoBanco,
-            Falta.Justificada,
-            Falta.Injustificada
-        )
+        val ausencias: List<TipoAusencia> by lazy {
+            listOf(
+                Atestado,
+                Declaracao,
+                DayOff,
+                CompensacaoBanco,
+                Falta.Justificada,
+                Falta.Injustificada
+            )
+        }
 
         fun valueOf(value: String): TipoAusencia {
             return todos.find { it::class.simpleName == value }
