@@ -1,9 +1,11 @@
 // Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/usecase/pendencias/ValidarIntegridadeDiaUseCase.kt
 package br.com.tlmacedo.meuponto.domain.usecase.pendencias
 
+import br.com.tlmacedo.meuponto.core.util.LocationUtils
 import br.com.tlmacedo.meuponto.domain.model.Inconsistencia
 import br.com.tlmacedo.meuponto.domain.model.InconsistenciaDetectada
 import br.com.tlmacedo.meuponto.domain.model.PendenciaDia
+import br.com.tlmacedo.meuponto.domain.repository.ConfiguracaoEmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ObterResumoDiaCompletoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.validacao.ValidarPontoCompletoUseCase
@@ -25,7 +27,8 @@ import javax.inject.Inject
 class ValidarIntegridadeDiaUseCase @Inject constructor(
     private val obterResumoDia: ObterResumoDiaCompletoUseCase,
     private val validarPontoCompleto: ValidarPontoCompletoUseCase,
-    private val versaoJornadaRepository: VersaoJornadaRepository
+    private val versaoJornadaRepository: VersaoJornadaRepository,
+    private val configuracaoEmpregoRepository: ConfiguracaoEmpregoRepository
 ) {
     suspend operator fun invoke(empregoId: Long, data: LocalDate): PendenciaDia? {
         val resumo = obterResumoDia(empregoId, data)
@@ -57,6 +60,50 @@ class ValidarIntegridadeDiaUseCase @Inject constructor(
                     detalhes = "${pontos.size} registro(s) no dia"
                 )
             )
+        }
+
+        val config = configuracaoEmpregoRepository.buscarPorEmpregoId(empregoId)
+        
+        // Verificar Comprovante Obrigatório
+        if (config?.fotoObrigatoria == true) {
+            pontos.filter { !it.temFotoComprovante }.forEach { ponto ->
+                inconsistencias.add(
+                    InconsistenciaDetectada(
+                        inconsistencia = Inconsistencia.COMPROVANTE_AUSENTE,
+                        detalhes = "Ponto das ${ponto.horaFormatada} sem foto",
+                        pontoRelacionadoId = ponto.id
+                    )
+                )
+            }
+        }
+
+        // Verificar Geofencing
+        if (config?.habilitarLocalizacao == true && config.latitude != null && config.longitude != null) {
+            pontos.forEach { ponto ->
+                if (ponto.latitude == null || ponto.longitude == null) {
+                    inconsistencias.add(
+                        InconsistenciaDetectada(
+                            inconsistencia = Inconsistencia.FORA_DO_GEOFENCING,
+                            detalhes = "Ponto das ${ponto.horaFormatada} sem localização",
+                            pontoRelacionadoId = ponto.id
+                        )
+                    )
+                } else {
+                    val distancia = LocationUtils.calcularDistancia(
+                        config.latitude, config.longitude,
+                        ponto.latitude, ponto.longitude
+                    )
+                    if (distancia > config.raioGeofencing) {
+                        inconsistencias.add(
+                            InconsistenciaDetectada(
+                                inconsistencia = Inconsistencia.FORA_DO_GEOFENCING,
+                                detalhes = "Ponto das ${ponto.horaFormatada} registrado a ${distancia.toInt()}m",
+                                pontoRelacionadoId = ponto.id
+                            )
+                        )
+                    }
+                }
+            }
         }
 
         val versaoJornada = versaoJornadaRepository.buscarPorEmpregoEData(empregoId, data)

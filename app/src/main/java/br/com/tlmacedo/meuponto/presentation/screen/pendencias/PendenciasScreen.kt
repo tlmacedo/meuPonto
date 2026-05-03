@@ -8,51 +8,17 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Error
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +34,7 @@ import br.com.tlmacedo.meuponto.domain.model.InconsistenciaDetectada
 import br.com.tlmacedo.meuponto.domain.model.PendenciaDia
 import br.com.tlmacedo.meuponto.domain.model.StatusPendencia
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
+import br.com.tlmacedo.meuponto.presentation.theme.LocalAppThemeController
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -93,13 +60,20 @@ fun PendenciasScreen(
         }
     }
 
+    LaunchedEffect(uiState.mensagemSucesso) {
+        uiState.mensagemSucesso?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.onEvent(PendenciasEvent.LimparSucesso)
+        }
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             MeuPontoTopBar(
                 title = "Pendências",
                 subtitle = if (uiState.resultado != null) {
-                    "${uiState.resultado!!.total} pendência(s) nos últimos 30 dias"
+                    "${uiState.resultado!!.total} pendência(s) no período"
                 } else null,
                 showBackButton = true,
                 onBackClick = onNavigateBack,
@@ -113,6 +87,13 @@ fun PendenciasScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            uiState.saude?.let { saude ->
+                SaudeCard(
+                    saude = saude,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
             PendenciasTabRow(
                 uiState = uiState,
                 onTabSelected = { viewModel.onEvent(PendenciasEvent.SelecionarTab(it)) }
@@ -123,9 +104,221 @@ fun PendenciasScreen(
                 !uiState.temPendencias && uiState.resultado != null -> PendenciasVazia(uiState.tabSelecionada)
                 else -> PendenciasLista(
                     dias = uiState.diasExibidos,
-                    onDiaClick = onNavigateToDia
+                    onDiaClick = onNavigateToDia,
+                    onJustificar = { viewModel.onEvent(PendenciasEvent.AbrirDialogoJustificativa(it)) }
                 )
             }
+        }
+    }
+
+    uiState.dialogoJustificativa?.let { dialogo ->
+        JustificativaBottomSheet(
+            dialogo = dialogo,
+            isSalvando = uiState.isSalvandoJustificativa,
+            onDismiss = { viewModel.onEvent(PendenciasEvent.FecharDialogoJustificativa) },
+            onTextoAlterado = { viewModel.onEvent(PendenciasEvent.AlterarTextoJustificativa(it)) },
+            onSugestaoSelecionada = { viewModel.onEvent(PendenciasEvent.SelecionarSugestao(it)) },
+            onConfirmar = {
+                viewModel.onEvent(
+                    PendenciasEvent.ConfirmarJustificativa(
+                        data = dialogo.pendencia.data,
+                        justificativa = dialogo.textoAtual
+                    )
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun SaudeCard(
+    saude: br.com.tlmacedo.meuponto.domain.usecase.pendencias.CalcularSaudeDoEmpregoUseCase.SaudeEmprego,
+    modifier: Modifier = Modifier
+) {
+    val theme = LocalAppThemeController.current
+    val corSaude = when {
+        saude.percentualSaude >= 90 -> MaterialTheme.colorScheme.tertiary
+        saude.percentualSaude >= 70 -> Color(0xFFE67E22)
+        else -> MaterialTheme.colorScheme.error
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(if (theme.isPremium) 20.dp else 12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(64.dp)
+            ) {
+                CircularProgressIndicator(
+                    progress = { saude.percentualSaude / 100f },
+                    modifier = Modifier.fillMaxSize(),
+                    color = corSaude,
+                    strokeWidth = 6.dp,
+                    trackColor = corSaude.copy(alpha = 0.1f),
+                )
+                Text(
+                    text = "${saude.percentualSaude}%",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = corSaude
+                )
+            }
+
+            Spacer(Modifier.width(20.dp))
+
+            Column {
+                Text(
+                    text = "Saúde do seu Ponto",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = when {
+                        saude.percentualSaude >= 90 -> "Excelente! Tudo em dia."
+                        saude.percentualSaude >= 70 -> "Atenção: Algumas pendências."
+                        else -> "Crítico: Regularize seus registros."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                if (saude.backupStatus is br.com.tlmacedo.meuponto.domain.usecase.backup.VerificarBackupSaudavelUseCase.StatusBackup.Atrasado) {
+                    Text(
+                        text = "⚠️ Backup atrasado (${saude.backupStatus.diasDesdeUltimo} dias)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun JustificativaBottomSheet(
+    dialogo: DialogoJustificativaState,
+    isSalvando: Boolean,
+    onDismiss: () -> Unit,
+    onTextoAlterado: (String) -> Unit,
+    onSugestaoSelecionada: (String) -> Unit,
+    onConfirmar: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = Modifier
+            .navigationBarsPadding()
+            .imePadding()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Justificar pendências",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Dia ${dialogo.pendencia.data.format(DATE_FORMATTER)} · ${dialogo.pendencia.inconsistencias.size} inconsistência(s)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            HorizontalDivider()
+
+            Text(
+                text = "Sugestões",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SugestoesChips(
+                sugestoes = dialogo.sugestoes,
+                textoAtual = dialogo.textoAtual,
+                onSugestaoSelecionada = onSugestaoSelecionada
+            )
+
+            OutlinedTextField(
+                value = dialogo.textoAtual,
+                onValueChange = onTextoAlterado,
+                label = { Text("Justificativa") },
+                placeholder = { Text("Descreva o motivo da pendência...") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 6,
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onDismiss, enabled = !isSalvando) {
+                    Text("Cancelar")
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = onConfirmar,
+                    enabled = dialogo.textoAtual.isNotBlank() && !isSalvando
+                ) {
+                    if (isSalvando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Salvar")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SugestoesChips(
+    sugestoes: List<String>,
+    textoAtual: String,
+    onSugestaoSelecionada: (String) -> Unit
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        sugestoes.forEach { sugestao ->
+            FilterChip(
+                selected = textoAtual == sugestao,
+                onClick = { onSugestaoSelecionada(sugestao) },
+                label = {
+                    Text(
+                        text = sugestao,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
         }
     }
 }
@@ -179,7 +372,8 @@ private fun PendenciasTabRow(
 @Composable
 private fun PendenciasLista(
     dias: List<PendenciaDia>,
-    onDiaClick: (LocalDate) -> Unit
+    onDiaClick: (LocalDate) -> Unit,
+    onJustificar: (PendenciaDia) -> Unit
 ) {
     val expandidos = remember { mutableStateMapOf<LocalDate, Boolean>() }
 
@@ -192,7 +386,8 @@ private fun PendenciasLista(
                 dia = dia,
                 expandido = expandidos[dia.data] ?: false,
                 onToggleExpand = { expandidos[dia.data] = !(expandidos[dia.data] ?: false) },
-                onDiaClick = { onDiaClick(dia.data) }
+                onDiaClick = { onDiaClick(dia.data) },
+                onJustificar = { onJustificar(dia) }
             )
         }
         item { Spacer(Modifier.height(8.dp)) }
@@ -204,7 +399,8 @@ private fun PendenciaCard(
     dia: PendenciaDia,
     expandido: Boolean,
     onToggleExpand: () -> Unit,
-    onDiaClick: () -> Unit
+    onDiaClick: () -> Unit,
+    onJustificar: () -> Unit
 ) {
     val cor = corDoStatus(dia.status)
     val icone = iconeDoStatus(dia.status)
@@ -291,7 +487,8 @@ private fun PendenciaCard(
                     )
                     InconsistenciasLista(
                         inconsistencias = dia.inconsistencias,
-                        temJustificativa = dia.temJustificativa
+                        temJustificativa = dia.temJustificativa,
+                        onJustificar = onJustificar
                     )
                 }
             }
@@ -302,7 +499,8 @@ private fun PendenciaCard(
 @Composable
 private fun InconsistenciasLista(
     inconsistencias: List<InconsistenciaDetectada>,
-    temJustificativa: Boolean
+    temJustificativa: Boolean,
+    onJustificar: () -> Unit
 ) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -340,22 +538,54 @@ private fun InconsistenciasLista(
                 }
             }
         }
-        if (temJustificativa) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (temJustificativa) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "Justificativa registrada",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            } else {
+                Spacer(Modifier.width(1.dp))
+            }
+
             Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable(onClick = onJustificar)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(top = 4.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.CheckCircle,
+                    imageVector = Icons.Outlined.Edit,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(14.dp)
                 )
                 Text(
-                    text = "Justificativa registrada",
+                    text = if (temJustificativa) "Editar" else "Justificar",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -424,7 +654,7 @@ private fun PendenciasVazia(tab: TabPendencias) {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Nenhuma pendência encontrada nos últimos 30 dias.",
+                text = "Nenhuma pendência encontrada no período.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

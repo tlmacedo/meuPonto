@@ -184,6 +184,22 @@ enum class Inconsistencia(
     REGISTRO_RETROATIVO(
         descricao = "Registro inserido retroativamente",
         severidade = Severidade.BAIXA
+    ),
+
+    /**
+     * Comprovante obrigatório não anexado ao registro.
+     */
+    COMPROVANTE_AUSENTE(
+        descricao = "Comprovante obrigatório não anexado",
+        severidade = Severidade.MEDIA
+    ),
+
+    /**
+     * Registro realizado fora do raio de geofencing configurado.
+     */
+    FORA_DO_GEOFENCING(
+        descricao = "Fora do raio de geofencing",
+        severidade = Severidade.MEDIA
     );
 
     /**

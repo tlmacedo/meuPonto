@@ -28,6 +28,7 @@ import androidx.navigation.navArgument
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.screen.auditoria.AuditoriaScreen
 import br.com.tlmacedo.meuponto.presentation.screen.pendencias.PendenciasScreen
+import br.com.tlmacedo.meuponto.presentation.screen.relatorios.RelatoriosScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.form.AusenciaFormScreen
 import br.com.tlmacedo.meuponto.presentation.screen.ausencias.list.AusenciasScreen
 import br.com.tlmacedo.meuponto.presentation.screen.chamado.create.ChamadoCreateScreen
@@ -312,6 +313,9 @@ fun NavGraphBuilder.meuPontoNavGraph(
             },
             onNavigateToPendencias = {
                 navController.navigate(MeuPontoDestinations.PENDENCIAS)
+            },
+            onNavigateToRelatorios = {
+                navController.navigate(MeuPontoDestinations.RELATORIOS)
             },
             onNavigateToComprovantes = {
                 navController.navigate(MeuPontoDestinations.COMPROVANTES_MANAGER)
@@ -787,6 +791,12 @@ fun NavGraphBuilder.meuPontoNavGraph(
             onNavigateToDia = { data: java.time.LocalDate ->
                 navController.navigate(MeuPontoDestinations.homeComData(data.toString()))
             }
+        )
+    }
+
+    composable(MeuPontoDestinations.RELATORIOS) {
+        RelatoriosScreen(
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 

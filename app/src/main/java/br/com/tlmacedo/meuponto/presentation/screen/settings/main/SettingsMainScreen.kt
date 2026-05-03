@@ -28,37 +28,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Business
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.QuestionMark
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material.icons.outlined.Work
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -109,6 +80,7 @@ fun SettingsMainScreen(
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
     onNavigateToPendencias: () -> Unit,
+    onNavigateToRelatorios: () -> Unit,
     onNavigateToComprovantes: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
     onNavigateToJornada: () -> Unit,
@@ -150,6 +122,8 @@ fun SettingsMainScreen(
         onNavigateToAjuda = onNavigateToAjuda,
         onNavigateToLixeira = onNavigateToLixeira,
         onNavigateToAuditoria = onNavigateToAuditoria,
+        onNavigateToPendencias = onNavigateToPendencias,
+        onNavigateToRelatorios = onNavigateToRelatorios,
         onNavigateToComprovantes = onNavigateToComprovantes,
         onNavigateToOpcoesRegistro = onNavigateToOpcoesRegistro,
         onNavigateToJornada = onNavigateToJornada,
@@ -180,6 +154,8 @@ fun SettingsMainContent(
     onNavigateToAjuda: () -> Unit,
     onNavigateToLixeira: () -> Unit,
     onNavigateToAuditoria: () -> Unit,
+    onNavigateToPendencias: () -> Unit,
+    onNavigateToRelatorios: () -> Unit,
     onNavigateToComprovantes: () -> Unit,
     onNavigateToOpcoesRegistro: (Long) -> Unit,
     onNavigateToJornada: () -> Unit,
@@ -309,6 +285,30 @@ fun SettingsMainContent(
                                     onNavigateToAusencias(it)
                                 }
                             }
+                        )
+                    }
+                }
+            }
+
+            item {
+                CollapsibleSettingsSection(
+                    title = "Relatórios",
+                    icon = Icons.AutoMirrored.Outlined.EventNote,
+                    isExpanded = uiState.secoesExpandidas.contains("Relatorios"),
+                    onToggle = { onAlternarSecao("Relatorios") }
+                ) {
+                    SettingsItemsLayout {
+                        SettingsNavigationItem(
+                            title = "Espelho de Ponto",
+                            subtitle = "Gerar PDF ou CSV mensal",
+                            icon = Icons.Outlined.History,
+                            onClick = onNavigateToRelatorios
+                        )
+                        SettingsNavigationItem(
+                            title = "Painel de Pendências",
+                            subtitle = "Saúde e inconsistências do ponto",
+                            icon = Icons.Outlined.Notifications,
+                            onClick = onNavigateToPendencias
                         )
                     }
                 }
@@ -819,6 +819,8 @@ private fun SettingsMainContentPreview() {
             onNavigateToJornada = {},
             onNavigateToChamados = {},
             onNavigateToHistoryCalendar = {},
+            onNavigateToPendencias = {},
+            onNavigateToRelatorios = {},
             onTrocarEmprego = { _ -> },
             onAlternarSecao = { _ -> }
         )
