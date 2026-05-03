@@ -170,6 +170,18 @@ data class InconsistenciaDetectada(
         get() = inconsistencia.isBloqueante
 
     /**
+     * Verifica se esta inconsistência é pendente de justificativa.
+     */
+    val isPendente: Boolean
+        get() = inconsistencia.isPendente
+
+    /**
+     * Verifica se esta inconsistência é apenas informativa.
+     */
+    val isInfo: Boolean
+        get() = inconsistencia.isInfo
+
+    /**
      * Retorna a severidade da inconsistência.
      */
     val severidade: Inconsistencia.Severidade

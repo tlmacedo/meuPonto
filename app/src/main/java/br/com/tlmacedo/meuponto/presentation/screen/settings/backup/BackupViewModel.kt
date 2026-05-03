@@ -19,6 +19,7 @@ import br.com.tlmacedo.meuponto.domain.repository.EmpregoRepository
 import br.com.tlmacedo.meuponto.domain.repository.FeriadoRepository
 import br.com.tlmacedo.meuponto.domain.repository.LocalBackupFile
 import br.com.tlmacedo.meuponto.domain.repository.PontoRepository
+import br.com.tlmacedo.meuponto.domain.usecase.backup.SincronizarBackupNuvemUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.preferencias.SalvarPreferenciasGlobaisUseCase
 import br.com.tlmacedo.meuponto.util.formatarTamanho
@@ -109,6 +110,7 @@ sealed interface BackupEvent {
  *
  * @author Thiago
  * @since 9.1.0
+ * @updated 14.2.0 - Adicionado SincronizarBackupNuvemUseCase para integridade de status
  */
 @HiltViewModel
 @Suppress("DEPRECATION") // observarTodos é usado intencionalmente para backup completo
@@ -122,7 +124,8 @@ class BackupViewModel @Inject constructor(
     private val feriadoRepository: FeriadoRepository,
     private val preferencesDataStore: PreferenciasGlobaisDataStore,
     private val salvarPreferenciasGlobaisUseCase: SalvarPreferenciasGlobaisUseCase,
-    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase
+    private val obterEmpregoAtivoUseCase: ObterEmpregoAtivoUseCase,
+    private val sincronizarBackupNuvemUseCase: SincronizarBackupNuvemUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BackupUiState())
@@ -153,6 +156,9 @@ class BackupViewModel @Inject constructor(
 
     private fun observarPreferencias() {
         viewModelScope.launch {
+            // Sincroniza status real da nuvem logo ao abrir para garantir integridade
+            sincronizarBackupNuvemUseCase()
+
             preferencesDataStore.preferenciasGlobais.collectLatest { prefs ->
                 // 1. Resposta rápida com dados persistidos
                 _uiState.update {

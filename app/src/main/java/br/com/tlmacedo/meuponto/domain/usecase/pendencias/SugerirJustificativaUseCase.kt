@@ -7,9 +7,7 @@ import javax.inject.Inject
 /**
  * Retorna sugestões de justificativa com base nos tipos de inconsistência detectados no dia.
  *
- * As sugestões são ordenadas por relevância: as específicas para os tipos encontrados
- * aparecem primeiro, seguidas de uma opção genérica.
- *
+ * @author Thiago
  * @since 14.0.0
  */
 class SugerirJustificativaUseCase @Inject constructor() {
@@ -21,111 +19,124 @@ class SugerirJustificativaUseCase @Inject constructor() {
             sugestoes.addAll(sugestoesPorTipo(tipo))
         }
 
+        if (sugestoes.isEmpty()) {
+            sugestoes.add("Correção manual de registro")
+        }
+
         sugestoes.add(SUGESTAO_OUTRO)
         return sugestoes.toList()
     }
 
     private fun sugestoesPorTipo(tipo: Inconsistencia): List<String> = when (tipo) {
-        Inconsistencia.FALTA_SEM_JUSTIFICATIVA -> listOf(
-            "Falta justificada por motivo pessoal",
-            "Atestado médico",
-            "Trabalho em home office não registrado",
-            "Licença autorizada"
+        Inconsistencia.ENTRADA_SEM_SAIDA_PASSADO,
+        Inconsistencia.REGISTROS_IMPARES_PASSADO -> listOf(
+            "Esquecimento de registro",
+            "Saída antecipada por emergência",
+            "Falha técnica no dispositivo"
         )
 
-        Inconsistencia.ENTRADA_SEM_SAIDA -> listOf(
-            "Esquecimento de registro de saída",
-            "Saída emergencial sem registro",
-            "Falha no dispositivo no momento da saída"
-        )
-
-        Inconsistencia.SAIDA_SEM_ENTRADA -> listOf(
-            "Esquecimento de registro de entrada",
-            "Entrada registrada em outro dispositivo",
-            "Falha no dispositivo no momento da entrada"
-        )
-
-        Inconsistencia.ENTRADA_DUPLICADA,
-        Inconsistencia.SAIDA_DUPLICADA,
-        Inconsistencia.REGISTROS_IMPARES -> listOf(
-            "Registro duplicado por falha técnica",
-            "Correção manual de ponto",
-            "Ajuste de horário autorizado pelo gestor"
-        )
-
-        Inconsistencia.INTERVALO_ALMOCO_INSUFICIENTE -> listOf(
+        Inconsistencia.INTERVALO_MINIMO_INSUFICIENTE -> listOf(
             "Intervalo reduzido por demanda operacional",
-            "Intervalo compensado em outro momento do dia"
+            "Retorno antecipado para reunião",
+            "Necessidade urgente de atendimento"
         )
 
-        Inconsistencia.INTERVALO_INTERJORNADA_INSUFICIENTE -> listOf(
-            "Sobreaviso ou escala especial autorizada",
-            "Convocação emergencial autorizada pelo gestor"
+        Inconsistencia.TURNO_EXCEDIDO_6H -> listOf(
+            "Finalização de tarefa crítica",
+            "Cobertura de escala",
+            "Atraso em intervalo por demanda"
         )
 
-        Inconsistencia.INTERVALO_MUITO_CURTO -> listOf(
-            "Intervalo reduzido por necessidade do serviço",
-            "Retorno antecipado autorizado"
+        Inconsistencia.JORNADA_EXCEDIDA_10H -> listOf(
+            "Trabalho extra autorizado",
+            "Demanda excepcional de projeto",
+            "Plantão estendido"
         )
 
-        Inconsistencia.INTERVALO_MUITO_LONGO -> listOf(
-            "Intervalo estendido por motivo pessoal",
-            "Atendimento médico durante o intervalo"
-        )
-
-        Inconsistencia.JORNADA_EXCEDIDA -> listOf(
-            "Jornada estendida autorizada pelo gestor",
-            "Horas extras autorizadas",
-            "Demanda urgente fora do horário normal"
-        )
-
-        Inconsistencia.FORA_HORARIO_ESPERADO -> listOf(
-            "Horário alterado por necessidade do serviço",
-            "Compensação de horário autorizada",
-            "Plantão ou sobreaviso"
-        )
-
-        Inconsistencia.REGISTRO_EDITADO -> listOf(
-            "Correção manual de ponto",
-            "Ajuste de horário autorizado pelo gestor",
-            "Correção de erro de digitação"
-        )
-
-        Inconsistencia.REGISTRO_RETROATIVO -> listOf(
-            "Registro retroativo autorizado",
-            "Correção de registro esquecido"
-        )
-
-        Inconsistencia.FORA_AREA_PERMITIDA -> listOf(
-            "Trabalho externo autorizado",
-            "Visita a cliente ou parceiro",
-            "Deslocamento a serviço"
-        )
-
-        Inconsistencia.LOCALIZACAO_NAO_CAPTURADA -> listOf(
-            "GPS indisponível no momento do registro",
-            "Permissão de localização desativada temporariamente"
-        )
-
-        Inconsistencia.REGISTRO_NO_FUTURO -> listOf(
-            "Erro de data/hora no dispositivo corrigido"
-        )
-
-        Inconsistencia.REGISTRO_MUITO_ANTIGO -> listOf(
-            "Registro de período anterior ao esperado",
-            "Ajuste retroativo autorizado"
+        Inconsistencia.DESCANSO_INTERJORNADA_INSUFICIENTE -> listOf(
+            "Convocação emergencial",
+            "Troca de turno autorizada",
+            "Escala especial de trabalho"
         )
 
         Inconsistencia.COMPROVANTE_AUSENTE -> listOf(
-            "Comprovante em posse do gestor",
             "Extravio de comprovante físico",
-            "Problema técnico na captura da foto"
+            "Problema na câmera do dispositivo",
+            "Comprovante em posse da gerência"
         )
 
         Inconsistencia.FORA_DO_GEOFENCING -> listOf(
-            "Trabalho em local externo autorizado",
-            "Viagem a serviço",
+            "Trabalho externo autorizado",
+            "Visita a cliente/parceiro",
             "Deslocamento entre unidades"
+        )
+
+        Inconsistencia.TRABALHO_EM_DIA_ESPECIAL -> listOf(
+            "Trabalho em feriado autorizado",
+            "Escala de folga alterada",
+            "Compensação de horas"
+        )
+
+        Inconsistencia.SALDO_NEGATIVO -> listOf(
+            "Atraso compensado em outro dia",
+            "Saída antecipada autorizada",
+            "Problema pessoal"
+        )
+
+        Inconsistencia.JORNADA_REDUZIDA -> listOf(
+            "Liberação antecipada pela chefia",
+            "Compensação de banco de horas",
+            "Falta parcial justificada"
+        )
+
+        Inconsistencia.REGISTRO_EDITADO -> listOf(
+            "Correção de erro de digitação",
+            "Ajuste conforme comprovante",
+            "Correção manual de horário"
+        )
+
+        Inconsistencia.REGISTRO_RETROATIVO -> listOf(
+            "Registro de ponto esquecido",
+            "Ajuste retroativo autorizado"
+        )
+
+        Inconsistencia.REGISTRO_NO_FUTURO -> listOf(
+            "Correção de fuso horário/data do aparelho"
+        )
+
+        Inconsistencia.REGISTROS_IMPARES,
+        Inconsistencia.SAIDA_SEM_ENTRADA,
+        Inconsistencia.ENTRADA_DUPLICADA,
+        Inconsistencia.SAIDA_DUPLICADA,
+        Inconsistencia.ENTRADA_SEM_SAIDA -> listOf(
+            "Erro de registro corrigido manualmente",
+            "Falha no sistema de ponto",
+            "Ajuste autorizado pelo gestor"
+        )
+
+        Inconsistencia.INTERVALO_ALMOCO_INSUFICIENTE,
+        Inconsistencia.INTERVALO_INTERJORNADA_INSUFICIENTE -> listOf(
+            "Necessidade de serviço",
+            "Escala de trabalho alterada",
+            "Retorno antecipado autorizado"
+        )
+
+        Inconsistencia.JORNADA_EXCEDIDA -> listOf(
+            "Demanda excessiva de trabalho",
+            "Finalização de tarefa urgente",
+            "Hora extra autorizada"
+        )
+
+        Inconsistencia.FORA_AREA_PERMITIDA,
+        Inconsistencia.FORA_HORARIO_ESPERADO,
+        Inconsistencia.INTERVALO_MUITO_CURTO,
+        Inconsistencia.INTERVALO_MUITO_LONGO,
+        Inconsistencia.REGISTRO_MUITO_ANTIGO,
+        Inconsistencia.LOCALIZACAO_NAO_CAPTURADA,
+        Inconsistencia.FALTA_SEM_JUSTIFICATIVA -> listOf(
+            "Ajuste de registro para conformidade",
+            "Correção manual",
+            "Informação adicional anexada"
         )
     }
 

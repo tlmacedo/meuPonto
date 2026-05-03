@@ -1,5 +1,6 @@
 package br.com.tlmacedo.meuponto.presentation.screen.relatorios
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
@@ -29,13 +30,13 @@ data class RelatoriosUiState(
 
 sealed interface RelatoriosAction {
     data class AlterarMes(val delta: Long) : RelatoriosAction
-    data class ExportarPDF(val outputStream: OutputStream) : RelatoriosAction
-    data class ExportarCSV(val outputStream: OutputStream) : RelatoriosAction
+    data class ExportarPDF(val outputStream: OutputStream, val uri: Uri) : RelatoriosAction
+    data class ExportarCSV(val outputStream: OutputStream, val uri: Uri) : RelatoriosAction
 }
 
 sealed interface RelatoriosEvent {
     data class MostrarMensagem(val mensagem: String) : RelatoriosEvent
-    data object ExportacaoConcluida : RelatoriosEvent
+    data class ExportacaoConcluida(val uri: Uri, val mimeType: String) : RelatoriosEvent
 }
 
 @HiltViewModel
@@ -68,12 +69,12 @@ class RelatoriosViewModel @Inject constructor(
             is RelatoriosAction.AlterarMes -> {
                 _uiState.update { it.copy(mesSelecionado = it.mesSelecionado.plusMonths(action.delta)) }
             }
-            is RelatoriosAction.ExportarPDF -> exportarPDF(action.outputStream)
-            is RelatoriosAction.ExportarCSV -> exportarCSV(action.outputStream)
+            is RelatoriosAction.ExportarPDF -> exportarPDF(action.outputStream, action.uri)
+            is RelatoriosAction.ExportarCSV -> exportarCSV(action.outputStream, action.uri)
         }
     }
 
-    private fun exportarPDF(outputStream: OutputStream) {
+    private fun exportarPDF(outputStream: OutputStream, uri: Uri) {
         viewModelScope.launch {
             _uiState.update { it.copy(isExportando = true) }
             
@@ -85,7 +86,7 @@ class RelatoriosViewModel @Inject constructor(
                 
                 if (resultado.isSuccess) {
                     _eventos.emit(RelatoriosEvent.MostrarMensagem("PDF gerado com sucesso!"))
-                    _eventos.emit(RelatoriosEvent.ExportacaoConcluida)
+                    _eventos.emit(RelatoriosEvent.ExportacaoConcluida(uri, "application/pdf"))
                 } else {
                     _eventos.emit(RelatoriosEvent.MostrarMensagem("Erro ao gerar PDF: ${resultado.exceptionOrNull()?.message}"))
                 }
@@ -97,8 +98,7 @@ class RelatoriosViewModel @Inject constructor(
         }
     }
 
-    private fun exportarCSV(outputStream: OutputStream) {
-        // TODO: Implementar exportação CSV similar ao PDF
+    private fun exportarCSV(outputStream: OutputStream, uri: Uri) {
         viewModelScope.launch {
             _eventos.emit(RelatoriosEvent.MostrarMensagem("Exportação CSV será implementada em breve."))
         }

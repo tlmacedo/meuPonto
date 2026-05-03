@@ -5,6 +5,7 @@ import br.com.tlmacedo.meuponto.domain.model.PendenciaDia
 import br.com.tlmacedo.meuponto.domain.usecase.pendencias.CalcularSaudeDoEmpregoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.pendencias.ListarPendenciasPontoUseCase
 import java.time.LocalDate
+import java.time.YearMonth
 
 data class DialogoJustificativaState(
     val pendencia: PendenciaDia,
@@ -14,8 +15,9 @@ data class DialogoJustificativaState(
 
 enum class TabPendencias(val label: String) {
     TODOS("Todos"),
-    BLOQUEANTES("Bloqueantes"),
+    BLOQUEADOS("Bloqueados"),
     PENDENTES("Pendentes"),
+    EM_ANDAMENTO("Em andamento"),
     INFORMATIVOS("Informativos"),
 }
 
@@ -24,8 +26,7 @@ data class PendenciasUiState(
     val resultado: ListarPendenciasPontoUseCase.ResultadoPendencias? = null,
     val saude: CalcularSaudeDoEmpregoUseCase.SaudeEmprego? = null,
     val tabSelecionada: TabPendencias = TabPendencias.TODOS,
-    val dataInicio: LocalDate = LocalDate.now().minusDays(30),
-    val dataFim: LocalDate = LocalDate.now(),
+    val mesReferencia: YearMonth = YearMonth.now(),
     val mensagemErro: String? = null,
     val empregoId: Long? = null,
     val dialogoJustificativa: DialogoJustificativaState? = null,
@@ -36,10 +37,11 @@ data class PendenciasUiState(
         get() {
             val r = resultado ?: return emptyList()
             return when (tabSelecionada) {
-                TabPendencias.TODOS -> (r.bloqueantes + r.pendentes + r.informativos)
+                TabPendencias.TODOS -> (r.bloqueados + r.pendentes + r.emAndamento + r.informativos)
                     .sortedByDescending { it.data }
-                TabPendencias.BLOQUEANTES -> r.bloqueantes
+                TabPendencias.BLOQUEADOS -> r.bloqueados
                 TabPendencias.PENDENTES -> r.pendentes
+                TabPendencias.EM_ANDAMENTO -> r.emAndamento
                 TabPendencias.INFORMATIVOS -> r.informativos
             }
         }
@@ -49,8 +51,9 @@ data class PendenciasUiState(
             val r = resultado ?: return emptyMap()
             return mapOf(
                 TabPendencias.TODOS to r.total,
-                TabPendencias.BLOQUEANTES to r.bloqueantes.size,
+                TabPendencias.BLOQUEADOS to r.bloqueados.size,
                 TabPendencias.PENDENTES to r.pendentes.size,
+                TabPendencias.EM_ANDAMENTO to r.emAndamento.size,
                 TabPendencias.INFORMATIVOS to r.informativos.size
             )
         }
@@ -60,6 +63,7 @@ data class PendenciasUiState(
 
 sealed class PendenciasEvent {
     data object Carregar : PendenciasEvent()
+    data class AlterarMes(val delta: Long) : PendenciasEvent()
     data class SelecionarTab(val tab: TabPendencias) : PendenciasEvent()
     data object LimparErro : PendenciasEvent()
     data object LimparSucesso : PendenciasEvent()

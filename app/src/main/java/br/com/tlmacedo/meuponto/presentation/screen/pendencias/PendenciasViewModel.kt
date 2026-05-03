@@ -3,6 +3,7 @@ package br.com.tlmacedo.meuponto.presentation.screen.pendencias
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.tlmacedo.meuponto.domain.model.PendenciaDia
+import br.com.tlmacedo.meuponto.domain.usecase.backup.SincronizarBackupNuvemUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.emprego.ObterEmpregoAtivoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.pendencias.CalcularSaudeDoEmpregoUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.pendencias.ListarPendenciasPontoUseCase
@@ -24,7 +25,8 @@ class PendenciasViewModel @Inject constructor(
     private val listarPendenciasPontoUseCase: ListarPendenciasPontoUseCase,
     private val sugerirJustificativaUseCase: SugerirJustificativaUseCase,
     private val resolverInconsistenciaUseCase: ResolverInconsistenciaUseCase,
-    private val calcularSaudeDoEmpregoUseCase: CalcularSaudeDoEmpregoUseCase
+    private val calcularSaudeDoEmpregoUseCase: CalcularSaudeDoEmpregoUseCase,
+    private val sincronizarBackupNuvemUseCase: SincronizarBackupNuvemUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PendenciasUiState())
@@ -37,6 +39,10 @@ class PendenciasViewModel @Inject constructor(
     fun onEvent(event: PendenciasEvent) {
         when (event) {
             PendenciasEvent.Carregar -> carregarPendencias()
+            is PendenciasEvent.AlterarMes -> {
+                _uiState.update { it.copy(mesReferencia = it.mesReferencia.plusMonths(event.delta)) }
+                carregarPendencias()
+            }
             is PendenciasEvent.SelecionarTab -> {
                 _uiState.update { it.copy(tabSelecionada = event.tab) }
             }
@@ -66,6 +72,9 @@ class PendenciasViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
+            // Sincroniza status do backup na nuvem para garantir score de saúde correto
+            sincronizarBackupNuvemUseCase()
+
             val emprego = obterEmpregoAtivoUseCase.observar().first()
             if (emprego == null) {
                 _uiState.update { it.copy(isLoading = false, mensagemErro = "Nenhum emprego ativo selecionado") }
@@ -73,12 +82,13 @@ class PendenciasViewModel @Inject constructor(
             }
 
             try {
+                val mes = _uiState.value.mesReferencia
                 val resultado = listarPendenciasPontoUseCase(
                     empregoId = emprego.id,
-                    dataInicio = _uiState.value.dataInicio,
-                    dataFim = _uiState.value.dataFim
+                    dataInicio = mes.atDay(1),
+                    dataFim = mes.atEndOfMonth()
                 )
-                val saude = calcularSaudeDoEmpregoUseCase(emprego.id)
+                val saude = calcularSaudeDoEmpregoUseCase(emprego.id, mes)
 
                 _uiState.update { 
                     it.copy(

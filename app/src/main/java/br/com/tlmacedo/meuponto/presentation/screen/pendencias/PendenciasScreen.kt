@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,15 +34,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.tlmacedo.meuponto.domain.model.InconsistenciaDetectada
 import br.com.tlmacedo.meuponto.domain.model.PendenciaDia
-import br.com.tlmacedo.meuponto.domain.model.StatusPendencia
+import br.com.tlmacedo.meuponto.domain.model.StatusDiaPonto
 import br.com.tlmacedo.meuponto.presentation.components.MeuPontoTopBar
 import br.com.tlmacedo.meuponto.presentation.theme.LocalAppThemeController
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+private val MONTH_YEAR_FORMATTER = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", Locale("pt", "BR"))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,9 +94,15 @@ fun PendenciasScreen(
             uiState.saude?.let { saude ->
                 SaudeCard(
                     saude = saude,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
+
+            PeriodoSelector(
+                mesReferencia = uiState.mesReferencia,
+                onMesAlterado = { viewModel.onEvent(PendenciasEvent.AlterarMes(it)) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
 
             PendenciasTabRow(
                 uiState = uiState,
@@ -127,6 +137,54 @@ fun PendenciasScreen(
                 )
             }
         )
+    }
+}
+
+@Composable
+private fun PeriodoSelector(
+    mesReferencia: YearMonth,
+    onMesAlterado: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { onMesAlterado(-1L) }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBackIos,
+                    contentDescription = "Mês anterior",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Text(
+                text = mesReferencia.format(MONTH_YEAR_FORMATTER).replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            IconButton(onClick = { onMesAlterado(1L) }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    contentDescription = "Próximo mês",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     }
 }
 
@@ -180,23 +238,35 @@ private fun SaudeCard(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
+                val mensagemSaude = when {
+                    saude.percentualSaude >= 90 -> "Excelente! Tudo em dia."
+                    saude.percentualSaude >= 70 -> "Atenção: Algumas pendências."
+                    else -> if (saude.totalPendenciasMes > 0) "Crítico: Regularize seus registros." else "Atenção: Sincronize seu backup na nuvem."
+                }
                 Text(
-                    text = when {
-                        saude.percentualSaude >= 90 -> "Excelente! Tudo em dia."
-                        saude.percentualSaude >= 70 -> "Atenção: Algumas pendências."
-                        else -> "Crítico: Regularize seus registros."
-                    },
+                    text = mensagemSaude,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
-                if (saude.backupStatus is br.com.tlmacedo.meuponto.domain.usecase.backup.VerificarBackupSaudavelUseCase.StatusBackup.Atrasado) {
-                    Text(
-                        text = "⚠️ Backup atrasado (${saude.backupStatus.diasDesdeUltimo} dias)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+                when (val backup = saude.backupStatus) {
+                    is br.com.tlmacedo.meuponto.domain.usecase.backup.VerificarBackupSaudavelUseCase.StatusBackup.Atrasado -> {
+                        Text(
+                            text = "⚠️ Backup atrasado (${backup.diasDesdeUltimo} dias)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                    is br.com.tlmacedo.meuponto.domain.usecase.backup.VerificarBackupSaudavelUseCase.StatusBackup.NuncaRealizado -> {
+                        Text(
+                            text = "❌ Backup nunca realizado",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                    else -> {}
                 }
             }
         }
@@ -511,7 +581,7 @@ private fun InconsistenciasLista(
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                val cor = corDaSeveridade(item.isBloqueante)
+                val cor = corDaSeveridade(item)
                 Box(
                     modifier = Modifier
                         .size(6.dp)
@@ -593,7 +663,7 @@ private fun InconsistenciasLista(
 }
 
 @Composable
-private fun StatusChip(status: StatusPendencia, cor: Color) {
+private fun StatusChip(status: StatusDiaPonto, cor: Color) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
@@ -645,8 +715,9 @@ private fun PendenciasVazia(tab: TabPendencias) {
             )
             Text(
                 text = when (tab) {
-                    TabPendencias.BLOQUEANTES -> "Nenhum item bloqueante"
+                    TabPendencias.BLOQUEADOS -> "Nenhum item bloqueado"
                     TabPendencias.PENDENTES -> "Nenhum item pendente"
+                    TabPendencias.EM_ANDAMENTO -> "Nenhuma jornada em aberto"
                     TabPendencias.INFORMATIVOS -> "Nenhum informativo"
                     TabPendencias.TODOS -> "Tudo em ordem"
                 },
@@ -663,35 +734,43 @@ private fun PendenciasVazia(tab: TabPendencias) {
 }
 
 @Composable
-private fun corDoStatus(status: StatusPendencia): Color {
-    return when (status) {
-        StatusPendencia.BLOQUEANTE -> MaterialTheme.colorScheme.error
-        StatusPendencia.PENDENTE -> Color(0xFFE67E22)
-        StatusPendencia.INFORMATIVO -> MaterialTheme.colorScheme.tertiary
+private fun corDaSeveridade(inconsistencia: InconsistenciaDetectada): Color {
+    return when {
+        inconsistencia.isBloqueante -> MaterialTheme.colorScheme.error
+        inconsistencia.isPendente -> Color(0xFFE67E22)
+        else -> MaterialTheme.colorScheme.tertiary
     }
-}
-
-@Composable
-private fun corDaSeveridade(isBloqueante: Boolean): Color {
-    return if (isBloqueante) MaterialTheme.colorScheme.error
-    else Color(0xFFE67E22)
 }
 
 @Composable
 private fun corDoTab(tab: TabPendencias): Color {
     return when (tab) {
-        TabPendencias.BLOQUEANTES -> MaterialTheme.colorScheme.error
+        TabPendencias.BLOQUEADOS -> MaterialTheme.colorScheme.error
         TabPendencias.PENDENTES -> Color(0xFFE67E22)
+        TabPendencias.EM_ANDAMENTO -> MaterialTheme.colorScheme.primary
         TabPendencias.INFORMATIVOS -> MaterialTheme.colorScheme.tertiary
-        TabPendencias.TODOS -> MaterialTheme.colorScheme.primary
+        TabPendencias.TODOS -> MaterialTheme.colorScheme.outline
     }
 }
 
-private fun iconeDoStatus(status: StatusPendencia): ImageVector {
+@Composable
+private fun corDoStatus(status: StatusDiaPonto): Color {
     return when (status) {
-        StatusPendencia.BLOQUEANTE -> Icons.Outlined.Error
-        StatusPendencia.PENDENTE -> Icons.Outlined.Warning
-        StatusPendencia.INFORMATIVO -> Icons.Outlined.Info
+        StatusDiaPonto.BLOQUEADO -> MaterialTheme.colorScheme.error
+        StatusDiaPonto.PENDENTE_JUSTIFICATIVA -> Color(0xFFE67E22)
+        StatusDiaPonto.EM_ANDAMENTO -> MaterialTheme.colorScheme.primary
+        StatusDiaPonto.INFO -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.outline
+    }
+}
+
+private fun iconeDoStatus(status: StatusDiaPonto): ImageVector {
+    return when (status) {
+        StatusDiaPonto.BLOQUEADO -> Icons.Outlined.Error
+        StatusDiaPonto.PENDENTE_JUSTIFICATIVA -> Icons.Outlined.Warning
+        StatusDiaPonto.EM_ANDAMENTO -> Icons.Outlined.Schedule
+        StatusDiaPonto.INFO -> Icons.Outlined.Info
+        else -> Icons.Outlined.CheckCircle
     }
 }
 

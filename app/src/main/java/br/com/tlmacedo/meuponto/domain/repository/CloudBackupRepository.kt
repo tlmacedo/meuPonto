@@ -56,6 +56,12 @@ interface CloudBackupRepository {
     suspend fun excluirTodosBackupsNuvem(): Result<Unit>
 
     /**
+     * Sincroniza a data do último backup na nuvem com o armazenamento local (DataStore).
+     * Útil para garantir integridade quando o usuário troca de dispositivo.
+     */
+    suspend fun sincronizarStatusUltimoBackup(): Result<Long>
+
+    /**
      * Desconecta a conta Google do aplicativo.
      * @return Result indicando sucesso ou erro.
      */

@@ -1,6 +1,7 @@
 package br.com.tlmacedo.meuponto.domain.usecase.relatorio
 
 import br.com.tlmacedo.meuponto.domain.repository.VersaoJornadaRepository
+import br.com.tlmacedo.meuponto.domain.usecase.ponto.CalcularBancoHorasUseCase
 import br.com.tlmacedo.meuponto.domain.usecase.ponto.ResumoDiaCompleto
 import br.com.tlmacedo.meuponto.util.helper.minutosParaHoraMinuto
 import br.com.tlmacedo.meuponto.util.helper.minutosParaSaldoFormatado
@@ -15,10 +16,12 @@ import javax.inject.Inject
  * @author Thiago
  * @since 1.0.0
  * @updated 10.0.0 - Refatorado para usar GerarResumoPeriodoUseCase
+ * @updated 14.1.0 - Adicionado suporte a saldo inicial para saldo progressivo no PDF
  */
 class GerarRelatorioMensalUseCase @Inject constructor(
     private val versaoJornadaRepository: VersaoJornadaRepository,
-    private val gerarResumoPeriodoUseCase: GerarResumoPeriodoUseCase
+    private val gerarResumoPeriodoUseCase: GerarResumoPeriodoUseCase,
+    private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase
 ) {
     data class RelatorioMensal(
         val empregoId: Long,
@@ -31,7 +34,8 @@ class GerarRelatorioMensalUseCase @Inject constructor(
         val totalAbonadoMinutos: Int,
         val saldoMinutos: Int,
         val diasTrabalhados: Int,
-        val diasUteis: Int
+        val diasUteis: Int,
+        val saldoInicialBancoMinutos: Int = 0
     ) {
         val saldoFormatado: String
             get() = saldoMinutos.minutosParaSaldoFormatado()
@@ -66,6 +70,12 @@ class GerarRelatorioMensalUseCase @Inject constructor(
 
         val resumoPeriodo = gerarResumoPeriodoUseCase(empregoId, dataInicio, dataFim)
 
+        val saldoInicial = try {
+            calcularBancoHorasUseCase.calcular(empregoId, dataInicio.minusDays(1)).saldoTotal.toMinutes().toInt()
+        } catch (e: Exception) {
+            0
+        }
+
         return RelatorioMensal(
             empregoId = empregoId,
             mesRef = mes,
@@ -77,7 +87,8 @@ class GerarRelatorioMensalUseCase @Inject constructor(
             totalAbonadoMinutos = resumoPeriodo.totalAbonadoMinutos,
             saldoMinutos = resumoPeriodo.saldoPeriodoMinutos,
             diasTrabalhados = resumoPeriodo.diasTrabalhados,
-            diasUteis = resumoPeriodo.diasUteis
+            diasUteis = resumoPeriodo.diasUteis,
+            saldoInicialBancoMinutos = saldoInicial
         )
     }
 }

@@ -1,5 +1,6 @@
 package br.com.tlmacedo.meuponto.presentation.screen.relatorios
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -39,7 +40,7 @@ fun RelatoriosScreen(
         uri?.let {
             val outputStream = context.contentResolver.openOutputStream(it)
             if (outputStream != null) {
-                viewModel.onAction(RelatoriosAction.ExportarPDF(outputStream))
+                viewModel.onAction(RelatoriosAction.ExportarPDF(outputStream, it))
             }
         }
     }
@@ -48,7 +49,15 @@ fun RelatoriosScreen(
         viewModel.eventos.collect { event ->
             when (event) {
                 is RelatoriosEvent.MostrarMensagem -> snackbarHostState.showSnackbar(event.mensagem)
-                RelatoriosEvent.ExportacaoConcluida -> { /* Fechar diálogos se houver */ }
+                is RelatoriosEvent.ExportacaoConcluida -> {
+                    // Abrir o relatório automaticamente após gerar
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(event.uri, event.mimeType)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    val chooser = Intent.createChooser(intent, "Abrir Relatório")
+                    context.startActivity(chooser)
+                }
             }
         }
     }
@@ -140,7 +149,7 @@ fun RelatoriosScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { viewModel.onAction(RelatoriosAction.AlterarMes(0)) }, // Placeholder
+                onClick = { /* Placeholder */ },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Row(

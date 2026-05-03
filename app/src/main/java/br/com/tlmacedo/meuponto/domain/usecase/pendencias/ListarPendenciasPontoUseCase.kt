@@ -2,16 +2,12 @@
 package br.com.tlmacedo.meuponto.domain.usecase.pendencias
 
 import br.com.tlmacedo.meuponto.domain.model.PendenciaDia
-import br.com.tlmacedo.meuponto.domain.model.StatusPendencia
+import br.com.tlmacedo.meuponto.domain.model.StatusDiaPonto
 import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * Lista todas as pendências de ponto em um período, agrupadas por severidade.
- *
- * Itera dia a dia no intervalo fornecido, valida cada um via
- * [ValidarIntegridadeDiaUseCase] e retorna o resultado particionado em
- * Bloqueantes, Pendentes e Informativos.
+ * Lista todas as pendências de ponto em um período, agrupadas pela nova classificação de produto.
  *
  * @author Thiago
  * @since 13.0.0
@@ -20,11 +16,13 @@ class ListarPendenciasPontoUseCase @Inject constructor(
     private val validarIntegridadeDia: ValidarIntegridadeDiaUseCase
 ) {
     data class ResultadoPendencias(
-        val bloqueantes: List<PendenciaDia>,
+        val bloqueados: List<PendenciaDia>,
         val pendentes: List<PendenciaDia>,
-        val informativos: List<PendenciaDia>
+        val informativos: List<PendenciaDia>,
+        val emAndamento: List<PendenciaDia>,
+        val normais: List<PendenciaDia>
     ) {
-        val total: Int get() = bloqueantes.size + pendentes.size + informativos.size
+        val total: Int get() = bloqueados.size + pendentes.size + informativos.size + emAndamento.size
         val temPendencias: Boolean get() = total > 0
     }
 
@@ -41,14 +39,20 @@ class ListarPendenciasPontoUseCase @Inject constructor(
         }
 
         return ResultadoPendencias(
-            bloqueantes = pendencias
-                .filter { it.status == StatusPendencia.BLOQUEANTE }
+            bloqueados = pendencias
+                .filter { it.status == StatusDiaPonto.BLOQUEADO }
                 .sortedByDescending { it.data },
             pendentes = pendencias
-                .filter { it.status == StatusPendencia.PENDENTE }
+                .filter { it.status == StatusDiaPonto.PENDENTE_JUSTIFICATIVA }
                 .sortedByDescending { it.data },
             informativos = pendencias
-                .filter { it.status == StatusPendencia.INFORMATIVO }
+                .filter { it.status == StatusDiaPonto.INFO }
+                .sortedByDescending { it.data },
+            emAndamento = pendencias
+                .filter { it.status == StatusDiaPonto.EM_ANDAMENTO }
+                .sortedByDescending { it.data },
+            normais = pendencias
+                .filter { it.status == StatusDiaPonto.NORMAL }
                 .sortedByDescending { it.data }
         )
     }

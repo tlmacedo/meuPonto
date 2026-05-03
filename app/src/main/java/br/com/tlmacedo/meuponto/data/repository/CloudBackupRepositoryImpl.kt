@@ -33,10 +33,10 @@ import java.io.File as JavaFile
 
 /**
  * Implementação do repositório de backup na nuvem usando Google Drive REST API.
- * Utiliza a pasta "appDataFolder" para privacidade dos dados.
  *
  * @author Thiago
  * @since 12.0.0
+ * @updated 14.2.0 - Melhorada integridade de restauração e adicionada sincronização de status.
  */
 @Suppress("DEPRECATION")
 @Singleton
@@ -76,11 +76,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
         try {
             val service = driveService
                 ?: return@withContext Result.failure(Exception("Usuário não autenticado"))
-
-            // Faz uma chamada leve para listar apenas o nome do drive (get About) 
-            // ou listar arquivos com limit 1 apenas para validar o token/permissão
             service.files().list().setPageSize(1).execute()
-
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "Teste de conexão com Google Drive falhou")
@@ -88,13 +84,30 @@ class CloudBackupRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun sincronizarStatusUltimoBackup(): Result<Long> = withContext(Dispatchers.IO) {
+        try {
+            val backups = listarBackupsNuvem().getOrNull() ?: emptyList()
+            val ultimoTimestamp = backups.maxByOrNull { it.modifiedTime }?.modifiedTime ?: 0L
+            
+            if (ultimoTimestamp > 0) {
+                val prefs = preferencesDataStore.preferenciasGlobais.first()
+                preferencesDataStore.salvarBackup(
+                    backupAutomaticoAtivo = prefs.backupAutomaticoAtivo,
+                    backupNuvemAtivo = prefs.backupNuvemAtivo,
+                    ultimoBackupNuvem = ultimoTimestamp
+                )
+            }
+            Result.success(ultimoTimestamp)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun uploadBackup(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val service =
-                driveService
+            val service = driveService
                     ?: return@withContext Result.failure(Exception("Usuário não autenticado"))
 
-            // 1. Obter emprego ativo para criar a estrutura de pastas
             val empregoId = preferencesRepository.obterEmpregoAtivoId()
                 ?: return@withContext Result.failure(Exception("Nenhum emprego ativo encontrado"))
 
@@ -103,12 +116,10 @@ class CloudBackupRepositoryImpl @Inject constructor(
 
             val hashEmprego = (emprego.apelido ?: emprego.nome).hashCode().toString(16).take(10)
 
-            // 2. Garantir estrutura de pastas: "Meu Ponto" -> "{hash}" -> "backups"
             val folderMeuPontoId = getOrCreateFolder(service, "Meu Ponto", "root")
             val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
             val folderBackupsId = getOrCreateFolder(service, "backups", folderEmpregoId)
 
-            // 3. Consolidar banco e Upload do DB (Zipado)
             checkpointManager.prepareForBackup()
             val dbFile = context.getDatabasePath(MeuPontoDatabase.DATABASE_NAME)
             if (!dbFile.exists()) {
@@ -135,18 +146,13 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 service.files().create(dbMetadata, mediaContent)
                     .setFields("id, name, size, modifiedTime")
                     .execute()
-                Timber.d("Backup do banco (zip) enviado: $zipFileName")
             } finally {
                 if (tempZipFile.exists()) tempZipFile.delete()
             }
 
-            // 4. Manter apenas os 5 backups mais recentes na nuvem
             limparBackupsAntigosNuvem(service, folderBackupsId)
-
-            // 5. Sincronizar Fotos e Registrar sucesso
             sincronizarFotos()
             preferencesDataStore.registrarBackupRealizado(isNuvem = true)
-            limparBackupsLocais()
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -155,129 +161,74 @@ class CloudBackupRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun limparBackupsAntigosNuvem(service: Drive, folderBackupsId: String) {
-        try {
-            val query =
-                "'$folderBackupsId' in parents and name contains 'meuponto_db' and trashed = false"
-            val result = service.files().list()
-                .setQ(query)
-                .setOrderBy("modifiedTime desc")
-                .setFields("files(id, name)")
-                .execute()
-
-            val files = result.files ?: return
-            if (files.size > 5) {
-                files.drop(5).forEach { file ->
-                    service.files().delete(file.id).execute()
-                    Timber.d("Backup antigo removido da nuvem: ${file.name}")
-                }
-            }
-        } catch (e: Exception) {
-            Timber.w(e, "Erro ao limpar backups antigos da nuvem")
-        }
-    }
-
-    private fun getOrCreateFolder(service: Drive, folderName: String, parentId: String): String {
-        val query =
-            "name = '$folderName' and mimeType = 'application/vnd.google-apps.folder' and '$parentId' in parents and trashed = false"
-        val result = service.files().list().setQ(query).execute()
-
-        return result.files?.firstOrNull()?.id
-            ?: run {
-                val fileMetadata = File().apply {
-                    name = folderName
-                    mimeType = "application/vnd.google-apps.folder"
-                    parents = listOf(parentId)
-                }
-                service.files().create(fileMetadata).setFields("id").execute().id
-            }
-    }
-
-    private fun fileQueryExists(service: Drive, fileName: String, parentId: String): Boolean {
-        val query = "name = '$fileName' and '$parentId' in parents and trashed = false"
-        val result = service.files().list().setQ(query).setFields("files(id)").execute()
-        return !result.files.isNullOrEmpty()
-    }
-
-    private fun limparBackupsLocais() {
-        try {
-            val backupDir = JavaFile(context.getExternalFilesDir(null), "backups")
-            if (backupDir.exists()) {
-                backupDir.listFiles()?.forEach { it.delete() }
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Erro ao limpar backups locais")
-        }
-    }
-
     override suspend fun downloadERestaurarBackup(fileId: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
-                val service =
-                    driveService
+                val service = driveService
                         ?: return@withContext Result.failure(Exception("Usuário não autenticado"))
 
-                val targetFileId = if (fileId != null) {
-                    fileId
-                } else {
-                    // Localizar o backup de banco mais recente
+                val targetFileId = fileId ?: run {
                     val query = "name contains 'meuponto_db' and trashed = false"
-                    val files = service.files().list()
-                        .setQ(query)
-                        .setOrderBy("modifiedTime desc")
-                        .setPageSize(1)
-                        .execute()
+                    val files = service.files().list().setQ(query).setOrderBy("modifiedTime desc").setPageSize(1).execute()
+                    files.files?.firstOrNull()?.id
+                } ?: return@withContext Result.failure(Exception("Nenhum backup encontrado na nuvem"))
 
-                    val targetFileId = files.files?.firstOrNull()?.id
-                        ?: return@withContext Result.failure(Exception("Nenhum backup de banco encontrado na nuvem"))
-                    targetFileId
-                }
-
-                val targetFile =
-                    service.files().get(targetFileId).setFields("name, mimeType").execute()
-                val isZip =
-                    targetFile.name.endsWith(".zip") || targetFile.mimeType == "application/zip"
+                val targetFile = service.files().get(targetFileId).setFields("name, mimeType").execute()
+                val isZip = targetFile.name.endsWith(".zip") || targetFile.mimeType == "application/zip"
 
                 val dbFile = context.getDatabasePath(MeuPontoDatabase.DATABASE_NAME)
+                val backupDeSeguranca = JavaFile(dbFile.path + ".pre_restore")
 
-                if (isZip) {
-                    val tempZipFile = JavaFile(context.cacheDir, "temp_restore.zip")
-                    FileOutputStream(tempZipFile).use { output ->
-                        service.files().get(targetFileId).executeMediaAndDownloadTo(output)
-                    }
-
-                    database.close()
-
-                    ZipInputStream(FileInputStream(tempZipFile)).use { zis ->
-                        var entry = zis.nextEntry
-                        while (entry != null) {
-                            if (entry.name == MeuPontoDatabase.DATABASE_NAME) {
-                                // Restaurar banco
-                                JavaFile(dbFile.path + "-wal").delete()
-                                JavaFile(dbFile.path + "-shm").delete()
-                                FileOutputStream(dbFile).use { output -> zis.copyTo(output) }
-                            }
-                            zis.closeEntry()
-                            entry = zis.nextEntry
-                        }
-                    }
-                    tempZipFile.delete()
-                } else {
-                    // Download legado (.db)
-                    val tempFile = JavaFile(context.cacheDir, "temp_backup.db")
-                    FileOutputStream(tempFile).use { output ->
-                        service.files().get(targetFileId).executeMediaAndDownloadTo(output)
-                    }
-
-                    database.close()
-                    JavaFile(dbFile.path + "-wal").delete()
-                    JavaFile(dbFile.path + "-shm").delete()
-
-                    tempFile.copyTo(dbFile, overwrite = true)
-                    tempFile.delete()
+                try {
+                    dbFile.copyTo(backupDeSeguranca, overwrite = true)
+                } catch (e: Exception) {
+                    Timber.w("Não foi possível criar backup de segurança antes da restauração")
                 }
 
-                Result.success(Unit)
+                try {
+                    if (isZip) {
+                        val tempZipFile = JavaFile(context.cacheDir, "temp_restore.zip")
+                        FileOutputStream(tempZipFile).use { output ->
+                            service.files().get(targetFileId).executeMediaAndDownloadTo(output)
+                        }
+
+                        database.close()
+
+                        ZipInputStream(FileInputStream(tempZipFile)).use { zis ->
+                            var entry = zis.nextEntry
+                            while (entry != null) {
+                                if (entry.name == MeuPontoDatabase.DATABASE_NAME) {
+                                    JavaFile(dbFile.path + "-wal").delete()
+                                    JavaFile(dbFile.path + "-shm").delete()
+                                    FileOutputStream(dbFile).use { output -> zis.copyTo(output) }
+                                }
+                                zis.closeEntry()
+                                entry = zis.nextEntry
+                            }
+                        }
+                        tempZipFile.delete()
+                    } else {
+                        val tempFile = JavaFile(context.cacheDir, "temp_backup.db")
+                        FileOutputStream(tempFile).use { output ->
+                            service.files().get(targetFileId).executeMediaAndDownloadTo(output)
+                        }
+                        database.close()
+                        JavaFile(dbFile.path + "-wal").delete()
+                        JavaFile(dbFile.path + "-shm").delete()
+                        tempFile.copyTo(dbFile, overwrite = true)
+                        tempFile.delete()
+                    }
+                    
+                    if (backupDeSeguranca.exists()) backupDeSeguranca.delete()
+                    
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    if (backupDeSeguranca.exists()) {
+                        backupDeSeguranca.copyTo(dbFile, overwrite = true)
+                        backupDeSeguranca.delete()
+                    }
+                    throw e
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Erro no download de backup da nuvem")
                 Result.failure(e)
@@ -301,17 +252,9 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
             val folderPhotosId = getOrCreateFolder(service, "photos", folderEmpregoId)
 
-            // Busca apenas fotos que ainda não foram sincronizadas
-            val fotosNaoSincronizadas =
-                database.fotoComprovanteDao().buscarNaoSincronizadasPorEmprego(empregoId)
-            if (fotosNaoSincronizadas.isEmpty()) {
-                Timber.d("Nenhuma foto pendente de sincronização")
-                return@withContext Result.success(Unit)
-            }
+            val fotosNaoSincronizadas = database.fotoComprovanteDao().buscarNaoSincronizadasPorEmprego(empregoId)
+            if (fotosNaoSincronizadas.isEmpty()) return@withContext Result.success(Unit)
 
-            Timber.d("Iniciando sincronização de ${fotosNaoSincronizadas.size} fotos")
-
-            // Agrupar arquivos por Ano/Mes para reduzir chamadas de criação de pasta
             val fotosAgrupadas = fotosNaoSincronizadas.groupBy {
                 val data = it.data
                 "${data.year}/${data.monthValue.toString().padStart(2, '0')}"
@@ -325,33 +268,23 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 fotos.forEach { fotoEntity ->
                     try {
                         val fotoFile = JavaFile(context.filesDir, fotoEntity.fotoPath)
-                        if (!fotoFile.exists()) {
-                            Timber.w("Arquivo de foto não encontrado localmente: ${fotoEntity.fotoPath}")
-                            return@forEach
-                        }
+                        if (!fotoFile.exists()) return@forEach
 
-                        // Verifica se o arquivo já existe na nuvem por nome para evitar duplicatas acidentais
                         if (!fileQueryExists(service, fotoFile.name, folderMesId)) {
                             val fileMetadata = File().apply {
                                 name = fotoFile.name
                                 parents = listOf(folderMesId)
                             }
                             val mediaContent = FileContent("image/jpeg", fotoFile)
-                            val uploadedFile = service.files().create(fileMetadata, mediaContent)
-                                .setFields("id")
-                                .execute()
+                            val uploadedFile = service.files().create(fileMetadata, mediaContent).setFields("id").execute()
 
-                            // Marca como sincronizado no banco local
                             database.fotoComprovanteDao().marcarComoSincronizado(
                                 id = fotoEntity.id,
                                 sincronizadoEm = java.time.Instant.now(),
                                 cloudFileId = uploadedFile.id,
                                 atualizadoEm = java.time.Instant.now()
                             )
-                            Timber.d("Foto sincronizada com a nuvem: $diretorio/${fotoFile.name}")
                         } else {
-                            // Já existe na nuvem, apenas marca como sincronizado localmente se necessário
-                            // (Idealmente buscaríamos o ID real do arquivo existente)
                             val cloudId = service.files().list()
                                 .setQ("name = '${fotoFile.name}' and '$folderMesId' in parents")
                                 .setFields("files(id)")
@@ -365,13 +298,13 @@ class CloudBackupRepositoryImpl @Inject constructor(
                             )
                         }
                     } catch (e: Exception) {
-                        Timber.e(e, "Erro ao sincronizar foto individual: ${fotoEntity.fotoPath}")
+                        Timber.e(e, "Erro ao sincronizar foto individual")
                     }
                 }
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Erro crítico ao sincronizar fotos com a nuvem")
+            Timber.e(e, "Erro crítico ao sincronizar fotos")
             Result.failure(e)
         }
     }
@@ -392,19 +325,14 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
                 val folderBackupsId = getOrCreateFolder(service, "backups", folderEmpregoId)
 
-                val query =
-                    "'$folderBackupsId' in parents and (name contains 'meuponto_db') and trashed = false"
-                val result = service.files().list()
-                    .setQ(query)
-                    .setFields("files(id, name, size, modifiedTime, mimeType)")
-                    .setOrderBy("modifiedTime desc")
-                    .execute()
+                val query = "'$folderBackupsId' in parents and (name contains 'meuponto_db') and trashed = false"
+                val result = service.files().list().setQ(query).setFields("files(id, name, size, modifiedTime, mimeType)").setOrderBy("modifiedTime desc").execute()
 
                 val cloudFiles = result.files?.map { file ->
                     CloudFile(
                         id = file.id,
                         name = file.name,
-                        size = file.size.toLong(),
+                        size = file.getSize() ?: 0L,
                         modifiedTime = file.modifiedTime?.value ?: 0L,
                         mimeType = file.mimeType
                     )
@@ -423,13 +351,9 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 val service = driveService
                     ?: return@withContext Result.failure(Exception("Usuário não autenticado"))
                 service.files().delete(fileId).execute()
-
-                // Se após excluir este, não houver mais backups na nuvem para este emprego, limpa a data no DataStore
                 verificarELimparDataStoreNuvemSeVazio()
-
                 Result.success(Unit)
             } catch (e: Exception) {
-                Timber.e(e, "Erro ao excluir backup da nuvem: $fileId")
                 Result.failure(e)
             }
         }
@@ -449,15 +373,11 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val folderEmpregoId = getOrCreateFolder(service, hashEmprego, folderMeuPontoId)
             val folderBackupsId = getOrCreateFolder(service, "backups", folderEmpregoId)
 
-            val query =
-                "'$folderBackupsId' in parents and (name contains 'meuponto_db') and trashed = false"
+            val query = "'$folderBackupsId' in parents and (name contains 'meuponto_db') and trashed = false"
             val result = service.files().list().setQ(query).setFields("files(id)").execute()
 
-            result.files?.forEach { file ->
-                service.files().delete(file.id).execute()
-            }
+            result.files?.forEach { file -> service.files().delete(file.id).execute() }
 
-            // Limpa a data de backup em nuvem no DataStore
             val prefs = preferencesDataStore.preferenciasGlobais.first()
             preferencesDataStore.salvarBackup(
                 backupAutomaticoAtivo = prefs.backupAutomaticoAtivo,
@@ -467,7 +387,6 @@ class CloudBackupRepositoryImpl @Inject constructor(
 
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Erro ao excluir todos os backups da nuvem")
             Result.failure(e)
         }
     }
@@ -490,19 +409,51 @@ class CloudBackupRepositoryImpl @Inject constructor(
             signInClient.signOut()
             signInClient.revokeAccess()
 
-            // Limpa o estado de backup em nuvem nas preferências para refletir na UI imediatamente
             val prefs = preferencesDataStore.preferenciasGlobais.first()
             preferencesDataStore.salvarBackup(
                 backupAutomaticoAtivo = prefs.backupAutomaticoAtivo,
                 backupNuvemAtivo = false,
                 ultimoBackupNuvem = 0L,
-                contaGoogle = "" // Remove a conta salva
+                contaGoogle = ""
             )
 
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Erro ao desconectar conta Google")
             Result.failure(e)
         }
+    }
+
+    private fun limparBackupsAntigosNuvem(service: Drive, folderBackupsId: String) {
+        try {
+            val query = "'$folderBackupsId' in parents and name contains 'meuponto_db' and trashed = false"
+            val result = service.files().list().setQ(query).setOrderBy("modifiedTime desc").setFields("files(id, name)").execute()
+            val files = result.files ?: return
+            if (files.size > 5) {
+                files.drop(5).forEach { file -> service.files().delete(file.id).execute() }
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Erro ao limpar backups antigos")
+        }
+    }
+
+    private fun getOrCreateFolder(service: Drive, folderName: String, parentId: String): String {
+        val query = "name = '$folderName' and mimeType = 'application/vnd.google-apps.folder' and '$parentId' in parents and trashed = false"
+        val result = service.files().list().setQ(query).execute()
+
+        return result.files?.firstOrNull()?.id
+            ?: run {
+                val fileMetadata = File().apply {
+                    name = folderName
+                    mimeType = "application/vnd.google-apps.folder"
+                    parents = listOf(parentId)
+                }
+                service.files().create(fileMetadata).setFields("id").execute().id
+            }
+    }
+
+    private fun fileQueryExists(service: Drive, fileName: String, parentId: String): Boolean {
+        val query = "name = '$fileName' and '$parentId' in parents and trashed = false"
+        val result = service.files().list().setQ(query).setFields("files(id)").execute()
+        return !result.files.isNullOrEmpty()
     }
 }

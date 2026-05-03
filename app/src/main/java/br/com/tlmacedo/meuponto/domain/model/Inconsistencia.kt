@@ -1,4 +1,3 @@
-// Arquivo: app/src/main/java/br/com/tlmacedo/meuponto/domain/model/Inconsistencia.kt
 package br.com.tlmacedo.meuponto.domain.model
 
 /**
@@ -13,258 +12,157 @@ package br.com.tlmacedo.meuponto.domain.model
  *
  * @author Thiago
  * @since 2.0.0
+ * @updated 14.0.0 - Alinhado com a nova classificação de produto (BLOQUEANTE, PENDENTE, INFO)
  */
 enum class Inconsistencia(
     val descricao: String,
     val severidade: Severidade
 ) {
     // ========================================================================
-    // Inconsistências de Sequência
+    // BLOQUEANTES (Impede cálculos precisos ou fechamento)
     // ========================================================================
 
-    /**
-     * Ponto de saída registrado sem entrada correspondente.
-     */
-    SAIDA_SEM_ENTRADA(
-        descricao = "Saída registrada sem entrada correspondente",
-        severidade = Severidade.ALTA
+    ENTRADA_SEM_SAIDA_PASSADO(
+        descricao = "Entrada sem saída em dia passado",
+        severidade = Severidade.BLOQUEANTE
     ),
-
-    /**
-     * Duas entradas consecutivas sem saída entre elas.
-     */
-    ENTRADA_DUPLICADA(
-        descricao = "Entrada duplicada sem saída intermediária",
-        severidade = Severidade.ALTA
+    REGISTROS_IMPARES_PASSADO(
+        descricao = "Quantidade ímpar de registros em dia passado",
+        severidade = Severidade.BLOQUEANTE
     ),
-
-    /**
-     * Duas saídas consecutivas sem entrada entre elas.
-     */
-    SAIDA_DUPLICADA(
-        descricao = "Saída duplicada sem entrada intermediária",
-        severidade = Severidade.ALTA
-    ),
-
-    /**
-     * Dia finalizado com entrada aberta (sem saída correspondente).
-     */
-    ENTRADA_SEM_SAIDA(
-        descricao = "Entrada sem saída correspondente",
-        severidade = Severidade.ALTA
-    ),
-
-    // ========================================================================
-    // Inconsistências de Horário
-    // ========================================================================
-
-    /**
-     * Registro de ponto fora do horário esperado de trabalho.
-     */
-    FORA_HORARIO_ESPERADO(
-        descricao = "Registro fora do horário esperado de trabalho",
-        severidade = Severidade.MEDIA
-    ),
-
-    /**
-     * Registro com data/hora no futuro.
-     */
-    REGISTRO_NO_FUTURO(
-        descricao = "Registro com data/hora no futuro",
-        severidade = Severidade.ALTA
-    ),
-
-    /**
-     * Registro muito antigo (antes da data de admissão ou limite configurado).
-     */
-    REGISTRO_MUITO_ANTIGO(
-        descricao = "Registro anterior à data permitida",
-        severidade = Severidade.MEDIA
-    ),
-
-    // ========================================================================
-    // Inconsistências de Intervalo
-    // ========================================================================
-
-    /**
-     * Intervalo entre entrada e saída muito curto (possível erro).
-     */
-    INTERVALO_MUITO_CURTO(
-        descricao = "Intervalo de trabalho muito curto",
-        severidade = Severidade.BAIXA
-    ),
-
-    /**
-     * Intervalo entre entrada e saída muito longo (possível esquecimento).
-     */
-    INTERVALO_MUITO_LONGO(
-        descricao = "Intervalo de trabalho muito longo",
-        severidade = Severidade.MEDIA
-    ),
-
-    /**
-     * Intervalo de almoço menor que o mínimo legal (1 hora para jornada > 6h).
-     */
-    INTERVALO_ALMOCO_INSUFICIENTE(
-        descricao = "Intervalo de almoço menor que o mínimo legal",
-        severidade = Severidade.ALTA
-    ),
-
-    /**
-     * Intervalo interjornada menor que 11 horas (CLT).
-     */
-    INTERVALO_INTERJORNADA_INSUFICIENTE(
-        descricao = "Intervalo entre jornadas menor que 11 horas",
-        severidade = Severidade.ALTA
-    ),
-
-    // ========================================================================
-    // Inconsistências de Jornada
-    // ========================================================================
-
-    /**
-     * Jornada diária excedeu o limite configurado.
-     */
-    JORNADA_EXCEDIDA(
-        descricao = "Jornada diária excedeu o limite permitido",
-        severidade = Severidade.MEDIA
-    ),
-
-    /**
-     * Número ímpar de registros no dia (falta entrada ou saída).
-     */
     REGISTROS_IMPARES(
         descricao = "Número ímpar de registros no dia",
-        severidade = Severidade.ALTA
+        severidade = Severidade.BLOQUEANTE
     ),
-
-    /**
-     * Falta de registros em dia útil sem justificativa.
-     */
-    FALTA_SEM_JUSTIFICATIVA(
-        descricao = "Ausência de registros em dia útil",
-        severidade = Severidade.ALTA
+    REGISTRO_NO_FUTURO(
+        descricao = "Registro com data/hora no futuro",
+        severidade = Severidade.BLOQUEANTE
     ),
-
-    // ========================================================================
-    // Inconsistências de Localização
-    // ========================================================================
-
-    /**
-     * Registro feito fora da área geográfica permitida.
-     */
-    FORA_AREA_PERMITIDA(
-        descricao = "Registro fora da área geográfica permitida",
-        severidade = Severidade.MEDIA
+    SAIDA_SEM_ENTRADA(
+        descricao = "Saída registrada sem entrada correspondente",
+        severidade = Severidade.BLOQUEANTE
     ),
-
-    /**
-     * Localização não capturada quando era obrigatória.
-     */
-    LOCALIZACAO_NAO_CAPTURADA(
-        descricao = "Localização não foi capturada",
-        severidade = Severidade.BAIXA
+    ENTRADA_DUPLICADA(
+        descricao = "Entrada duplicada sem saída intermediária",
+        severidade = Severidade.BLOQUEANTE
+    ),
+    SAIDA_DUPLICADA(
+        descricao = "Saída duplicada sem entrada intermediária",
+        severidade = Severidade.BLOQUEANTE
+    ),
+    ENTRADA_SEM_SAIDA(
+        descricao = "Entrada sem saída correspondente",
+        severidade = Severidade.BLOQUEANTE
     ),
 
     // ========================================================================
-    // Inconsistências de Edição
+    // PENDENTE_JUSTIFICATIVA (Exige ação do usuário se ativado)
     // ========================================================================
 
-    /**
-     * Registro foi editado manualmente.
-     */
-    REGISTRO_EDITADO(
-        descricao = "Registro foi editado manualmente",
-        severidade = Severidade.BAIXA
+    INTERVALO_MINIMO_INSUFICIENTE(
+        descricao = "Intervalo menor que o mínimo configurado",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
     ),
-
-    /**
-     * Registro inserido retroativamente.
-     */
-    REGISTRO_RETROATIVO(
-        descricao = "Registro inserido retroativamente",
-        severidade = Severidade.BAIXA
+    INTERVALO_ALMOCO_INSUFICIENTE(
+        descricao = "Intervalo de almoço menor que o mínimo legal",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
     ),
-
-    /**
-     * Comprovante obrigatório não anexado ao registro.
-     */
+    TURNO_EXCEDIDO_6H(
+        descricao = "Turno de trabalho maior que 6 horas",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
+    ),
+    JORNADA_EXCEDIDA_10H(
+        descricao = "Jornada diária acima de 10 horas",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
+    ),
+    JORNADA_EXCEDIDA(
+        descricao = "Jornada diária excedeu o limite permitido",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
+    ),
+    DESCANSO_INTERJORNADA_INSUFICIENTE(
+        descricao = "Descanso entre jornadas menor que 11 horas",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
+    ),
+    INTERVALO_INTERJORNADA_INSUFICIENTE(
+        descricao = "Intervalo entre jornadas menor que 11 horas",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
+    ),
     COMPROVANTE_AUSENTE(
         descricao = "Comprovante obrigatório não anexado",
-        severidade = Severidade.MEDIA
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
+    ),
+    FORA_DO_GEOFENCING(
+        descricao = "Registro fora do raio de geofencing",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
+    ),
+    FORA_AREA_PERMITIDA(
+        descricao = "Registro fora da área geográfica permitida",
+        severidade = Severidade.PENDENTE_JUSTIFICATIVA
     ),
 
-    /**
-     * Registro realizado fora do raio de geofencing configurado.
-     */
-    FORA_DO_GEOFENCING(
-        descricao = "Fora do raio de geofencing",
-        severidade = Severidade.MEDIA
+    // ========================================================================
+    // INFO (Apenas informativo)
+    // ========================================================================
+
+    TRABALHO_EM_DIA_ESPECIAL(
+        descricao = "Trabalho em feriado ou dia de descanso",
+        severidade = Severidade.INFO
+    ),
+    SALDO_NEGATIVO(
+        descricao = "Saldo do dia está negativo",
+        severidade = Severidade.INFO
+    ),
+    JORNADA_REDUZIDA(
+        descricao = "Jornada menor que 8 horas",
+        severidade = Severidade.INFO
+    ),
+    REGISTRO_EDITADO(
+        descricao = "Registro foi editado manualmente",
+        severidade = Severidade.INFO
+    ),
+    REGISTRO_RETROATIVO(
+        descricao = "Registro inserido retroativamente",
+        severidade = Severidade.INFO
+    ),
+    FORA_HORARIO_ESPERADO(
+        descricao = "Registro fora do horário esperado de trabalho",
+        severidade = Severidade.INFO
+    ),
+    INTERVALO_MUITO_CURTO(
+        descricao = "Intervalo de trabalho muito curto",
+        severidade = Severidade.INFO
+    ),
+    INTERVALO_MUITO_LONGO(
+        descricao = "Intervalo de trabalho muito longo",
+        severidade = Severidade.INFO
+    ),
+    REGISTRO_MUITO_ANTIGO(
+        descricao = "Registro anterior à data permitida",
+        severidade = Severidade.INFO
+    ),
+    LOCALIZACAO_NAO_CAPTURADA(
+        descricao = "Localização não foi capturada",
+        severidade = Severidade.INFO
+    ),
+    FALTA_SEM_JUSTIFICATIVA(
+        descricao = "Ausência de registros em dia útil",
+        severidade = Severidade.INFO
     );
-
-    /**
-     * Verifica se a inconsistência é de alta severidade.
-     */
-    val isAlta: Boolean
-        get() = severidade == Severidade.ALTA
-
-    /**
-     * Verifica se a inconsistência é de média severidade.
-     */
-    val isMedia: Boolean
-        get() = severidade == Severidade.MEDIA
-
-    /**
-     * Verifica se a inconsistência é de baixa severidade.
-     */
-    val isBaixa: Boolean
-        get() = severidade == Severidade.BAIXA
-
-    /**
-     * Verifica se a inconsistência bloqueia o registro.
-     * Inconsistências de alta severidade impedem o salvamento.
-     */
-    val isBloqueante: Boolean
-        get() = severidade == Severidade.ALTA
 
     /**
      * Níveis de severidade das inconsistências.
      */
     enum class Severidade {
-        /**
-         * Inconsistência grave que impede o registro.
-         */
-        ALTA,
-
-        /**
-         * Inconsistência que gera alerta mas permite o registro.
-         */
-        MEDIA,
-
-        /**
-         * Inconsistência informativa apenas.
-         */
-        BAIXA
+        BLOQUEANTE,
+        PENDENTE_JUSTIFICATIVA,
+        INFO
     }
 
-    companion object {
-        /**
-         * Retorna todas as inconsistências de uma determinada severidade.
-         *
-         * @param severidade Nível de severidade para filtrar
-         * @return Lista de inconsistências do nível especificado
-         */
-        fun porSeveridade(severidade: Severidade): List<Inconsistencia> {
-            return entries.filter { it.severidade == severidade }
-        }
+    val isBloqueante: Boolean get() = severidade == Severidade.BLOQUEANTE
+    val isPendente: Boolean get() = severidade == Severidade.PENDENTE_JUSTIFICATIVA
+    val isInfo: Boolean get() = severidade == Severidade.INFO
 
-        /**
-         * Retorna todas as inconsistências bloqueantes.
-         *
-         * @return Lista de inconsistências que impedem o registro
-         */
-        fun bloqueantes(): List<Inconsistencia> {
-            return entries.filter { it.isBloqueante }
-        }
+    companion object {
+        fun bloqueantes() = entries.filter { it.isBloqueante }
     }
 }

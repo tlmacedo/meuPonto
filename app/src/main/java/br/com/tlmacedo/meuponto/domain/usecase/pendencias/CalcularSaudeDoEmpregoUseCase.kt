@@ -7,6 +7,10 @@ import javax.inject.Inject
 
 /**
  * Calcula um score de saúde para o emprego baseado em pendências e backup.
+ *
+ * @author Thiago
+ * @since 14.0.0
+ * @updated 14.1.0 - Adicionado suporte a período específico para o cálculo de pendências
  */
 class CalcularSaudeDoEmpregoUseCase @Inject constructor(
     private val listarPendenciasPontoUseCase: ListarPendenciasPontoUseCase,
@@ -19,14 +23,14 @@ class CalcularSaudeDoEmpregoUseCase @Inject constructor(
         val percentualSaude: Int // 0-100
     )
 
-    suspend operator fun invoke(empregoId: Long): SaudeEmprego {
-        val hoje = LocalDate.now()
-        val mesAtual = YearMonth.from(hoje)
-        
+    suspend operator fun invoke(
+        empregoId: Long,
+        mesReferencia: YearMonth = YearMonth.now()
+    ): SaudeEmprego {
         val pendencias = listarPendenciasPontoUseCase(
             empregoId = empregoId,
-            dataInicio = mesAtual.atDay(1),
-            dataFim = mesAtual.atEndOfMonth()
+            dataInicio = mesReferencia.atDay(1),
+            dataFim = mesReferencia.atEndOfMonth()
         )
         
         val backup = verificarBackupSaudavelUseCase()
@@ -34,15 +38,16 @@ class CalcularSaudeDoEmpregoUseCase @Inject constructor(
         // Lógica de Score
         var score = 100
         
-        // Cada pendência reduz 5 pontos (máx 40)
+        // Cada dia com pendência reduz 5 pontos (máx 40)
         score -= (pendencias.total * 5).coerceAtMost(40)
         
-        // Bloqueantes tiram 30 pontos fixos
-        if (pendencias.bloqueantes.isNotEmpty()) {
+        // Se houver bloqueados tiram 30 pontos fixos
+        if (pendencias.bloqueados.isNotEmpty()) {
             score -= 30
         }
         
         // Backup atrasado tira 20 pontos, nunca feito tira 40
+        // Nota: O backup é um estado GLOBAL, não do mês.
         when (backup) {
             is VerificarBackupSaudavelUseCase.StatusBackup.Atrasado -> score -= 20
             is VerificarBackupSaudavelUseCase.StatusBackup.NuncaRealizado -> score -= 40
@@ -51,7 +56,7 @@ class CalcularSaudeDoEmpregoUseCase @Inject constructor(
         
         return SaudeEmprego(
             totalPendenciasMes = pendencias.total,
-            temBloqueantes = pendencias.bloqueantes.isNotEmpty(),
+            temBloqueantes = pendencias.bloqueados.isNotEmpty(),
             backupStatus = backup,
             percentualSaude = score.coerceIn(0, 100)
         )
