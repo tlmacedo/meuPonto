@@ -185,6 +185,7 @@ sealed interface HomeAction {
 
     data object AtualizarHora : HomeAction
     data object LimparErro : HomeAction
+    data class SetErroInline(val mensagem: String?) : HomeAction
     data object RecarregarDados : HomeAction
     data class MostrarMensagem(val mensagem: String) : HomeAction
 

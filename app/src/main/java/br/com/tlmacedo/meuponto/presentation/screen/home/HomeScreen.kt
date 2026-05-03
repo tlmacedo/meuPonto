@@ -79,8 +79,11 @@ import br.com.tlmacedo.meuponto.domain.model.ResumoDia
 import br.com.tlmacedo.meuponto.domain.model.ausencia.TipoAusencia
 import br.com.tlmacedo.meuponto.domain.repository.AusenciaRepository
 import br.com.tlmacedo.meuponto.domain.usecase.feriado.VerificarDiaEspecialUseCase
+import br.com.tlmacedo.meuponto.domain.model.inconsistencia.StatusDiaResumo
+import br.com.tlmacedo.meuponto.presentation.components.AlertaInlineCard
 import br.com.tlmacedo.meuponto.presentation.components.AusenciaBanner
 import br.com.tlmacedo.meuponto.presentation.components.CicloBanner
+import br.com.tlmacedo.meuponto.presentation.components.TipoAlertaInline
 import br.com.tlmacedo.meuponto.presentation.components.EdicaoModal
 import br.com.tlmacedo.meuponto.presentation.components.ExclusaoModal
 import br.com.tlmacedo.meuponto.presentation.components.FeriadoBanner
@@ -161,10 +164,12 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is HomeUiEvent.MostrarMensagem, is HomeUiEvent.MostrarErro -> {
-                    val mensagem =
-                        if (event is HomeUiEvent.MostrarMensagem) event.mensagem else (event as HomeUiEvent.MostrarErro).mensagem
-                    snackbarHostState.showSnackbar(mensagem)
+                is HomeUiEvent.MostrarMensagem -> {
+                    snackbarHostState.showSnackbar(event.mensagem)
+                }
+
+                is HomeUiEvent.MostrarErro -> {
+                    viewModel.onAction(HomeAction.SetErroInline(event.mensagem))
                 }
 
                 is HomeUiEvent.NavegarParaHistorico -> onNavigateToHistorico()
@@ -739,6 +744,37 @@ internal fun HomeContent(
                         onAction(HomeAction.SolicitarExcluirAusencia(ausencia))
                     }
                 )
+            }
+
+            // Alerta de erro inline (dismissável — vem de MostrarErro)
+            uiState.erro?.let { erro ->
+                item(key = "erro_inline") {
+                    AlertaInlineCard(
+                        tipo = TipoAlertaInline.BLOQUEANTE,
+                        mensagem = erro,
+                        onDismiss = { onAction(HomeAction.LimparErro) }
+                    )
+                }
+            }
+
+            // Inconsistências do dia (persistentes — derivadas do resumoDia)
+            val inconsistencias = uiState.resumoDia.listaInconsistencias
+            if (inconsistencias.isNotEmpty() && !uiState.isFuturo) {
+                val tipoAlerta = when (uiState.resumoDia.status) {
+                    StatusDiaResumo.FALTA -> TipoAlertaInline.BLOQUEANTE
+                    StatusDiaResumo.PENDENTE_JUSTIFICATIVA -> TipoAlertaInline.PENDENTE
+                    StatusDiaResumo.NEGATIVO -> TipoAlertaInline.ATENCAO
+                    else -> TipoAlertaInline.ATENCAO
+                }
+                items(
+                    items = inconsistencias,
+                    key = { msg -> "inconsistencia_$msg" }
+                ) { msg ->
+                    AlertaInlineCard(
+                        tipo = tipoAlerta,
+                        mensagem = msg
+                    )
+                }
             }
 
             if (

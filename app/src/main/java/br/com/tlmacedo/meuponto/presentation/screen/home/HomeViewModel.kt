@@ -201,6 +201,7 @@ class HomeViewModel @Inject constructor(
             is HomeAction.NavegarParaConfiguracoes -> navegarParaConfiguracoes()
             is HomeAction.AtualizarHora -> atualizarHora()
             is HomeAction.LimparErro -> limparErro()
+            is HomeAction.SetErroInline -> _uiState.update { it.copy(erro = action.mensagem) }
             is HomeAction.RecarregarDados -> recarregarDados()
             is HomeAction.MostrarMensagem -> {
                 viewModelScope.launch {

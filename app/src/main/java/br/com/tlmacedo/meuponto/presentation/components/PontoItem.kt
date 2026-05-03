@@ -1,6 +1,7 @@
 package br.com.tlmacedo.meuponto.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,9 +14,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,6 +69,8 @@ fun PontoItem(
     val corFundo = if (isEntrada) EntradaBg else SaidaBg
     val icone = if (isEntrada) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
 
+    val corSparkle = MaterialTheme.colorScheme.tertiary
+
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -76,72 +86,186 @@ fun PontoItem(
             onVerFoto = onVerFoto,
             onVerLocalizacao = onVerLocalizacao
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Ícone e Categoria
-                Box(
-                    contentAlignment = Alignment.Center,
+            Column {
+                Row(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(corFundo)
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = icone,
-                        contentDescription = tipoPonto.descricao,
-                        tint = corPrimaria,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.size(16.dp))
-
-                // Informações do Ponto
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = tipoPonto.descricao,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = corPrimaria
-                    )
-
-                    if (!ponto.observacao.isNullOrBlank()) {
-                        Text(
-                            text = ponto.observacao,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    // Ícone de tipo (entrada/saída)
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(corFundo)
+                    ) {
+                        Icon(
+                            imageVector = icone,
+                            contentDescription = tipoPonto.descricao,
+                            tint = corPrimaria,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
-                }
 
-                // Horários (Real e Considerado)
-                Column(horizontalAlignment = Alignment.End) {
-                    val horaReal = ponto.dataHora.toLocalTime().format(formatadorHora)
-                    val horaConsiderada = ponto.horaConsiderada.format(formatadorHora)
+                    Spacer(modifier = Modifier.size(12.dp))
 
-                    if (horaConsiderada != horaReal) {
+                    // Label + observação + NSR
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = horaReal,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            textDecoration = TextDecoration.LineThrough
-                        )
-                        Text(
-                            text = horaConsiderada,
-                            style = MaterialTheme.typography.titleLarge,
+                            text = tipoPonto.descricao,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = corPrimaria
                         )
-                    } else {
-                        Text(
-                            text = horaReal,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+
+                        if (!ponto.observacao.isNullOrBlank()) {
+                            Text(
+                                text = ponto.observacao,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (!ponto.nsr.isNullOrBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = "NSR ${ponto.nsr}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (ponto.nsrAutoFilled) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AutoAwesome,
+                                        contentDescription = "Preenchido por OCR",
+                                        tint = corSparkle,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Hora real / considerada + sparkle OCR
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        val horaReal = ponto.dataHora.toLocalTime().format(formatadorHora)
+                        val horaConsiderada = ponto.horaConsiderada.format(formatadorHora)
+
+                        if (horaConsiderada != horaReal) {
+                            Text(
+                                text = horaReal,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                textDecoration = TextDecoration.LineThrough
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = horaConsiderada,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = corPrimaria
+                                )
+                                if (ponto.horaAutoFilled) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AutoAwesome,
+                                        contentDescription = "Horário detectado por OCR",
+                                        tint = corSparkle,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = horaReal,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                if (ponto.horaAutoFilled) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AutoAwesome,
+                                        contentDescription = "Horário detectado por OCR",
+                                        tint = corSparkle,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Barra de ações rápidas
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (ponto.temLocalizacao) {
+                        IconButton(
+                            onClick = { onVerLocalizacao(ponto) },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "Ver localização",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    if (ponto.temFotoComprovante) {
+                        IconButton(
+                            onClick = { onVerFoto(ponto) },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Photo,
+                                contentDescription = "Ver comprovante",
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = { onEditar(ponto) },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = { onExcluir(ponto) },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Excluir",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
