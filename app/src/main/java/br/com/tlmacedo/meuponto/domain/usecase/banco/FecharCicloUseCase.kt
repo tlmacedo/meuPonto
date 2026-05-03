@@ -37,7 +37,8 @@ class FecharCicloUseCase @Inject constructor(
     private val versaoJornadaRepository: VersaoJornadaRepository,
     private val fechamentoRepository: FechamentoPeriodoRepository,
     private val ajusteSaldoRepository: AjusteSaldoRepository,
-    private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase
+    private val calcularBancoHorasUseCase: CalcularBancoHorasUseCase,
+    private val notificarTransicaoCiclo: NotificarTransicaoCicloUseCase
 ) {
 
     private val formatadorData = DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -104,6 +105,8 @@ class FecharCicloUseCase @Inject constructor(
         )
         val fechamentoId = fechamentoRepository.inserir(fechamento)
         Timber.d("Fechamento criado com ID: $fechamentoId")
+
+        notificarTransicaoCiclo(listOf(fechamento.copy(id = fechamentoId)))
 
         // 2. Criar ajuste de zeramento (SEMPRE, mesmo que saldo seja zero)
         val ajusteZeramento = AjusteSaldo(

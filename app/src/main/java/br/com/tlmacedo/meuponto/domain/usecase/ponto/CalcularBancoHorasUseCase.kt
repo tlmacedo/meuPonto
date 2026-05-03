@@ -329,7 +329,11 @@ class CalcularBancoHorasUseCase @Inject constructor(
                 toleranciaIntervaloGlobal = toleranciaGlobal
             )
 
-            if (resumoCompleto.resumoDia.temRegistro) {
+            // Falta injustificada não gera pontos, mas debita a jornada completa do banco
+            val deveContabilizarSaldo = resumoCompleto.resumoDia.temRegistro
+                || resumoCompleto.isFaltaInjustificada
+
+            if (deveContabilizarSaldo) {
                 if (resumoCompleto.jornadaCompleta) diasTrabalhados++
                 if (ausenciasDoDia.isNotEmpty()) diasComAusencia++
 
@@ -338,8 +342,9 @@ class CalcularBancoHorasUseCase @Inject constructor(
                 esperadoTotal = esperadoTotal.plus(resumoCompleto.cargaHorariaEfetiva)
                 saldoTotal = saldoTotal.plus(resumoCompleto.saldoDia)
             } else {
+                // Só conta como dia útil sem registro quando não há ausência registrada
                 val jornadaEsperada = resumoCompleto.cargaHorariaEfetivaMinutos
-                if (jornadaEsperada > 0 && feriadoDoDia == null) {
+                if (jornadaEsperada > 0 && feriadoDoDia == null && ausenciasDoDia.isEmpty()) {
                     diasUteisSemRegistro++
                 }
             }

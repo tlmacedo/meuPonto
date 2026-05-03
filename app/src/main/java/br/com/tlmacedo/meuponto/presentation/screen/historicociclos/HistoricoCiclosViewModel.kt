@@ -74,9 +74,13 @@ class HistoricoCiclosViewModel @Inject constructor(
                     // Calcular duração do ciclo baseado na configuração
                     val duracaoCicloDias = calcularDuracaoCicloDias(versaoVigente)
 
-                    // Buscar todos os fechamentos de banco de horas
+                    // Buscar todos os fechamentos de banco de horas (manual e automático de ciclo)
                     val fechamentos = fechamentoPeriodoRepository
-                        .buscarPorEmpregoIdETipo(emprego.id, TipoFechamento.BANCO_HORAS)
+                        .buscarPorEmpregoId(emprego.id)
+                        .filter {
+                            it.tipo == TipoFechamento.BANCO_HORAS ||
+                                    it.tipo == TipoFechamento.CICLO_BANCO_AUTOMATICO
+                        }
                         .sortedByDescending { it.dataFimPeriodo }
 
                     // Construir lista de ciclos
